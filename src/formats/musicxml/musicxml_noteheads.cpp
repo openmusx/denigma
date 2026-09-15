@@ -95,10 +95,10 @@ void applyNoteheadData(
         // Absent the filled attribute, MusicXML draws the notehead from the note's duration: hollow
         // for a half note and longer, solid for a quarter note and shorter. Write the attribute only
         // where Finale's glyph disagrees with that default, as Finale's own export does.
-        const bool defaultsToFilled = note.durationData.durationName >= mx::api::DurationName::quarter;
-        if (classification.fill == Fill::Filled && !defaultsToFilled) {
+        const auto noteType = std::get<0>(noteInfo.getEntryInfo()->getEntry()->calcDurationInfo());
+        if (classification.calcFillOverridesDefault(noteType) && classification.fill == Fill::Filled) {
             note.noteheadFilled = mx::api::Bool::yes;
-        } else if (classification.fill == Fill::Unfilled && defaultsToFilled) {
+        } else if (classification.calcFillOverridesDefault(noteType) && classification.fill == Fill::Unfilled) {
             note.noteheadFilled = mx::api::Bool::no;
         }
 

@@ -263,6 +263,7 @@ public:
     PathSet scheduledInputPaths;
     std::function<void(MessageSeverity severity, std::string_view message)> logCallback;
     ConversionResult* conversionResult{};
+    GapCollector* gapCollector{};
 
     // Specific options for `massage` command
     bool refloatRests{ true };
@@ -277,6 +278,7 @@ public:
     std::optional<std::string> mnxSchema;
     bool includeTempoTool{};
     bool mnxSplitInstruments{};
+    bool writeGapReport{};
 
     // Specific options for `export --svg` command
     std::vector<musx::dom::Cmper> svgShapeDefs;

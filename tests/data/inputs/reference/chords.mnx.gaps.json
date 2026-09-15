@@ -1,0 +1,2200 @@
+{
+  "schemaVersion": 1,
+  "producer": {
+    "name": "denigma",
+    "version": "TEST",
+    "commit": "<commit>"
+  },
+  "gaps": [
+    {
+      "anchor": "P1.m1",
+      "position": {
+        "numerator": 0,
+        "denominator": 1
+      },
+      "type": "chord-symbol",
+      "chord": {
+        "root": {
+          "step": "C",
+          "alteration": 0
+        },
+        "rootLowerCase": false,
+        "showRoot": true,
+        "showSuffix": false,
+        "suffix": {
+          "strings": [],
+          "suffixText": "",
+          "degrees": [],
+          "parenthesizeDegrees": false,
+          "stackDegrees": false,
+          "hasOuterParentheses": false,
+          "hasUnrecognizedGlyphs": false,
+          "quality": "major"
+        }
+      }
+    },
+    {
+      "anchor": "P1.m1",
+      "position": {
+        "numerator": 1,
+        "denominator": 2
+      },
+      "type": "chord-symbol",
+      "chord": {
+        "root": {
+          "step": "C",
+          "alteration": 0
+        },
+        "rootLowerCase": false,
+        "showRoot": true,
+        "showSuffix": true,
+        "suffix": {
+          "strings": [
+            {
+              "text": "m",
+              "position": "inline"
+            }
+          ],
+          "suffixText": "m",
+          "degrees": [],
+          "parenthesizeDegrees": false,
+          "stackDegrees": false,
+          "hasOuterParentheses": false,
+          "hasUnrecognizedGlyphs": false,
+          "quality": "minor"
+        }
+      }
+    },
+    {
+      "anchor": "P1.m2",
+      "position": {
+        "numerator": 0,
+        "denominator": 1
+      },
+      "type": "chord-symbol",
+      "chord": {
+        "root": {
+          "step": "C",
+          "alteration": 0
+        },
+        "rootLowerCase": false,
+        "showRoot": true,
+        "showSuffix": true,
+        "suffix": {
+          "strings": [
+            {
+              "text": "5",
+              "position": "inline"
+            }
+          ],
+          "suffixText": "5",
+          "degrees": [],
+          "parenthesizeDegrees": false,
+          "stackDegrees": false,
+          "hasOuterParentheses": false,
+          "hasUnrecognizedGlyphs": false,
+          "quality": "power"
+        }
+      }
+    },
+    {
+      "anchor": "P1.m2",
+      "position": {
+        "numerator": 1,
+        "denominator": 2
+      },
+      "type": "chord-symbol",
+      "chord": {
+        "root": {
+          "step": "C",
+          "alteration": 0
+        },
+        "rootLowerCase": false,
+        "showRoot": true,
+        "showSuffix": true,
+        "suffix": {
+          "strings": [
+            {
+              "text": "6",
+              "position": "inline"
+            }
+          ],
+          "suffixText": "6",
+          "degrees": [],
+          "parenthesizeDegrees": false,
+          "stackDegrees": false,
+          "hasOuterParentheses": false,
+          "hasUnrecognizedGlyphs": false,
+          "quality": "major-sixth"
+        }
+      }
+    },
+    {
+      "anchor": "P1.m3",
+      "position": {
+        "numerator": 0,
+        "denominator": 1
+      },
+      "type": "chord-symbol",
+      "chord": {
+        "root": {
+          "step": "D",
+          "alteration": 0
+        },
+        "rootLowerCase": false,
+        "showRoot": true,
+        "showSuffix": true,
+        "suffix": {
+          "strings": [
+            {
+              "text": "m6",
+              "position": "inline"
+            }
+          ],
+          "suffixText": "m6",
+          "degrees": [],
+          "parenthesizeDegrees": false,
+          "stackDegrees": false,
+          "hasOuterParentheses": false,
+          "hasUnrecognizedGlyphs": false,
+          "quality": "minor-sixth"
+        }
+      }
+    },
+    {
+      "anchor": "P1.m3",
+      "position": {
+        "numerator": 1,
+        "denominator": 2
+      },
+      "type": "chord-symbol",
+      "chord": {
+        "root": {
+          "step": "D",
+          "alteration": 0
+        },
+        "rootLowerCase": false,
+        "showRoot": true,
+        "showSuffix": true,
+        "suffix": {
+          "strings": [
+            {
+              "text": "7",
+              "position": "inline"
+            }
+          ],
+          "suffixText": "7",
+          "degrees": [],
+          "parenthesizeDegrees": false,
+          "stackDegrees": false,
+          "hasOuterParentheses": false,
+          "hasUnrecognizedGlyphs": false,
+          "quality": "dominant"
+        }
+      }
+    },
+    {
+      "anchor": "P1.m4",
+      "position": {
+        "numerator": 0,
+        "denominator": 1
+      },
+      "type": "chord-symbol",
+      "chord": {
+        "root": {
+          "step": "B",
+          "alteration": -1
+        },
+        "rootLowerCase": false,
+        "showRoot": true,
+        "showSuffix": true,
+        "suffix": {
+          "strings": [
+            {
+              "text": "maj7",
+              "position": "inline"
+            }
+          ],
+          "suffixText": "maj7",
+          "degrees": [],
+          "parenthesizeDegrees": false,
+          "stackDegrees": false,
+          "hasOuterParentheses": false,
+          "hasUnrecognizedGlyphs": false,
+          "quality": "major-seventh"
+        }
+      }
+    },
+    {
+      "anchor": "P1.m4",
+      "position": {
+        "numerator": 1,
+        "denominator": 2
+      },
+      "type": "chord-symbol",
+      "chord": {
+        "root": {
+          "step": "A",
+          "alteration": 0
+        },
+        "rootLowerCase": false,
+        "showRoot": true,
+        "showSuffix": true,
+        "suffix": {
+          "strings": [
+            {
+              "text": "m7",
+              "position": "inline"
+            }
+          ],
+          "suffixText": "m7",
+          "degrees": [],
+          "parenthesizeDegrees": false,
+          "stackDegrees": false,
+          "hasOuterParentheses": false,
+          "hasUnrecognizedGlyphs": false,
+          "quality": "minor-seventh"
+        }
+      }
+    },
+    {
+      "anchor": "P1.m5",
+      "position": {
+        "numerator": 0,
+        "denominator": 1
+      },
+      "type": "chord-symbol",
+      "chord": {
+        "root": {
+          "step": "E",
+          "alteration": 0
+        },
+        "rootLowerCase": false,
+        "showRoot": true,
+        "showSuffix": true,
+        "suffix": {
+          "strings": [
+            {
+              "text": "m",
+              "position": "inline"
+            },
+            {
+              "text": "(",
+              "position": "inline"
+            },
+            {
+              "text": "maj7",
+              "position": "inline"
+            },
+            {
+              "text": ")",
+              "position": "inline"
+            }
+          ],
+          "suffixText": "m(maj7)",
+          "degrees": [],
+          "parenthesizeDegrees": false,
+          "stackDegrees": false,
+          "hasOuterParentheses": false,
+          "hasUnrecognizedGlyphs": false,
+          "quality": "major-minor"
+        }
+      }
+    },
+    {
+      "anchor": "P1.m5",
+      "position": {
+        "numerator": 1,
+        "denominator": 2
+      },
+      "type": "chord-symbol",
+      "chord": {
+        "root": {
+          "step": "C",
+          "alteration": 0
+        },
+        "rootLowerCase": false,
+        "showRoot": true,
+        "showSuffix": true,
+        "suffix": {
+          "strings": [
+            {
+              "text": "°",
+              "position": "inline"
+            }
+          ],
+          "suffixText": "°",
+          "degrees": [],
+          "parenthesizeDegrees": false,
+          "stackDegrees": false,
+          "hasOuterParentheses": false,
+          "hasUnrecognizedGlyphs": false,
+          "quality": "diminished"
+        }
+      }
+    },
+    {
+      "anchor": "P1.m6",
+      "position": {
+        "numerator": 0,
+        "denominator": 1
+      },
+      "type": "chord-symbol",
+      "chord": {
+        "root": {
+          "step": "G",
+          "alteration": 0
+        },
+        "rootLowerCase": false,
+        "showRoot": true,
+        "showSuffix": true,
+        "suffix": {
+          "strings": [
+            {
+              "text": "dim7",
+              "position": "inline"
+            }
+          ],
+          "suffixText": "dim7",
+          "degrees": [],
+          "parenthesizeDegrees": false,
+          "stackDegrees": false,
+          "hasOuterParentheses": false,
+          "hasUnrecognizedGlyphs": false,
+          "quality": "diminished-seventh"
+        }
+      }
+    },
+    {
+      "anchor": "P1.m6",
+      "position": {
+        "numerator": 1,
+        "denominator": 2
+      },
+      "type": "chord-symbol",
+      "chord": {
+        "root": {
+          "step": "G",
+          "alteration": 0
+        },
+        "rootLowerCase": false,
+        "showRoot": true,
+        "showSuffix": true,
+        "suffix": {
+          "strings": [
+            {
+              "text": "°",
+              "position": "inline"
+            },
+            {
+              "text": "7",
+              "position": "inline"
+            }
+          ],
+          "suffixText": "°7",
+          "degrees": [],
+          "parenthesizeDegrees": false,
+          "stackDegrees": false,
+          "hasOuterParentheses": false,
+          "hasUnrecognizedGlyphs": false,
+          "quality": "diminished-seventh"
+        }
+      }
+    },
+    {
+      "anchor": "P1.m7",
+      "position": {
+        "numerator": 0,
+        "denominator": 1
+      },
+      "type": "chord-symbol",
+      "chord": {
+        "root": {
+          "step": "C",
+          "alteration": 0
+        },
+        "rootLowerCase": false,
+        "showRoot": true,
+        "showSuffix": true,
+        "suffix": {
+          "strings": [
+            {
+              "text": "m7",
+              "position": "inline"
+            },
+            {
+              "text": "(",
+              "position": "inline"
+            },
+            {
+              "text": "♭",
+              "position": "inline"
+            },
+            {
+              "text": "5",
+              "position": "inline"
+            },
+            {
+              "text": ")",
+              "position": "inline"
+            }
+          ],
+          "suffixText": "m7(♭5)",
+          "degrees": [
+            {
+              "value": 5,
+              "alteration": -1,
+              "type": "alter",
+              "impliedByText": false
+            }
+          ],
+          "parenthesizeDegrees": true,
+          "stackDegrees": false,
+          "hasOuterParentheses": false,
+          "hasUnrecognizedGlyphs": false,
+          "quality": "minor-seventh"
+        }
+      }
+    },
+    {
+      "anchor": "P1.m8",
+      "position": {
+        "numerator": 0,
+        "denominator": 1
+      },
+      "type": "chord-symbol",
+      "chord": {
+        "root": {
+          "step": "A",
+          "alteration": -1
+        },
+        "rootLowerCase": false,
+        "showRoot": true,
+        "showSuffix": true,
+        "suffix": {
+          "strings": [
+            {
+              "text": "7sus4-3",
+              "position": "inline"
+            }
+          ],
+          "suffixText": "7sus4-3",
+          "degrees": [
+            {
+              "value": 7,
+              "alteration": 0,
+              "type": "add",
+              "impliedByText": true
+            }
+          ],
+          "parenthesizeDegrees": false,
+          "stackDegrees": false,
+          "hasOuterParentheses": false,
+          "hasUnrecognizedGlyphs": false,
+          "quality": "suspended-fourth"
+        }
+      }
+    },
+    {
+      "anchor": "P1.m8",
+      "position": {
+        "numerator": 1,
+        "denominator": 2
+      },
+      "type": "chord-symbol",
+      "chord": {
+        "root": {
+          "step": "C",
+          "alteration": 0
+        },
+        "rootLowerCase": false,
+        "showRoot": true,
+        "showSuffix": true,
+        "suffix": {
+          "strings": [
+            {
+              "text": "(",
+              "position": "inline"
+            },
+            {
+              "text": "add9",
+              "position": "above"
+            },
+            {
+              "text": "omit3)",
+              "position": "inline"
+            }
+          ],
+          "suffixText": "(add9omit3)",
+          "degrees": [
+            {
+              "value": 9,
+              "alteration": 0,
+              "type": "add",
+              "impliedByText": false
+            },
+            {
+              "value": 3,
+              "alteration": 0,
+              "type": "remove",
+              "impliedByText": false
+            }
+          ],
+          "parenthesizeDegrees": true,
+          "stackDegrees": true,
+          "hasOuterParentheses": true,
+          "hasUnrecognizedGlyphs": false,
+          "quality": "major"
+        }
+      }
+    },
+    {
+      "anchor": "P1.m9",
+      "position": {
+        "numerator": 0,
+        "denominator": 1
+      },
+      "type": "chord-symbol",
+      "chord": {
+        "root": {
+          "step": "D",
+          "alteration": 0
+        },
+        "rootLowerCase": false,
+        "showRoot": true,
+        "showSuffix": true,
+        "suffix": {
+          "strings": [
+            {
+              "text": "11",
+              "position": "inline"
+            }
+          ],
+          "suffixText": "11",
+          "degrees": [],
+          "parenthesizeDegrees": false,
+          "stackDegrees": false,
+          "hasOuterParentheses": false,
+          "hasUnrecognizedGlyphs": false,
+          "quality": "dominant-11th"
+        }
+      }
+    },
+    {
+      "anchor": "P1.m9",
+      "position": {
+        "numerator": 1,
+        "denominator": 2
+      },
+      "type": "chord-symbol",
+      "chord": {
+        "root": {
+          "step": "D",
+          "alteration": 0
+        },
+        "rootLowerCase": false,
+        "showRoot": true,
+        "showSuffix": true,
+        "suffix": {
+          "strings": [
+            {
+              "text": "13",
+              "position": "inline"
+            }
+          ],
+          "suffixText": "13",
+          "degrees": [],
+          "parenthesizeDegrees": false,
+          "stackDegrees": false,
+          "hasOuterParentheses": false,
+          "hasUnrecognizedGlyphs": false,
+          "quality": "dominant-13th"
+        }
+      }
+    },
+    {
+      "anchor": "P1.m10",
+      "position": {
+        "numerator": 0,
+        "denominator": 1
+      },
+      "type": "chord-symbol",
+      "chord": {
+        "root": {
+          "step": "C",
+          "alteration": 0
+        },
+        "rootLowerCase": false,
+        "showRoot": true,
+        "showSuffix": true,
+        "suffix": {
+          "strings": [
+            {
+              "text": "7",
+              "position": "inline"
+            },
+            {
+              "text": "(",
+              "position": "inline"
+            },
+            {
+              "text": "♭",
+              "position": "inline"
+            },
+            {
+              "text": "13",
+              "position": "inline"
+            },
+            {
+              "text": ")",
+              "position": "inline"
+            }
+          ],
+          "suffixText": "7(♭13)",
+          "degrees": [
+            {
+              "value": 13,
+              "alteration": -1,
+              "type": "add",
+              "impliedByText": false
+            }
+          ],
+          "parenthesizeDegrees": true,
+          "stackDegrees": false,
+          "hasOuterParentheses": false,
+          "hasUnrecognizedGlyphs": false,
+          "quality": "dominant"
+        }
+      }
+    },
+    {
+      "anchor": "P1.m10",
+      "position": {
+        "numerator": 1,
+        "denominator": 2
+      },
+      "type": "chord-symbol",
+      "chord": {
+        "root": {
+          "step": "D",
+          "alteration": 0
+        },
+        "rootLowerCase": false,
+        "showRoot": true,
+        "showSuffix": true,
+        "suffix": {
+          "strings": [
+            {
+              "text": "+",
+              "position": "inline"
+            },
+            {
+              "text": "(",
+              "position": "inline"
+            },
+            {
+              "text": "add",
+              "position": "inline"
+            },
+            {
+              "text": "♯",
+              "position": "inline"
+            },
+            {
+              "text": "9add",
+              "position": "inline"
+            },
+            {
+              "text": "♭",
+              "position": "inline"
+            },
+            {
+              "text": "9",
+              "position": "inline"
+            },
+            {
+              "text": ")",
+              "position": "inline"
+            }
+          ],
+          "suffixText": "+(add♯9add♭9)",
+          "degrees": [
+            {
+              "value": 9,
+              "alteration": 1,
+              "type": "add",
+              "impliedByText": false
+            },
+            {
+              "value": 9,
+              "alteration": -1,
+              "type": "add",
+              "impliedByText": false
+            }
+          ],
+          "parenthesizeDegrees": true,
+          "stackDegrees": false,
+          "hasOuterParentheses": false,
+          "hasUnrecognizedGlyphs": false,
+          "quality": "augmented"
+        }
+      }
+    },
+    {
+      "anchor": "P1.m11",
+      "position": {
+        "numerator": 0,
+        "denominator": 1
+      },
+      "type": "chord-symbol",
+      "chord": {
+        "root": {
+          "step": "D",
+          "alteration": 0
+        },
+        "rootLowerCase": false,
+        "showRoot": true,
+        "showSuffix": false,
+        "suffix": {
+          "strings": [],
+          "suffixText": "",
+          "degrees": [],
+          "parenthesizeDegrees": false,
+          "stackDegrees": false,
+          "hasOuterParentheses": false,
+          "hasUnrecognizedGlyphs": false,
+          "quality": "major"
+        },
+        "bass": {
+          "step": "A",
+          "alteration": 0
+        },
+        "bassLowerCase": false,
+        "bassArrangement": "horizontal"
+      }
+    },
+    {
+      "anchor": "P1.m11",
+      "position": {
+        "numerator": 3,
+        "denominator": 4
+      },
+      "type": "chord-symbol",
+      "chord": {
+        "root": {
+          "step": "D",
+          "alteration": 0
+        },
+        "rootLowerCase": false,
+        "showRoot": true,
+        "showSuffix": true,
+        "suffix": {
+          "strings": [
+            {
+              "text": "m",
+              "position": "inline"
+            }
+          ],
+          "suffixText": "m",
+          "degrees": [],
+          "parenthesizeDegrees": false,
+          "stackDegrees": false,
+          "hasOuterParentheses": false,
+          "hasUnrecognizedGlyphs": false,
+          "quality": "minor"
+        },
+        "bass": {
+          "step": "F",
+          "alteration": 0
+        },
+        "bassLowerCase": false,
+        "bassArrangement": "horizontal"
+      }
+    },
+    {
+      "anchor": "P1.m13",
+      "position": {
+        "numerator": 0,
+        "denominator": 1
+      },
+      "type": "chord-symbol",
+      "chord": {
+        "root": {
+          "step": "G",
+          "alteration": -1
+        },
+        "rootLowerCase": false,
+        "showRoot": true,
+        "showSuffix": false,
+        "suffix": {
+          "strings": [],
+          "suffixText": "",
+          "degrees": [],
+          "parenthesizeDegrees": false,
+          "stackDegrees": false,
+          "hasOuterParentheses": false,
+          "hasUnrecognizedGlyphs": false,
+          "quality": "major"
+        }
+      }
+    },
+    {
+      "anchor": "P1.m13",
+      "position": {
+        "numerator": 1,
+        "denominator": 2
+      },
+      "type": "chord-symbol",
+      "chord": {
+        "root": {
+          "step": "G",
+          "alteration": -1
+        },
+        "rootLowerCase": false,
+        "showRoot": true,
+        "showSuffix": true,
+        "suffix": {
+          "strings": [
+            {
+              "text": "m",
+              "position": "inline"
+            }
+          ],
+          "suffixText": "m",
+          "degrees": [],
+          "parenthesizeDegrees": false,
+          "stackDegrees": false,
+          "hasOuterParentheses": false,
+          "hasUnrecognizedGlyphs": false,
+          "quality": "minor"
+        }
+      }
+    },
+    {
+      "anchor": "P1.m14",
+      "position": {
+        "numerator": 0,
+        "denominator": 1
+      },
+      "type": "chord-symbol",
+      "chord": {
+        "root": {
+          "step": "G",
+          "alteration": -1
+        },
+        "rootLowerCase": false,
+        "showRoot": true,
+        "showSuffix": true,
+        "suffix": {
+          "strings": [
+            {
+              "text": "5",
+              "position": "inline"
+            }
+          ],
+          "suffixText": "5",
+          "degrees": [],
+          "parenthesizeDegrees": false,
+          "stackDegrees": false,
+          "hasOuterParentheses": false,
+          "hasUnrecognizedGlyphs": false,
+          "quality": "power"
+        }
+      }
+    },
+    {
+      "anchor": "P1.m14",
+      "position": {
+        "numerator": 1,
+        "denominator": 2
+      },
+      "type": "chord-symbol",
+      "chord": {
+        "root": {
+          "step": "G",
+          "alteration": -1
+        },
+        "rootLowerCase": false,
+        "showRoot": true,
+        "showSuffix": true,
+        "suffix": {
+          "strings": [
+            {
+              "text": "6",
+              "position": "inline"
+            }
+          ],
+          "suffixText": "6",
+          "degrees": [],
+          "parenthesizeDegrees": false,
+          "stackDegrees": false,
+          "hasOuterParentheses": false,
+          "hasUnrecognizedGlyphs": false,
+          "quality": "major-sixth"
+        }
+      }
+    },
+    {
+      "anchor": "P1.m15",
+      "position": {
+        "numerator": 0,
+        "denominator": 1
+      },
+      "type": "chord-symbol",
+      "chord": {
+        "root": {
+          "step": "A",
+          "alteration": -1
+        },
+        "rootLowerCase": false,
+        "showRoot": true,
+        "showSuffix": true,
+        "suffix": {
+          "strings": [
+            {
+              "text": "m6",
+              "position": "inline"
+            }
+          ],
+          "suffixText": "m6",
+          "degrees": [],
+          "parenthesizeDegrees": false,
+          "stackDegrees": false,
+          "hasOuterParentheses": false,
+          "hasUnrecognizedGlyphs": false,
+          "quality": "minor-sixth"
+        }
+      }
+    },
+    {
+      "anchor": "P1.m15",
+      "position": {
+        "numerator": 1,
+        "denominator": 2
+      },
+      "type": "chord-symbol",
+      "chord": {
+        "root": {
+          "step": "A",
+          "alteration": -1
+        },
+        "rootLowerCase": false,
+        "showRoot": true,
+        "showSuffix": true,
+        "suffix": {
+          "strings": [
+            {
+              "text": "7",
+              "position": "inline"
+            }
+          ],
+          "suffixText": "7",
+          "degrees": [],
+          "parenthesizeDegrees": false,
+          "stackDegrees": false,
+          "hasOuterParentheses": false,
+          "hasUnrecognizedGlyphs": false,
+          "quality": "dominant"
+        }
+      }
+    },
+    {
+      "anchor": "P1.m16",
+      "position": {
+        "numerator": 0,
+        "denominator": 1
+      },
+      "type": "chord-symbol",
+      "chord": {
+        "root": {
+          "step": "F",
+          "alteration": -1
+        },
+        "rootLowerCase": false,
+        "showRoot": true,
+        "showSuffix": true,
+        "suffix": {
+          "strings": [
+            {
+              "text": "maj7",
+              "position": "inline"
+            }
+          ],
+          "suffixText": "maj7",
+          "degrees": [],
+          "parenthesizeDegrees": false,
+          "stackDegrees": false,
+          "hasOuterParentheses": false,
+          "hasUnrecognizedGlyphs": false,
+          "quality": "major-seventh"
+        }
+      }
+    },
+    {
+      "anchor": "P1.m16",
+      "position": {
+        "numerator": 1,
+        "denominator": 2
+      },
+      "type": "chord-symbol",
+      "chord": {
+        "root": {
+          "step": "E",
+          "alteration": -1
+        },
+        "rootLowerCase": false,
+        "showRoot": true,
+        "showSuffix": true,
+        "suffix": {
+          "strings": [
+            {
+              "text": "m7",
+              "position": "inline"
+            }
+          ],
+          "suffixText": "m7",
+          "degrees": [],
+          "parenthesizeDegrees": false,
+          "stackDegrees": false,
+          "hasOuterParentheses": false,
+          "hasUnrecognizedGlyphs": false,
+          "quality": "minor-seventh"
+        }
+      }
+    },
+    {
+      "anchor": "P1.m17",
+      "position": {
+        "numerator": 0,
+        "denominator": 1
+      },
+      "type": "chord-symbol",
+      "chord": {
+        "root": {
+          "step": "B",
+          "alteration": -1
+        },
+        "rootLowerCase": false,
+        "showRoot": true,
+        "showSuffix": true,
+        "suffix": {
+          "strings": [
+            {
+              "text": "m",
+              "position": "inline"
+            },
+            {
+              "text": "(",
+              "position": "inline"
+            },
+            {
+              "text": "maj7",
+              "position": "inline"
+            },
+            {
+              "text": ")",
+              "position": "inline"
+            }
+          ],
+          "suffixText": "m(maj7)",
+          "degrees": [],
+          "parenthesizeDegrees": false,
+          "stackDegrees": false,
+          "hasOuterParentheses": false,
+          "hasUnrecognizedGlyphs": false,
+          "quality": "major-minor"
+        }
+      }
+    },
+    {
+      "anchor": "P1.m17",
+      "position": {
+        "numerator": 1,
+        "denominator": 2
+      },
+      "type": "chord-symbol",
+      "chord": {
+        "root": {
+          "step": "G",
+          "alteration": -1
+        },
+        "rootLowerCase": false,
+        "showRoot": true,
+        "showSuffix": true,
+        "suffix": {
+          "strings": [
+            {
+              "text": "°",
+              "position": "inline"
+            }
+          ],
+          "suffixText": "°",
+          "degrees": [],
+          "parenthesizeDegrees": false,
+          "stackDegrees": false,
+          "hasOuterParentheses": false,
+          "hasUnrecognizedGlyphs": false,
+          "quality": "diminished"
+        }
+      }
+    },
+    {
+      "anchor": "P1.m18",
+      "position": {
+        "numerator": 0,
+        "denominator": 1
+      },
+      "type": "chord-symbol",
+      "chord": {
+        "root": {
+          "step": "D",
+          "alteration": -1
+        },
+        "rootLowerCase": false,
+        "showRoot": true,
+        "showSuffix": true,
+        "suffix": {
+          "strings": [
+            {
+              "text": "dim7",
+              "position": "inline"
+            }
+          ],
+          "suffixText": "dim7",
+          "degrees": [],
+          "parenthesizeDegrees": false,
+          "stackDegrees": false,
+          "hasOuterParentheses": false,
+          "hasUnrecognizedGlyphs": false,
+          "quality": "diminished-seventh"
+        }
+      }
+    },
+    {
+      "anchor": "P1.m18",
+      "position": {
+        "numerator": 1,
+        "denominator": 2
+      },
+      "type": "chord-symbol",
+      "chord": {
+        "root": {
+          "step": "D",
+          "alteration": -1
+        },
+        "rootLowerCase": false,
+        "showRoot": true,
+        "showSuffix": true,
+        "suffix": {
+          "strings": [
+            {
+              "text": "°",
+              "position": "inline"
+            },
+            {
+              "text": "7",
+              "position": "inline"
+            }
+          ],
+          "suffixText": "°7",
+          "degrees": [],
+          "parenthesizeDegrees": false,
+          "stackDegrees": false,
+          "hasOuterParentheses": false,
+          "hasUnrecognizedGlyphs": false,
+          "quality": "diminished-seventh"
+        }
+      }
+    },
+    {
+      "anchor": "P1.m19",
+      "position": {
+        "numerator": 0,
+        "denominator": 1
+      },
+      "type": "chord-symbol",
+      "chord": {
+        "root": {
+          "step": "G",
+          "alteration": -1
+        },
+        "rootLowerCase": false,
+        "showRoot": true,
+        "showSuffix": true,
+        "suffix": {
+          "strings": [
+            {
+              "text": "m7",
+              "position": "inline"
+            },
+            {
+              "text": "(",
+              "position": "inline"
+            },
+            {
+              "text": "♭",
+              "position": "inline"
+            },
+            {
+              "text": "5",
+              "position": "inline"
+            },
+            {
+              "text": ")",
+              "position": "inline"
+            }
+          ],
+          "suffixText": "m7(♭5)",
+          "degrees": [
+            {
+              "value": 5,
+              "alteration": -1,
+              "type": "alter",
+              "impliedByText": false
+            }
+          ],
+          "parenthesizeDegrees": true,
+          "stackDegrees": false,
+          "hasOuterParentheses": false,
+          "hasUnrecognizedGlyphs": false,
+          "quality": "minor-seventh"
+        }
+      }
+    },
+    {
+      "anchor": "P1.m20",
+      "position": {
+        "numerator": 0,
+        "denominator": 1
+      },
+      "type": "chord-symbol",
+      "chord": {
+        "root": {
+          "step": "E",
+          "alteration": -2
+        },
+        "rootLowerCase": false,
+        "showRoot": true,
+        "showSuffix": true,
+        "suffix": {
+          "strings": [
+            {
+              "text": "7sus4-3",
+              "position": "inline"
+            }
+          ],
+          "suffixText": "7sus4-3",
+          "degrees": [
+            {
+              "value": 7,
+              "alteration": 0,
+              "type": "add",
+              "impliedByText": true
+            }
+          ],
+          "parenthesizeDegrees": false,
+          "stackDegrees": false,
+          "hasOuterParentheses": false,
+          "hasUnrecognizedGlyphs": false,
+          "quality": "suspended-fourth"
+        }
+      }
+    },
+    {
+      "anchor": "P1.m20",
+      "position": {
+        "numerator": 1,
+        "denominator": 2
+      },
+      "type": "chord-symbol",
+      "chord": {
+        "root": {
+          "step": "G",
+          "alteration": -1
+        },
+        "rootLowerCase": false,
+        "showRoot": true,
+        "showSuffix": true,
+        "suffix": {
+          "strings": [
+            {
+              "text": "(",
+              "position": "inline"
+            },
+            {
+              "text": "add9",
+              "position": "above"
+            },
+            {
+              "text": "omit3)",
+              "position": "inline"
+            }
+          ],
+          "suffixText": "(add9omit3)",
+          "degrees": [
+            {
+              "value": 9,
+              "alteration": 0,
+              "type": "add",
+              "impliedByText": false
+            },
+            {
+              "value": 3,
+              "alteration": 0,
+              "type": "remove",
+              "impliedByText": false
+            }
+          ],
+          "parenthesizeDegrees": true,
+          "stackDegrees": true,
+          "hasOuterParentheses": true,
+          "hasUnrecognizedGlyphs": false,
+          "quality": "major"
+        }
+      }
+    },
+    {
+      "anchor": "P1.m21",
+      "position": {
+        "numerator": 0,
+        "denominator": 1
+      },
+      "type": "chord-symbol",
+      "chord": {
+        "root": {
+          "step": "A",
+          "alteration": -1
+        },
+        "rootLowerCase": false,
+        "showRoot": true,
+        "showSuffix": true,
+        "suffix": {
+          "strings": [
+            {
+              "text": "11",
+              "position": "inline"
+            }
+          ],
+          "suffixText": "11",
+          "degrees": [],
+          "parenthesizeDegrees": false,
+          "stackDegrees": false,
+          "hasOuterParentheses": false,
+          "hasUnrecognizedGlyphs": false,
+          "quality": "dominant-11th"
+        }
+      }
+    },
+    {
+      "anchor": "P1.m21",
+      "position": {
+        "numerator": 1,
+        "denominator": 2
+      },
+      "type": "chord-symbol",
+      "chord": {
+        "root": {
+          "step": "A",
+          "alteration": -1
+        },
+        "rootLowerCase": false,
+        "showRoot": true,
+        "showSuffix": true,
+        "suffix": {
+          "strings": [
+            {
+              "text": "13",
+              "position": "inline"
+            }
+          ],
+          "suffixText": "13",
+          "degrees": [],
+          "parenthesizeDegrees": false,
+          "stackDegrees": false,
+          "hasOuterParentheses": false,
+          "hasUnrecognizedGlyphs": false,
+          "quality": "dominant-13th"
+        }
+      }
+    },
+    {
+      "anchor": "P1.m22",
+      "position": {
+        "numerator": 0,
+        "denominator": 1
+      },
+      "type": "chord-symbol",
+      "chord": {
+        "root": {
+          "step": "G",
+          "alteration": -1
+        },
+        "rootLowerCase": false,
+        "showRoot": true,
+        "showSuffix": true,
+        "suffix": {
+          "strings": [
+            {
+              "text": "7",
+              "position": "inline"
+            },
+            {
+              "text": "(",
+              "position": "inline"
+            },
+            {
+              "text": "♭",
+              "position": "inline"
+            },
+            {
+              "text": "13",
+              "position": "inline"
+            },
+            {
+              "text": ")",
+              "position": "inline"
+            }
+          ],
+          "suffixText": "7(♭13)",
+          "degrees": [
+            {
+              "value": 13,
+              "alteration": -1,
+              "type": "add",
+              "impliedByText": false
+            }
+          ],
+          "parenthesizeDegrees": true,
+          "stackDegrees": false,
+          "hasOuterParentheses": false,
+          "hasUnrecognizedGlyphs": false,
+          "quality": "dominant"
+        }
+      }
+    },
+    {
+      "anchor": "P1.m22",
+      "position": {
+        "numerator": 1,
+        "denominator": 2
+      },
+      "type": "chord-symbol",
+      "chord": {
+        "root": {
+          "step": "A",
+          "alteration": -1
+        },
+        "rootLowerCase": false,
+        "showRoot": true,
+        "showSuffix": true,
+        "suffix": {
+          "strings": [
+            {
+              "text": "+",
+              "position": "inline"
+            },
+            {
+              "text": "(",
+              "position": "inline"
+            },
+            {
+              "text": "add",
+              "position": "inline"
+            },
+            {
+              "text": "♯",
+              "position": "inline"
+            },
+            {
+              "text": "9add",
+              "position": "inline"
+            },
+            {
+              "text": "♭",
+              "position": "inline"
+            },
+            {
+              "text": "9",
+              "position": "inline"
+            },
+            {
+              "text": ")",
+              "position": "inline"
+            }
+          ],
+          "suffixText": "+(add♯9add♭9)",
+          "degrees": [
+            {
+              "value": 9,
+              "alteration": 1,
+              "type": "add",
+              "impliedByText": false
+            },
+            {
+              "value": 9,
+              "alteration": -1,
+              "type": "add",
+              "impliedByText": false
+            }
+          ],
+          "parenthesizeDegrees": true,
+          "stackDegrees": false,
+          "hasOuterParentheses": false,
+          "hasUnrecognizedGlyphs": false,
+          "quality": "augmented"
+        }
+      }
+    },
+    {
+      "anchor": "P1.m23",
+      "position": {
+        "numerator": 0,
+        "denominator": 1
+      },
+      "type": "chord-symbol",
+      "chord": {
+        "root": {
+          "step": "A",
+          "alteration": -1
+        },
+        "rootLowerCase": false,
+        "showRoot": true,
+        "showSuffix": false,
+        "suffix": {
+          "strings": [],
+          "suffixText": "",
+          "degrees": [],
+          "parenthesizeDegrees": false,
+          "stackDegrees": false,
+          "hasOuterParentheses": false,
+          "hasUnrecognizedGlyphs": false,
+          "quality": "major"
+        },
+        "bass": {
+          "step": "E",
+          "alteration": -1
+        },
+        "bassLowerCase": false,
+        "bassArrangement": "horizontal"
+      }
+    },
+    {
+      "anchor": "P1.m23",
+      "position": {
+        "numerator": 3,
+        "denominator": 4
+      },
+      "type": "chord-symbol",
+      "chord": {
+        "root": {
+          "step": "A",
+          "alteration": -1
+        },
+        "rootLowerCase": false,
+        "showRoot": true,
+        "showSuffix": true,
+        "suffix": {
+          "strings": [
+            {
+              "text": "m",
+              "position": "inline"
+            }
+          ],
+          "suffixText": "m",
+          "degrees": [],
+          "parenthesizeDegrees": false,
+          "stackDegrees": false,
+          "hasOuterParentheses": false,
+          "hasUnrecognizedGlyphs": false,
+          "quality": "minor"
+        },
+        "bass": {
+          "step": "C",
+          "alteration": -1
+        },
+        "bassLowerCase": false,
+        "bassArrangement": "horizontal"
+      }
+    },
+    {
+      "anchor": "P1.m24",
+      "position": {
+        "numerator": 1,
+        "denominator": 4
+      },
+      "type": "chord-symbol",
+      "chord": {
+        "root": {
+          "step": "C",
+          "alteration": 0
+        },
+        "rootLowerCase": false,
+        "showRoot": true,
+        "showSuffix": true,
+        "suffix": {
+          "strings": [
+            {
+              "text": "m9(maj7)",
+              "position": "inline"
+            }
+          ],
+          "suffixText": "m9(maj7)",
+          "degrees": [
+            {
+              "value": 7,
+              "alteration": 1,
+              "type": "alter",
+              "impliedByText": false
+            }
+          ],
+          "parenthesizeDegrees": true,
+          "stackDegrees": false,
+          "hasOuterParentheses": false,
+          "hasUnrecognizedGlyphs": false,
+          "quality": "minor-ninth"
+        }
+      }
+    },
+    {
+      "anchor": "P1.m25",
+      "position": {
+        "numerator": 0,
+        "denominator": 1
+      },
+      "type": "chord-symbol",
+      "chord": {
+        "root": {
+          "step": "C",
+          "alteration": 0
+        },
+        "rootLowerCase": false,
+        "showRoot": true,
+        "showSuffix": true,
+        "suffix": {
+          "strings": [
+            {
+              "text": "maj9",
+              "position": "inline"
+            },
+            {
+              "text": "(",
+              "position": "inline"
+            },
+            {
+              "text": "13",
+              "position": "inline"
+            },
+            {
+              "text": ")",
+              "position": "inline"
+            }
+          ],
+          "suffixText": "maj9(13)",
+          "degrees": [
+            {
+              "value": 13,
+              "alteration": 0,
+              "type": "add",
+              "impliedByText": false
+            }
+          ],
+          "parenthesizeDegrees": true,
+          "stackDegrees": false,
+          "hasOuterParentheses": false,
+          "hasUnrecognizedGlyphs": false,
+          "quality": "major-ninth"
+        }
+      }
+    },
+    {
+      "anchor": "P1.m25",
+      "position": {
+        "numerator": 3,
+        "denominator": 4
+      },
+      "type": "chord-symbol",
+      "chord": {
+        "root": {
+          "step": "C",
+          "alteration": 0
+        },
+        "rootLowerCase": false,
+        "showRoot": true,
+        "showSuffix": true,
+        "suffix": {
+          "strings": [
+            {
+              "text": "9",
+              "position": "inline"
+            },
+            {
+              "text": "(",
+              "position": "inline"
+            },
+            {
+              "text": "♭",
+              "position": "inline"
+            },
+            {
+              "text": "5",
+              "position": "inline"
+            },
+            {
+              "text": ")",
+              "position": "inline"
+            }
+          ],
+          "suffixText": "9(♭5)",
+          "degrees": [
+            {
+              "value": 5,
+              "alteration": -1,
+              "type": "alter",
+              "impliedByText": false
+            }
+          ],
+          "parenthesizeDegrees": true,
+          "stackDegrees": false,
+          "hasOuterParentheses": false,
+          "hasUnrecognizedGlyphs": false,
+          "quality": "dominant-ninth"
+        }
+      }
+    },
+    {
+      "anchor": "P1.m26",
+      "position": {
+        "numerator": 0,
+        "denominator": 1
+      },
+      "type": "chord-symbol",
+      "chord": {
+        "root": {
+          "step": "C",
+          "alteration": 0
+        },
+        "rootLowerCase": false,
+        "showRoot": true,
+        "showSuffix": true,
+        "suffix": {
+          "strings": [
+            {
+              "text": "13",
+              "position": "inline"
+            },
+            {
+              "text": "(",
+              "position": "inline"
+            },
+            {
+              "text": "♭",
+              "position": "inline"
+            },
+            {
+              "text": "9",
+              "position": "inline"
+            },
+            {
+              "text": ")",
+              "position": "inline"
+            }
+          ],
+          "suffixText": "13(♭9)",
+          "degrees": [
+            {
+              "value": 9,
+              "alteration": -1,
+              "type": "alter",
+              "impliedByText": false
+            }
+          ],
+          "parenthesizeDegrees": true,
+          "stackDegrees": false,
+          "hasOuterParentheses": false,
+          "hasUnrecognizedGlyphs": false,
+          "quality": "dominant-13th"
+        }
+      }
+    },
+    {
+      "anchor": "P1.m26",
+      "position": {
+        "numerator": 1,
+        "denominator": 2
+      },
+      "type": "chord-symbol",
+      "chord": {
+        "root": {
+          "step": "C",
+          "alteration": 0
+        },
+        "rootLowerCase": false,
+        "showRoot": true,
+        "showSuffix": true,
+        "suffix": {
+          "strings": [
+            {
+              "text": "m9",
+              "position": "inline"
+            },
+            {
+              "text": "(",
+              "position": "inline"
+            },
+            {
+              "text": "♭",
+              "position": "inline"
+            },
+            {
+              "text": "5",
+              "position": "inline"
+            },
+            {
+              "text": ")",
+              "position": "inline"
+            }
+          ],
+          "suffixText": "m9(♭5)",
+          "degrees": [
+            {
+              "value": 5,
+              "alteration": -1,
+              "type": "alter",
+              "impliedByText": false
+            }
+          ],
+          "parenthesizeDegrees": true,
+          "stackDegrees": false,
+          "hasOuterParentheses": false,
+          "hasUnrecognizedGlyphs": false,
+          "quality": "minor-ninth"
+        }
+      }
+    },
+    {
+      "anchor": "P1.m27",
+      "position": {
+        "numerator": 0,
+        "denominator": 1
+      },
+      "type": "chord-symbol",
+      "chord": {
+        "root": {
+          "step": "C",
+          "alteration": 0
+        },
+        "rootLowerCase": false,
+        "showRoot": true,
+        "showSuffix": true,
+        "suffix": {
+          "strings": [
+            {
+              "text": "7",
+              "position": "inline"
+            },
+            {
+              "text": "♭",
+              "position": "inline"
+            },
+            {
+              "text": "9",
+              "position": "inline"
+            },
+            {
+              "text": "(",
+              "position": "inline"
+            },
+            {
+              "text": "13",
+              "position": "inline"
+            },
+            {
+              "text": ")",
+              "position": "inline"
+            }
+          ],
+          "suffixText": "7♭9(13)",
+          "degrees": [
+            {
+              "value": 9,
+              "alteration": -1,
+              "type": "add",
+              "impliedByText": false
+            },
+            {
+              "value": 13,
+              "alteration": 0,
+              "type": "add",
+              "impliedByText": false
+            }
+          ],
+          "parenthesizeDegrees": true,
+          "stackDegrees": false,
+          "hasOuterParentheses": false,
+          "hasUnrecognizedGlyphs": false,
+          "quality": "dominant"
+        }
+      }
+    },
+    {
+      "anchor": "P1.m27",
+      "position": {
+        "numerator": 1,
+        "denominator": 2
+      },
+      "type": "chord-symbol",
+      "chord": {
+        "root": {
+          "step": "C",
+          "alteration": 0
+        },
+        "rootLowerCase": false,
+        "showRoot": true,
+        "showSuffix": true,
+        "suffix": {
+          "strings": [
+            {
+              "text": "6",
+              "position": "above"
+            },
+            {
+              "text": "9",
+              "position": "inline"
+            }
+          ],
+          "suffixText": "69",
+          "degrees": [
+            {
+              "value": 9,
+              "alteration": 0,
+              "type": "add",
+              "impliedByText": true
+            }
+          ],
+          "parenthesizeDegrees": false,
+          "stackDegrees": true,
+          "hasOuterParentheses": false,
+          "hasUnrecognizedGlyphs": false,
+          "quality": "major-sixth"
+        }
+      }
+    },
+    {
+      "anchor": "P1.m28",
+      "position": {
+        "numerator": 0,
+        "denominator": 1
+      },
+      "type": "chord-symbol",
+      "chord": {
+        "root": {
+          "step": "C",
+          "alteration": 0
+        },
+        "rootLowerCase": false,
+        "showRoot": true,
+        "showSuffix": true,
+        "suffix": {
+          "strings": [
+            {
+              "text": "maj6",
+              "position": "inline"
+            }
+          ],
+          "suffixText": "maj6",
+          "degrees": [],
+          "parenthesizeDegrees": false,
+          "stackDegrees": false,
+          "hasOuterParentheses": false,
+          "hasUnrecognizedGlyphs": false,
+          "quality": "major-sixth"
+        }
+      }
+    },
+    {
+      "anchor": "P1.m28",
+      "position": {
+        "numerator": 1,
+        "denominator": 2
+      },
+      "type": "chord-symbol",
+      "chord": {
+        "root": {
+          "step": "C",
+          "alteration": 0
+        },
+        "rootLowerCase": false,
+        "showRoot": true,
+        "showSuffix": true,
+        "suffix": {
+          "strings": [
+            {
+              "text": "maj9",
+              "position": "inline"
+            },
+            {
+              "text": "(",
+              "position": "inline"
+            },
+            {
+              "text": "♭",
+              "position": "inline"
+            },
+            {
+              "text": "5",
+              "position": "inline"
+            },
+            {
+              "text": ")",
+              "position": "inline"
+            }
+          ],
+          "suffixText": "maj9(♭5)",
+          "degrees": [
+            {
+              "value": 5,
+              "alteration": -1,
+              "type": "alter",
+              "impliedByText": false
+            }
+          ],
+          "parenthesizeDegrees": true,
+          "stackDegrees": false,
+          "hasOuterParentheses": false,
+          "hasUnrecognizedGlyphs": false,
+          "quality": "major-ninth"
+        }
+      }
+    },
+    {
+      "anchor": "P1.m29",
+      "position": {
+        "numerator": 0,
+        "denominator": 1
+      },
+      "type": "chord-symbol",
+      "chord": {
+        "root": {
+          "step": "C",
+          "alteration": 0
+        },
+        "rootLowerCase": false,
+        "showRoot": true,
+        "showSuffix": true,
+        "suffix": {
+          "strings": [
+            {
+              "text": "m11(maj7)",
+              "position": "inline"
+            }
+          ],
+          "suffixText": "m11(maj7)",
+          "degrees": [
+            {
+              "value": 7,
+              "alteration": 1,
+              "type": "alter",
+              "impliedByText": false
+            }
+          ],
+          "parenthesizeDegrees": true,
+          "stackDegrees": false,
+          "hasOuterParentheses": false,
+          "hasUnrecognizedGlyphs": false,
+          "quality": "minor-11th"
+        }
+      }
+    },
+    {
+      "anchor": "P1.m29",
+      "position": {
+        "numerator": 1,
+        "denominator": 2
+      },
+      "type": "chord-symbol",
+      "chord": {
+        "root": {
+          "step": "C",
+          "alteration": 0
+        },
+        "rootLowerCase": false,
+        "showRoot": true,
+        "showSuffix": true,
+        "suffix": {
+          "strings": [
+            {
+              "text": "°",
+              "position": "inline"
+            },
+            {
+              "text": "7",
+              "position": "inline"
+            },
+            {
+              "text": "(",
+              "position": "inline"
+            },
+            {
+              "text": "addmaj7",
+              "position": "inline"
+            },
+            {
+              "text": ")",
+              "position": "inline"
+            }
+          ],
+          "suffixText": "°7(addmaj7)",
+          "degrees": [
+            {
+              "value": 7,
+              "alteration": 1,
+              "type": "add",
+              "impliedByText": false
+            }
+          ],
+          "parenthesizeDegrees": true,
+          "stackDegrees": false,
+          "hasOuterParentheses": false,
+          "hasUnrecognizedGlyphs": false,
+          "quality": "diminished-seventh"
+        }
+      }
+    },
+    {
+      "anchor": "P1.m30",
+      "position": {
+        "numerator": 0,
+        "denominator": 1
+      },
+      "type": "chord-symbol",
+      "chord": {
+        "root": {
+          "step": "C",
+          "alteration": 0
+        },
+        "rootLowerCase": false,
+        "showRoot": true,
+        "showSuffix": true,
+        "suffix": {
+          "strings": [
+            {
+              "text": "+",
+              "position": "inline"
+            },
+            {
+              "text": "7",
+              "position": "inline"
+            }
+          ],
+          "suffixText": "+7",
+          "degrees": [],
+          "parenthesizeDegrees": false,
+          "stackDegrees": false,
+          "hasOuterParentheses": false,
+          "hasUnrecognizedGlyphs": false,
+          "quality": "augmented-seventh"
+        }
+      }
+    }
+  ]
+}

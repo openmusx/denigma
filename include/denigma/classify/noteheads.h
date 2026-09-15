@@ -23,6 +23,7 @@
 
 #include <optional>
 #include <string>
+#include <string_view>
 
 #include "musx/musx.h"
 
@@ -76,6 +77,13 @@ struct NoteheadClassification
     /// Returns true when the source was recognized as a notehead.
     explicit operator bool() const noexcept
     { return shape != notehead::Shape::Unclassified; }
+
+    /// Returns true when this classification changes the notehead a target would infer from the note duration.
+    /// Always false for #notehead::Shape::Unclassified.
+    bool calcOverridesDefault(musx::dom::NoteType noteType) const noexcept;
+
+    /// Returns true when the classified fill changes the fill inferred from the note duration.
+    bool calcFillOverridesDefault(musx::dom::NoteType noteType) const noexcept;
 };
 
 /// Classifies a notehead symbol from a font and character code.
@@ -85,6 +93,12 @@ NoteheadClassification classifyNoteheadSymbol(
 /// Classifies the effective notehead for a note, resolving the note's font/character
 /// via #musx::dom::NoteInfoPtr::calcNoteheadInfo.
 NoteheadClassification classifyNotehead(const musx::dom::NoteInfoPtr& note);
+
+/// Returns the stable serialized name for a classified notehead shape.
+std::string_view noteheadShapeName(notehead::Shape shape);
+
+/// Returns the stable serialized name for a classified notehead fill.
+std::string_view noteheadFillName(notehead::Fill fill);
 
 } // namespace classify
 } // namespace denigma

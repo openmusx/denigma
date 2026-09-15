@@ -26,7 +26,8 @@
 
 #include "smufl_mapping.h"
 
-namespace denigma::classify {
+namespace denigma {
+namespace classify {
 
 using namespace notehead;
 
@@ -163,4 +164,48 @@ NoteheadClassification classifyNotehead(const musx::dom::NoteInfoPtr& note)
     return result;
 }
 
-} // namespace denigma::classify
+bool NoteheadClassification::calcFillOverridesDefault(musx::dom::NoteType noteType) const noexcept
+{
+    const bool defaultsToFilled = musx::dom::Edu(noteType) <= musx::dom::Edu(musx::dom::NoteType::Quarter);
+    return (fill == notehead::Fill::Filled && !defaultsToFilled)
+        || (fill == notehead::Fill::Unfilled && defaultsToFilled);
+}
+
+bool NoteheadClassification::calcOverridesDefault(musx::dom::NoteType noteType) const noexcept
+{
+    // An unclassified notehead is usually a default notehead in a font with no glyph mapping,
+    // not a customized one, so it cannot be treated as an override.
+    if (shape == notehead::Shape::Unclassified) {
+        return false;
+    }
+    return shape != notehead::Shape::Regular || calcFillOverridesDefault(noteType);
+}
+
+std::string_view noteheadShapeName(notehead::Shape shape)
+{
+    switch (shape) {
+    case notehead::Shape::Unclassified: return "unclassified";
+    case notehead::Shape::Other: return "other";
+    case notehead::Shape::Null: return "null";
+    case notehead::Shape::Regular: return "regular";
+    case notehead::Shape::X: return "x";
+    case notehead::Shape::Diamond: return "diamond";
+    case notehead::Shape::SmallSlash: return "small-slash";
+    case notehead::Shape::LargeSlash: return "large-slash";
+    case notehead::Shape::Circled: return "circled";
+    }
+    return "unclassified";
+}
+
+std::string_view noteheadFillName(notehead::Fill fill)
+{
+    switch (fill) {
+    case notehead::Fill::Unspecified: return "unspecified";
+    case notehead::Fill::Filled: return "filled";
+    case notehead::Fill::Unfilled: return "unfilled";
+    }
+    return "unspecified";
+}
+
+} // namespace classify
+} // namespace denigma

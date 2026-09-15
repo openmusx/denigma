@@ -36,6 +36,7 @@
 #include "denigma/formats/musicxml.h"
 #include "denigma/formats/mnx.h"
 #include "denigma/formats/svg.h"
+#include "denigma/gap_report.h"
 #include "export/export.h"
 #include "formats/enigmaxml/enigmaxml.h"
 #include "utils/stringutils.h"
@@ -155,9 +156,25 @@ void exportMnxJsonWithAdapter(const std::filesystem::path& outputPath,
     output.exceptions(std::ofstream::failbit | std::ofstream::badbit);
     output.open(outputPath, std::ios::out | std::ios::binary);
 
-    const auto options = makeMnxOptions(denigmaContext);
+    auto options = makeMnxOptions(denigmaContext);
+    GapCollector gapCollector;
+    if (denigmaContext.writeGapReport) {
+        options.common.gapCollector = &gapCollector;
+    }
     converter->convert(enigmaXmlBytes(inputData), output, ConversionRequest{ &options });
     output.close();
+
+    if (denigmaContext.writeGapReport) {
+        auto gapReportPath = outputPath;
+        gapReportPath += ".gaps.json";
+        if (denigmaContext.validatePathsAndOptions(gapReportPath)) {
+            std::ofstream gapReport;
+            gapReport.exceptions(std::ofstream::failbit | std::ofstream::badbit);
+            gapReport.open(gapReportPath, std::ios::out | std::ios::binary);
+            gapReport << serializeGapReport(
+                gapCollector, { DENIGMA_NAME, DENIGMA_VERSION, gitCommit() });
+        }
+    }
 }
 
 void exportMusicXmlWithAdapter(const std::filesystem::path& outputPath,
@@ -395,6 +412,7 @@ int ExportCommand::showHelpPage(const std::string_view& programName, const std::
     std::cout << indentSpaces << "  --finale-rest-position         Preserve Finale's nominal position for non-floating whole rests." << std::endl;
     std::cout << indentSpaces << "  --cue-layer <1..4>              Treat entries in this Finale layer as cue material." << std::endl;
     std::cout << indentSpaces << "  --mnx-schema [file-path]        Validate against this json schema file rather than the embedded one." << std::endl;
+    std::cout << indentSpaces << "  --gap-report                    Write an MNX gap report beside the output as <output>.gaps.json." << std::endl;
     std::cout << indentSpaces << "  --include-tempo-tool            Include tempo changes created with the Tempo Tool." << std::endl;
     std::cout << indentSpaces << "  --no-include-tempo-tool         Exclude tempo changes created with the Tempo Tool (default: exclude)." << std::endl;
     std::cout << indentSpaces << "  --pretty-print [indent-spaces]  Print human readable format (default: on, " << JSON_INDENT_SPACES << " indent spaces)." << std::endl;

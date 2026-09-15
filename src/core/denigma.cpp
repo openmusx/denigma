@@ -206,6 +206,8 @@ std::vector<const arg_char*> DenigmaContext::parseOptions(int argc, arg_char* ar
             includeTempoTool = false;
         } else if (next == _ARG("--split-instruments")) {
             mnxSplitInstruments = true;
+        } else if (next == _ARG("--gap-report")) {
+            writeGapReport = true;
         } else if (next == _ARG("--pretty-print")) {
             try {
                 int value = std::stoi(std::string(_ARG_CONV(getNextArg())));

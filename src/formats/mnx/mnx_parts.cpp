@@ -28,6 +28,7 @@
 
 #include "mnx.h"
 #include "mnx_expressions.h"
+#include "mnx_gaps.h"
 #include "mnx_smartshapes.h"
 
 #include "core/element_ids.h"
@@ -424,6 +425,7 @@ static void createMeasures(const MnxMusxMappingPtr& context, mnxdom::Part& part)
                 prevClefs[x] = createClef(context, mnxMeasure, staffNumber, musxStaff->calcClefIndex(/*forWrittenPitch*/ true), 0, musxStaff);
             }
             context->setCurrentMeasureStaff(musxMeasure, staffCmper);
+            reportChordSymbolGaps(context, mnxMeasure.id_or(""), staffNumber, musxMeasure, staffCmper);
             createBeams(context, mnxMeasure, musxMeasure);
             createClefs(context, part, mnxMeasure, staffNumber, musxMeasure, prevClefs[x]);
             // ottaves must be created before sequences, so that the ottava octaves can be correctly calculated for events

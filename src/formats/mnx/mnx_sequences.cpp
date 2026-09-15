@@ -27,7 +27,9 @@
 #include <unordered_set>
 
 #include "core/element_ids.h"
+#include "denigma/classify/noteheads.h"
 #include "mnx.h"
+#include "mnx_gaps.h"
 #include "mnx_smartshapes.h"
 #include "utils/smufl_support.h"
 
@@ -304,6 +306,8 @@ static void createNote(const MnxMusxMappingPtr& context, mnxdom::sequence::Event
     const auto noteId = core::calcNoteId(musxNote);
     mnxNote.set_id(noteId);
     context->noteJsonById.emplace(noteId, mnxNote.pointer());
+    const auto noteType = std::get<0>(musxEntry->calcDurationInfo());
+    reportNoteheadGap(context, noteId, classify::classifyNotehead(musxNote), noteType);
     if (musxNote->crossStaff && !mnxEvent.staff()) { // createEvent already handled cross-staffing if the entire entry is crossed
         StaffCmper noteStaff = musxNote.calcStaff();
         if (const auto& mnxNoteStaff = context->mnxPartStaffFromStaff(noteStaff)) {

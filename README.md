@@ -28,6 +28,7 @@ Denigma can also be consumed as libraries from another CMake project. Link only 
 
 ```cmake
 target_link_libraries(my_tool PRIVATE denigma::classify)
+target_link_libraries(my_tool PRIVATE denigma::gap-report)
 target_link_libraries(my_tool PRIVATE denigma::mnx)
 target_link_libraries(my_tool PRIVATE denigma::mss)
 target_link_libraries(my_tool PRIVATE denigma::musicxml)
@@ -57,6 +58,60 @@ auto artifact = registry.convert(
 ```
 
 `ConversionArtifact` owns the generated documents in emission order and preserves the converter's `ConversionResult`. Multi-output converters retain each suggested filename. The format-specific typed converters and their `convert` overloads remain a first-class alternative.
+
+### Conversion gap reports
+
+Gap collection is opt-in. Supply a `GapCollector` through `CommonOptions::gapCollector`, then inspect its typed gaps directly or serialize it with the separate `denigma::gap-report` library:
+
+```cpp
+#include "denigma/gap_report.h"
+
+denigma::GapCollector gaps;
+denigma::formats::mnx::Options options;
+options.common.gapCollector = &gaps;
+
+auto result = denigma::formats::mnx::MusxToMnxJsonConverter{}.convert(input, output, options);
+auto report = denigma::serializeGapReport(gaps, { "my-app", "1.0", "abc123" });
+```
+
+When `gapCollector` is null, no gaps are classified or stored. Consume or serialize a collector before releasing the parsed source document because classification values may retain document-backed source objects. Serialization always produces a report, including an empty `gaps` array when nothing was collected.
+
+Chord symbols and notehead shapes are the first two gap types. Chords anchor to a part-measure ID plus position and optional staff. Noteheads anchor directly to the stable note ID already present in MNX.
+
+```json
+{
+  "schemaVersion": 1,
+  "producer": { "name": "denigma", "version": "4.0.0", "commit": "..." },
+  "gaps": [{
+    "type": "chord-symbol",
+    "anchor": "P1.m1",
+    "position": { "numerator": 0, "denominator": 1 },
+    "chord": {
+      "root": { "step": "C", "alteration": 0 },
+      "rootLowerCase": false,
+      "showRoot": true,
+      "showSuffix": true,
+      "suffix": {
+        "strings": [{ "text": "m7", "position": "inline" }],
+        "suffixText": "m7",
+        "quality": "minor-seventh",
+        "degrees": []
+      }
+    }
+  }]
+}
+```
+
+Serialized reports use these compatibility rules:
+
+- Consumers should dispatch on `type` and ignore unknown fields and gap types.
+- Anchors are MNX object IDs and remain valid as consumers modify surrounding arrays.
+- Consumers should resolve chord positions before changing measure timing.
+- Split-instrument export reports a chord once in each generated MNX part that contains its source staff, with the corresponding part-measure anchor.
+
+The WebAssembly API opts into collection and exposes serialized report bytes through `denigma_result_gap_report_data` and `denigma_result_gap_report_size`. CLI users can pass `--gap-report` with MNX output to write `<output>.gaps.json` beside the score.
+
+Gap payloads are not intended to duplicate every missing exporter feature. Features that the target standard can represent should normally be implemented directly in that exporter or its dependency. Typed payloads are reserved for durable target-format limitations with a demonstrated downstream recovery use case.
 
 The companion [denigma-examples](https://github.com/openmusx/denigma-examples) repository demonstrates this from separate native and WebAssembly projects using CMake `FetchContent` or a local Denigma checkout.
 

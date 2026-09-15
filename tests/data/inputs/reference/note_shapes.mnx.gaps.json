@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "producer": {
+    "name": "denigma",
+    "version": "TEST",
+    "commit": "<commit>"
+  },
+  "gaps": [
+    {
+      "anchor": "ev25n1",
+      "type": "notehead",
+      "notehead": {
+        "shape": "other",
+        "fill": "unspecified",
+        "glyph": "noteheadSquareBlack"
+      }
+    },
+    {
+      "anchor": "ev28n1",
+      "type": "notehead",
+      "notehead": {
+        "shape": "other",
+        "fill": "unspecified",
+        "glyph": "noteheadTriangleUpBlack"
+      }
+    },
+    {
+      "anchor": "ev29n1",
+      "type": "notehead",
+      "notehead": {
+        "shape": "regular",
+        "fill": "unfilled",
+        "glyph": "noteheadHalf"
+      }
+    },
+    {
+      "anchor": "ev30n1",
+      "type": "notehead",
+      "notehead": {
+        "shape": "regular",
+        "fill": "unfilled",
+        "glyph": "noteheadHalf"
+      }
+    },
+    {
+      "anchor": "ev31n1",
+      "type": "notehead",
+      "notehead": {
+        "shape": "regular",
+        "fill": "unfilled",
+        "glyph": "noteheadHalf"
+      }
+    },
+    {
+      "anchor": "ev32n1",
+      "type": "notehead",
+      "notehead": {
+        "shape": "regular",
+        "fill": "unfilled",
+        "glyph": "noteheadHalf"
+      }
+    },
+    {
+      "anchor": "ev33n1",
+      "type": "notehead",
+      "notehead": {
+        "shape": "other",
+        "fill": "unspecified",
+        "glyph": "noteheadSquareBlack"
+      }
+    },
+    {
+      "anchor": "ev36n1",
+      "type": "notehead",
+      "notehead": {
+        "shape": "other",
+        "fill": "unspecified",
+        "glyph": "noteheadTriangleUpBlack"
+      }
+    },
+    {
+      "anchor": "ev38n1",
+      "type": "notehead",
+      "notehead": {
+        "shape": "other",
+        "fill": "unspecified",
+        "glyph": "noteheadSquareBlack"
+      }
+    },
+    {
+      "anchor": "ev39n1",
+      "type": "notehead",
+      "notehead": {
+        "shape": "other",
+        "fill": "unspecified",
+        "glyph": "noteheadTriangleUpBlack"
+      }
+    },
+    {
+      "anchor": "ev46n1",
+      "type": "notehead",
+      "notehead": {
+        "shape": "other",
+        "fill": "unspecified",
+        "glyph": "noteheadSquareBlack"
+      }
+    },
+    {
+      "anchor": "ev47n1",
+      "type": "notehead",
+      "notehead": {
+        "shape": "other",
+        "fill": "unspecified",
+        "glyph": "noteheadTriangleUpBlack"
+      }
+    }
+  ]
+}

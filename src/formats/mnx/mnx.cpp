@@ -28,6 +28,7 @@
 #include "mnx.h"
 #include "core/element_ids.h"
 #include "core/musx_reader.h"
+#include "mnx_gaps.h"
 #include "utils/stringutils.h"
 
 using namespace musx::dom;
@@ -267,7 +268,6 @@ static std::unique_ptr<mnxdom::Document> createMnxDocument(const CommandInputDat
         denigmaContext.logMessage(LogMsg() << "discarded " << context->discardedCueFrames
             << " cue frames because MNX does not currently support cues.", MessageSeverity::Verbose);
     }
-
     return std::move(context->mnxDocument);
 }
 

@@ -202,6 +202,7 @@ TEST(NoteheadClassification, ReturnsUnclassifiedForUnknownSymbol)
     EXPECT_FALSE(classification);
     EXPECT_EQ(classification.shape, notehead::Shape::Unclassified);
     EXPECT_EQ(classification.fill, notehead::Fill::Unspecified);
+    EXPECT_FALSE(classification.calcOverridesDefault(NoteType::Quarter));
 }
 
 TEST(NoteheadClassification, ReturnsOtherForRecognizedButUncatalogedNoteheadGlyph)

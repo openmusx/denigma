@@ -125,6 +125,12 @@ TEST(Options, IncorrectOptions)
 TEST(Options, ParseOptions)
 {
     {
+        ArgList args = { DENIGMA_NAME, "export", "input.musx", "--mnx", "--gap-report" };
+        DenigmaContext ctx(DENIGMA_NAME);
+        ctx.parseOptions(args.argc(), args.argv());
+        EXPECT_TRUE(ctx.writeGapReport);
+    }
+    {
         ArgList args = { DENIGMA_NAME, "--help" };
         DenigmaContext ctx(DENIGMA_NAME);
         auto newArgs = ctx.parseOptions(args.argc(), args.argv());
