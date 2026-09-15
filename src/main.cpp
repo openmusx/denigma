@@ -20,32 +20,31 @@
  * THE SOFTWARE.
  */
 #include <algorithm>
+#include <chrono>
+#include <clocale>
+#include <fstream>
 #include <iostream>
 #include <map>
-#include <vector>
-#include <unordered_set>
-#include <optional>
 #include <memory>
-#include <chrono>
-#include <fstream>
+#include <optional>
 #include <regex>
 #include <stdexcept>
-#include <clocale>
+#include <unordered_set>
+#include <vector>
 
 #include "core/denigma.h"
 #include "export/export.h"
 #include "massage/massage.h"
 #include "utils/stringutils.h"
 
-static const auto registeredCommands = []()
-    {
-        std::map <std::string, std::shared_ptr <denigma::ICommand>> retval;
-        auto exportCmd = std::make_shared<denigma::ExportCommand>();
-        retval.emplace(exportCmd->commandName(), exportCmd);
-        auto massageCommand = std::make_shared<denigma::MassageCommand>();
-        retval.emplace(massageCommand->commandName(), massageCommand);
-        return retval;
-    }();
+static const auto registeredCommands = []() {
+    std::map<std::string, std::shared_ptr<denigma::ICommand>> retval;
+    auto exportCmd = std::make_shared<denigma::ExportCommand>();
+    retval.emplace(exportCmd->commandName(), exportCmd);
+    auto massageCommand = std::make_shared<denigma::MassageCommand>();
+    retval.emplace(massageCommand->commandName(), massageCommand);
+    return retval;
+}();
 
 static int showHelpPage(const std::string_view& programName)
 {
@@ -64,7 +63,7 @@ static int showHelpPage(const std::string_view& programName)
     std::cout << "  --version                       Show program version and exit" << std::endl;
     std::cout << "  --no-validate                   Skip validation of output results (currently applies only to MNX exports)" << std::endl;
     std::cout << std::endl;
-    
+
     for (const auto& command : registeredCommands) {
         std::string commandStr = "Command " + command.first;
         std::string sepStr(commandStr.size(), '=');
@@ -113,14 +112,14 @@ int _MAIN(int argc, arg_char* argv[])
 #ifndef DENIGMA_TEST
     setlocale(LC_ALL, "");
 #endif
-    
+
     if (argc <= 0) {
         std::cerr << "Error: argv[0] is unavailable" << std::endl;
         return 1;
     }
 
     DenigmaContext denigmaContext(std::filesystem::path(*argv).stem().native());
-    
+
     if (argc < 2) {
         return showHelpPage(denigmaContext.programName);
     }
@@ -147,14 +146,17 @@ int _MAIN(int argc, arg_char* argv[])
     }
 
     const auto currentCommand = [&]() -> std::shared_ptr<ICommand> {
-        if (args.empty()) return nullptr;
+        if (args.empty()) {
+            return nullptr;
+        }
         auto it = registeredCommands.find(arg_string(args[0]));
         if (it != registeredCommands.end()) {
             args.erase(args.begin());
             return it->second;
         }
         it = registeredCommands.find(arg_string(std::string(denigma::ExportCommand().commandName())));
-        ASSERT_IF(it == registeredCommands.end()) {
+        ASSERT_IF(it == registeredCommands.end())
+        {
             std::cerr << "Export command is missing!" << std::endl;
             return nullptr;
         }
@@ -185,7 +187,8 @@ int _MAIN(int argc, arg_char* argv[])
 
             // collect inputs
             const auto inputPatternUtf8 = inputFilePattern.u8string();
-            const bool isSpecificFileOrDirectory = inputPatternUtf8.find(u8'*') == std::u8string::npos && inputPatternUtf8.find(u8'?') == std::u8string::npos;
+            const bool isSpecificFileOrDirectory =
+                inputPatternUtf8.find(u8'*') == std::u8string::npos && inputPatternUtf8.find(u8'?') == std::u8string::npos;
             bool isSpecificFile = isSpecificFileOrDirectory && inputFilePattern.has_filename();
             std::vector<std::filesystem::path> wildcardPatterns;
             if (std::filesystem::is_directory(inputFilePattern)) {
@@ -228,9 +231,8 @@ int _MAIN(int argc, arg_char* argv[])
                 regexes.emplace_back(regexPattern);
             }
             const auto matchesAnyPattern = [&regexes](const std::filesystem::path& path) {
-                return std::any_of(regexes.begin(), regexes.end(), [&path](const auto& regex) {
-                    return std::regex_match(path.filename().native(), regex);
-                });
+                return std::any_of(
+                    regexes.begin(), regexes.end(), [&path](const auto& regex) { return std::regex_match(path.filename().native(), regex); });
             };
 
             auto iterate = [&](auto& iterator) {

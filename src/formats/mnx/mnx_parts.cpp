@@ -20,9 +20,9 @@
  * THE SOFTWARE.
  */
 #include <cmath>
-#include <iostream>
 #include <filesystem>
 #include <fstream>
+#include <iostream>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -41,10 +41,7 @@ namespace formats {
 namespace mnx {
 namespace detail {
 
-static void createBeams(
-    const MnxMusxMappingPtr& context,
-    mnxdom::part::Measure mnxMeasure,
-    const MusxInstance<others::Measure>& musxMeasure)
+static void createBeams(const MnxMusxMappingPtr& context, mnxdom::part::Measure mnxMeasure, const MusxInstance<others::Measure>& musxMeasure)
 {
     const auto& musxDocument = musxMeasure->getDocument();
     const auto mnxMeasures = mnxMeasure.parent<mnxdom::Array<mnxdom::part::Measure>>();
@@ -54,15 +51,16 @@ static void createBeams(
             return; // skip cues until MNX spec includes them
         }
         auto processEntry = [&](const EntryInfoPtr& entryInfo) -> bool {
-            auto processBeam = [&](mnxdom::Array<mnxdom::part::Beam>&& mnxBeams, unsigned beamNumber, const EntryInfoPtr& firstInBeam, auto&& self) -> void {
-                assert(firstInBeam.calcLowestBeamStart(/*considerBeamOverBarlines*/true) <= beamNumber);
+            auto processBeam = [&](mnxdom::Array<mnxdom::part::Beam>&& mnxBeams, unsigned beamNumber, const EntryInfoPtr& firstInBeam,
+                                   auto&& self) -> void {
+                assert(firstInBeam.calcLowestBeamStart(/*considerBeamOverBarlines*/ true) <= beamNumber);
                 auto beam = mnxBeams.append();
                 for (auto next = firstInBeam; next; next = next.getNextInBeamGroupAcrossBars(EntryInfoPtr::BeamIterationMode::Interpreted)) {
                     const auto entry = next->getEntry();
                     const EntryNumber entryNumber = entry->getEntryNumber();
                     context->beamedEntries.emplace(entryNumber);
                     beam.events().push_back(core::calcEventId(entryNumber));
-                    if (unsigned lowestBeamStart = next.calcLowestBeamStart(/*considerBeamOverBarlines*/true)) {
+                    if (unsigned lowestBeamStart = next.calcLowestBeamStart(/*considerBeamOverBarlines*/ true)) {
                         unsigned nextBeamNumber = beamNumber + 1;
                         unsigned lowestBeamStub = next.calcLowestBeamStub();
                         if (lowestBeamStub && lowestBeamStub <= nextBeamNumber && next.calcNumberOfBeams() >= nextBeamNumber) {
@@ -70,9 +68,8 @@ static void createBeams(
                             hookBeam.events().push_back(core::calcEventId(entryNumber));
                             if (entry->stemDetail) {
                                 if (auto manual = musxDocument->getDetails()->get<details::BeamStubDirection>(partId, entryNumber)) {
-                                    mnxdom::BeamHookDirection hookDir = manual->isLeft()
-                                                                     ? mnxdom::BeamHookDirection::Left
-                                                                     : mnxdom::BeamHookDirection::Right;
+                                    mnxdom::BeamHookDirection hookDir =
+                                        manual->isLeft() ? mnxdom::BeamHookDirection::Left : mnxdom::BeamHookDirection::Right;
                                     hookBeam.set_or_clear_direction(hookDir);
                                 }
                             }
@@ -103,7 +100,8 @@ static void createBeams(
                 }
                 if (auto sourceEntry = entryInfo.findHiddenSourceForBeamOverBarline()) {
                     const auto sourceMeasureId = static_cast<size_t>(sourceEntry.getMeasure());
-                    ASSERT_IF(sourceMeasureId >= mnxMeasures.size() || sourceMeasureId == 0) {
+                    ASSERT_IF(sourceMeasureId >= mnxMeasures.size() || sourceMeasureId == 0)
+                    {
                         throw std::logic_error("Source entry's measure " + std::to_string(sourceMeasureId) + " is not a valid measure.");
                     }
                     mnxMeasure = mnxMeasures.at(sourceMeasureId - 1);
@@ -129,15 +127,11 @@ static void createBeams(
     }
 }
 
-static std::optional<ClefIndex> createClef(
-    const MnxMusxMappingPtr& context,
-    mnxdom::part::Measure& mnxMeasure,
-    std::optional<int> mnxStaffNumber,
-    ClefIndex clefIndex,
-    musx::util::Fraction location,
-    const MusxInstance<others::Staff>& musxStaff)
+static std::optional<ClefIndex> createClef(const MnxMusxMappingPtr& context, mnxdom::part::Measure& mnxMeasure, std::optional<int> mnxStaffNumber,
+    ClefIndex clefIndex, musx::util::Fraction location, const MusxInstance<others::Staff>& musxStaff)
 {
-    MUSX_ASSERT_IF(!musxStaff) {
+    MUSX_ASSERT_IF(!musxStaff)
+    {
         context->logMessage(LogMsg() << "invalid or unmapped staff passed to createClef", MessageSeverity::Warning);
         return std::nullopt;
     }
@@ -170,19 +164,16 @@ static std::optional<ClefIndex> createClef(
         }
         return clefIndex;
     } else {
-        context->logMessage(LogMsg() << "Clef char " << int(musxClef->clefChar) << " has no clef info. " << " (glyph name is " << clef.glyphName.value_or("") << ")"
-            << " Clef change was skipped.", MessageSeverity::Verbose);
+        context->logMessage(LogMsg() << "Clef char " << int(musxClef->clefChar) << " has no clef info. " << " (glyph name is "
+                                     << clef.glyphName.value_or("") << ")"
+                                     << " Clef change was skipped.",
+            MessageSeverity::Verbose);
     }
     return std::nullopt;
 };
 
-static void createClefs(
-    const MnxMusxMappingPtr& context,
-    const mnxdom::Part& mnxPart,
-    mnxdom::part::Measure& mnxMeasure,
-    std::optional<int> mnxStaffNumber,
-    const MusxInstance<others::Measure>& musxMeasure,
-    std::optional<ClefIndex>& prevClefIndex)
+static void createClefs(const MnxMusxMappingPtr& context, const mnxdom::Part& mnxPart, mnxdom::part::Measure& mnxMeasure,
+    std::optional<int> mnxStaffNumber, const MusxInstance<others::Measure>& musxMeasure, std::optional<ClefIndex>& prevClefIndex)
 {
     const auto& musxDocument = musxMeasure->getDocument();
     const StaffCmper staffCmper = context->current.staff;
@@ -205,8 +196,8 @@ static void createClefs(
         auto musxStaff = musx::dom::others::StaffComposite::createCurrent(
             musxDocument, musxMeasure->getRequestedPartId(), staffCmper, musxMeasure->getCmper(), location.calcEduDuration());
         if (!musxStaff) {
-            context->logMessage(LogMsg() << mnxPartDisplayName(context, mnxPart)
-                << " has no staff information for staff " << staffCmper, MessageSeverity::Warning);
+            context->logMessage(
+                LogMsg() << mnxPartDisplayName(context, mnxPart) << " has no staff information for staff " << staffCmper, MessageSeverity::Warning);
             return;
         }
         if (auto newClefIndex = createClef(context, mnxMeasure, mnxStaffNumber, clefIndex, location, musxStaff)) {
@@ -216,22 +207,19 @@ static void createClefs(
 
     auto staff = others::StaffComposite::createCurrent(musxDocument, musxMeasure->getRequestedPartId(), staffCmper, musxMeasure->getCmper(), 0);
     if (!staff) {
-        context->logMessage(LogMsg() << mnxPartDisplayName(context, mnxPart)
-            << " has no staff information for staff " << staffCmper, MessageSeverity::Warning);
+        context->logMessage(
+            LogMsg() << mnxPartDisplayName(context, mnxPart) << " has no staff information for staff " << staffCmper, MessageSeverity::Warning);
         return;
     }
-    staff->iterateClefChangesAtMeasure(
-        musxMeasure->getCmper(),
-        /*forWrittenPitch*/ true,
-        [&](const others::Staff::ClefChange& clefChange) {
+    staff->iterateClefChangesAtMeasure(musxMeasure->getCmper(),
+        /*forWrittenPitch*/ true, [&](const others::Staff::ClefChange& clefChange) {
             addClef(clefChange);
             return true;
         });
 }
 
 static std::optional<std::pair<MusicPoint, InstrumentInfo::InstrumentChange>> findChangeForIdentity(
-    const InstrumentInfo& instInfo,
-    const InstrumentInfo::InstrumentIdentity& identity)
+    const InstrumentInfo& instInfo, const InstrumentInfo::InstrumentIdentity& identity)
 {
     for (const auto& [point, change] : instInfo.getChanges()) {
         if (change.identity == identity) {
@@ -241,12 +229,8 @@ static std::optional<std::pair<MusicPoint, InstrumentInfo::InstrumentChange>> fi
     return std::nullopt;
 }
 
-static bool createFirstClefForInactiveInstrument(
-    const MnxMusxMappingPtr& context,
-    mnxdom::part::Measure& mnxMeasure,
-    std::optional<int> mnxStaffNumber,
-    const MusxInstance<others::Measure>& musxMeasure,
-    StaffCmper staffCmper,
+static bool createFirstClefForInactiveInstrument(const MnxMusxMappingPtr& context, mnxdom::part::Measure& mnxMeasure,
+    std::optional<int> mnxStaffNumber, const MusxInstance<others::Measure>& musxMeasure, StaffCmper staffCmper,
     std::optional<ClefIndex>& prevClefIndex)
 {
     if (context->currSplitInstrumentUuid) {
@@ -254,25 +238,15 @@ static bool createFirstClefForInactiveInstrument(
         const auto identity = instInfo.getInstrumentIdentityAt(MusicPoint(musxMeasure->getCmper(), musx::util::Fraction{}));
         if (identity.instUuid != context->currSplitInstrumentUuid.value()) {
             if (musxMeasure->getCmper() == 1) {
-                const auto splitIdentity = InstrumentInfo::InstrumentIdentity{ context->currSplitInstrumentUuid.value() };
+                const auto splitIdentity = InstrumentInfo::InstrumentIdentity{context->currSplitInstrumentUuid.value()};
                 if (const auto splitChange = findChangeForIdentity(instInfo, splitIdentity)) {
                     const auto& splitPoint = splitChange->first;
-                    const auto musxStaff = others::StaffComposite::createCurrent(
-                        musxMeasure->getDocument(),
-                        musxMeasure->getRequestedPartId(),
-                        staffCmper,
-                        splitPoint.measureId,
-                        splitPoint.position.calcEduDuration());
+                    const auto musxStaff = others::StaffComposite::createCurrent(musxMeasure->getDocument(), musxMeasure->getRequestedPartId(),
+                        staffCmper, splitPoint.measureId, splitPoint.position.calcEduDuration());
                     if (!musxStaff) {
                         return true;
                     }
-                    prevClefIndex = createClef(
-                        context,
-                        mnxMeasure,
-                        mnxStaffNumber,
-                        musxStaff->calcClefIndex(/*forWrittenPitch*/ true),
-                        0,
-                        musxStaff);
+                    prevClefIndex = createClef(context, mnxMeasure, mnxStaffNumber, musxStaff->calcClefIndex(/*forWrittenPitch*/ true), 0, musxStaff);
                 }
             }
             return true;
@@ -285,9 +259,9 @@ static bool createFirstClefForInactiveInstrument(
 static int calcRepeatSpan(others::Staff::AlternateNotation altNotation)
 {
     switch (altNotation) {
-        case others::Staff::AlternateNotation::OneBarRepeat: return 1;
-        case others::Staff::AlternateNotation::TwoBarRepeat: return 2;
-        default: return 0;
+    case others::Staff::AlternateNotation::OneBarRepeat: return 1;
+    case others::Staff::AlternateNotation::TwoBarRepeat: return 2;
+    default: return 0;
     }
 }
 
@@ -295,18 +269,18 @@ static int calcRepeatSpan(others::Staff::AlternateNotation altNotation)
 ///
 /// MNX gives a part measure a single measure repeat shared by every staff, so a repeat that applies
 /// to only some of a part's staves cannot be expressed and is skipped.
-static int calcPartRepeatSpan(const MnxMusxMappingPtr& context, mnxdom::Part& part,
-    const MusxInstance<others::Measure>& musxMeasure)
+static int calcPartRepeatSpan(const MnxMusxMappingPtr& context, mnxdom::Part& part, const MusxInstance<others::Measure>& musxMeasure)
 {
     std::optional<int> partSpan;
     for (const StaffCmper staffCmper : context->currPartStaves) {
-        const auto musxStaff = others::StaffComposite::createCurrent(
-            context->document, musxMeasure->getRequestedPartId(), staffCmper, musxMeasure->getCmper(), 0);
+        const auto musxStaff =
+            others::StaffComposite::createCurrent(context->document, musxMeasure->getRequestedPartId(), staffCmper, musxMeasure->getCmper(), 0);
         const int staffSpan = musxStaff ? calcRepeatSpan(musxStaff->altNotation) : 0;
         if (partSpan && partSpan.value() != staffSpan) {
-            context->logMessage(LogMsg() << mnxPartDisplayName(context, part) << " has a measure repeat in measure "
-                << musxMeasure->getCmper() << " that does not apply to every staff of the part;"
-                " MNX has no per-staff measure repeat, so it is not exported.", MessageSeverity::Verbose);
+            context->logMessage(LogMsg() << mnxPartDisplayName(context, part) << " has a measure repeat in measure " << musxMeasure->getCmper()
+                                         << " that does not apply to every staff of the part;"
+                                            " MNX has no per-staff measure repeat, so it is not exported.",
+                MessageSeverity::Verbose);
             return 0;
         }
         partSpan = staffSpan;
@@ -325,8 +299,8 @@ static int calcPartRepeatSpan(const MnxMusxMappingPtr& context, mnxdom::Part& pa
 ///
 /// Sequence content is left in place. The measure repeat object permits a marking and notation in
 /// the same bar, and Finale's alternate notation likewise hides the content without removing it.
-static void createMeasureRepeats(const MnxMusxMappingPtr& context, mnxdom::Part& part,
-    mnxdom::Array<mnxdom::part::Measure>& mnxMeasures, const MusxInstanceList<others::Measure>& musxMeasures)
+static void createMeasureRepeats(const MnxMusxMappingPtr& context, mnxdom::Part& part, mnxdom::Array<mnxdom::part::Measure>& mnxMeasures,
+    const MusxInstanceList<others::Measure>& musxMeasures)
 {
     // Measure repeats are a property of the part rather than of any one measure and staff, so the
     // current measure and staff no longer apply to messages logged from here.
@@ -343,10 +317,11 @@ static void createMeasureRepeats(const MnxMusxMappingPtr& context, mnxdom::Part&
         const bool reachesBackTooFar = static_cast<size_t>(span) > index;
         const bool extendsPastEnd = index + static_cast<size_t>(span) > measureCount;
         if (reachesBackTooFar || extendsPastEnd) {
-            context->logMessage(LogMsg() << mnxPartDisplayName(context, part) << " has a " << span
-                << "-bar repeat in measure " << musxMeasures[index]->getCmper()
-                << " that would " << (reachesBackTooFar ? "reach back before the first measure" : "extend past the last measure")
-                << "; it is not exported.", MessageSeverity::Warning);
+            context->logMessage(LogMsg() << mnxPartDisplayName(context, part) << " has a " << span << "-bar repeat in measure "
+                                         << musxMeasures[index]->getCmper() << " that would "
+                                         << (reachesBackTooFar ? "reach back before the first measure" : "extend past the last measure")
+                                         << "; it is not exported.",
+                MessageSeverity::Warning);
         } else {
             auto mnxRepeat = mnxMeasures.at(index).ensure_measureRepeat(span);
             // A counter belongs to the repeat, so only one found on the measure that declares the
@@ -362,10 +337,11 @@ static void createMeasureRepeats(const MnxMusxMappingPtr& context, mnxdom::Part&
         for (size_t covered = index + 1; covered < index + static_cast<size_t>(span) && covered < measureCount; covered++) {
             const int coveredSpan = calcPartRepeatSpan(context, part, musxMeasures[covered]);
             if (coveredSpan > 0 && coveredSpan != span) {
-                context->logMessage(LogMsg() << mnxPartDisplayName(context, part) << " has a " << coveredSpan
-                    << "-bar repeat in measure " << musxMeasures[covered]->getCmper() << " that falls inside the "
-                    << span << "-bar repeat beginning in measure " << musxMeasures[index]->getCmper()
-                    << "; only the repeat that begins the group is exported.", MessageSeverity::Warning);
+                context->logMessage(LogMsg() << mnxPartDisplayName(context, part) << " has a " << coveredSpan << "-bar repeat in measure "
+                                             << musxMeasures[covered]->getCmper() << " that falls inside the " << span
+                                             << "-bar repeat beginning in measure " << musxMeasures[index]->getCmper()
+                                             << "; only the repeat that begins the group is exported.",
+                    MessageSeverity::Warning);
             }
         }
         index += static_cast<size_t>(span);
@@ -374,9 +350,10 @@ static void createMeasureRepeats(const MnxMusxMappingPtr& context, mnxdom::Part&
     // rather than declares. MNX has nowhere to put either, and the count is no longer available to
     // the expression export that would otherwise have carried its text.
     for (const auto& [measureId, count] : context->measureRepeatCounts) {
-        context->logMessage(LogMsg() << mnxPartDisplayName(context, part) << " has measure repeat counter "
-            << count << " in measure " << measureId << ", which does not begin an exported measure repeat;"
-            " the counter is not exported.", MessageSeverity::Warning);
+        context->logMessage(LogMsg() << mnxPartDisplayName(context, part) << " has measure repeat counter " << count << " in measure " << measureId
+                                     << ", which does not begin an exported measure repeat;"
+                                        " the counter is not exported.",
+            MessageSeverity::Warning);
     }
     context->measureRepeatCounts.clear();
 }
@@ -445,9 +422,8 @@ static void logNonBarlineInstrumentChanges(const MnxMusxMappingPtr& context, con
     for (const auto& [point, change] : instInfo.getChanges()) {
         static_cast<void>(change);
         if (point.position != musx::util::Fraction{}) {
-            context->logMessage(LogMsg() << "Instrument change for staff " << topStaffId
-                << " occurs inside measure " << point.measureId << " at edu "
-                << point.position.calcEduDuration() << ". Split-instruments export routes by measure start.",
+            context->logMessage(LogMsg() << "Instrument change for staff " << topStaffId << " occurs inside measure " << point.measureId << " at edu "
+                                         << point.position.calcEduDuration() << ". Split-instruments export routes by measure start.",
                 MessageSeverity::Warning);
         }
     }
@@ -465,16 +441,12 @@ static void mapPartToInstrumentStaves(const MnxMusxMappingPtr& context, const st
         const auto staves = instInfo.getSequentialStaves();
         if (!staves.empty()) {
             context->inst2Part.emplace(staves.front(), id);
-            context->part2Inst.emplace(id, std::vector<StaffCmper>({ staves.front() }));
+            context->part2Inst.emplace(id, std::vector<StaffCmper>({staves.front()}));
         }
     }
 }
 
-static void populatePartMetadata(
-    const MnxMusxMappingPtr& context,
-    mnxdom::Part& part,
-    const std::string& id,
-    const InstrumentInfo& instInfo,
+static void populatePartMetadata(const MnxMusxMappingPtr& context, mnxdom::Part& part, const std::string& id, const InstrumentInfo& instInfo,
     const MusxInstance<others::StaffComposite>& staff)
 {
     const auto musxMiscOptions = context->finaleOptions.miscOptions;
@@ -494,8 +466,7 @@ static void populatePartMetadata(
     const auto [transpositionDisp, transpositionAlt] = staff->calcTranspositionInterval();
     if (transpositionDisp || transpositionAlt) {
         auto transposition = part.ensure_transposition(
-            mnxdom::Interval::make(transpositionDisp,
-                                music_theory::calc12EdoHalfstepsInInterval(transpositionDisp, transpositionAlt)));
+            mnxdom::Interval::make(transpositionDisp, music_theory::calc12EdoHalfstepsInInterval(transpositionDisp, transpositionAlt)));
         if (staff->transposition && !staff->transposition->noSimplifyKey && staff->transposition->keysig) {
             transposition.set_keyFifthsFlipAt(7 * music_theory::sign(staff->transposition->keysig->adjust));
         }

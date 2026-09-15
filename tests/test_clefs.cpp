@@ -88,7 +88,7 @@ static ClefDefContext makeClefDefContext(int middleCPos, char32_t clefChar, int 
     return {
         document,
         document->getOptions()->get<options::ClefOptions>()->getClefDef(0),
-        percussionStaff ? document->getOthers()->get<others::Staff>(SCORE_PARTID, 1) : nullptr
+        percussionStaff ? document->getOthers()->get<others::Staff>(SCORE_PARTID, 1) : nullptr,
     };
 }
 

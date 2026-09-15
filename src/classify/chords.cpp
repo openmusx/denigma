@@ -22,8 +22,8 @@
 #include "denigma/classify/chords.h"
 
 #include <algorithm>
-#include <cstdint>
 #include <cctype>
+#include <cstdint>
 #include <optional>
 #include <string_view>
 #include <unordered_map>
@@ -54,55 +54,51 @@ std::string prefixText(musx::dom::others::ChordSuffixElement::Prefix prefix)
 
 std::optional<std::string_view> unicodeTextForGlyph(std::string_view glyphName)
 {
-    static const std::unordered_map<std::string_view, std::string_view> glyphText {
-        { "accidentalFlat", "♭" },
-        { "accidentalNatural", "♮" },
-        { "accidentalSharp", "♯" },
-        { "accidentalDoubleFlat", "𝄫" },
-        { "accidentalDoubleSharp", "𝄪" },
-        { "csymAccidentalFlat", "♭" },
-        { "csymAccidentalFlatSmall", "♭" },
-        { "csymAccidentalNatural", "♮" },
-        { "csymAccidentalNaturalSmall", "♮" },
-        { "csymAccidentalSharp", "♯" },
-        { "csymAccidentalSharpSmall", "♯" },
-        { "csymAccidentalDoubleFlat", "𝄫" },
-        { "csymAccidentalDoubleFlatSmall", "𝄫" },
-        { "csymAccidentalDoubleSharp", "𝄪" },
-        { "csymAccidentalDoubleSharpSmall", "𝄪" },
-        { "csymDiminished", "°" },
-        { "csymDiminishedSmall", "°" },
-        { "csymHalfDiminished", "ø" },
-        { "csymHalfDiminishedSmall", "ø" },
-        { "csymAugmented", "+" },
-        { "csymAugmentedSmall", "+" },
-        { "csymMajorSeventh", "Δ" },
-        { "csymMajorSeventhSmall", "Δ" },
-        { "csymMinor", "m" },
-        { "csymMinorSmall", "m" },
-        { "csymParensLeftTall", "(" },
-        { "csymParensLeftVeryTall", "(" },
-        { "csymParensRightTall", ")" },
-        { "csymParensRightVeryTall", ")" },
-        { "csymBracketLeftTall", "[" },
-        { "csymBracketRightTall", "]" },
-        { "csymAlteredBassSlash", "/" },
-        { "csymDiagonalArrangementSlash", "/" },
+    static const std::unordered_map<std::string_view, std::string_view> glyphText{
+        {"accidentalFlat", "♭"},
+        {"accidentalNatural", "♮"},
+        {"accidentalSharp", "♯"},
+        {"accidentalDoubleFlat", "𝄫"},
+        {"accidentalDoubleSharp", "𝄪"},
+        {"csymAccidentalFlat", "♭"},
+        {"csymAccidentalFlatSmall", "♭"},
+        {"csymAccidentalNatural", "♮"},
+        {"csymAccidentalNaturalSmall", "♮"},
+        {"csymAccidentalSharp", "♯"},
+        {"csymAccidentalSharpSmall", "♯"},
+        {"csymAccidentalDoubleFlat", "𝄫"},
+        {"csymAccidentalDoubleFlatSmall", "𝄫"},
+        {"csymAccidentalDoubleSharp", "𝄪"},
+        {"csymAccidentalDoubleSharpSmall", "𝄪"},
+        {"csymDiminished", "°"},
+        {"csymDiminishedSmall", "°"},
+        {"csymHalfDiminished", "ø"},
+        {"csymHalfDiminishedSmall", "ø"},
+        {"csymAugmented", "+"},
+        {"csymAugmentedSmall", "+"},
+        {"csymMajorSeventh", "Δ"},
+        {"csymMajorSeventhSmall", "Δ"},
+        {"csymMinor", "m"},
+        {"csymMinorSmall", "m"},
+        {"csymParensLeftTall", "("},
+        {"csymParensLeftVeryTall", "("},
+        {"csymParensRightTall", ")"},
+        {"csymParensRightVeryTall", ")"},
+        {"csymBracketLeftTall", "["},
+        {"csymBracketRightTall", "]"},
+        {"csymAlteredBassSlash", "/"},
+        {"csymDiagonalArrangementSlash", "/"},
     };
     const auto found = glyphText.find(glyphName);
     return found == glyphText.end() ? std::nullopt : std::optional<std::string_view>(found->second);
 }
 
-chord::SuffixString::Position suffixStringPosition(
-    musx::dom::Evpu verticalOffset,
-    const std::shared_ptr<musx::dom::FontInfo>& font)
+chord::SuffixString::Position suffixStringPosition(musx::dom::Evpu verticalOffset, const std::shared_ptr<musx::dom::FontInfo>& font)
 {
     // Finale nudges parentheses and accidental glyphs a few Evpu off the baseline within a single
     // logical string. Only a shift of at least half the em is a separately stacked line, such as the
     // 9 under the 6 of a "6/9" chord or a stacked group of added degrees.
-    const auto threshold = font
-        ? static_cast<musx::dom::Evpu>((font->fontSize * musx::dom::EVPU_PER_POINT) / 2.0)
-        : musx::dom::Evpu{};
+    const auto threshold = font ? static_cast<musx::dom::Evpu>((font->fontSize * musx::dom::EVPU_PER_POINT) / 2.0) : musx::dom::Evpu{};
     if (verticalOffset > threshold) {
         return chord::SuffixString::Position::Above;
     }
@@ -149,18 +145,16 @@ std::string normalizeForParsing(std::string text)
     replaceAll("−", "-");
     replaceAll("♭", "b");
     replaceAll("♯", "#");
-    text.erase(std::remove_if(text.begin(), text.end(), [](unsigned char character) {
-        return std::isspace(character) || character == '(' || character == ')' || character == '[' || character == ']' || character == ',';
-    }), text.end());
+    text.erase(std::remove_if(text.begin(), text.end(),
+                   [](unsigned char character) {
+                       return std::isspace(character) || character == '(' || character == ')' || character == '[' || character == ']'
+                              || character == ',';
+                   }),
+        text.end());
     return text;
 }
 
-void addDegree(
-    ChordSuffixClassification& result,
-    int value,
-    chord::Degree::Type type,
-    int alteration = 0,
-    bool impliedByText = false);
+void addDegree(ChordSuffixClassification& result, int value, chord::Degree::Type type, int alteration = 0, bool impliedByText = false);
 
 // Whether a chord of this quality already sounds the given degree. A degree the quality supplies is
 // modified in place; one it does not supply is added. Finale's export draws the same distinction: the
@@ -199,8 +193,7 @@ bool qualitySoundsDegree(chord::Quality quality, int value)
     case Quality::MinorEleventh: return value == 3 || value == 5 || value == 7 || value == 9 || value == 11;
     case Quality::DominantThirteenth:
     case Quality::MajorThirteenth:
-    case Quality::MinorThirteenth:
-        return value == 3 || value == 5 || value == 7 || value == 9 || value == 11 || value == 13;
+    case Quality::MinorThirteenth: return value == 3 || value == 5 || value == 7 || value == 9 || value == 11 || value == 13;
     }
     return false;
 }
@@ -254,7 +247,7 @@ bool parseDegrees(std::string_view text, ChordSuffixClassification& result, chor
 
 void addDegree(ChordSuffixClassification& result, int value, chord::Degree::Type type, int alteration, bool impliedByText)
 {
-    result.degrees.emplace_back(chord::Degree{ value, alteration, type, impliedByText });
+    result.degrees.emplace_back(chord::Degree{value, alteration, type, impliedByText});
 }
 
 void classifyText(ChordSuffixClassification& result)
@@ -263,12 +256,27 @@ void classifyText(ChordSuffixClassification& result)
     const auto parseText = normalizeForParsing(text);
     using Quality = chord::Quality;
     using DegreeType = chord::Degree::Type;
-    if (parseText.empty()) { result.quality = Quality::Major; return; }
-    if (parseText == "m") { result.quality = Quality::Minor; return; }
-    if (parseText == "5") { result.quality = Quality::Power; return; }
+    if (parseText.empty()) {
+        result.quality = Quality::Major;
+        return;
+    }
+    if (parseText == "m") {
+        result.quality = Quality::Minor;
+        return;
+    }
+    if (parseText == "5") {
+        result.quality = Quality::Power;
+        return;
+    }
     // "maj6" normalizes to "M6". It is a major sixth chord, not a sixth degree raised by the "maj".
-    if (parseText == "6" || parseText == "M6") { result.quality = Quality::MajorSixth; return; }
-    if (parseText == "m6") { result.quality = Quality::MinorSixth; return; }
+    if (parseText == "6" || parseText == "M6") {
+        result.quality = Quality::MajorSixth;
+        return;
+    }
+    if (parseText == "m6") {
+        result.quality = Quality::MinorSixth;
+        return;
+    }
     // A "6/9" chord is a sixth chord with an added ninth. Both degrees are already spelled out in the
     // suffix, so the ninth must not print a second time.
     if (parseText == "69") {
@@ -281,46 +289,118 @@ void classifyText(ChordSuffixClassification& result)
         addDegree(result, 9, DegreeType::Add, 0, true);
         return;
     }
-    if (parseText == "7") { result.quality = Quality::Dominant; return; }
-    if (parseText == "9") { result.quality = Quality::DominantNinth; return; }
-    if (parseText == "11") { result.quality = Quality::DominantEleventh; return; }
-    if (parseText == "13") { result.quality = Quality::DominantThirteenth; return; }
-    if (parseText == "M7") { result.quality = Quality::MajorSeventh; return; }
-    if (parseText == "M9") { result.quality = Quality::MajorNinth; return; }
-    if (parseText == "M11") { result.quality = Quality::MajorEleventh; return; }
-    if (parseText == "M13") { result.quality = Quality::MajorThirteenth; return; }
-    if (parseText == "m7") { result.quality = Quality::MinorSeventh; return; }
-    if (parseText == "m9") { result.quality = Quality::MinorNinth; return; }
-    if (parseText == "m11") { result.quality = Quality::MinorEleventh; return; }
-    if (parseText == "m13") { result.quality = Quality::MinorThirteenth; return; }
-    if (parseText == "mM7") { result.quality = Quality::MajorMinor; return; }
-    if (parseText == "°") { result.quality = Quality::Diminished; return; }
-    if (parseText == "°7" || parseText == "7°") { result.quality = Quality::DiminishedSeventh; return; }
-    if (parseText == "ø7") { result.quality = Quality::HalfDiminished; return; }
-    if (parseText == "sus" || parseText == "sus4") { result.quality = Quality::SuspendedFourth; return; }
-    if (parseText == "sus2") { result.quality = Quality::SuspendedSecond; return; }
-    if (parseText == "ped") { result.quality = Quality::Pedal; return; }
-    if (parseText == "nc" || parseText == "n.c.") { result.quality = Quality::None; return; }
+    if (parseText == "7") {
+        result.quality = Quality::Dominant;
+        return;
+    }
+    if (parseText == "9") {
+        result.quality = Quality::DominantNinth;
+        return;
+    }
+    if (parseText == "11") {
+        result.quality = Quality::DominantEleventh;
+        return;
+    }
+    if (parseText == "13") {
+        result.quality = Quality::DominantThirteenth;
+        return;
+    }
+    if (parseText == "M7") {
+        result.quality = Quality::MajorSeventh;
+        return;
+    }
+    if (parseText == "M9") {
+        result.quality = Quality::MajorNinth;
+        return;
+    }
+    if (parseText == "M11") {
+        result.quality = Quality::MajorEleventh;
+        return;
+    }
+    if (parseText == "M13") {
+        result.quality = Quality::MajorThirteenth;
+        return;
+    }
+    if (parseText == "m7") {
+        result.quality = Quality::MinorSeventh;
+        return;
+    }
+    if (parseText == "m9") {
+        result.quality = Quality::MinorNinth;
+        return;
+    }
+    if (parseText == "m11") {
+        result.quality = Quality::MinorEleventh;
+        return;
+    }
+    if (parseText == "m13") {
+        result.quality = Quality::MinorThirteenth;
+        return;
+    }
+    if (parseText == "mM7") {
+        result.quality = Quality::MajorMinor;
+        return;
+    }
+    if (parseText == "°") {
+        result.quality = Quality::Diminished;
+        return;
+    }
+    if (parseText == "°7" || parseText == "7°") {
+        result.quality = Quality::DiminishedSeventh;
+        return;
+    }
+    if (parseText == "ø7") {
+        result.quality = Quality::HalfDiminished;
+        return;
+    }
+    if (parseText == "sus" || parseText == "sus4") {
+        result.quality = Quality::SuspendedFourth;
+        return;
+    }
+    if (parseText == "sus2") {
+        result.quality = Quality::SuspendedSecond;
+        return;
+    }
+    if (parseText == "ped") {
+        result.quality = Quality::Pedal;
+        return;
+    }
+    if (parseText == "nc" || parseText == "n.c.") {
+        result.quality = Quality::None;
+        return;
+    }
     // The plus already raises the fifth, so "+5" needs no degree of its own.
-    if (parseText == "+" || parseText == "+5") { result.quality = Quality::Augmented; return; }
-    if (parseText == "+6") { result.quality = Quality::MajorSixth; return; }
+    if (parseText == "+" || parseText == "+5") {
+        result.quality = Quality::Augmented;
+        return;
+    }
+    if (parseText == "+6") {
+        result.quality = Quality::MajorSixth;
+        return;
+    }
     // The plus of "+7" raises the fifth of a seventh chord rather than adding a degree, which is how
     // Finale exports it. The library pairs this spelling with "aug7".
-    if (parseText == "+7") { result.quality = Quality::AugmentedSeventh; return; }
-    if (parseText.size() > 1 && parseText.front() == '+'
-        && std::isdigit(static_cast<unsigned char>(parseText[1])) && parseText != "+5") {
+    if (parseText == "+7") {
+        result.quality = Quality::AugmentedSeventh;
+        return;
+    }
+    if (parseText.size() > 1 && parseText.front() == '+' && std::isdigit(static_cast<unsigned char>(parseText[1])) && parseText != "+5") {
         if (parseDegrees(std::string_view(parseText).substr(1), result, Quality::Major)) {
             result.quality = Quality::Major;
             return;
         }
         result.degrees.clear();
     }
-    const std::pair<std::string_view, Quality> suspendedPrefixes[] {
-        { "13sus4", Quality::SuspendedFourth }, { "11sus4", Quality::SuspendedFourth },
-        { "9sus4", Quality::SuspendedFourth }, { "7sus4", Quality::SuspendedFourth },
-        { "7sus2", Quality::SuspendedSecond }, { "6sus4", Quality::SuspendedFourth },
-        { "6sus2", Quality::SuspendedSecond }, { "sus4", Quality::SuspendedFourth },
-        { "sus2", Quality::SuspendedSecond },
+    const std::pair<std::string_view, Quality> suspendedPrefixes[]{
+        {"13sus4", Quality::SuspendedFourth},
+        {"11sus4", Quality::SuspendedFourth},
+        {"9sus4", Quality::SuspendedFourth},
+        {"7sus4", Quality::SuspendedFourth},
+        {"7sus2", Quality::SuspendedSecond},
+        {"6sus4", Quality::SuspendedFourth},
+        {"6sus2", Quality::SuspendedSecond},
+        {"sus4", Quality::SuspendedFourth},
+        {"sus2", Quality::SuspendedSecond},
     };
     for (const auto& [prefix, quality] : suspendedPrefixes) {
         if (parseText == prefix || parseText == std::string(prefix) + "-3") {
@@ -359,16 +439,26 @@ void classifyText(ChordSuffixClassification& result)
     // Longest first, so an extended quality wins over the shorter one it contains. Without the ninth
     // through thirteenth entries a suffix that qualifies its quality, such as "maj9(13)", falls through
     // to the bare triad and its remaining text fails to parse as a degree list.
-    const std::pair<std::string_view, Quality> qualityPrefixes[] {
-        { "m13", Quality::MinorThirteenth }, { "m11", Quality::MinorEleventh }, { "m9", Quality::MinorNinth },
-        { "m7", Quality::MinorSeventh },
-        { "M13", Quality::MajorThirteenth }, { "M11", Quality::MajorEleventh }, { "M9", Quality::MajorNinth },
-        { "M7", Quality::MajorSeventh },
-        { "13", Quality::DominantThirteenth }, { "11", Quality::DominantEleventh }, { "9", Quality::DominantNinth },
-        { "7", Quality::Dominant },
-        { "°7", Quality::DiminishedSeventh }, { "ø7", Quality::HalfDiminished },
-        { "m", Quality::Minor }, { "+", Quality::Augmented }, { "°", Quality::Diminished },
-        { "ø", Quality::HalfDiminished }, { "", Quality::Major },
+    const std::pair<std::string_view, Quality> qualityPrefixes[]{
+        {"m13", Quality::MinorThirteenth},
+        {"m11", Quality::MinorEleventh},
+        {"m9", Quality::MinorNinth},
+        {"m7", Quality::MinorSeventh},
+        {"M13", Quality::MajorThirteenth},
+        {"M11", Quality::MajorEleventh},
+        {"M9", Quality::MajorNinth},
+        {"M7", Quality::MajorSeventh},
+        {"13", Quality::DominantThirteenth},
+        {"11", Quality::DominantEleventh},
+        {"9", Quality::DominantNinth},
+        {"7", Quality::Dominant},
+        {"°7", Quality::DiminishedSeventh},
+        {"ø7", Quality::HalfDiminished},
+        {"m", Quality::Minor},
+        {"+", Quality::Augmented},
+        {"°", Quality::Diminished},
+        {"ø", Quality::HalfDiminished},
+        {"", Quality::Major},
     };
     for (const auto& [prefix, quality] : qualityPrefixes) {
         if (parseText.starts_with(prefix)) {
@@ -400,15 +490,14 @@ ChordSuffixClassification classifyChordSuffix()
     return result;
 }
 
-ChordSuffixClassification classifyChordSuffix(
-    const musx::dom::MusxInstanceList<musx::dom::others::ChordSuffixElement>& suffix)
+ChordSuffixClassification classifyChordSuffix(const musx::dom::MusxInstanceList<musx::dom::others::ChordSuffixElement>& suffix)
 {
     ChordSuffixClassification result;
     std::optional<musx::dom::Evpu> previousVerticalOffset;
     for (const auto& element : suffix) {
         const auto position = suffixStringPosition(element->ydisp, element->font);
         if (!previousVerticalOffset || *previousVerticalOffset != element->ydisp) {
-            result.strings.emplace_back(chord::SuffixString{ {}, position });
+            result.strings.emplace_back(chord::SuffixString{{}, position});
         }
         previousVerticalOffset = element->ydisp;
         auto& string = result.strings.back().text;
@@ -432,11 +521,9 @@ ChordSuffixClassification classifyChordSuffix(
                 continue;
             }
         }
-        const auto glyphName = element->font
-            ? smufl_mapping::getGlyphNameForFont(
-                  element->font->getName(), element->symbol, element->font->calcIsSMuFL(),
-                  smufl_mapping::SmuflGlyphSource::Finale)
-            : nullptr;
+        const auto glyphName = element->font ? smufl_mapping::getGlyphNameForFont(element->font->getName(), element->symbol,
+                                                   element->font->calcIsSMuFL(), smufl_mapping::SmuflGlyphSource::Finale)
+                                             : nullptr;
         if (glyphName) {
             if (const auto text = unicodeTextForGlyph(*glyphName)) {
                 string += *text;
@@ -455,33 +542,28 @@ ChordSuffixClassification classifyChordSuffix(
     // suffix such as "m(maj7)" they belong to the chord kind itself, and Finale's own export agrees:
     // it writes parentheses-degrees only where the parenthesized text is the degree group.
     result.parenthesizeDegrees = !result.degrees.empty() && text.find('(') != std::string::npos;
-    result.stackDegrees = !result.degrees.empty()
-        && std::any_of(result.strings.begin(), result.strings.end(), [](const auto& string) {
-               return string.position != chord::SuffixString::Position::Inline;
-           });
+    result.stackDegrees = !result.degrees.empty() && std::any_of(result.strings.begin(), result.strings.end(), [](const auto& string) {
+        return string.position != chord::SuffixString::Position::Inline;
+    });
     return result;
 }
 
-std::optional<ChordSymbolClassification> classifyChordSymbol(
-    const musx::dom::MusxInstance<musx::dom::details::ChordAssign>& assignment,
-    const musx::dom::MusxInstance<musx::dom::KeySignature>& keySignature,
-    musx::dom::KeySignature::KeyContext keyContext)
+std::optional<ChordSymbolClassification> classifyChordSymbol(const musx::dom::MusxInstance<musx::dom::details::ChordAssign>& assignment,
+    const musx::dom::MusxInstance<musx::dom::KeySignature>& keySignature, musx::dom::KeySignature::KeyContext keyContext)
 {
     if (!assignment || !keySignature) {
         return std::nullopt;
     }
     const auto root = keySignature->calcPitch(assignment->rootScaleNum, assignment->rootAlter, keyContext);
     ChordSymbolClassification result;
-    result.root = { root.noteName, root.alteration };
+    result.root = {root.noteName, root.alteration};
     result.rootLowerCase = assignment->rootLowerCase;
     result.showRoot = assignment->showRoot;
-    result.suffix = assignment->showSuffix
-        ? classifyChordSuffix(assignment->getChordSuffix())
-        : classifyChordSuffix();
+    result.suffix = assignment->showSuffix ? classifyChordSuffix(assignment->getChordSuffix()) : classifyChordSuffix();
     result.showSuffix = assignment->showSuffix;
     if (assignment->showAltBass) {
         const auto bass = keySignature->calcPitch(assignment->bassScaleNum, assignment->bassAlter, keyContext);
-        result.bass = chord::Pitch{ bass.noteName, bass.alteration };
+        result.bass = chord::Pitch{bass.noteName, bass.alteration};
         result.bassLowerCase = assignment->bassLowerCase;
         using BassPosition = musx::dom::details::ChordAssign::BassPosition;
         switch (assignment->bassPosition) {

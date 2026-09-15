@@ -54,10 +54,7 @@ namespace {
 // a fact imported from musx data - and may change independently as MusicXML itself evolves.
 constexpr char32_t kDisplayNumberJoinMarker = char32_t(0x00A0);
 
-mx::api::DurationData createDurationData(
-    const MusicXmlMusxMapping& context,
-    const EntryInfoPtr& entryInfo,
-    const Fraction& actualDuration)
+mx::api::DurationData createDurationData(const MusicXmlMusxMapping& context, const EntryInfoPtr& entryInfo, const Fraction& actualDuration)
 {
     auto duration = mx::api::DurationData{};
     const auto [durationName, dots] = [&]() {
@@ -115,9 +112,9 @@ void applyTremoloData(mx::api::NoteData& note, const EntryInfoPtr& entryInfo)
         }
 
         const auto entryIndex = entryInfo.getIndexInFrame();
-        const auto markType = entryIndex == tupletInfo.startIndex
-            ? mx::api::MarkType::tremoloStart
-            : entryIndex == tupletInfo.endIndex ? mx::api::MarkType::tremoloStop : mx::api::MarkType::unspecified;
+        const auto markType = entryIndex == tupletInfo.startIndex ? mx::api::MarkType::tremoloStart
+                              : entryIndex == tupletInfo.endIndex ? mx::api::MarkType::tremoloStop
+                                                                  : mx::api::MarkType::unspecified;
         if (markType == mx::api::MarkType::unspecified) {
             continue;
         }
@@ -165,8 +162,7 @@ mx::api::TupletStart createTupletStart(const EntryFrame::TupletInfo& tupletInfo,
         case details::TupletDef::NumberStyle::Number: return std::pair{mx::api::Bool::yes, mx::api::Bool::no};
         case details::TupletDef::NumberStyle::UseRatio:
         case details::TupletDef::NumberStyle::RatioPlusDenominatorNote:
-        case details::TupletDef::NumberStyle::RatioPlusBothNotes:
-            return std::pair{mx::api::Bool::yes, mx::api::Bool::yes};
+        case details::TupletDef::NumberStyle::RatioPlusBothNotes: return std::pair{mx::api::Bool::yes, mx::api::Bool::yes};
         }
         return std::pair{mx::api::Bool::yes, mx::api::Bool::no};
     }();
@@ -246,9 +242,7 @@ void applyRestPositionIfNeeded(const MusicXmlMusxMapping& context, mx::api::Note
     }
     int adjustedStaffPosition = *staffPosition;
     const auto restPositionOffset = calcFinaleToSmuflRestPositionOffset(NoteType::Whole);
-    if (!context.denigmaContext->useFinaleRestPosition
-        && rest.durationData.durationName == mx::api::DurationName::whole
-        && restPositionOffset != 0) {
+    if (!context.denigmaContext->useFinaleRestPosition && rest.durationData.durationName == mx::api::DurationName::whole && restPositionOffset != 0) {
         adjustedStaffPosition += restPositionOffset;
     }
     const auto pitch = entryInfo.calcPitchFromStaffPosition(adjustedStaffPosition);
@@ -270,16 +264,11 @@ mx::api::PitchData createPitchData(MusicXmlMusxMapping& context, const NoteInfoP
     const auto properties = noteInfo.calcNoteProperties({
         .pitchMode = pitchContext == MusicXmlPitchContext::Concert ? PitchMode::Concert : PitchMode::Written,
     });
-    const auto octaveAdjustment = calcOttavaOctaveAdjustment(
-        context.current.ottavasApplicableInMeasure,
-        noteInfo,
-        [&](const NoteInfoPtr&) {
-            context.logMessage(
-                LogMsg() << "skipping ottava octave setting for tied-to note since the tied-from note is not under the ottava",
-                MessageSeverity::Verbose);
-        });
-    return mx::api::PitchData(
-        enumConvert<mx::api::Step>(properties.noteName), properties.alteration, properties.octave + octaveAdjustment);
+    const auto octaveAdjustment = calcOttavaOctaveAdjustment(context.current.ottavasApplicableInMeasure, noteInfo, [&](const NoteInfoPtr&) {
+        context.logMessage(
+            LogMsg() << "skipping ottava octave setting for tied-to note since the tied-from note is not under the ottava", MessageSeverity::Verbose);
+    });
+    return mx::api::PitchData(enumConvert<mx::api::Step>(properties.noteName), properties.alteration, properties.octave + octaveAdjustment);
 }
 
 void applyAccidentalData(mx::api::NoteData& note, const NoteInfoPtr& noteInfo)
@@ -301,8 +290,8 @@ void applyTieAlterStart(const MusicXmlMusxMapping& context, mx::api::TieLetRing&
 {
     if (auto tieAlter = context.document->getDetails()->getForNote<details::TieAlterStart>(noteInfo)) {
         if (tieAlter->freezeDirection) {
-            tieLetRing.curveOrientation = enumConvert<mx::api::CurveOrientation>(
-                tieAlter->down ? CurveContourDirection::Down : CurveContourDirection::Up);
+            tieLetRing.curveOrientation =
+                enumConvert<mx::api::CurveOrientation>(tieAlter->down ? CurveContourDirection::Down : CurveContourDirection::Up);
         }
     }
 }
@@ -345,9 +334,9 @@ void applyLyrics(MusicXmlMusxMapping& context, mx::api::NoteData& note, const En
                 continue;
             }
             if (assignment->syllable == 0 || assignment->syllable > lyricText->syllables.size()) {
-                context.logMessage(LogMsg() << "Layer " << entryInfo.getLayerIndex() + 1
-                    << " entry index " << entryInfo.getIndexInFrame() << " has an invalid syllable number ("
-                    << assignment->syllable << ").", MessageSeverity::Warning);
+                context.logMessage(LogMsg() << "Layer " << entryInfo.getLayerIndex() + 1 << " entry index " << entryInfo.getIndexInFrame()
+                                            << " has an invalid syllable number (" << assignment->syllable << ").",
+                    MessageSeverity::Warning);
                 continue;
             }
 
@@ -373,10 +362,8 @@ void applyLyrics(MusicXmlMusxMapping& context, mx::api::NoteData& note, const En
             // can express, and only those are what Finale itself exports: of 27 such shapes in
             // for_health_and_strength.musx none spans, and Finale writes no extension there.
             const auto endpoint = assignment->calcWordExtensionEndpoint();
-            const bool extensionSpansEntries = endpoint
-                && endpoint->getEntry()->getEntryNumber() != entryInfo->getEntry()->getEntryNumber();
-            lyric.hasExtend = (assignment->wext != 0 && extensionSpansEntries)
-                || lyricText->syllables[syllableIndex]->strippedUnderscores > 0;
+            const bool extensionSpansEntries = endpoint && endpoint->getEntry()->getEntryNumber() != entryInfo->getEntry()->getEntryNumber();
+            lyric.hasExtend = (assignment->wext != 0 && extensionSpansEntries) || lyricText->syllables[syllableIndex]->strippedUnderscores > 0;
             if (extensionSpansEntries) {
                 lyric.extendType = mx::api::LyricExtendType::start;
                 auto stopLyric = mx::api::LyricData{};
@@ -468,14 +455,8 @@ std::vector<mx::api::Beam> createBeamData(const MusicXmlMusxMapping& context, co
     return beams;
 }
 
-mx::api::NoteData createRestData(
-    MusicXmlMusxMapping& context,
-    mx::api::StaffData& staff,
-    const EntryInfoPtr::InterpretedIterator& entryIt,
-    const MusxInstance<others::Measure>& musxMeasure,
-    const MusxInstance<others::StaffComposite>& measureStartStaff,
-    int userVoiceNumber,
-    bool isCue,
+mx::api::NoteData createRestData(MusicXmlMusxMapping& context, mx::api::StaffData& staff, const EntryInfoPtr::InterpretedIterator& entryIt,
+    const MusxInstance<others::Measure>& musxMeasure, const MusxInstance<others::StaffComposite>& measureStartStaff, int userVoiceNumber, bool isCue,
     bool isStaffValueSpecified)
 {
     const auto& entryInfo = entryIt.getEntryInfo();
@@ -518,56 +499,37 @@ mx::api::NoteData createRestData(
     return rest;
 }
 
-void addSyntheticFullMeasureRest(
-    MusicXmlMusxMapping& context,
-    mx::api::StaffData& staff,
-    const MusxInstance<others::Measure>& musxMeasure,
-    StaffCmper staffId,
-    int userVoiceNumber)
+void addSyntheticFullMeasureRest(MusicXmlMusxMapping& context, mx::api::StaffData& staff, const MusxInstance<others::Measure>& musxMeasure,
+    StaffCmper staffId, int userVoiceNumber)
 {
     const auto measureStartStaff = others::StaffComposite::createCurrent(context.document, context.forPartId, staffId, musxMeasure->getCmper(), 0);
-    auto rest = createRestData(
-        context, staff, EntryInfoPtr::InterpretedIterator{}, musxMeasure, measureStartStaff,
-        userVoiceNumber, false, false);
+    auto rest = createRestData(context, staff, EntryInfoPtr::InterpretedIterator{}, musxMeasure, measureStartStaff, userVoiceNumber, false, false);
 
     auto& voice = staff.voices[userVoiceNumber - 1];
     voice.notes.emplace_back(std::move(rest));
 }
 
-void appendEntryNotes(
-    MusicXmlMusxMapping& context,
-    mx::api::StaffData& staff,
-    mx::api::VoiceData& voice,
-    const EntryInfoPtr::InterpretedIterator& entryIt,
-    const MusxInstance<others::Measure>& musxMeasure,
-    int userVoiceNumber,
-    size_t measureIndex,
-    size_t staffIndex,
-    bool hasMultipleLayers,
-    bool hasVoice1Voice2,
-    bool isCue,
-    bool isStaffValueSpecified,
-    MusicXmlPitchContext pitchContext)
+void appendEntryNotes(MusicXmlMusxMapping& context, mx::api::StaffData& staff, mx::api::VoiceData& voice,
+    const EntryInfoPtr::InterpretedIterator& entryIt, const MusxInstance<others::Measure>& musxMeasure, int userVoiceNumber, size_t measureIndex,
+    size_t staffIndex, bool hasMultipleLayers, bool hasVoice1Voice2, bool isCue, bool isStaffValueSpecified, MusicXmlPitchContext pitchContext)
 {
     const auto& entryInfo = entryIt.getEntryInfo();
     const auto entry = entryInfo->getEntry();
     auto rememberFirstNote = [&](size_t noteIndex) {
         context.entryNumberToFirstNote.try_emplace(entry->getEntryNumber(), MusicXmlNoteLocation{
-            .measureIndex = measureIndex,
-            .staffIndex = staffIndex,
-            .userVoiceNumber = userVoiceNumber,
-            .noteIndex = noteIndex
-        });
+                                                                                .measureIndex = measureIndex,
+                                                                                .staffIndex = staffIndex,
+                                                                                .userVoiceNumber = userVoiceNumber,
+                                                                                .noteIndex = noteIndex,
+                                                                            });
     };
     auto rememberExactNote = [&](const NoteInfoPtr& noteInfo, size_t noteIndex) {
-        context.noteLocations.try_emplace(
-            musicXmlNoteKey(entry->getEntryNumber(), noteInfo->getNoteId()),
-            MusicXmlNoteLocation{
-                .measureIndex = measureIndex,
-                .staffIndex = staffIndex,
-                .userVoiceNumber = userVoiceNumber,
-                .noteIndex = noteIndex
-            });
+        context.noteLocations.try_emplace(musicXmlNoteKey(entry->getEntryNumber(), noteInfo->getNoteId()), MusicXmlNoteLocation{
+                                                                                                               .measureIndex = measureIndex,
+                                                                                                               .staffIndex = staffIndex,
+                                                                                                               .userVoiceNumber = userVoiceNumber,
+                                                                                                               .noteIndex = noteIndex,
+                                                                                                           });
     };
     if (entryInfo.calcIsFullMeasureRest() || entryInfo.calcDisplaysAsRest()) {
         auto rest = createRestData(context, staff, entryIt, musxMeasure, nullptr, userVoiceNumber, isCue, isStaffValueSpecified);
@@ -597,16 +559,15 @@ void appendEntryNotes(
         note.isChord = includedNoteIndices.size() > 1;
         note.isGrace = entry->graceNote;
         if (note.isGrace) {
-            note.graceSlash = entryInfo.calcGraceNoteSlash(context.finaleOptions.graceOptions)
-                ? mx::api::Bool::yes
-                : mx::api::Bool::no;
+            note.graceSlash = entryInfo.calcGraceNoteSlash(context.finaleOptions.graceOptions) ? mx::api::Bool::yes : mx::api::Bool::no;
         }
         note.userRequestedVoiceNumber = userVoiceNumber;
         note.tickTimePosition = context.timing.calcMusicXmlDivisions(entryIt.getEffectiveElapsedDuration(/*global*/ true));
         note.durationData = createDurationData(context, entryInfo, entryIt.getEffectiveActualDuration(/*global*/ true));
         note.pitchData = createPitchData(context, noteInfo, pitchContext);
         if (const auto stavesIt = context.partIdToStaves.find(context.currentPart->uniqueId); stavesIt != context.partIdToStaves.end()) {
-            ASSERT_IF(staffIndex >= stavesIt->second.size()) {
+            ASSERT_IF(staffIndex >= stavesIt->second.size())
+            {
                 throw std::logic_error("Containing staff index is outside the current MusicXML part staff list.");
             }
             const auto containingStaffId = stavesIt->second[staffIndex];
@@ -615,9 +576,9 @@ void appendEntryNotes(
                 if (noteStaffIt != stavesIt->second.end()) {
                     note.crossStaffIndex = static_cast<int>(std::distance(stavesIt->second.begin(), noteStaffIt));
                 } else {
-                    context.logMessage(LogMsg() << "Cross-staff note in entry " << entry->getEntryNumber()
-                        << " points to staff " << noteStaffId << ", which is not included in MusicXML part "
-                        << context.currentPart->uniqueId << ".", MessageSeverity::Warning);
+                    context.logMessage(LogMsg() << "Cross-staff note in entry " << entry->getEntryNumber() << " points to staff " << noteStaffId
+                                                << ", which is not included in MusicXML part " << context.currentPart->uniqueId << ".",
+                        MessageSeverity::Warning);
                 }
             }
         }
@@ -705,19 +666,12 @@ void finalizePseudoLvTies(MusicXmlMusxMapping& context)
     }
 }
 
-void createNotesForMeasureStaff(
-    MusicXmlMusxMapping& context,
-    mx::api::MeasureData& measure,
-    mx::api::StaffData& staff,
-    const MusxInstance<others::Measure>& musxMeasure,
-    StaffCmper staffId,
-    size_t measureIndex,
-    size_t staffIndex)
+void createNotesForMeasureStaff(MusicXmlMusxMapping& context, mx::api::MeasureData& measure, mx::api::StaffData& staff,
+    const MusxInstance<others::Measure>& musxMeasure, StaffCmper staffId, size_t measureIndex, size_t staffIndex)
 {
     (void)measure;
 
-    context.current.ottavasApplicableInMeasure = collectOttavasForMeasureStaff(
-        context.document, context.forPartId, musxMeasure, staffId);
+    context.current.ottavasApplicableInMeasure = collectOttavasForMeasureStaff(context.document, context.forPartId, musxMeasure, staffId);
     const Fraction legacyPickupSpacer = musxMeasure->calcMinLegacyPickupSpacer(staffId);
     musx::dom::details::GFrameHoldContext staffMeasureContext(
         context.document, context.forPartId, staffId, musxMeasure->getCmper(), legacyPickupSpacer);
@@ -736,7 +690,8 @@ void createNotesForMeasureStaff(
         const bool isCue = cuePlan.isCueLayer(layer);
         const int maxVoice = numVoice2Entries ? 2 : 1;
         const auto entryFrame = staffMeasureContext.createEntryFrame(layer);
-        ASSERT_IF(!entryFrame) {
+        ASSERT_IF(!entryFrame)
+        {
             continue;
         }
         const bool usesV1V2 = numVoice2Entries && entryFrame->getFirstInterpretedIterator(2);
@@ -750,8 +705,8 @@ void createNotesForMeasureStaff(
                 if (isCue && !musx::util::Cue::calcIsVisibleInRequestedContext(entryIt.getEntryInfo())) {
                     continue;
                 }
-                appendEntryNotes(context, staff, voice, entryIt, musxMeasure, userVoiceNumber, measureIndex, staffIndex,
-                    hasMultipleLayers, usesV1V2, isCue, measure.staves.size() > 1, pitchContext);
+                appendEntryNotes(context, staff, voice, entryIt, musxMeasure, userVoiceNumber, measureIndex, staffIndex, hasMultipleLayers, usesV1V2,
+                    isCue, measure.staves.size() > 1, pitchContext);
             }
         }
     }
@@ -775,13 +730,11 @@ int syntheticRestVoiceNumber(const mx::api::PartData& part, size_t staffIndex)
     return voiceNumber;
 }
 
-void finalizeEmptyMeasureRests(
-    MusicXmlMusxMapping& context,
-    mx::api::PartData& part,
-    const std::vector<StaffCmper>& staffIds)
+void finalizeEmptyMeasureRests(MusicXmlMusxMapping& context, mx::api::PartData& part, const std::vector<StaffCmper>& staffIds)
 {
     const auto musxMeasures = context.document->getOthers()->getArray<others::Measure>(context.forPartId);
-    ASSERT_IF(part.measures.size() != musxMeasures.size()) {
+    ASSERT_IF(part.measures.size() != musxMeasures.size())
+    {
         throw std::logic_error("MusicXML and Finale measure counts differ while finalizing empty measure rests.");
     }
 
@@ -793,7 +746,8 @@ void finalizeEmptyMeasureRests(
 
     for (size_t measureIndex = 0; measureIndex < part.measures.size(); ++measureIndex) {
         auto& measure = part.measures[measureIndex];
-        ASSERT_IF(measure.staves.size() != staffIds.size()) {
+        ASSERT_IF(measure.staves.size() != staffIds.size())
+        {
             throw std::logic_error("MusicXML staff count changed while finalizing empty measure rests.");
         }
         for (size_t staffIndex = 0; staffIndex < staffIds.size(); ++staffIndex) {

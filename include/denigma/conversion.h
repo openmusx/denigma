@@ -28,8 +28,8 @@
 #include <memory>
 #include <optional>
 #include <ostream>
-#include <sstream>
 #include <span>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -46,9 +46,8 @@ class GapCollector;
 
 /// @enum FormatId
 /// @brief Stable identifiers for converter input and output formats.
-enum class FormatId
-{    
-    Musx,       ///< Finale MUSX archive.  
+enum class FormatId {
+    Musx,       ///< Finale MUSX archive.
     EnigmaXml,  ///< Finale Enigma XML.
     MnxJson,    ///< MNX JSON as produced by mnxdom.
     MusicXml,   ///< MusicXML score-partwise XML.
@@ -58,8 +57,7 @@ enum class FormatId
 
 /// @enum MessageSeverity
 /// @brief Severity for log messages and diagnostics emitted by converters.
-enum class MessageSeverity
-{
+enum class MessageSeverity {
     Info,
     Warning,
     Error,
@@ -70,7 +68,7 @@ enum class MessageSeverity
 /// @brief A non-fatal message emitted by a converter.
 struct Diagnostic
 {
-    MessageSeverity severity{ MessageSeverity::Info }; ///< Message severity.
+    MessageSeverity severity{MessageSeverity::Info}; ///< Message severity.
     std::string message;                 ///< Human-readable diagnostic text.
 };
 
@@ -81,13 +79,13 @@ struct CommonOptions
     /// Caller-supplied source name used for diagnostics and metadata.
     std::string sourceName;
     /// Enables converter-specific output validation when supported.
-    bool validate{ true };
+    bool validate{true};
     /// Enables verbose logging when supported by the caller.
-    bool verbose{ false };
+    bool verbose{false};
     /// Suppresses info/verbose logging when true.
-    bool quiet{ false };
+    bool quiet{false};
     /// Every source font will be available in the environment that reads the converted output.
-    bool allFontsAvailable{ false };
+    bool allFontsAvailable{false};
     /// Optional non-owning destination for typed conversion gaps. Null disables gap collection.
     GapCollector* gapCollector{};
     /// Optional callback that receives converter log messages. Defaults to no-op.
@@ -116,28 +114,16 @@ class ConversionResult
 {
 public:
     /// Returns the diagnostics collected during conversion.
-    [[nodiscard]] std::span<const Diagnostic> diagnostics() const noexcept
-    {
-        return m_diagnostics;
-    }
+    [[nodiscard]] std::span<const Diagnostic> diagnostics() const noexcept { return m_diagnostics; }
 
     /// Returns true when at least one diagnostic has severity Error.
-    [[nodiscard]] bool hasError() const noexcept
-    {
-        return m_hasError;
-    }
+    [[nodiscard]] bool hasError() const noexcept { return m_hasError; }
 
     /// Returns true when the conversion completed without any error diagnostics.
-    explicit operator bool() const noexcept
-    {
-        return !hasError();
-    }
+    explicit operator bool() const noexcept { return !hasError(); }
 
     /// Adds a diagnostic and updates the error state if needed.
-    void addDiagnostic(MessageSeverity severity, std::string message)
-    {
-        addDiagnostic(Diagnostic{ severity, std::move(message) });
-    }
+    void addDiagnostic(MessageSeverity severity, std::string message) { addDiagnostic(Diagnostic{severity, std::move(message)}); }
 
     /// Adds a diagnostic and updates the error state if needed.
     void addDiagnostic(Diagnostic diagnostic)
@@ -169,32 +155,19 @@ public:
     /// Creates an artifact from converter result metadata and generated documents.
     ConversionArtifact(ConversionResult result, std::vector<ConversionOutput> outputs)
         : m_result(std::move(result)), m_outputs(std::move(outputs))
-    {
-    }
+    {}
 
     /// Returns converter result metadata.
-    [[nodiscard]] const ConversionResult& result() const noexcept
-    {
-        return m_result;
-    }
+    [[nodiscard]] const ConversionResult& result() const noexcept { return m_result; }
 
     /// Returns the generated documents in converter emission order.
-    [[nodiscard]] std::span<const ConversionOutput> outputs() const noexcept
-    {
-        return m_outputs;
-    }
+    [[nodiscard]] std::span<const ConversionOutput> outputs() const noexcept { return m_outputs; }
 
     /// Returns true when the conversion result contains an error diagnostic.
-    [[nodiscard]] bool hasError() const noexcept
-    {
-        return m_result.hasError();
-    }
+    [[nodiscard]] bool hasError() const noexcept { return m_result.hasError(); }
 
     /// Returns true when the conversion completed without an error diagnostic.
-    explicit operator bool() const noexcept
-    {
-        return static_cast<bool>(m_result);
-    }
+    explicit operator bool() const noexcept { return static_cast<bool>(m_result); }
 
 private:
     ConversionResult m_result;
@@ -230,9 +203,7 @@ public:
     [[nodiscard]] virtual FormatId targetFormat() const = 0;
 
     /// Converts the input memory buffer and writes the converted output to the provided stream.
-    virtual ConversionResult convert(std::span<const std::byte> input,
-                                     std::ostream& output,
-                                     const ConversionRequest& request = {}) const = 0;
+    virtual ConversionResult convert(std::span<const std::byte> input, std::ostream& output, const ConversionRequest& request = {}) const = 0;
 };
 
 /// @class IReaderConverter
@@ -248,9 +219,7 @@ public:
     [[nodiscard]] virtual FormatId targetFormat() const = 0;
 
     /// Converts the input reader and writes the converted output to the provided stream.
-    virtual ConversionResult convert(const IRandomAccessReader& input,
-                                     std::ostream& output,
-                                     const ConversionRequest& request = {}) const = 0;
+    virtual ConversionResult convert(const IRandomAccessReader& input, std::ostream& output, const ConversionRequest& request = {}) const = 0;
 };
 
 /// Callback used by converters that may emit zero, one, or many output buffers.
@@ -269,9 +238,8 @@ public:
     [[nodiscard]] virtual FormatId targetFormat() const = 0;
 
     /// Converts the input memory buffer and invokes outputCallback once for each generated output.
-    virtual ConversionResult convert(std::span<const std::byte> input,
-                                     const MultiOutputCallback& outputCallback,
-                                     const ConversionRequest& request = {}) const = 0;
+    virtual ConversionResult convert(
+        std::span<const std::byte> input, const MultiOutputCallback& outputCallback, const ConversionRequest& request = {}) const = 0;
 };
 
 /// @class IReaderMultiOutputConverter
@@ -287,9 +255,8 @@ public:
     [[nodiscard]] virtual FormatId targetFormat() const = 0;
 
     /// Converts the input reader and invokes outputCallback once for each generated output.
-    virtual ConversionResult convert(const IRandomAccessReader& input,
-                                     const MultiOutputCallback& outputCallback,
-                                     const ConversionRequest& request = {}) const = 0;
+    virtual ConversionResult convert(
+        const IRandomAccessReader& input, const MultiOutputCallback& outputCallback, const ConversionRequest& request = {}) const = 0;
 };
 
 /// @class ConverterRegistry
@@ -379,10 +346,8 @@ public:
 
     /// Converts an in-memory input with the registered adapter for the requested formats.
     /// Returns an error diagnostic when no matching adapter is registered.
-    [[nodiscard]] ConversionArtifact convert(FormatId sourceFormat,
-                                             FormatId targetFormat,
-                                             std::span<const std::byte> input,
-                                             const ConversionRequest& request = {}) const
+    [[nodiscard]] ConversionArtifact convert(
+        FormatId sourceFormat, FormatId targetFormat, std::span<const std::byte> input, const ConversionRequest& request = {}) const
     {
         if (const auto* converter = find(sourceFormat, targetFormat)) {
             return collectSingleOutput(*converter, input, request);
@@ -395,10 +360,8 @@ public:
 
     /// Converts a random-access input with the registered adapter for the requested formats.
     /// Returns an error diagnostic when no matching adapter is registered.
-    [[nodiscard]] ConversionArtifact convert(FormatId sourceFormat,
-                                             FormatId targetFormat,
-                                             const IRandomAccessReader& input,
-                                             const ConversionRequest& request = {}) const
+    [[nodiscard]] ConversionArtifact convert(
+        FormatId sourceFormat, FormatId targetFormat, const IRandomAccessReader& input, const ConversionRequest& request = {}) const
     {
         if (const auto* converter = findReader(sourceFormat, targetFormat)) {
             return collectSingleOutput(*converter, input, request);
@@ -411,9 +374,7 @@ public:
 
 private:
     template <typename Converter, typename Input>
-    static ConversionArtifact collectSingleOutput(const Converter& converter,
-                                                   const Input& input,
-                                                   const ConversionRequest& request)
+    static ConversionArtifact collectSingleOutput(const Converter& converter, const Input& input, const ConversionRequest& request)
     {
         std::ostringstream output;
         auto result = converter.convert(input, output, request);
@@ -423,27 +384,28 @@ private:
             std::memcpy(data.data(), text.data(), text.size());
         }
         std::vector<ConversionOutput> outputs;
-        outputs.push_back({ {}, std::move(data) });
-        return { std::move(result), std::move(outputs) };
+        outputs.push_back({{}, std::move(data)});
+        return {std::move(result), std::move(outputs)};
     }
 
     template <typename Converter, typename Input>
-    static ConversionArtifact collectMultipleOutputs(const Converter& converter,
-                                                      const Input& input,
-                                                      const ConversionRequest& request)
+    static ConversionArtifact collectMultipleOutputs(const Converter& converter, const Input& input, const ConversionRequest& request)
     {
         std::vector<ConversionOutput> outputs;
-        auto result = converter.convert(input, [&outputs](std::string_view suggestedName, std::span<const std::byte> data) {
-            outputs.push_back({ std::string(suggestedName), { data.begin(), data.end() } });
-        }, request);
-        return { std::move(result), std::move(outputs) };
+        auto result = converter.convert(
+            input,
+            [&outputs](std::string_view suggestedName, std::span<const std::byte> data) {
+                outputs.push_back({std::string(suggestedName), {data.begin(), data.end()}});
+            },
+            request);
+        return {std::move(result), std::move(outputs)};
     }
 
     static ConversionArtifact unsupportedConversion()
     {
         ConversionResult result;
         result.addDiagnostic(MessageSeverity::Error, "No converter is registered for the requested formats.");
-        return { std::move(result), {} };
+        return {std::move(result), {}};
     }
 
     std::vector<std::unique_ptr<IConverter>> m_converters;

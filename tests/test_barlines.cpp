@@ -40,16 +40,9 @@ struct BarlineContext
     MusxInstance<options::BarlineOptions> options;
 };
 
-static BarlineContext makeBarlineContext(
-    std::string_view measureFields,
-    std::string_view nextMeasureFields = {},
-    bool drawBarlines = true,
-    bool drawFinalBarlineOnLastMeas = true,
-    bool drawDoubleBarlineBeforeKeyChanges = false,
-    bool hideStaffBarlines = false,
-    int staffLines = 5,
-    std::optional<Evpu> topBarlineOffset = std::nullopt,
-    std::optional<Evpu> botBarlineOffset = std::nullopt)
+static BarlineContext makeBarlineContext(std::string_view measureFields, std::string_view nextMeasureFields = {}, bool drawBarlines = true,
+    bool drawFinalBarlineOnLastMeas = true, bool drawDoubleBarlineBeforeKeyChanges = false, bool hideStaffBarlines = false, int staffLines = 5,
+    std::optional<Evpu> topBarlineOffset = std::nullopt, std::optional<Evpu> botBarlineOffset = std::nullopt)
 {
     std::string xml = R"xml(<?xml version="1.0" encoding="UTF-8"?>
 <finale>
@@ -104,7 +97,7 @@ static BarlineContext makeBarlineContext(
         document,
         document->getOthers()->get<others::Staff>(SCORE_PARTID, 1),
         document->getOthers()->get<others::Measure>(SCORE_PARTID, 1),
-        document->getOptions()->get<options::BarlineOptions>()
+        document->getOptions()->get<options::BarlineOptions>(),
     };
 }
 
@@ -171,9 +164,7 @@ TEST(BarlineClassification, UsesDoubleBarlineBeforeKeyChanges)
       <keySig>
         <key>1</key>
       </keySig>)xml",
-        true,
-        true,
-        true);
+        true, true, true);
 
     EXPECT_EQ(classifyBarline(context.staff, context.measure, false, context.options).type, barline::Type::Double);
 }

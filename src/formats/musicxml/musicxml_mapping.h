@@ -18,8 +18,8 @@
  */
 #pragma once
 
-#include <cstdint>
 #include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <optional>
 #include <stdexcept>
@@ -34,8 +34,8 @@
 #include "core/ottavas.h"
 #include "musx/musx.h"
 #include "musx/util/Arpeggio.h"
-#include "mx/api/FontData.h"
 #include "mx/api/CurveData.h"
+#include "mx/api/FontData.h"
 #include "mx/api/LyricData.h"
 #include "mx/api/PartData.h"
 #include "mx/api/PartSymbolData.h"
@@ -49,8 +49,7 @@ namespace detail {
 
 inline constexpr double MUSICXML_DEFAULT_TENTHS_PER_STAFF = 40.0;
 
-enum class MusicXmlFontFamilyFallback
-{
+enum class MusicXmlFontFamilyFallback {
     None,
     Music,
     Engraved,
@@ -68,14 +67,12 @@ enum class MusicXmlFontFamilyFallback
 /// MusicXML font sizes are physical points, so a font must be scaled by whatever Finale scales the
 /// thing it sits on. Text living in staff space shrinks with both the page and the systems, while
 /// page-attached text sits on the page and is unaffected by system or staff scaling.
-enum class MusicXmlFontScaling
-{
+enum class MusicXmlFontScaling {
     StaffSpace,
     Page
 };
 
-enum class MusicXmlPitchContext
-{
+enum class MusicXmlPitchContext {
     Concert,
     Written
 };
@@ -126,15 +123,9 @@ struct MusicXmlLayoutState
 {
     std::unordered_map<musx::dom::StaffCmper, MusicXmlStaffLayoutState> staffLayout;
 
-    void clear()
-    {
-        staffLayout.clear();
-    }
+    void clear() { staffLayout.clear(); }
 
-    void setStaffSize(
-        mx::api::StaffData& staffData,
-        musx::dom::StaffCmper staffId,
-        const musx::util::Fraction& staffSize,
+    void setStaffSize(mx::api::StaffData& staffData, musx::dom::StaffCmper staffId, const musx::util::Fraction& staffSize,
         const musx::util::Fraction& staffScaling);
 };
 
@@ -159,10 +150,7 @@ inline std::uint64_t musicXmlMeasureStaffKey(musx::dom::MeasCmper measure, musx:
 struct MusicXmlMusxMapping
 {
     MusicXmlMusxMapping(const DenigmaContext& context, const musx::dom::DocumentPtr& doc, musx::dom::Cmper partId)
-        : denigmaContext(&context),
-          document(doc),
-          finaleOptions(loadFinaleOptions(doc, partId)),
-          forPartId(partId)
+        : denigmaContext(&context), document(doc), finaleOptions(loadFinaleOptions(doc, partId)), forPartId(partId)
     {
         // Mirror musxdom's own guards (Document::calcPageFromMeasure and calcSystemFromMeasure) and
         // treat a missing PartDefinition as uncalculated.
@@ -234,15 +222,11 @@ struct MusicXmlMusxMapping
     musx::dom::MusxInstance<musx::dom::others::StaffSystem> systemForMeasure(musx::dom::MeasCmper measureId) const;
 
     double musicXmlTenthsFromEvpu(double evpu, double backoutScaling = 1.0) const;
-    mx::api::FontData musicXmlFontDataFromFontInfo(
-        const musx::dom::FontInfo& fontInfo,
+    mx::api::FontData musicXmlFontDataFromFontInfo(const musx::dom::FontInfo& fontInfo,
         MusicXmlFontFamilyFallback fallback = MusicXmlFontFamilyFallback::None,
         MusicXmlFontScaling fontScaling = MusicXmlFontScaling::StaffSpace) const;
 
-    void logMessage(LogMsg&& msg, MessageSeverity severity = MessageSeverity::Info) const
-    {
-        denigmaContext->logMessage(std::move(msg), severity);
-    }
+    void logMessage(LogMsg&& msg, MessageSeverity severity = MessageSeverity::Info) const { denigmaContext->logMessage(std::move(msg), severity); }
 };
 
 using MusicXmlMusxMappingPtr = std::shared_ptr<MusicXmlMusxMapping>;

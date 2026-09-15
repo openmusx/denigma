@@ -30,17 +30,14 @@ using namespace smartshape;
 
 namespace {
 
-LineCap classifyLineCap(
-    const musx::dom::MusxInstance<musx::dom::others::SmartShapeCustomLine>& customLine,
-    bool atStart)
+LineCap classifyLineCap(const musx::dom::MusxInstance<musx::dom::others::SmartShapeCustomLine>& customLine, bool atStart)
 {
     using CustomLine = musx::dom::others::SmartShapeCustomLine;
     LineCap result;
     const auto capType = atStart ? customLine->lineCapStartType : customLine->lineCapEndType;
     const auto arrowId = atStart ? customLine->lineCapStartArrowId : customLine->lineCapEndArrowId;
     switch (capType) {
-    case CustomLine::LineCapType::None:
-        break;
+    case CustomLine::LineCapType::None: break;
     case CustomLine::LineCapType::Hook:
         result.type = LineCap::Type::Hook;
         result.hookLength = atStart ? customLine->lineCapStartHookLength : customLine->lineCapEndHookLength;
@@ -54,8 +51,7 @@ LineCap classifyLineCap(
         break;
     case CustomLine::LineCapType::ArrowheadCustom:
         result.type = LineCap::Type::ArrowheadCustom;
-        result.customArrowhead = customLine->getDocument()->getOthers()->get<musx::dom::others::ShapeDef>(
-            customLine->getRequestedPartId(), arrowId);
+        result.customArrowhead = customLine->getDocument()->getOthers()->get<musx::dom::others::ShapeDef>(customLine->getRequestedPartId(), arrowId);
         if (result.customArrowhead) {
             result.customArrowheadType = result.customArrowhead->recognize();
         }
@@ -75,26 +71,25 @@ std::optional<BuiltInLineSpec> builtInLineSpec(musx::dom::others::SmartShape::Sh
 {
     using ShapeType = musx::dom::others::SmartShape::ShapeType;
     switch (shapeType) {
-    case ShapeType::SolidLine:          return BuiltInLineSpec{ false, 0, 0 };
-    case ShapeType::SolidLineDown:      return BuiltInLineSpec{ false, 0, -1 };
-    case ShapeType::SolidLineUp:        return BuiltInLineSpec{ false, 0, +1 };
-    case ShapeType::SolidLineDownBoth:  return BuiltInLineSpec{ false, -1, -1 };
-    case ShapeType::SolidLineUpBoth:    return BuiltInLineSpec{ false, +1, +1 };
-    case ShapeType::SolidLineUpLeft:    return BuiltInLineSpec{ false, +1, 0 };
-    case ShapeType::SolidLineDownLeft:  return BuiltInLineSpec{ false, -1, 0 };
-    case ShapeType::SolidLineUpDown:    return BuiltInLineSpec{ false, +1, -1 };
-    case ShapeType::SolidLineDownUp:    return BuiltInLineSpec{ false, -1, +1 };
-    case ShapeType::DashLine:           return BuiltInLineSpec{ true, 0, 0 };
-    case ShapeType::DashLineDown:       return BuiltInLineSpec{ true, 0, -1 };
-    case ShapeType::DashLineUp:         return BuiltInLineSpec{ true, 0, +1 };
-    case ShapeType::DashLineDownBoth:   return BuiltInLineSpec{ true, -1, -1 };
-    case ShapeType::DashLineUpBoth:     return BuiltInLineSpec{ true, +1, +1 };
-    case ShapeType::DashLineUpLeft:     return BuiltInLineSpec{ true, +1, 0 };
-    case ShapeType::DashLineDownLeft:   return BuiltInLineSpec{ true, -1, 0 };
-    case ShapeType::DashLineUpDown:     return BuiltInLineSpec{ true, +1, -1 };
-    case ShapeType::DashLineDownUp:     return BuiltInLineSpec{ true, -1, +1 };
-    default:
-        return std::nullopt;
+    case ShapeType::SolidLine: return BuiltInLineSpec{false, 0, 0};
+    case ShapeType::SolidLineDown: return BuiltInLineSpec{false, 0, -1};
+    case ShapeType::SolidLineUp: return BuiltInLineSpec{false, 0, +1};
+    case ShapeType::SolidLineDownBoth: return BuiltInLineSpec{false, -1, -1};
+    case ShapeType::SolidLineUpBoth: return BuiltInLineSpec{false, +1, +1};
+    case ShapeType::SolidLineUpLeft: return BuiltInLineSpec{false, +1, 0};
+    case ShapeType::SolidLineDownLeft: return BuiltInLineSpec{false, -1, 0};
+    case ShapeType::SolidLineUpDown: return BuiltInLineSpec{false, +1, -1};
+    case ShapeType::SolidLineDownUp: return BuiltInLineSpec{false, -1, +1};
+    case ShapeType::DashLine: return BuiltInLineSpec{true, 0, 0};
+    case ShapeType::DashLineDown: return BuiltInLineSpec{true, 0, -1};
+    case ShapeType::DashLineUp: return BuiltInLineSpec{true, 0, +1};
+    case ShapeType::DashLineDownBoth: return BuiltInLineSpec{true, -1, -1};
+    case ShapeType::DashLineUpBoth: return BuiltInLineSpec{true, +1, +1};
+    case ShapeType::DashLineUpLeft: return BuiltInLineSpec{true, +1, 0};
+    case ShapeType::DashLineDownLeft: return BuiltInLineSpec{true, -1, 0};
+    case ShapeType::DashLineUpDown: return BuiltInLineSpec{true, +1, -1};
+    case ShapeType::DashLineDownUp: return BuiltInLineSpec{true, -1, +1};
+    default: return std::nullopt;
     }
 }
 
@@ -103,9 +98,7 @@ musx::dom::Efix efixFromEvpu(musx::dom::Evpu value)
     return static_cast<musx::dom::Efix>(value * musx::dom::EFIX_PER_EVPU);
 }
 
-GeneralLine classifyBuiltInLine(
-    const musx::dom::MusxInstance<musx::dom::others::SmartShape>& shape,
-    const BuiltInLineSpec& spec)
+GeneralLine classifyBuiltInLine(const musx::dom::MusxInstance<musx::dom::others::SmartShape>& shape, const BuiltInLineSpec& spec)
 {
     using LineStyle = musx::dom::others::SmartShapeCustomLine::LineStyle;
     GeneralLine result;
@@ -139,17 +132,14 @@ bool usesCustomLineStyle(musx::dom::others::SmartShape::ShapeType shapeType)
     switch (shapeType) {
     case ShapeType::CustomLine:
     case ShapeType::Glissando:
-    case ShapeType::TabSlide:
-        return true;
-    default:
-        return false;
+    case ShapeType::TabSlide: return true;
+    default: return false;
     }
 }
 
 } // namespace
 
-std::optional<GeneralLine> classifyGeneralLine(
-    const musx::dom::MusxInstance<musx::dom::others::SmartShapeCustomLine>& customLine)
+std::optional<GeneralLine> classifyGeneralLine(const musx::dom::MusxInstance<musx::dom::others::SmartShapeCustomLine>& customLine)
 {
     using LineStyle = musx::dom::others::SmartShapeCustomLine::LineStyle;
     if (!customLine) {
@@ -196,8 +186,7 @@ std::optional<GeneralLine> classifyGeneralLine(
     return result;
 }
 
-std::optional<GeneralLine> classifyGeneralLine(
-    const musx::dom::MusxInstance<musx::dom::others::SmartShape>& shape)
+std::optional<GeneralLine> classifyGeneralLine(const musx::dom::MusxInstance<musx::dom::others::SmartShape>& shape)
 {
     if (!shape || shape->entryBased) {
         // Entry-attached shapes carry specific meanings (e.g., glissandi, bends)
@@ -207,8 +196,7 @@ std::optional<GeneralLine> classifyGeneralLine(
     return classifyGeneralLineAppearance(shape);
 }
 
-std::optional<GeneralLine> classifyGeneralLineAppearance(
-    const musx::dom::MusxInstance<musx::dom::others::SmartShape>& shape)
+std::optional<GeneralLine> classifyGeneralLineAppearance(const musx::dom::MusxInstance<musx::dom::others::SmartShape>& shape)
 {
     if (!shape) {
         return std::nullopt;
@@ -217,8 +205,8 @@ std::optional<GeneralLine> classifyGeneralLineAppearance(
         if (shape->lineStyleId == 0) {
             return std::nullopt;
         }
-        return classifyGeneralLine(shape->getDocument()->getOthers()->get<musx::dom::others::SmartShapeCustomLine>(
-            shape->getRequestedPartId(), shape->lineStyleId));
+        return classifyGeneralLine(
+            shape->getDocument()->getOthers()->get<musx::dom::others::SmartShapeCustomLine>(shape->getRequestedPartId(), shape->lineStyleId));
     }
     if (const auto spec = builtInLineSpec(shape->shapeType)) {
         return classifyBuiltInLine(shape, *spec);

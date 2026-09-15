@@ -19,13 +19,13 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#include <string>
 #include <filesystem>
 #include <iterator>
+#include <string>
 
-#include "gtest/gtest.h"
 #include "core/denigma.h"
 #include "test_utils.h"
+#include "gtest/gtest.h"
 
 using namespace denigma;
 
@@ -35,10 +35,9 @@ TEST(Schema, InputSchemaValid)
     std::filesystem::path inputPath;
     copyInputToOutput("notAscii-其れ.musx", inputPath);
     const std::filesystem::path schemaPath = MNX_W3C_SCHEMA_PATH;
-    ArgList args = { DENIGMA_NAME, "export", pathString(inputPath), "--mnx", "--mnx-schema", pathString(schemaPath) };
-    checkStderr({ "Processing", pathString(inputPath.filename()), "!Schema validation errors" }, [&]() {
-        EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "validate " << pathString(inputPath);
-    });
+    ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), "--mnx", "--mnx-schema", pathString(schemaPath)};
+    checkStderr({"Processing", pathString(inputPath.filename()), "!Schema validation errors"},
+        [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "validate " << pathString(inputPath); });
 }
 
 TEST(Schema, InputSchemaNotValid)
@@ -46,10 +45,10 @@ TEST(Schema, InputSchemaNotValid)
     setupTestDataPaths();
     std::filesystem::path inputPath;
     copyInputToOutput("notAscii-其れ.musx", inputPath);
-    ArgList args = { DENIGMA_NAME, "export", pathString(inputPath), "--mnx", "--mnx-schema", (getInputPath() / "mnx" / "generic-schema.json").u8string() };
-    checkStderr({ "Processing", pathString(inputPath.filename()), "Schema validation errors" }, [&]() {
-        EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "wrong schema validate " << pathString(inputPath);
-    });
+    ArgList args = {
+        DENIGMA_NAME, "export", pathString(inputPath), "--mnx", "--mnx-schema", (getInputPath() / "mnx" / "generic-schema.json").u8string()};
+    checkStderr({"Processing", pathString(inputPath.filename()), "Schema validation errors"},
+        [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "wrong schema validate " << pathString(inputPath); });
 }
 
 TEST(Schema, EmbeddedSchemaValid)
@@ -57,8 +56,7 @@ TEST(Schema, EmbeddedSchemaValid)
     setupTestDataPaths();
     std::filesystem::path inputPath;
     copyInputToOutput("notAscii-其れ.musx", inputPath);
-    ArgList args = { DENIGMA_NAME, "export", pathString(inputPath), "--mnx" };
-    checkStderr({ "Processing", pathString(inputPath.filename()), "!Schema validation errors" }, [&]() {
-        EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "validate " << pathString(inputPath);
-    });
+    ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), "--mnx"};
+    checkStderr({"Processing", pathString(inputPath.filename()), "!Schema validation errors"},
+        [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "validate " << pathString(inputPath); });
 }

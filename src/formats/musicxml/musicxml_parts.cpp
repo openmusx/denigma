@@ -57,7 +57,8 @@ void mapPartToInstrumentStaves(MusicXmlMusxMapping& context, const std::string& 
     }
 }
 
-void populatePartMetadata(MusicXmlMusxMapping& context, mx::api::PartData& part, const std::string& id, const MusxInstance<others::StaffComposite>& staff)
+void populatePartMetadata(
+    MusicXmlMusxMapping& context, mx::api::PartData& part, const std::string& id, const MusxInstance<others::StaffComposite>& staff)
 {
     part.uniqueId = id;
     part.instrumentData.uniqueId = id + "-I1";
@@ -74,12 +75,11 @@ void populatePartMetadata(MusicXmlMusxMapping& context, mx::api::PartData& part,
     const auto [transpositionDisp, transpositionAlt] = staff->calcTranspositionInterval();
     if (transpositionDisp || transpositionAlt) {
         const bool shouldEmitTransposition = context.finaleOptions.effectivePartGlobals->showTransposed
-            || (context.finaleOptions.miscOptions->keepWrittenOctaveInConcertPitch
-                && music_theory::calcTranspositionIsOctave(transpositionDisp, transpositionAlt));
+                                             || (context.finaleOptions.miscOptions->keepWrittenOctaveInConcertPitch
+                                                 && music_theory::calcTranspositionIsOctave(transpositionDisp, transpositionAlt));
         if (shouldEmitTransposition) {
-            part.transposition = mx::api::TransposeData(
-                -music_theory::calc12EdoHalfstepsInInterval(transpositionDisp, transpositionAlt),
-                -transpositionDisp);
+            part.transposition =
+                mx::api::TransposeData(-music_theory::calc12EdoHalfstepsInInterval(transpositionDisp, transpositionAlt), -transpositionDisp);
             context.partIdToPitchContext[id] = MusicXmlPitchContext::Written;
         }
     }
@@ -113,10 +113,18 @@ void populatePartMetadata(MusicXmlMusxMapping& context, mx::api::PartData& part,
 void sortGroups(std::vector<details::StaffGroupInfo>& groups)
 {
     std::sort(groups.begin(), groups.end(), [](const details::StaffGroupInfo& lhs, const details::StaffGroupInfo& rhs) {
-        if (lhs.startSlot < rhs.startSlot) return true;
-        if (lhs.startSlot > rhs.startSlot) return false;
-        if (lhs.endSlot > rhs.endSlot) return true;
-        if (lhs.endSlot < rhs.endSlot) return false;
+        if (lhs.startSlot < rhs.startSlot) {
+            return true;
+        }
+        if (lhs.startSlot > rhs.startSlot) {
+            return false;
+        }
+        if (lhs.endSlot > rhs.endSlot) {
+            return true;
+        }
+        if (lhs.endSlot < rhs.endSlot) {
+            return false;
+        }
         if (lhs.group->bracket && rhs.group->bracket) {
             return lhs.group->bracket->horzAdjLeft < rhs.group->bracket->horzAdjLeft;
         }
@@ -208,10 +216,8 @@ void createPartGroups(MusicXmlMusxMapping& context)
             const auto endPartIdIt = context.staffToPartId.find(endStaffId);
             const auto topStaffIt = staffToLocalStaffNumber.find(startStaffId);
             const auto bottomStaffIt = staffToLocalStaffNumber.find(endStaffId);
-            if (startPartIdIt != context.staffToPartId.end()
-                && endPartIdIt != context.staffToPartId.end()
-                && startPartIdIt->second == endPartIdIt->second
-                && topStaffIt != staffToLocalStaffNumber.end()
+            if (startPartIdIt != context.staffToPartId.end() && endPartIdIt != context.staffToPartId.end()
+                && startPartIdIt->second == endPartIdIt->second && topStaffIt != staffToLocalStaffNumber.end()
                 && bottomStaffIt != staffToLocalStaffNumber.end()) {
                 auto& partSymbol = context.partIdToPartSymbol[startPartIdIt->second];
                 partSymbol.value = enumConvert<mx::api::BracketType>(groupInfo.group->bracket->style);

@@ -21,12 +21,12 @@
  */
 #pragma once
 
-#include <string>
 #include <filesystem>
 #include <functional>
+#include <string>
 
-#include "denigma/io/random_access_reader.h"
 #include "core/denigma.h"
+#include "denigma/io/random_access_reader.h"
 
 namespace utils {
 
@@ -53,8 +53,10 @@ std::string readFile(const denigma::IRandomAccessReader& reader, const std::stri
  * @param denigmaContext [in] the DenigmaContext (for logging).
  * @throws std::runtime_error if the archive does not contain exactly one matching entry.
  */
-std::string readSoleFileWithExtension(const std::filesystem::path& zipFilePath, std::u8string_view extension, const denigma::DenigmaContext& denigmaContext);
-std::string readSoleFileWithExtension(const denigma::IRandomAccessReader& reader, std::u8string_view extension, const denigma::DenigmaContext& denigmaContext);
+std::string readSoleFileWithExtension(
+    const std::filesystem::path& zipFilePath, std::u8string_view extension, const denigma::DenigmaContext& denigmaContext);
+std::string readSoleFileWithExtension(
+    const denigma::IRandomAccessReader& reader, std::u8string_view extension, const denigma::DenigmaContext& denigmaContext);
 MusxArchiveFiles readMusxArchiveFiles(const std::filesystem::path& zipFilePath, const denigma::DenigmaContext& denigmaContext);
 MusxArchiveFiles readMusxArchiveFiles(const denigma::IRandomAccessReader& reader, const denigma::DenigmaContext& denigmaContext);
 
@@ -75,7 +77,8 @@ std::string getMusicXmlScoreFile(const std::filesystem::path& zipFilePath, const
  * @param onlyFileName [in] if this has a value, only this name feeds to the iterator. It should be encoded utf-8.
  * @param iterator an iterator function that feeds the next filename and xmldata. Return `false` from this function to stop iterating.
  */
-bool iterateMusicXmlPartFiles(const std::filesystem::path& zipFilePath, const denigma::DenigmaContext& denigmaContext, const std::optional<std::string>& fileName, IteratorFunc iterator);
+bool iterateMusicXmlPartFiles(const std::filesystem::path& zipFilePath, const denigma::DenigmaContext& denigmaContext,
+    const std::optional<std::string>& fileName, IteratorFunc iterator);
 
 using ModifyIteratorFunc = std::function<bool(const std::filesystem::path& fileName, std::string& fileContents, bool isScore)>;
 
@@ -86,6 +89,7 @@ using ModifyIteratorFunc = std::function<bool(const std::filesystem::path& fileN
  * @param denigmaContext [in] the DenigmaContext (for logging).
  * @param iterator an iterator function that feeds the next filename and xmldata. You can modify the xmldata. You can skip a file by returning false.
  */
-bool iterateModifyFilesInPlace(const std::filesystem::path& zipFilePath, const std::filesystem::path& outputPath, const denigma::DenigmaContext& denigmaContext, ModifyIteratorFunc iterator);
+bool iterateModifyFilesInPlace(const std::filesystem::path& zipFilePath, const std::filesystem::path& outputPath,
+    const denigma::DenigmaContext& denigmaContext, ModifyIteratorFunc iterator);
 
 } // namespace utils

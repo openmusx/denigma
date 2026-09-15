@@ -29,8 +29,8 @@
 #include <unordered_map>
 #include <vector>
 
-#include "smufl_mapping.h"
 #include "classify/classify.h"
+#include "smufl_mapping.h"
 #include "utils/stringutils.h"
 #include "utils/utf8_iterator.h"
 
@@ -93,45 +93,45 @@ static DynamicText normalizeDynamicText(const DynamicText& input)
 static const std::unordered_map<std::string_view, std::string_view>& dynamicGlyphLettersMap()
 {
     static const std::unordered_map<std::string_view, std::string_view> result = {
-        { "dynamicPiano", "p" },
-        { "dynamicPianoSmall", "p" },
-        { "dynamicPP", "pp" },
-        { "dynamicPPP", "ppp" },
-        { "dynamicPPPP", "pppp" },
-        { "dynamicPPPPP", "ppppp" },
-        { "dynamicPPPPPP", "pppppp" },
-        { "dynamicMezzo", "m" },
-        { "dynamicMezzoSmall", "m" },
-        { "dynamicMP", "mp" },
-        { "dynamicMF", "mf" },
-        { "dynamicForte", "f" },
-        { "dynamicForteSmall", "f" },
-        { "dynamicFF", "ff" },
-        { "dynamicFFF", "fff" },
-        { "dynamicFFFF", "ffff" },
-        { "dynamicFFFFF", "fffff" },
-        { "dynamicFFFFFF", "ffffff" },
-        { "dynamicFortePiano", "fp" },
-        { "dynamicPF", "pf" },
-        { "dynamicForzando", "fz" },
-        { "dynamicSforzando", "s" },
-        { "dynamicSforzandoLegacy", "s" },
-        { "dynamicSforzandoSmall", "s" },
-        { "dynamicSforzando1", "sf" },
-        { "dynamicSforzandoPiano", "sfp" },
-        { "dynamicSforzandoPianissimo", "sfpp" },
-        { "dynamicSforzato", "sfz" },
-        { "dynamicSforzatoPiano", "sfzp" },
-        { "dynamicSforzatoFF", "sffz" },
-        { "dynamicRinforzando", "r" },
-        { "dynamicRinforzandoSmall", "r" },
-        { "dynamicRinforzando1", "rf" },
-        { "dynamicRinforzando2", "rfz" },
-        { "dynamicZ", "z" },
-        { "dynamicZSmall", "z" },
-        { "dynamicNiente", "n" },
-        { "dynamicNienteForHairpin", "n" },
-        { "dynamicNienteSmall", "n" }
+        {"dynamicPiano", "p"},
+        {"dynamicPianoSmall", "p"},
+        {"dynamicPP", "pp"},
+        {"dynamicPPP", "ppp"},
+        {"dynamicPPPP", "pppp"},
+        {"dynamicPPPPP", "ppppp"},
+        {"dynamicPPPPPP", "pppppp"},
+        {"dynamicMezzo", "m"},
+        {"dynamicMezzoSmall", "m"},
+        {"dynamicMP", "mp"},
+        {"dynamicMF", "mf"},
+        {"dynamicForte", "f"},
+        {"dynamicForteSmall", "f"},
+        {"dynamicFF", "ff"},
+        {"dynamicFFF", "fff"},
+        {"dynamicFFFF", "ffff"},
+        {"dynamicFFFFF", "fffff"},
+        {"dynamicFFFFFF", "ffffff"},
+        {"dynamicFortePiano", "fp"},
+        {"dynamicPF", "pf"},
+        {"dynamicForzando", "fz"},
+        {"dynamicSforzando", "s"},
+        {"dynamicSforzandoLegacy", "s"},
+        {"dynamicSforzandoSmall", "s"},
+        {"dynamicSforzando1", "sf"},
+        {"dynamicSforzandoPiano", "sfp"},
+        {"dynamicSforzandoPianissimo", "sfpp"},
+        {"dynamicSforzato", "sfz"},
+        {"dynamicSforzatoPiano", "sfzp"},
+        {"dynamicSforzatoFF", "sffz"},
+        {"dynamicRinforzando", "r"},
+        {"dynamicRinforzandoSmall", "r"},
+        {"dynamicRinforzando1", "rf"},
+        {"dynamicRinforzando2", "rfz"},
+        {"dynamicZ", "z"},
+        {"dynamicZSmall", "z"},
+        {"dynamicNiente", "n"},
+        {"dynamicNienteForHairpin", "n"},
+        {"dynamicNienteSmall", "n"},
     };
     return result;
 }
@@ -158,21 +158,15 @@ static std::string glyphNameToDynamicText(std::string_view glyphName)
 }
 
 static void appendDynamicText(
-    DynamicText& text,
-    const std::string& chunk,
-    const musx::dom::MusxInstance<musx::dom::FontInfo>& font,
-    size_t chunkStart)
+    DynamicText& text, const std::string& chunk, const musx::dom::MusxInstance<musx::dom::FontInfo>& font, size_t chunkStart)
 {
     size_t nextGlyphId = text.glyphIds.size();
     for (utils::Utf8Iterator iter(chunk); !iter.atEnd(); iter.next()) {
         const std::string codepointText = chunk.substr(iter.offset(), iter->byteCount);
-        const DynamicText::SourceSpan sourceSpan{ chunkStart + iter.offset(), chunkStart + iter.offset() + iter->byteCount };
+        const DynamicText::SourceSpan sourceSpan{chunkStart + iter.offset(), chunkStart + iter.offset() + iter->byteCount};
         if (font) {
             if (const auto* glyphName = smufl_mapping::getGlyphNameForFont(
-                    font->getName(),
-                    iter->codepoint,
-                    font->calcIsSMuFL(),
-                    smufl_mapping::SmuflGlyphSource::Finale)) {
+                    font->getName(), iter->codepoint, font->calcIsSMuFL(), smufl_mapping::SmuflGlyphSource::Finale)) {
                 if (const std::string glyphText = glyphNameToDynamicText(*glyphName); !glyphText.empty()) {
                     text.text += glyphText;
                     text.glyphNames.insert(text.glyphNames.end(), glyphText.size(), std::string(*glyphName));
@@ -199,42 +193,42 @@ struct DynamicTokenMatch
 static Dynamic classifyExactDynamicToken(std::string_view text)
 {
     static const std::unordered_map<std::string_view, Dynamic> dynamicTokens = {
-        { "pppppp", Dynamic::pppppp },
-        { "ppppp", Dynamic::ppppp },
-        { "pppp", Dynamic::pppp },
-        { "ppp", Dynamic::ppp },
-        { "pp", Dynamic::pp },
-        { "p", Dynamic::p },
-        { "mp", Dynamic::mp },
-        { "mf", Dynamic::mf },
-        { "f", Dynamic::f },
-        { "ff", Dynamic::ff },
-        { "fff", Dynamic::fff },
-        { "ffff", Dynamic::ffff },
-        { "fffff", Dynamic::fffff },
-        { "ffffff", Dynamic::ffffff },
-        { "fp", Dynamic::fp },
-        { "ffp", Dynamic::ffp },
-        { "fz", Dynamic::fz },
-        { "forzando", Dynamic::fz },
-        { "ffz", Dynamic::ffz },
-        { "pf", Dynamic::pf },
-        { "sf", Dynamic::sf },
-        { "sforzando", Dynamic::sf },
-        { "sfp", Dynamic::sfp },
-        { "sfpp", Dynamic::sfpp },
-        { "sfz", Dynamic::sfz },
-        { "sforzato", Dynamic::sfz },
-        { "sforzado", Dynamic::sfz },
-        { "sffz", Dynamic::sffz },
-        { "sfzp", Dynamic::sfzp },
-        { "rf", Dynamic::rf },
-        { "rinf", Dynamic::rf },
-        { "rinf.", Dynamic::rf },
-        { "rinforzando", Dynamic::rf },
-        { "rfz", Dynamic::rfz },
-        { "n", Dynamic::n },
-        { "niente", Dynamic::n }
+        {"pppppp", Dynamic::pppppp},
+        {"ppppp", Dynamic::ppppp},
+        {"pppp", Dynamic::pppp},
+        {"ppp", Dynamic::ppp},
+        {"pp", Dynamic::pp},
+        {"p", Dynamic::p},
+        {"mp", Dynamic::mp},
+        {"mf", Dynamic::mf},
+        {"f", Dynamic::f},
+        {"ff", Dynamic::ff},
+        {"fff", Dynamic::fff},
+        {"ffff", Dynamic::ffff},
+        {"fffff", Dynamic::fffff},
+        {"ffffff", Dynamic::ffffff},
+        {"fp", Dynamic::fp},
+        {"ffp", Dynamic::ffp},
+        {"fz", Dynamic::fz},
+        {"forzando", Dynamic::fz},
+        {"ffz", Dynamic::ffz},
+        {"pf", Dynamic::pf},
+        {"sf", Dynamic::sf},
+        {"sforzando", Dynamic::sf},
+        {"sfp", Dynamic::sfp},
+        {"sfpp", Dynamic::sfpp},
+        {"sfz", Dynamic::sfz},
+        {"sforzato", Dynamic::sfz},
+        {"sforzado", Dynamic::sfz},
+        {"sffz", Dynamic::sffz},
+        {"sfzp", Dynamic::sfzp},
+        {"rf", Dynamic::rf},
+        {"rinf", Dynamic::rf},
+        {"rinf.", Dynamic::rf},
+        {"rinforzando", Dynamic::rf},
+        {"rfz", Dynamic::rfz},
+        {"n", Dynamic::n},
+        {"niente", Dynamic::n},
     };
     const auto tokenIt = dynamicTokens.find(text);
     return tokenIt == dynamicTokens.end() ? Dynamic::None : tokenIt->second;
@@ -252,18 +246,18 @@ static Dynamic classifyCompleteDynamicText(std::string_view text)
         return token;
     }
     static const std::unordered_map<std::string_view, Dynamic> wordSpellings = {
-        { "piano", Dynamic::p },
-        { "pianissimo", Dynamic::pp },
-        { "pianississimo", Dynamic::ppp },
-        { "mezzo piano", Dynamic::mp },
-        { "mezzopiano", Dynamic::mp },
-        { "mezzo forte", Dynamic::mf },
-        { "mezzoforte", Dynamic::mf },
-        { "forte", Dynamic::f },
-        { "fortissimo", Dynamic::ff },
-        { "fortississimo", Dynamic::fff },
-        { "forte piano", Dynamic::fp },
-        { "fortepiano", Dynamic::fp }
+        {"piano", Dynamic::p},
+        {"pianissimo", Dynamic::pp},
+        {"pianississimo", Dynamic::ppp},
+        {"mezzo piano", Dynamic::mp},
+        {"mezzopiano", Dynamic::mp},
+        {"mezzo forte", Dynamic::mf},
+        {"mezzoforte", Dynamic::mf},
+        {"forte", Dynamic::f},
+        {"fortissimo", Dynamic::ff},
+        {"fortississimo", Dynamic::fff},
+        {"forte piano", Dynamic::fp},
+        {"fortepiano", Dynamic::fp},
     };
     const auto spellingIt = wordSpellings.find(text);
     return spellingIt == wordSpellings.end() ? Dynamic::None : spellingIt->second;
@@ -280,8 +274,8 @@ static bool isDynamicLikeText(std::string_view text)
 static bool isSmuflGlyphMatch(const DynamicText& text, const DynamicTokenMatch& match)
 {
     return std::all_of(text.glyphNames.begin() + static_cast<std::ptrdiff_t>(match.start),
-                       text.glyphNames.begin() + static_cast<std::ptrdiff_t>(match.start + match.length),
-                       [](const std::optional<std::string>& glyphName) { return glyphName.has_value(); });
+        text.glyphNames.begin() + static_cast<std::ptrdiff_t>(match.start + match.length),
+        [](const std::optional<std::string>& glyphName) { return glyphName.has_value(); });
 }
 
 static bool isSpaceDelimitedMatch(const DynamicText& text, const DynamicTokenMatch& match)
@@ -337,13 +331,11 @@ static std::vector<std::string> knownGlyphNames(const DynamicText& text)
 static std::vector<DynamicTokenMatch> findDynamicTokens(const DynamicText& text)
 {
     if (const Dynamic exact = classifyCompleteDynamicText(text.text); exact != Dynamic::None) {
-        return { DynamicTokenMatch{ exact, 0, text.text.size() } };
+        return {DynamicTokenMatch{exact, 0, text.text.size()}};
     }
 
     std::vector<DynamicTokenMatch> result;
-    const auto isBoundary = [](unsigned char ch) {
-        return utils::isSpace(ch) || utils::isPunctuation(ch);
-    };
+    const auto isBoundary = [](unsigned char ch) { return utils::isSpace(ch) || utils::isPunctuation(ch); };
 
     for (size_t start = 0; start < text.text.size();) {
         while (start < text.text.size() && isBoundary(static_cast<unsigned char>(text.text[start]))) {
@@ -356,7 +348,7 @@ static std::vector<DynamicTokenMatch> findDynamicTokens(const DynamicText& text)
         if (start < end) {
             const std::string_view token = std::string_view(text.text).substr(start, end - start);
             if (const Dynamic dynamic = classifyExactDynamicToken(token); dynamic != Dynamic::None) {
-                DynamicTokenMatch match{ dynamic, start, end - start };
+                DynamicTokenMatch match{dynamic, start, end - start};
                 if (isAcceptedMatch(text, match)) {
                     result.push_back(match);
                 }
@@ -397,12 +389,12 @@ std::optional<Mark> classifyDynamicRun(const musx::util::EnigmaTextChunk& chunk)
     }
 
     if (const Dynamic exact = classifyCompleteDynamicText(normalizedText.text); exact != Dynamic::None) {
-        DynamicTokenMatch match{ exact, 0, normalizedText.text.size() };
+        DynamicTokenMatch match{exact, 0, normalizedText.text.size()};
         // Decompose the canonical spelling, not the source text, which may be a word such as "sforzando".
-        return Mark{ exact, dynamicComposition(exact), matchedGlyphNames(normalizedText, match) };
+        return Mark{exact, dynamicComposition(exact), matchedGlyphNames(normalizedText, match)};
     }
     if (isDynamicLikeText(normalizedText.text)) {
-        return Mark{ Dynamic::Other, dynamicCompositionFromLetters(normalizedText.text), knownGlyphNames(normalizedText) };
+        return Mark{Dynamic::Other, dynamicCompositionFromLetters(normalizedText.text), knownGlyphNames(normalizedText)};
     }
     return std::nullopt;
 }
@@ -420,7 +412,7 @@ std::vector<DynamicSpan> findDynamicSpans(const musx::util::EnigmaTextChunk& chu
     for (const auto& match : findDynamicTokens(normalizedText)) {
         result.push_back({
             sourceSpanForMatch(chunk, normalizedText, match),
-            Mark{ match.dynamic, dynamicComposition(match.dynamic), matchedGlyphNames(normalizedText, match) }
+            Mark{match.dynamic, dynamicComposition(match.dynamic), matchedGlyphNames(normalizedText, match)},
         });
     }
     return result;
@@ -431,21 +423,21 @@ std::vector<DynamicSpan> findDynamicSpans(const musx::util::EnigmaTextChunk& chu
 Composition dynamicCompositionFromLetters(std::string_view letters)
 {
     static const std::unordered_map<std::string_view, Level> levelSpellings = {
-        { "n", Level::n },
-        { "mp", Level::mp },
-        { "mf", Level::mf },
-        { "p", Level::p },
-        { "pp", Level::pp },
-        { "ppp", Level::ppp },
-        { "pppp", Level::pppp },
-        { "ppppp", Level::ppppp },
-        { "pppppp", Level::pppppp },
-        { "f", Level::f },
-        { "ff", Level::ff },
-        { "fff", Level::fff },
-        { "ffff", Level::ffff },
-        { "fffff", Level::fffff },
-        { "ffffff", Level::ffffff }
+        {"n", Level::n},
+        {"mp", Level::mp},
+        {"mf", Level::mf},
+        {"p", Level::p},
+        {"pp", Level::pp},
+        {"ppp", Level::ppp},
+        {"pppp", Level::pppp},
+        {"ppppp", Level::ppppp},
+        {"pppppp", Level::pppppp},
+        {"f", Level::f},
+        {"ff", Level::ff},
+        {"fff", Level::fff},
+        {"ffff", Level::ffff},
+        {"fffff", Level::fffff},
+        {"ffffff", Level::ffffff},
     };
 
     // Consumes one level from the front of the remaining letters: "n", "mp", "mf", or a run of "p"
@@ -469,8 +461,8 @@ Composition dynamicCompositionFromLetters(std::string_view letters)
     };
 
     static constexpr std::string_view dynamicLetters = "pmfsrzn";
-    const bool lettersOnly = !letters.empty() && std::all_of(letters.begin(), letters.end(),
-        [](char ch) { return dynamicLetters.find(ch) != std::string_view::npos; });
+    const bool lettersOnly =
+        !letters.empty() && std::all_of(letters.begin(), letters.end(), [](char ch) { return dynamicLetters.find(ch) != std::string_view::npos; });
     if (!lettersOnly) {
         return {};
     }
@@ -537,8 +529,7 @@ std::string dynamicCanonicalText(Dynamic dynamic)
 {
     switch (dynamic) {
     case Dynamic::None:
-    case Dynamic::Other:
-        break;
+    case Dynamic::Other: break;
     case Dynamic::pppppp: return "pppppp";
     case Dynamic::ppppp: return "ppppp";
     case Dynamic::pppp: return "pppp";
@@ -575,36 +566,35 @@ std::vector<std::string> dynamicCanonicalGlyphs(Dynamic dynamic)
 {
     switch (dynamic) {
     case Dynamic::None:
-    case Dynamic::Other:
-        break;
-    case Dynamic::pppppp: return { "dynamicPPPPPP" };
-    case Dynamic::ppppp: return { "dynamicPPPPP" };
-    case Dynamic::pppp: return { "dynamicPPPP" };
-    case Dynamic::ppp: return { "dynamicPPP" };
-    case Dynamic::pp: return { "dynamicPP" };
-    case Dynamic::p: return { "dynamicPiano" };
-    case Dynamic::mp: return { "dynamicMP" };
-    case Dynamic::mf: return { "dynamicMF" };
-    case Dynamic::f: return { "dynamicForte" };
-    case Dynamic::ff: return { "dynamicFF" };
-    case Dynamic::fff: return { "dynamicFFF" };
-    case Dynamic::ffff: return { "dynamicFFFF" };
-    case Dynamic::fffff: return { "dynamicFFFFF" };
-    case Dynamic::ffffff: return { "dynamicFFFFFF" };
-    case Dynamic::fp: return { "dynamicFortePiano" };
-    case Dynamic::ffp: return { "dynamicFF", "dynamicPiano" };
-    case Dynamic::fz: return { "dynamicForzando" };
-    case Dynamic::ffz: return { "dynamicFF", "dynamicZ" };
-    case Dynamic::pf: return { "dynamicPF" };
-    case Dynamic::sf: return { "dynamicSforzando1" };
-    case Dynamic::sfp: return { "dynamicSforzandoPiano" };
-    case Dynamic::sfpp: return { "dynamicSforzandoPianissimo" };
-    case Dynamic::sfz: return { "dynamicSforzato" };
-    case Dynamic::sffz: return { "dynamicSforzatoFF" };
-    case Dynamic::sfzp: return { "dynamicSforzatoPiano" };
-    case Dynamic::rf: return { "dynamicRinforzando1" };
-    case Dynamic::rfz: return { "dynamicRinforzando2" };
-    case Dynamic::n: return { "dynamicNiente" };
+    case Dynamic::Other: break;
+    case Dynamic::pppppp: return {"dynamicPPPPPP"};
+    case Dynamic::ppppp: return {"dynamicPPPPP"};
+    case Dynamic::pppp: return {"dynamicPPPP"};
+    case Dynamic::ppp: return {"dynamicPPP"};
+    case Dynamic::pp: return {"dynamicPP"};
+    case Dynamic::p: return {"dynamicPiano"};
+    case Dynamic::mp: return {"dynamicMP"};
+    case Dynamic::mf: return {"dynamicMF"};
+    case Dynamic::f: return {"dynamicForte"};
+    case Dynamic::ff: return {"dynamicFF"};
+    case Dynamic::fff: return {"dynamicFFF"};
+    case Dynamic::ffff: return {"dynamicFFFF"};
+    case Dynamic::fffff: return {"dynamicFFFFF"};
+    case Dynamic::ffffff: return {"dynamicFFFFFF"};
+    case Dynamic::fp: return {"dynamicFortePiano"};
+    case Dynamic::ffp: return {"dynamicFF", "dynamicPiano"};
+    case Dynamic::fz: return {"dynamicForzando"};
+    case Dynamic::ffz: return {"dynamicFF", "dynamicZ"};
+    case Dynamic::pf: return {"dynamicPF"};
+    case Dynamic::sf: return {"dynamicSforzando1"};
+    case Dynamic::sfp: return {"dynamicSforzandoPiano"};
+    case Dynamic::sfpp: return {"dynamicSforzandoPianissimo"};
+    case Dynamic::sfz: return {"dynamicSforzato"};
+    case Dynamic::sffz: return {"dynamicSforzatoFF"};
+    case Dynamic::sfzp: return {"dynamicSforzatoPiano"};
+    case Dynamic::rf: return {"dynamicRinforzando1"};
+    case Dynamic::rfz: return {"dynamicRinforzando2"};
+    case Dynamic::n: return {"dynamicNiente"};
     }
     return {};
 }
@@ -613,36 +603,35 @@ std::vector<std::string> dynamicCanonicalLetterGlyphs(Dynamic dynamic)
 {
     switch (dynamic) {
     case Dynamic::None:
-    case Dynamic::Other:
-        break;
-    case Dynamic::pppppp: return { "dynamicPiano", "dynamicPiano", "dynamicPiano", "dynamicPiano", "dynamicPiano", "dynamicPiano" };
-    case Dynamic::ppppp: return { "dynamicPiano", "dynamicPiano", "dynamicPiano", "dynamicPiano", "dynamicPiano" };
-    case Dynamic::pppp: return { "dynamicPiano", "dynamicPiano", "dynamicPiano", "dynamicPiano" };
-    case Dynamic::ppp: return { "dynamicPiano", "dynamicPiano", "dynamicPiano" };
-    case Dynamic::pp: return { "dynamicPiano", "dynamicPiano" };
-    case Dynamic::p: return { "dynamicPiano" };
-    case Dynamic::mp: return { "dynamicMezzo", "dynamicPiano" };
-    case Dynamic::mf: return { "dynamicMezzo", "dynamicForte" };
-    case Dynamic::f: return { "dynamicForte" };
-    case Dynamic::ff: return { "dynamicForte", "dynamicForte" };
-    case Dynamic::fff: return { "dynamicForte", "dynamicForte", "dynamicForte" };
-    case Dynamic::ffff: return { "dynamicForte", "dynamicForte", "dynamicForte", "dynamicForte" };
-    case Dynamic::fffff: return { "dynamicForte", "dynamicForte", "dynamicForte", "dynamicForte", "dynamicForte" };
-    case Dynamic::ffffff: return { "dynamicForte", "dynamicForte", "dynamicForte", "dynamicForte", "dynamicForte", "dynamicForte" };
-    case Dynamic::fp: return { "dynamicForte", "dynamicPiano" };
-    case Dynamic::ffp: return { "dynamicForte", "dynamicForte", "dynamicPiano" };
-    case Dynamic::fz: return { "dynamicForte", "dynamicZ" };
-    case Dynamic::ffz: return { "dynamicForte", "dynamicForte", "dynamicZ" };
-    case Dynamic::pf: return { "dynamicPiano", "dynamicForte" };
-    case Dynamic::sf: return { "dynamicSforzando", "dynamicForte" };
-    case Dynamic::sfp: return { "dynamicSforzando", "dynamicForte", "dynamicPiano" };
-    case Dynamic::sfpp: return { "dynamicSforzando", "dynamicForte", "dynamicPiano", "dynamicPiano" };
-    case Dynamic::sfz: return { "dynamicSforzando", "dynamicForte", "dynamicZ" };
-    case Dynamic::sffz: return { "dynamicSforzando", "dynamicForte", "dynamicForte", "dynamicZ" };
-    case Dynamic::sfzp: return { "dynamicSforzando", "dynamicForte", "dynamicZ", "dynamicPiano" };
-    case Dynamic::rf: return { "dynamicRinforzando", "dynamicForte" };
-    case Dynamic::rfz: return { "dynamicRinforzando", "dynamicForte", "dynamicZ" };
-    case Dynamic::n: return { "dynamicNiente" };
+    case Dynamic::Other: break;
+    case Dynamic::pppppp: return {"dynamicPiano", "dynamicPiano", "dynamicPiano", "dynamicPiano", "dynamicPiano", "dynamicPiano"};
+    case Dynamic::ppppp: return {"dynamicPiano", "dynamicPiano", "dynamicPiano", "dynamicPiano", "dynamicPiano"};
+    case Dynamic::pppp: return {"dynamicPiano", "dynamicPiano", "dynamicPiano", "dynamicPiano"};
+    case Dynamic::ppp: return {"dynamicPiano", "dynamicPiano", "dynamicPiano"};
+    case Dynamic::pp: return {"dynamicPiano", "dynamicPiano"};
+    case Dynamic::p: return {"dynamicPiano"};
+    case Dynamic::mp: return {"dynamicMezzo", "dynamicPiano"};
+    case Dynamic::mf: return {"dynamicMezzo", "dynamicForte"};
+    case Dynamic::f: return {"dynamicForte"};
+    case Dynamic::ff: return {"dynamicForte", "dynamicForte"};
+    case Dynamic::fff: return {"dynamicForte", "dynamicForte", "dynamicForte"};
+    case Dynamic::ffff: return {"dynamicForte", "dynamicForte", "dynamicForte", "dynamicForte"};
+    case Dynamic::fffff: return {"dynamicForte", "dynamicForte", "dynamicForte", "dynamicForte", "dynamicForte"};
+    case Dynamic::ffffff: return {"dynamicForte", "dynamicForte", "dynamicForte", "dynamicForte", "dynamicForte", "dynamicForte"};
+    case Dynamic::fp: return {"dynamicForte", "dynamicPiano"};
+    case Dynamic::ffp: return {"dynamicForte", "dynamicForte", "dynamicPiano"};
+    case Dynamic::fz: return {"dynamicForte", "dynamicZ"};
+    case Dynamic::ffz: return {"dynamicForte", "dynamicForte", "dynamicZ"};
+    case Dynamic::pf: return {"dynamicPiano", "dynamicForte"};
+    case Dynamic::sf: return {"dynamicSforzando", "dynamicForte"};
+    case Dynamic::sfp: return {"dynamicSforzando", "dynamicForte", "dynamicPiano"};
+    case Dynamic::sfpp: return {"dynamicSforzando", "dynamicForte", "dynamicPiano", "dynamicPiano"};
+    case Dynamic::sfz: return {"dynamicSforzando", "dynamicForte", "dynamicZ"};
+    case Dynamic::sffz: return {"dynamicSforzando", "dynamicForte", "dynamicForte", "dynamicZ"};
+    case Dynamic::sfzp: return {"dynamicSforzando", "dynamicForte", "dynamicZ", "dynamicPiano"};
+    case Dynamic::rf: return {"dynamicRinforzando", "dynamicForte"};
+    case Dynamic::rfz: return {"dynamicRinforzando", "dynamicForte", "dynamicZ"};
+    case Dynamic::n: return {"dynamicNiente"};
     }
     return {};
 }

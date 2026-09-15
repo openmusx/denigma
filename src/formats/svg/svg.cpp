@@ -29,8 +29,8 @@
 #include <string_view>
 #include <vector>
 
-#include "musx/musx.h"
 #include "core/musx_reader.h"
+#include "musx/musx.h"
 #include "utils/stringutils.h"
 #include "utils/textmetrics.h"
 
@@ -56,10 +56,7 @@ std::filesystem::path appendShapeSuffix(const std::filesystem::path& outputPath,
     return result;
 }
 
-std::filesystem::path resolveOutputPath(const std::filesystem::path& outputPath,
-                                        Cmper shapeCmper,
-                                        bool outputIsFilename,
-                                        bool multipleShapes)
+std::filesystem::path resolveOutputPath(const std::filesystem::path& outputPath, Cmper shapeCmper, bool outputIsFilename, bool multipleShapes)
 {
     if (!outputIsFilename || multipleShapes) {
         return appendShapeSuffix(outputPath, shapeCmper);
@@ -99,9 +96,7 @@ std::vector<MusxInstance<others::ShapeDef>> selectShapes(const DocumentPtr& docu
 
 } // namespace
 
-void convert(const CommandInputData& inputData,
-             const DenigmaContext& denigmaContext,
-             const MultiOutputCallback& outputCallback)
+void convert(const CommandInputData& inputData, const DenigmaContext& denigmaContext, const MultiOutputCallback& outputCallback)
 {
     MusxLoggerScope musxLogger(makeMusxLogCallback(denigmaContext));
     if (denigmaContext.forTestOutput()) {
@@ -119,20 +114,19 @@ void convert(const CommandInputData& inputData,
     const bool usePageFormatScaling = denigmaContext.svgUsePageScale;
     const double svgScale = denigmaContext.svgScale;
     const auto glyphMetrics = textmetrics::makeSvgGlyphMetricsCallback(denigmaContext);
-    denigmaContext.logMessage(LogMsg() << "SVG scaling pageScale=" << (usePageFormatScaling ? "on" : "off")
-                                       << " user=" << svgScale
+    denigmaContext.logMessage(LogMsg() << "SVG scaling pageScale=" << (usePageFormatScaling ? "on" : "off") << " user=" << svgScale
                                        << " path=" << (usePageFormatScaling ? "toSvgWithPageFormatScaling" : "toSvg"),
-                              MessageSeverity::Verbose);
+        MessageSeverity::Verbose);
 
     size_t generatedCount = 0;
     for (const auto& shape : shapes) {
         const std::string svgData = usePageFormatScaling
-            ? musx::util::SvgConvert::toSvgWithPageFormatScaling(*shape, denigmaContext.svgUnit, glyphMetrics)
-            : musx::util::SvgConvert::toSvg(*shape, svgScale, denigmaContext.svgUnit, glyphMetrics);
+                                        ? musx::util::SvgConvert::toSvgWithPageFormatScaling(*shape, denigmaContext.svgUnit, glyphMetrics)
+                                        : musx::util::SvgConvert::toSvg(*shape, svgScale, denigmaContext.svgUnit, glyphMetrics);
         if (svgData.empty()) {
-            denigmaContext.logMessage(LogMsg() << "ShapeDef cmper " << shape->getCmper()
-                                               << " could not be converted to SVG (likely unresolved external graphic).",
-                                      MessageSeverity::Warning);
+            denigmaContext.logMessage(
+                LogMsg() << "ShapeDef cmper " << shape->getCmper() << " could not be converted to SVG (likely unresolved external graphic).",
+                MessageSeverity::Warning);
             continue;
         }
         const std::string suggestedName = "shape-" + std::to_string(shape->getCmper()) + ".svg";
@@ -165,8 +159,7 @@ void convert(const std::filesystem::path& outputPath, const CommandInputData& in
         const std::string suggestedNameString(suggestedName);
         constexpr std::string_view prefix = "shape-";
         constexpr std::string_view suffix = ".svg";
-        if (suggestedNameString.rfind(prefix, 0) == 0
-            && suggestedNameString.size() > prefix.size() + suffix.size()
+        if (suggestedNameString.rfind(prefix, 0) == 0 && suggestedNameString.size() > prefix.size() + suffix.size()
             && suggestedNameString.ends_with(suffix)) {
             shapeSuffix = suggestedNameString.substr(prefix.size(), suggestedNameString.size() - prefix.size() - suffix.size());
         }
@@ -177,7 +170,7 @@ void convert(const std::filesystem::path& outputPath, const CommandInputData& in
         std::string data;
         data.resize(svgData.size());
         std::memcpy(data.data(), svgData.data(), svgData.size());
-        pendingSvgs.push_back(PendingSvg{ shapeCmper, std::move(data) });
+        pendingSvgs.push_back(PendingSvg{shapeCmper, std::move(data)});
     });
 
     const bool multipleShapes = pendingSvgs.size() > 1;

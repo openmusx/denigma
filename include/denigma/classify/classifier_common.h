@@ -32,15 +32,14 @@ struct GlyphStyle
 {
     /// @enum Placement
     /// @brief Above/below/automatic style encoded in the source glyph variant.
-    enum class Placement
-    {
+    enum class Placement {
         Automatic,
         Above,
         Below
     };
 
     /// Above/below style encoded in the source glyph variant, when applicable.
-    Placement placement{ Placement::Automatic };
+    Placement placement{Placement::Automatic};
 };
 
 /// @struct PseudoTie
@@ -49,8 +48,7 @@ struct PseudoTie
 {
     /// @enum Type
     /// @brief The tie behavior represented by the source shape.
-    enum class Type
-    {
+    enum class Type {
         LaissezVibrer,
         TieEnd
     };
@@ -58,14 +56,13 @@ struct PseudoTie
     /// The tie behavior represented by the source shape.
     Type type{};
     /// The source shape's resolved contour direction.
-    musx::dom::CurveContourDirection contour{ musx::dom::CurveContourDirection::Unspecified };
+    musx::dom::CurveContourDirection contour{musx::dom::CurveContourDirection::Unspecified};
 };
 
 /// @brief Returns the common effective font of all nonempty visible text chunks.
 /// @return The common font, or null when there is no visible text, a chunk has no font, or the
 /// visible chunks do not all use the same typeface, size, and effects.
-musx::dom::MusxInstance<musx::dom::FontInfo> singleVisibleFont(
-    const musx::util::EnigmaParsingContext& textContext);
+musx::dom::MusxInstance<musx::dom::FontInfo> singleVisibleFont(const musx::util::EnigmaParsingContext& textContext);
 
 } // namespace classify
 } // namespace denigma

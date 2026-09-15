@@ -22,11 +22,11 @@
 #include <algorithm>
 #include <array>
 #include <cstddef>
-#include <sstream>
 #include <span>
+#include <sstream>
 #include <string>
-#include <vector>
 #include <string_view>
+#include <vector>
 
 #include "gtest/gtest.h"
 
@@ -53,9 +53,8 @@ TEST(ConverterApi, EnigmaXmlToMnxJsonWritesToStream)
     options.common.sourceName = "notAscii-其れ.enigmaxml";
     options.common.validate = false;
     options.indentSpaces = 2;
-    const auto result = converter->convert(std::as_bytes(std::span<const char>(input.data(), input.size())),
-                                           output,
-                                           denigma::ConversionRequest{ &options });
+    const auto result =
+        converter->convert(std::as_bytes(std::span<const char>(input.data(), input.size())), output, denigma::ConversionRequest{&options});
 
     EXPECT_TRUE(result.diagnostics().empty());
 
@@ -88,7 +87,7 @@ TEST(ConverterApi, MusxToMnxJsonWritesToStream)
     options.common.sourceName = "notAscii-其れ.musx";
     options.common.validate = false;
     options.indentSpaces = 2;
-    const auto result = converter->convert(input, output, denigma::ConversionRequest{ &options });
+    const auto result = converter->convert(input, output, denigma::ConversionRequest{&options});
 
     EXPECT_TRUE(result.diagnostics().empty());
 
@@ -121,8 +120,7 @@ TEST(ConverterApi, MusxToMnxJsonReportsChordSymbolGaps)
     const auto result = denigma::formats::mnx::MusxToMnxJsonConverter{}.convert(input, output, options);
 
     EXPECT_TRUE(result);
-    const auto report = nlohmann::json::parse(denigma::serializeGapReport(
-        collector, { "denigma", "TEST", "abc123" }));
+    const auto report = nlohmann::json::parse(denigma::serializeGapReport(collector, {"denigma", "TEST", "abc123"}));
     EXPECT_EQ(report["schemaVersion"], 1);
     ASSERT_FALSE(report["gaps"].empty());
     const auto& gap = report["gaps"].front();
@@ -151,11 +149,9 @@ TEST(ConverterApi, MusxToMnxJsonReportsNoteheadGaps)
     const auto result = denigma::formats::mnx::MusxToMnxJsonConverter{}.convert(input, output, options);
 
     EXPECT_TRUE(result);
-    const auto report = nlohmann::json::parse(denigma::serializeGapReport(
-        collector, { "denigma", "TEST", "abc123" }));
-    const auto notehead = std::find_if(report["gaps"].begin(), report["gaps"].end(), [](const auto& gap) {
-        return gap.value("type", "") == "notehead";
-    });
+    const auto report = nlohmann::json::parse(denigma::serializeGapReport(collector, {"denigma", "TEST", "abc123"}));
+    const auto notehead =
+        std::find_if(report["gaps"].begin(), report["gaps"].end(), [](const auto& gap) { return gap.value("type", "") == "notehead"; });
     ASSERT_NE(notehead, report["gaps"].end());
     EXPECT_TRUE(notehead->at("anchor").get<std::string>().starts_with("ev"));
     EXPECT_FALSE(notehead->at("notehead").at("shape").get<std::string>().empty());
@@ -169,8 +165,7 @@ TEST(ConverterApi, CliWritesReferenceGapReports)
     const auto checkFixture = [](const std::string& fileName) {
         const auto inputPath = getInputPath() / fileName;
         auto outputPath = getOutputPath() / std::filesystem::path(fileName).replace_extension(".mnx");
-        ArgList args = { DENIGMA_NAME, "export", pathString(inputPath), "--mnx", pathString(outputPath),
-            "--gap-report", "--force" };
+        ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), "--mnx", pathString(outputPath), "--gap-report", "--force"};
         EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0);
 
         outputPath += ".gaps.json";
@@ -202,7 +197,7 @@ TEST(ConverterApi, EnigmaXmlToMnxJsonCollectsErrorDiagnosticsForInvalidXml)
         std::byte(' '),
         std::byte('x'),
         std::byte('m'),
-        std::byte('l')
+        std::byte('l'),
     };
 
     std::ostringstream output;
@@ -212,9 +207,7 @@ TEST(ConverterApi, EnigmaXmlToMnxJsonCollectsErrorDiagnosticsForInvalidXml)
     options.common.validate = false;
     options.indentSpaces = 2;
 
-    const auto result = converter->convert(std::span<const std::byte>(input.data(), input.size()),
-                                           output,
-                                           denigma::ConversionRequest{ &options });
+    const auto result = converter->convert(std::span<const std::byte>(input.data(), input.size()), output, denigma::ConversionRequest{&options});
 
     EXPECT_FALSE(result);
     EXPECT_TRUE(result.hasError());

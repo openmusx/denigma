@@ -19,8 +19,8 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#include <string>
 #include <stdexcept>
+#include <string>
 #include <type_traits>
 
 #include "core/element_ids.h"
@@ -34,9 +34,7 @@ namespace mnx {
 namespace detail {
 
 std::optional<mnxdom::Fermata> makeFermata(
-    const classify::articulation::Fermata& fermata,
-    const classify::GlyphStyle& glyphStyle,
-    VerticalPlacement placement)
+    const classify::articulation::Fermata& fermata, const classify::GlyphStyle& glyphStyle, VerticalPlacement placement)
 {
     if (placement == VerticalPlacement::NotApplicable) {
         return std::nullopt;
@@ -112,10 +110,7 @@ static bool noteIsInCurrentPart(const MnxMusxMappingPtr& context, const NoteInfo
 }
 
 static std::optional<NoteInfoPtr> findArpeggioBoundaryNoteInCurrentPart(
-    const MnxMusxMappingPtr& context,
-    const EntryInfoPtr& preferredEntry,
-    const EntryInfoPtr& fallbackEntry,
-    bool topNote)
+    const MnxMusxMappingPtr& context, const EntryInfoPtr& preferredEntry, const EntryInfoPtr& fallbackEntry, bool topNote)
 {
     auto findInEntry = [&](const EntryInfoPtr& entryInfo) -> std::optional<NoteInfoPtr> {
         if (!entryInfo) {
@@ -123,7 +118,7 @@ static std::optional<NoteInfoPtr> findArpeggioBoundaryNoteInCurrentPart(
         }
         const auto entry = entryInfo->getEntry();
         if (topNote) {
-            for (size_t noteIndex = entry->notes.size(); noteIndex-- > 0; ) {
+            for (size_t noteIndex = entry->notes.size(); noteIndex-- > 0;) {
                 NoteInfoPtr note(entryInfo, noteIndex);
                 if (noteIsInCurrentPart(context, note)) {
                     return note;
@@ -160,65 +155,51 @@ static void appendArpeggio(const NoteInfoPtr& topNote, const NoteInfoPtr& bottom
 {
     const auto startId = [&]() -> std::string {
         switch (candidate.direction) {
-        case musx::util::ArpeggioDirection::Down:
-            return core::calcNoteId(topNote);
+        case musx::util::ArpeggioDirection::Down: return core::calcNoteId(topNote);
         case musx::util::ArpeggioDirection::Auto:
-        case musx::util::ArpeggioDirection::Up:
-            return core::calcNoteId(bottomNote);
+        case musx::util::ArpeggioDirection::Up: return core::calcNoteId(bottomNote);
         }
-        ASSERT_IF(true) {
+        ASSERT_IF(true)
+        {
             throw std::logic_error("Unhandled arpeggio direction.");
         }
         return {};
     }();
     const auto endId = [&]() -> std::string {
         switch (candidate.direction) {
-        case musx::util::ArpeggioDirection::Down:
-            return core::calcNoteId(bottomNote);
+        case musx::util::ArpeggioDirection::Down: return core::calcNoteId(bottomNote);
         case musx::util::ArpeggioDirection::Auto:
-        case musx::util::ArpeggioDirection::Up:
-            return core::calcNoteId(topNote);
+        case musx::util::ArpeggioDirection::Up: return core::calcNoteId(topNote);
         }
-        ASSERT_IF(true) {
+        ASSERT_IF(true)
+        {
             throw std::logic_error("Unhandled arpeggio direction.");
         }
         return {};
     }();
 
     auto mnxArpeggio = mnxPartMeasure.ensure_arpeggios().append(
-        mnxFractionFromFraction(candidate.sourceEntry.calcGlobalElapsedDuration()),
-        mnxdom::IdPair::make(startId, endId));
+        mnxFractionFromFraction(candidate.sourceEntry.calcGlobalElapsedDuration()), mnxdom::IdPair::make(startId, endId));
     setArpeggioGraceIndex(mnxArpeggio.position(), candidate);
 
     switch (candidate.direction) {
-    case musx::util::ArpeggioDirection::Auto:
-        mnxArpeggio.set_or_clear_direction(mnxdom::MarkingUpDownAuto::Auto);
-        break;
-    case musx::util::ArpeggioDirection::Up:
-        mnxArpeggio.set_or_clear_direction(mnxdom::MarkingUpDownAuto::Up);
-        break;
-    case musx::util::ArpeggioDirection::Down:
-        mnxArpeggio.set_or_clear_direction(mnxdom::MarkingUpDownAuto::Down);
-        break;
+    case musx::util::ArpeggioDirection::Auto: mnxArpeggio.set_or_clear_direction(mnxdom::MarkingUpDownAuto::Auto); break;
+    case musx::util::ArpeggioDirection::Up: mnxArpeggio.set_or_clear_direction(mnxdom::MarkingUpDownAuto::Up); break;
+    case musx::util::ArpeggioDirection::Down: mnxArpeggio.set_or_clear_direction(mnxdom::MarkingUpDownAuto::Down); break;
     }
 
     switch (candidate.arrow) {
     case musx::util::ArpeggioArrow::Auto:
-    case musx::util::ArpeggioArrow::None:
-        mnxArpeggio.set_or_clear_arrow(false);
-        break;
+    case musx::util::ArpeggioArrow::None: mnxArpeggio.set_or_clear_arrow(false); break;
     case musx::util::ArpeggioArrow::Up:
-    case musx::util::ArpeggioArrow::Down:
-        mnxArpeggio.set_or_clear_arrow(true);
-        break;
+    case musx::util::ArpeggioArrow::Down: mnxArpeggio.set_or_clear_arrow(true); break;
     }
 }
 
 static void appendNonArpeggio(const NoteInfoPtr& topNote, const NoteInfoPtr& bottomNote, mnxdom::part::Measure& mnxPartMeasure,
     const musx::util::ArpeggioSpanCandidate& candidate)
 {
-    auto mnxNonArpeggio = mnxPartMeasure.ensure_nonArpeggios().append(
-        mnxFractionFromFraction(candidate.sourceEntry.calcGlobalElapsedDuration()),
+    auto mnxNonArpeggio = mnxPartMeasure.ensure_nonArpeggios().append(mnxFractionFromFraction(candidate.sourceEntry.calcGlobalElapsedDuration()),
         mnxdom::IdPair::make(core::calcNoteId(bottomNote), core::calcNoteId(topNote)));
     setArpeggioGraceIndex(mnxNonArpeggio.position(), candidate);
 }
@@ -228,23 +209,17 @@ static void appendArpeggioOrNonArpeggio(const NoteInfoPtr& topNote, const NoteIn
 {
     using SpanType = musx::util::ArpeggioSpanType;
     switch (candidate.type) {
-    case SpanType::Normal:
-        appendArpeggio(topNote, bottomNote, mnxPartMeasure, candidate);
-        break;
-    case SpanType::Bracket:
-        appendNonArpeggio(topNote, bottomNote, mnxPartMeasure, candidate);
-        break;
+    case SpanType::Normal: appendArpeggio(topNote, bottomNote, mnxPartMeasure, candidate); break;
+    case SpanType::Bracket: appendNonArpeggio(topNote, bottomNote, mnxPartMeasure, candidate); break;
     }
 }
 
-void appendArpeggioCandidate(const MnxMusxMappingPtr& context, mnxdom::part::Measure&,
-    const musx::util::ArpeggioSpanCandidate& candidate)
+void appendArpeggioCandidate(const MnxMusxMappingPtr& context, mnxdom::part::Measure&, const musx::util::ArpeggioSpanCandidate& candidate)
 {
     const auto topNote = findArepggioBoundaryNote(candidate.topEntry, true);
     const auto bottomNote = findArepggioBoundaryNote(candidate.bottomEntry, false);
     if (!topNote || !bottomNote) {
-        context->logMessage(LogMsg() << "skipping arpeggio because its note span could not be resolved.",
-            MessageSeverity::Warning);
+        context->logMessage(LogMsg() << "skipping arpeggio because its note span could not be resolved.", MessageSeverity::Warning);
         return;
     }
 
@@ -253,8 +228,7 @@ void appendArpeggioCandidate(const MnxMusxMappingPtr& context, mnxdom::part::Mea
     }
 }
 
-static std::vector<std::string> findAffectedMnxPartsForArpeggio(const MnxMusxMappingPtr& context,
-    const musx::util::ArpeggioSpanCandidate& candidate)
+static std::vector<std::string> findAffectedMnxPartsForArpeggio(const MnxMusxMappingPtr& context, const musx::util::ArpeggioSpanCandidate& candidate)
 {
     std::vector<std::string> result;
     std::unordered_set<std::string> seen;
@@ -275,9 +249,8 @@ static std::vector<std::string> findAffectedMnxPartsForArpeggio(const MnxMusxMap
     return result;
 }
 
-static bool appendDeferredArpeggioToPart(const MnxMusxMappingPtr& context,
-    const std::string& partId,
-    const musx::util::ArpeggioSpanCandidate& candidate)
+static bool appendDeferredArpeggioToPart(
+    const MnxMusxMappingPtr& context, const std::string& partId, const musx::util::ArpeggioSpanCandidate& candidate)
 {
     const auto partIt = context->part2Inst.find(partId);
     if (partIt == context->part2Inst.end() || partIt->second.empty()) {
@@ -331,16 +304,15 @@ void finalizeArpeggios(const MnxMusxMappingPtr& context)
         const auto topNote = findArepggioBoundaryNote(candidate.topEntry, true);
         const auto bottomNote = findArepggioBoundaryNote(candidate.bottomEntry, false);
         if (!topNote || !bottomNote) {
-            context->logMessage(LogMsg() << "skipping arpeggio because its note span could not be resolved.",
-                MessageSeverity::Warning);
+            context->logMessage(LogMsg() << "skipping arpeggio because its note span could not be resolved.", MessageSeverity::Warning);
             continue;
         }
 
         const auto topPart = findMnxPartForNote(context, topNote.value());
         const auto bottomPart = findMnxPartForNote(context, bottomNote.value());
         if (!topPart || !bottomPart) {
-            context->logMessage(LogMsg() << "skipping arpeggio because its note span includes a staff that is not assigned to an MNX part.",
-                MessageSeverity::Info);
+            context->logMessage(
+                LogMsg() << "skipping arpeggio because its note span includes a staff that is not assigned to an MNX part.", MessageSeverity::Info);
             continue;
         }
 
@@ -349,8 +321,8 @@ void finalizeArpeggios(const MnxMusxMappingPtr& context)
             targetParts.push_back(topPart.value());
         } else {
             targetParts = findAffectedMnxPartsForArpeggio(context, candidate);
-            context->logMessage(LogMsg() << "splitting arpeggio across MNX part boundary into "
-                << mnxPartDisplayList(context, targetParts) << ".", MessageSeverity::Verbose);
+            context->logMessage(LogMsg() << "splitting arpeggio across MNX part boundary into " << mnxPartDisplayList(context, targetParts) << ".",
+                MessageSeverity::Verbose);
         }
 
         bool emittedAny = false;
@@ -358,15 +330,13 @@ void finalizeArpeggios(const MnxMusxMappingPtr& context)
             emittedAny = appendDeferredArpeggioToPart(context, partId, candidate) || emittedAny;
         }
         if (!emittedAny) {
-            context->logMessage(LogMsg() << "skipping arpeggio because no valid MNX part span could be resolved.",
-                MessageSeverity::Warning);
+            context->logMessage(LogMsg() << "skipping arpeggio because no valid MNX part span could be resolved.", MessageSeverity::Warning);
         }
     }
 }
 
 static std::optional<mnxdom::sequence::EventMarkingBase> createEventMarking(
-    mnxdom::sequence::EventMarkings mnxMarkings,
-    const classify::articulation::ArticulationMark& mark)
+    mnxdom::sequence::EventMarkings mnxMarkings, const classify::articulation::ArticulationMark& mark)
 {
     const auto setPointing = [&](auto marking) -> mnxdom::sequence::EventMarkingBase {
         marking.set_or_clear_pointing(enumConvert<mnxdom::MarkingUpDownAuto>(mark.glyphStyle.placement));
@@ -374,41 +344,27 @@ static std::optional<mnxdom::sequence::EventMarkingBase> createEventMarking(
     };
 
     switch (mark.type) {
-    case classify::articulation::ArticulationMark::Type::Accent:
-        return mnxMarkings.ensure_accent();
-    case classify::articulation::ArticulationMark::Type::SoftAccent:
-        return mnxMarkings.ensure_softAccent();
-    case classify::articulation::ArticulationMark::Type::Spiccato:
-        return mnxMarkings.ensure_spiccato();
-    case classify::articulation::ArticulationMark::Type::Staccatissimo:
-        return mnxMarkings.ensure_staccatissimo();
-    case classify::articulation::ArticulationMark::Type::Staccato:
-        return mnxMarkings.ensure_staccato();
-    case classify::articulation::ArticulationMark::Type::Stress:
-        return mnxMarkings.ensure_stress();
-    case classify::articulation::ArticulationMark::Type::StrongAccent:
-        return setPointing(mnxMarkings.ensure_strongAccent());
-    case classify::articulation::ArticulationMark::Type::Tenuto:
-        return mnxMarkings.ensure_tenuto();
-    case classify::articulation::ArticulationMark::Type::Unstress:
-        return mnxMarkings.ensure_unstress();
-    default:
-        break;
+    case classify::articulation::ArticulationMark::Type::Accent: return mnxMarkings.ensure_accent();
+    case classify::articulation::ArticulationMark::Type::SoftAccent: return mnxMarkings.ensure_softAccent();
+    case classify::articulation::ArticulationMark::Type::Spiccato: return mnxMarkings.ensure_spiccato();
+    case classify::articulation::ArticulationMark::Type::Staccatissimo: return mnxMarkings.ensure_staccatissimo();
+    case classify::articulation::ArticulationMark::Type::Staccato: return mnxMarkings.ensure_staccato();
+    case classify::articulation::ArticulationMark::Type::Stress: return mnxMarkings.ensure_stress();
+    case classify::articulation::ArticulationMark::Type::StrongAccent: return setPointing(mnxMarkings.ensure_strongAccent());
+    case classify::articulation::ArticulationMark::Type::Tenuto: return mnxMarkings.ensure_tenuto();
+    case classify::articulation::ArticulationMark::Type::Unstress: return mnxMarkings.ensure_unstress();
+    default: break;
     }
     return std::nullopt;
 }
 
 static std::optional<mnxdom::sequence::EventMarkingBase> createEventMarking(
-    mnxdom::sequence::EventMarkings mnxMarkings,
-    const classify::articulation::TechniqueMark& mark)
+    mnxdom::sequence::EventMarkings mnxMarkings, const classify::articulation::TechniqueMark& mark)
 {
     switch (mark.type) {
-    case classify::articulation::TechniqueMark::Type::DownBow:
-        return mnxMarkings.ensure_bowDirection(mnxdom::MarkingUpDown::Down);
-    case classify::articulation::TechniqueMark::Type::UpBow:
-        return mnxMarkings.ensure_bowDirection(mnxdom::MarkingUpDown::Up);
-    default:
-        break;
+    case classify::articulation::TechniqueMark::Type::DownBow: return mnxMarkings.ensure_bowDirection(mnxdom::MarkingUpDown::Down);
+    case classify::articulation::TechniqueMark::Type::UpBow: return mnxMarkings.ensure_bowDirection(mnxdom::MarkingUpDown::Up);
+    default: break;
     }
     return std::nullopt;
 }
@@ -417,7 +373,8 @@ void processArticulations(const MnxMusxMappingPtr& context, mnxdom::sequence::Ev
 {
     const auto musxEntry = musxEntryInfo->getEntry();
     auto mnxPartMeasure = mnxEvent.getEnclosingElement<mnxdom::part::Measure>();
-    ASSERT_IF(!mnxPartMeasure) {
+    ASSERT_IF(!mnxPartMeasure)
+    {
         context->logMessage(LogMsg() << "no part measure exists for " << mnxEvent.dump(4), MessageSeverity::Warning);
         return;
     }
@@ -425,42 +382,44 @@ void processArticulations(const MnxMusxMappingPtr& context, mnxdom::sequence::Ev
     for (const auto& asgn : articAssigns) {
         if (!asgn->hide) { /// @todo eliminate this filter if MNX provides visibility options
             if (const auto classification = classify::classifyArticulation(asgn, musxEntryInfo)) {
-                std::visit([&](const auto& classified) {
-                    using Value = std::decay_t<decltype(classified)>;
-                    if constexpr (std::is_same_v<Value, classify::articulation::Fermata>) {
-                        if (auto mnxFermata = makeFermata(classified, classified.glyphStyle, classification.placement)) {
-                            mnxEvent.set_fermata(mnxFermata.value());
-                        }
-                    } else if constexpr (std::is_same_v<Value, classify::articulation::BreathMark>) {
-                        mnxEvent.ensure_markings().set_breath(makeBreathMark(classified, classification.placement));
-                    } else if constexpr (std::is_same_v<Value, classify::articulation::Arpeggio>) {
-                        if (classified.candidate) {
-                            appendArpeggioCandidate(context, mnxPartMeasure.value(), classified.candidate.value());
-                        }
-                    } else if constexpr (std::is_same_v<Value, classify::articulation::VerticalEntryBracket>) {
-                        if (auto candidate = musx::util::calcNonArpeggioSpanForAssignment(musxEntryInfo, asgn)) {
-                            appendArpeggioCandidate(context, mnxPartMeasure.value(), candidate.value());
-                        }
-                    } else if constexpr (std::is_same_v<Value, classify::PseudoTie>) {
+                std::visit(
+                    [&](const auto& classified) {
+                        using Value = std::decay_t<decltype(classified)>;
+                        if constexpr (std::is_same_v<Value, classify::articulation::Fermata>) {
+                            if (auto mnxFermata = makeFermata(classified, classified.glyphStyle, classification.placement)) {
+                                mnxEvent.set_fermata(mnxFermata.value());
+                            }
+                        } else if constexpr (std::is_same_v<Value, classify::articulation::BreathMark>) {
+                            mnxEvent.ensure_markings().set_breath(makeBreathMark(classified, classification.placement));
+                        } else if constexpr (std::is_same_v<Value, classify::articulation::Arpeggio>) {
+                            if (classified.candidate) {
+                                appendArpeggioCandidate(context, mnxPartMeasure.value(), classified.candidate.value());
+                            }
+                        } else if constexpr (std::is_same_v<Value, classify::articulation::VerticalEntryBracket>) {
+                            if (auto candidate = musx::util::calcNonArpeggioSpanForAssignment(musxEntryInfo, asgn)) {
+                                appendArpeggioCandidate(context, mnxPartMeasure.value(), candidate.value());
+                            }
+                        } else if constexpr (std::is_same_v<Value, classify::PseudoTie>) {
                         // Pseudo ties are processed by createTies at the note level.
-                    } else if constexpr (std::is_same_v<Value, classify::articulation::Tremolo>) {
-                        auto mnxMarkings = mnxEvent.ensure_markings();
-                        auto mnxMarking = mnxMarkings.ensure_tremolo(classified.marks);
-                        mnxMarking.set_or_clear_orient(enumConvert<mnxdom::Orientation>(classification.placement));
-                    } else if constexpr (std::is_same_v<Value, classify::articulation::ArticulationMarks>) {
-                        for (const auto& mark : classified.marks) {
+                        } else if constexpr (std::is_same_v<Value, classify::articulation::Tremolo>) {
                             auto mnxMarkings = mnxEvent.ensure_markings();
-                            if (auto mnxMarking = createEventMarking(mnxMarkings, mark)) {
+                            auto mnxMarking = mnxMarkings.ensure_tremolo(classified.marks);
+                            mnxMarking.set_or_clear_orient(enumConvert<mnxdom::Orientation>(classification.placement));
+                        } else if constexpr (std::is_same_v<Value, classify::articulation::ArticulationMarks>) {
+                            for (const auto& mark : classified.marks) {
+                                auto mnxMarkings = mnxEvent.ensure_markings();
+                                if (auto mnxMarking = createEventMarking(mnxMarkings, mark)) {
+                                    mnxMarking->set_or_clear_orient(enumConvert<mnxdom::Orientation>(classification.placement));
+                                }
+                            }
+                        } else if constexpr (std::is_same_v<Value, classify::articulation::TechniqueMark>) {
+                            auto mnxMarkings = mnxEvent.ensure_markings();
+                            if (auto mnxMarking = createEventMarking(mnxMarkings, classified)) {
                                 mnxMarking->set_or_clear_orient(enumConvert<mnxdom::Orientation>(classification.placement));
                             }
                         }
-                    } else if constexpr (std::is_same_v<Value, classify::articulation::TechniqueMark>) {
-                        auto mnxMarkings = mnxEvent.ensure_markings();
-                        if (auto mnxMarking = createEventMarking(mnxMarkings, classified)) {
-                            mnxMarking->set_or_clear_orient(enumConvert<mnxdom::Orientation>(classification.placement));
-                        }
-                    }
-                }, classification.value);
+                    },
+                    classification.value);
             }
         }
     }
@@ -468,18 +427,21 @@ void processArticulations(const MnxMusxMappingPtr& context, mnxdom::sequence::Ev
 
 void processArticulations(const MnxMusxMappingPtr& context, mnxdom::sequence::FullMeasureRest& mnxFullMeasureRest, const EntryInfoPtr& musxEntryInfo)
 {
-    auto articAssigns = context->document->getDetails()->getArray<details::ArticulationAssign>(SCORE_PARTID, musxEntryInfo->getEntry()->getEntryNumber());
+    auto articAssigns =
+        context->document->getDetails()->getArray<details::ArticulationAssign>(SCORE_PARTID, musxEntryInfo->getEntry()->getEntryNumber());
     for (const auto& asgn : articAssigns) {
         if (!asgn->hide) {
             if (const auto classification = classify::classifyArticulation(asgn, musxEntryInfo)) {
-                std::visit([&](const auto& classified) {
-                    using Value = std::decay_t<decltype(classified)>;
-                    if constexpr (std::is_same_v<Value, classify::articulation::Fermata>) {
-                        if (const auto mnxFermata = makeFermata(classified, classified.glyphStyle, classification.placement)) {
-                            mnxFullMeasureRest.set_fermata(mnxFermata.value());
+                std::visit(
+                    [&](const auto& classified) {
+                        using Value = std::decay_t<decltype(classified)>;
+                        if constexpr (std::is_same_v<Value, classify::articulation::Fermata>) {
+                            if (const auto mnxFermata = makeFermata(classified, classified.glyphStyle, classification.placement)) {
+                                mnxFullMeasureRest.set_fermata(mnxFermata.value());
+                            }
                         }
-                    }
-                }, classification.value);
+                    },
+                    classification.value);
             }
         }
     }

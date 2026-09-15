@@ -20,10 +20,10 @@
 #include <utility>
 #include <vector>
 
-#include "denigma/io/random_access_reader.h"
-#include "denigma/gap_report.h"
 #include "core/denigma.h"
 #include "core/musx_reader.h"
+#include "denigma/gap_report.h"
+#include "denigma/io/random_access_reader.h"
 #include "formats/enigmaxml/enigmaxml.h"
 #include "utils/ziputils.h"
 
@@ -35,9 +35,7 @@
 // Declaring them here keeps the wrapper's build off that graph; a signature change
 // in either exporter surfaces as a link error.
 namespace denigma::formats::musicxml::detail {
-void convert(const CommandInputData& inputData,
-             const DenigmaContext& denigmaContext,
-             const MultiOutputCallback& outputCallback);
+void convert(const CommandInputData& inputData, const DenigmaContext& denigmaContext, const MultiOutputCallback& outputCallback);
 } // namespace denigma::formats::musicxml::detail
 
 namespace denigma::formats::mnx::detail {
@@ -50,7 +48,7 @@ struct OutputFile
 {
     std::string name;
     std::vector<std::uint8_t> data;
-    int sourceIndex{ -1 };
+    int sourceIndex{-1};
 };
 
 struct PageSize
@@ -76,8 +74,8 @@ struct PartInfo
 
 struct OnlineResult
 {
-    bool success{ true };
-    std::string scoreName{ "Score" };
+    bool success{true};
+    std::string scoreName{"Score"};
     PageSize scorePageSize;
     std::vector<denigma::Diagnostic> diagnostics;
     std::vector<PartInfo> parts;
@@ -85,8 +83,7 @@ struct OnlineResult
     std::string gapReport;
 };
 
-enum class InputFormat
-{
+enum class InputFormat {
     Musx,
     EnigmaXml,
     ZippedEnigmaXml
@@ -94,25 +91,32 @@ enum class InputFormat
 
 bool endsWithCaseInsensitive(std::string_view value, std::string_view suffix)
 {
-    if (value.size() < suffix.size()) return false;
-    return std::equal(suffix.rbegin(), suffix.rend(), value.rbegin(), [](char lhs, char rhs) {
-        return std::tolower(static_cast<unsigned char>(lhs)) == std::tolower(static_cast<unsigned char>(rhs));
-    });
+    if (value.size() < suffix.size()) {
+        return false;
+    }
+    return std::equal(suffix.rbegin(), suffix.rend(), value.rbegin(),
+        [](char lhs, char rhs) { return std::tolower(static_cast<unsigned char>(lhs)) == std::tolower(static_cast<unsigned char>(rhs)); });
 }
 
 InputFormat inputFormat(const char* sourceName)
 {
     const std::string_view name = sourceName ? sourceName : "browser.musx";
-    if (endsWithCaseInsensitive(name, ".enigmaxml.zip")) return InputFormat::ZippedEnigmaXml;
-    if (endsWithCaseInsensitive(name, ".enigmaxml")) return InputFormat::EnigmaXml;
-    if (endsWithCaseInsensitive(name, ".musx")) return InputFormat::Musx;
+    if (endsWithCaseInsensitive(name, ".enigmaxml.zip")) {
+        return InputFormat::ZippedEnigmaXml;
+    }
+    if (endsWithCaseInsensitive(name, ".enigmaxml")) {
+        return InputFormat::EnigmaXml;
+    }
+    if (endsWithCaseInsensitive(name, ".musx")) {
+        return InputFormat::Musx;
+    }
     throw std::invalid_argument("Unsupported input filename.");
 }
 
 void addDiagnostic(OnlineResult& result, denigma::MessageSeverity severity, std::string message)
 {
     result.success = result.success && severity != denigma::MessageSeverity::Error;
-    result.diagnostics.push_back({ severity, std::move(message) });
+    result.diagnostics.push_back({severity, std::move(message)});
 }
 
 const char* fallbackSourceName(InputFormat format)
@@ -125,9 +129,8 @@ denigma::DenigmaContext makeInputContext(OnlineResult& result, const char* sourc
     denigma::DenigmaContext context(DENIGMA_NAME);
     context.inputFilePath = sourceName ? sourceName : fallbackName;
     context.verbose = true;
-    context.logCallback = [&result](denigma::MessageSeverity severity, std::string_view message) {
-        addDiagnostic(result, severity, std::string(message));
-    };
+    context.logCallback = [&result](
+                              denigma::MessageSeverity severity, std::string_view message) { addDiagnostic(result, severity, std::string(message)); };
     return context;
 }
 
@@ -136,10 +139,8 @@ denigma::DenigmaContext makeInputContext(OnlineResult& result, const char* sourc
 // call, so this wrapper drives the detail entry points with cached input data and
 // assembles the equivalent context here. Validation stays on and quiet stays off,
 // matching the CommonOptions defaults the adapters map from.
-denigma::DenigmaContext makeConversionContext(OnlineResult& result,
-                                              const char* sourceName,
-                                              InputFormat format,
-                                              denigma::ConversionResult& conversionResult)
+denigma::DenigmaContext makeConversionContext(
+    OnlineResult& result, const char* sourceName, InputFormat format, denigma::ConversionResult& conversionResult)
 {
     auto context = makeInputContext(result, sourceName, fallbackSourceName(format));
     context.conversionResult = &conversionResult;
@@ -151,22 +152,18 @@ std::span<const std::byte> inputBytes(const std::uint8_t* data, std::size_t size
     if (!data && size != 0) {
         throw std::invalid_argument("Input buffer is null.");
     }
-    return { reinterpret_cast<const std::byte*>(data), size };
+    return {reinterpret_cast<const std::byte*>(data), size};
 }
 
 denigma::Buffer copyBytes(std::span<const std::byte> bytes)
 {
     denigma::Buffer result;
     result.reserve(bytes.size());
-    std::transform(bytes.begin(), bytes.end(), std::back_inserter(result), [](std::byte value) {
-        return static_cast<char>(value);
-    });
+    std::transform(bytes.begin(), bytes.end(), std::back_inserter(result), [](std::byte value) { return static_cast<char>(value); });
     return result;
 }
 
-denigma::CommandInputData readInputData(std::span<const std::byte> bytes,
-                                        InputFormat format,
-                                        const denigma::DenigmaContext& context)
+denigma::CommandInputData readInputData(std::span<const std::byte> bytes, InputFormat format, const denigma::DenigmaContext& context)
 {
     if (format == InputFormat::Musx) {
         denigma::BufferRandomAccessReader reader(bytes);
@@ -175,9 +172,9 @@ denigma::CommandInputData readInputData(std::span<const std::byte> bytes,
     if (format == InputFormat::ZippedEnigmaXml) {
         denigma::BufferRandomAccessReader reader(bytes);
         const auto xml = utils::readSoleFileWithExtension(reader, ENIGMAXML_EXTENSION, context);
-        return { denigma::Buffer(xml.begin(), xml.end()), std::nullopt, {} };
+        return {denigma::Buffer(xml.begin(), xml.end()), std::nullopt, {}};
     }
-    return { copyBytes(bytes), std::nullopt, {} };
+    return {copyBytes(bytes), std::nullopt, {}};
 }
 
 // Extracting a MUSX archive inflates the zip and deobfuscates the EnigmaXML inside
@@ -205,15 +202,12 @@ std::uint64_t contentHash(std::span<const std::byte> bytes)
     return hash;
 }
 
-const denigma::CommandInputData& cachedInputData(std::span<const std::byte> bytes,
-                                                 InputFormat format,
-                                                 const denigma::DenigmaContext& context,
-                                                 const char* sourceName)
+const denigma::CommandInputData& cachedInputData(
+    std::span<const std::byte> bytes, InputFormat format, const denigma::DenigmaContext& context, const char* sourceName)
 {
     const std::string name = sourceName ? sourceName : "";
     const auto hash = contentHash(bytes);
-    if (inputCache.valid && inputCache.size == bytes.size() && inputCache.hash == hash
-        && inputCache.sourceName == name) {
+    if (inputCache.valid && inputCache.size == bytes.size() && inputCache.hash == hash && inputCache.sourceName == name) {
         return inputCache.data;
     }
     inputCache = {}; // release the previous extraction before allocating the next one
@@ -227,7 +221,7 @@ const denigma::CommandInputData& cachedInputData(std::span<const std::byte> byte
 
 std::span<const std::byte> primaryBytes(const denigma::CommandInputData& input)
 {
-    return { reinterpret_cast<const std::byte*>(input.primaryBuffer.data()), input.primaryBuffer.size() };
+    return {reinterpret_cast<const std::byte*>(input.primaryBuffer.data()), input.primaryBuffer.size()};
 }
 
 void appendOutput(OnlineResult& result, std::string_view name, std::span<const std::byte> data, int sourceIndex = -1)
@@ -236,9 +230,7 @@ void appendOutput(OnlineResult& result, std::string_view name, std::span<const s
     output.name = name;
     output.sourceIndex = sourceIndex;
     output.data.resize(data.size());
-    std::transform(data.begin(), data.end(), output.data.begin(), [](std::byte value) {
-        return static_cast<std::uint8_t>(value);
-    });
+    std::transform(data.begin(), data.end(), output.data.begin(), [](std::byte value) { return static_cast<std::uint8_t>(value); });
     result.outputs.push_back(std::move(output));
 }
 
@@ -255,21 +247,22 @@ PageSize pageSizeForPart(const musx::dom::DocumentPtr& document, musx::dom::Cmpe
     try {
         const auto options = document->getOptions()->get<musx::dom::options::PageFormatOptions>();
         const auto format = options ? options->calcPageFormatForPart(partId) : nullptr;
-        if (!format || format->pageWidth <= 0 || format->pageHeight <= 0) return {};
+        if (!format || format->pageWidth <= 0 || format->pageHeight <= 0) {
+            return {};
+        }
         PageSize result{
             static_cast<double>(format->pageWidth) / musx::dom::EVPU_PER_MM,
             static_cast<double>(format->pageHeight) / musx::dom::EVPU_PER_MM,
-            format->calcCombinedSystemScaling().toDouble() * musx::dom::EVPU_PER_SPACE
-                / musx::dom::EVPU_PER_MM
+            format->calcCombinedSystemScaling().toDouble() * musx::dom::EVPU_PER_SPACE / musx::dom::EVPU_PER_MM,
         };
         const auto firstPage = document->getOthers()->get<musx::dom::others::Page>(partId, 1);
-        const auto marginScaling = firstPage && !firstPage->holdMargins
-            ? format->calcSystemScaling().toDouble()
-            : format->calcCombinedSystemScaling().toDouble();
-        if (marginScaling <= 0) return result;
-        const auto marginSp = [marginScaling](musx::dom::Evpu value) {
-            return static_cast<double>(value) / (musx::dom::EVPU_PER_SPACE * marginScaling);
-        };
+        const auto marginScaling =
+            firstPage && !firstPage->holdMargins ? format->calcSystemScaling().toDouble() : format->calcCombinedSystemScaling().toDouble();
+        if (marginScaling <= 0) {
+            return result;
+        }
+        const auto marginSp = [marginScaling](
+                                  musx::dom::Evpu value) { return static_cast<double>(value) / (musx::dom::EVPU_PER_SPACE * marginScaling); };
         result.hasMargins = true;
         result.marginTopSp = marginSp(-(firstPage ? firstPage->margTop : format->leftPageMarginTop));
         result.marginBottomSp = marginSp(firstPage ? firstPage->margBottom : format->leftPageMarginBottom);
@@ -288,9 +281,8 @@ void finishConversion(OnlineResult& result, const denigma::ConversionResult& con
     }
     if (result.outputs.empty() && result.success) {
         addDiagnostic(result, denigma::MessageSeverity::Error, "Conversion produced no output.");
-    } else if (result.success && std::any_of(result.outputs.begin(), result.outputs.end(), [](const OutputFile& output) {
-        return output.data.empty();
-    })) {
+    } else if (result.success
+               && std::any_of(result.outputs.begin(), result.outputs.end(), [](const OutputFile& output) { return output.data.empty(); })) {
         addDiagnostic(result, denigma::MessageSeverity::Error, "Conversion produced an empty output file.");
     }
 }
@@ -322,24 +314,15 @@ void inspectInput(OnlineResult& result, std::span<const std::byte> bytes, const 
             std::move(name),
             outputIndex++,
             part->partOrder,
-            pageSizeForPart(document, part->getCmper())
+            pageSizeForPart(document, part->getCmper()),
         });
     }
-    std::stable_sort(result.parts.begin(), result.parts.end(), [](const PartInfo& lhs, const PartInfo& rhs) {
-        return lhs.partOrder < rhs.partOrder;
-    });
+    std::stable_sort(
+        result.parts.begin(), result.parts.end(), [](const PartInfo& lhs, const PartInfo& rhs) { return lhs.partOrder < rhs.partOrder; });
 }
 
-void convertMusicXml(OnlineResult& result,
-                     std::span<const std::byte> bytes,
-                     const char* sourceName,
-                     InputFormat inputFormat,
-                     bool includeTempo,
-                     bool allFontsAvailable,
-                     bool useFinaleRestPosition,
-                     int cueLayer,
-                     const int* selectedOutputs,
-                     std::size_t selectedCount)
+void convertMusicXml(OnlineResult& result, std::span<const std::byte> bytes, const char* sourceName, InputFormat inputFormat, bool includeTempo,
+    bool allFontsAvailable, bool useFinaleRestPosition, int cueLayer, const int* selectedOutputs, std::size_t selectedCount)
 {
     denigma::ConversionResult conversionResult;
     auto context = makeConversionContext(result, sourceName, inputFormat, conversionResult);
@@ -364,14 +347,8 @@ void convertMusicXml(OnlineResult& result,
     finishConversion(result, conversionResult);
 }
 
-void convertMnx(OnlineResult& result,
-                std::span<const std::byte> bytes,
-                const char* sourceName,
-                InputFormat inputFormat,
-                bool includeTempo,
-                bool splitInstruments,
-                int indentSpaces,
-                int cueLayer)
+void convertMnx(OnlineResult& result, std::span<const std::byte> bytes, const char* sourceName, InputFormat inputFormat, bool includeTempo,
+    bool splitInstruments, int indentSpaces, int cueLayer)
 {
     denigma::ConversionResult conversionResult;
     denigma::GapCollector gapCollector;
@@ -388,18 +365,14 @@ void convertMnx(OnlineResult& result,
     const denigma::MusxLoggerScope musxLogger(denigma::makeMusxLogCallback(context));
     const auto& input = cachedInputData(bytes, inputFormat, context, sourceName);
     denigma::formats::mnx::detail::exportJson(output, input, context);
-    result.gapReport = denigma::serializeGapReport(
-        gapCollector, { DENIGMA_NAME, DENIGMA_VERSION, denigma::gitCommit() });
+    result.gapReport = denigma::serializeGapReport(gapCollector, {DENIGMA_NAME, DENIGMA_VERSION, denigma::gitCommit()});
     if (!conversionResult.hasError()) {
         appendOutput(result, {}, output.str());
     }
     finishConversion(result, conversionResult);
 }
 
-void convertEnigmaXml(OnlineResult& result,
-                      std::span<const std::byte> bytes,
-                      const char* sourceName,
-                      InputFormat inputFormat)
+void convertEnigmaXml(OnlineResult& result, std::span<const std::byte> bytes, const char* sourceName, InputFormat inputFormat)
 {
     // Denigma's MUSX-to-EnigmaXML converter writes exactly the primary buffer that
     // extraction already produced, so both input formats reduce to the cached data.
@@ -435,28 +408,22 @@ const typename Collection::value_type* itemAt(const Collection& collection, std:
 
 extern "C" {
 
-void* denigma_malloc(std::size_t size) { return ::operator new(size, std::nothrow); }
-void denigma_free(void* pointer) { ::operator delete(pointer); }
+void* denigma_malloc(std::size_t size)
+{
+    return ::operator new(size, std::nothrow);
+}
+void denigma_free(void* pointer)
+{
+    ::operator delete(pointer);
+}
 
 OnlineResult* denigma_inspect(const std::uint8_t* data, std::size_t size, const char* sourceName)
 {
-    return makeResult([&](OnlineResult& result) {
-        inspectInput(result, inputBytes(data, size), sourceName, inputFormat(sourceName));
-    });
+    return makeResult([&](OnlineResult& result) { inspectInput(result, inputBytes(data, size), sourceName, inputFormat(sourceName)); });
 }
 
-OnlineResult* denigma_convert(const std::uint8_t* data,
-                           std::size_t size,
-                           const char* sourceName,
-                           int format,
-                           int includeTempo,
-                           int allFontsAvailable,
-                           int useFinaleRestPosition,
-                           int splitInstruments,
-                           int indentSpaces,
-                           int cueLayer,
-                           const int* selectedOutputs,
-                           std::size_t selectedCount)
+OnlineResult* denigma_convert(const std::uint8_t* data, std::size_t size, const char* sourceName, int format, int includeTempo, int allFontsAvailable,
+    int useFinaleRestPosition, int splitInstruments, int indentSpaces, int cueLayer, const int* selectedOutputs, std::size_t selectedCount)
 {
     return makeResult([&](OnlineResult& result) {
         const auto bytes = inputBytes(data, size);
@@ -466,23 +433,24 @@ OnlineResult* denigma_convert(const std::uint8_t* data,
             if (!selectedOutputs || selectedCount == 0) {
                 throw std::invalid_argument("Select the score or at least one linked part.");
             }
-            convertMusicXml(result, bytes, sourceName, sourceFormat, includeTempo != 0,
-                            allFontsAvailable != 0, useFinaleRestPosition != 0, cueLayer, selectedOutputs, selectedCount);
+            convertMusicXml(result, bytes, sourceName, sourceFormat, includeTempo != 0, allFontsAvailable != 0, useFinaleRestPosition != 0, cueLayer,
+                selectedOutputs, selectedCount);
             break;
-        case 1:
-            convertMnx(result, bytes, sourceName, sourceFormat, includeTempo != 0, splitInstruments != 0, indentSpaces, cueLayer);
-            break;
-        case 2:
-            convertEnigmaXml(result, bytes, sourceName, sourceFormat);
-            break;
-        default:
-            throw std::invalid_argument("Unknown output format.");
+        case 1: convertMnx(result, bytes, sourceName, sourceFormat, includeTempo != 0, splitInstruments != 0, indentSpaces, cueLayer); break;
+        case 2: convertEnigmaXml(result, bytes, sourceName, sourceFormat); break;
+        default: throw std::invalid_argument("Unknown output format.");
         }
     });
 }
 
-void denigma_result_destroy(OnlineResult* result) { delete result; }
-int denigma_result_success(const OnlineResult* result) { return result && result->success ? 1 : 0; }
+void denigma_result_destroy(OnlineResult* result)
+{
+    delete result;
+}
+int denigma_result_success(const OnlineResult* result)
+{
+    return result && result->success ? 1 : 0;
+}
 
 std::size_t denigma_result_diagnostic_count(const OnlineResult* result)
 {
@@ -546,7 +514,10 @@ double denigma_result_score_page_margin_right_sp(const OnlineResult* result)
     return result ? result->scorePageSize.marginRightSp : 0.0;
 }
 
-std::size_t denigma_result_part_count(const OnlineResult* result) { return result ? result->parts.size() : 0; }
+std::size_t denigma_result_part_count(const OnlineResult* result)
+{
+    return result ? result->parts.size() : 0;
+}
 
 int denigma_result_part_id(const OnlineResult* result, std::size_t index)
 {
@@ -614,7 +585,10 @@ double denigma_result_part_page_margin_right_sp(const OnlineResult* result, std:
     return item ? item->pageSize.marginRightSp : 0.0;
 }
 
-std::size_t denigma_result_output_count(const OnlineResult* result) { return result ? result->outputs.size() : 0; }
+std::size_t denigma_result_output_count(const OnlineResult* result)
+{
+    return result ? result->outputs.size() : 0;
+}
 
 const char* denigma_result_output_name(const OnlineResult* result, std::size_t index)
 {
@@ -642,9 +616,7 @@ int denigma_result_output_index(const OnlineResult* result, std::size_t index)
 
 const std::uint8_t* denigma_result_gap_report_data(const OnlineResult* result)
 {
-    return result && !result->gapReport.empty()
-        ? reinterpret_cast<const std::uint8_t*>(result->gapReport.data())
-        : nullptr;
+    return result && !result->gapReport.empty() ? reinterpret_cast<const std::uint8_t*>(result->gapReport.data()) : nullptr;
 }
 
 std::size_t denigma_result_gap_report_size(const OnlineResult* result)
@@ -652,7 +624,13 @@ std::size_t denigma_result_gap_report_size(const OnlineResult* result)
     return result ? result->gapReport.size() : 0;
 }
 
-const char* denigma_version() { return DENIGMA_VERSION; }
-const char* denigma_commit() { return denigma::gitCommit(); }
+const char* denigma_version()
+{
+    return DENIGMA_VERSION;
+}
+const char* denigma_commit()
+{
+    return denigma::gitCommit();
+}
 
 } // extern "C"

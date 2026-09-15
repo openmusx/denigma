@@ -65,14 +65,11 @@ static FontContext makeFontContext(const std::string& fontName = "Maestro", int 
     auto fontInfo = std::make_shared<FontInfo>(document);
     fontInfo->fontId = 1;
     fontInfo->fontSize = 24;
-    return { document, fontInfo };
+    return {document, fontInfo};
 }
 
-static void expectSingleArticulationMark(
-    const musx::dom::MusxInstance<FontInfo>& fontInfo,
-    char32_t symbol,
-    articulation::ArticulationMark::Type expectedType,
-    const std::string& expectedGlyphName)
+static void expectSingleArticulationMark(const musx::dom::MusxInstance<FontInfo>& fontInfo, char32_t symbol,
+    articulation::ArticulationMark::Type expectedType, const std::string& expectedGlyphName)
 {
     const auto classification = classifyArticulationSymbol(fontInfo, symbol);
     const auto* articulation = classification.as<articulation::ArticulationMarks>();
@@ -83,11 +80,8 @@ static void expectSingleArticulationMark(
     EXPECT_EQ(classification.glyphName.value(), expectedGlyphName);
 }
 
-static void expectSingleTechniqueMark(
-    const musx::dom::MusxInstance<FontInfo>& fontInfo,
-    char32_t symbol,
-    articulation::TechniqueMark::Type expectedType,
-    const std::string& expectedGlyphName)
+static void expectSingleTechniqueMark(const musx::dom::MusxInstance<FontInfo>& fontInfo, char32_t symbol,
+    articulation::TechniqueMark::Type expectedType, const std::string& expectedGlyphName)
 {
     const auto classification = classifyArticulationSymbol(fontInfo, symbol);
     const auto* technique = classification.as<articulation::TechniqueMark>();
@@ -97,11 +91,8 @@ static void expectSingleTechniqueMark(
     EXPECT_EQ(classification.glyphName.value(), expectedGlyphName);
 }
 
-static void expectHarmonMute(
-    const musx::dom::MusxInstance<FontInfo>& fontInfo,
-    char32_t symbol,
-    articulation::HarmonMute::Qualifier expectedQualifier,
-    const std::string& expectedGlyphName)
+static void expectHarmonMute(const musx::dom::MusxInstance<FontInfo>& fontInfo, char32_t symbol,
+    articulation::HarmonMute::Qualifier expectedQualifier, const std::string& expectedGlyphName)
 {
     const auto classification = classifyArticulationSymbol(fontInfo, symbol);
     const auto* harmonMute = classification.as<articulation::HarmonMute>();
@@ -111,10 +102,7 @@ static void expectHarmonMute(
     EXPECT_EQ(classification.glyphName.value(), expectedGlyphName);
 }
 
-static void expectPluckedDamp(
-    const musx::dom::MusxInstance<FontInfo>& fontInfo,
-    char32_t symbol,
-    articulation::PluckedDamp::Type expectedType,
+static void expectPluckedDamp(const musx::dom::MusxInstance<FontInfo>& fontInfo, char32_t symbol, articulation::PluckedDamp::Type expectedType,
     const std::string& expectedGlyphName)
 {
     const auto classification = classifyArticulationSymbol(fontInfo, symbol);
@@ -125,10 +113,7 @@ static void expectPluckedDamp(
     EXPECT_EQ(classification.glyphName.value(), expectedGlyphName);
 }
 
-static void expectStringMute(
-    const musx::dom::MusxInstance<FontInfo>& fontInfo,
-    char32_t symbol,
-    articulation::StringMute::Type expectedType,
+static void expectStringMute(const musx::dom::MusxInstance<FontInfo>& fontInfo, char32_t symbol, articulation::StringMute::Type expectedType,
     const std::string& expectedGlyphName)
 {
     const auto classification = classifyArticulationSymbol(fontInfo, symbol);

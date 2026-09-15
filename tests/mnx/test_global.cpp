@@ -19,22 +19,22 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#include <string>
 #include <array>
 #include <cmath>
 #include <filesystem>
-#include <iterator>
 #include <fstream>
+#include <iterator>
+#include <string>
 
-#include "gtest/gtest.h"
 #include "core/denigma.h"
 #include "core/musx_reader.h"
 #include "mnxdom.h"
+#include "gtest/gtest.h"
 
 namespace mnxdom = ::mnx;
-#include "test_utils.h"
-#include "musx/musx.h"
 #include "formats/mnx/mnx.h"
+#include "musx/musx.h"
+#include "test_utils.h"
 
 using namespace denigma;
 using namespace musx::dom;
@@ -42,11 +42,11 @@ using namespace musx::dom;
 TEST(MnxGlobal, MetronomeMarkUsesDisplayedTempoWithoutPlayback)
 {
     const classify::expression::MetronomeMark mark{
-        { "", 0, 0 },
+        {"", 0, 0},
         NoteType::Half,
         "metNoteHalfUp",
         2,
-        72
+        72,
     };
 
     const auto tempo = formats::mnx::detail::mnxTempoFromMetronomeMark(mark);
@@ -92,10 +92,9 @@ TEST(MnxGlobal, MetronomeMarkFixtureExportsTheTempoFinalePlays)
     setupTestDataPaths();
     std::filesystem::path inputPath;
     copyInputToOutput("metronome_marks.musx", inputPath);
-    ArgList args = { DENIGMA_NAME, "export", pathString(inputPath), "--mnx" };
-    checkStderr({ "Processing", pathString(inputPath.filename()), "!validation error" }, [&]() {
-        EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath);
-    });
+    ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), "--mnx"};
+    checkStderr({"Processing", pathString(inputPath.filename()), "!validation error"},
+        [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath); });
 
     const auto doc = mnxdom::Document::create(inputPath.parent_path() / "metronome_marks.mnx");
     const auto measures = doc.global().measures();
@@ -110,11 +109,8 @@ TEST(MnxGlobal, MetronomeMarkFixtureExportsTheTempoFinalePlays)
     // Measures 1 and 2 export the quarter and the plain half their playback settings hold, not the
     // eighth and double-dotted half they display. Measure 3 has no playback settings at all and
     // falls back to the equation it displays.
-    const std::array<ExpectedTempo, 3> expected{ {
-        { 72, mnxdom::NoteValueBase::Quarter, 0 },
-        { 104, mnxdom::NoteValueBase::Half, 0 },
-        { 120, mnxdom::NoteValueBase::Whole, 0 }
-    } };
+    const std::array<ExpectedTempo, 3> expected{
+        {{72, mnxdom::NoteValueBase::Quarter, 0}, {104, mnxdom::NoteValueBase::Half, 0}, {120, mnxdom::NoteValueBase::Whole, 0}}};
 
     for (size_t i = 0; i < expected.size(); ++i) {
         const auto tempos = measures[i].tempos();
@@ -132,10 +128,9 @@ TEST(MnxGlobal, Tempos)
     setupTestDataPaths();
     std::filesystem::path inputPath;
     copyInputToOutput("tempo_text_shape.musx", inputPath);
-    ArgList args = { DENIGMA_NAME, "export", pathString(inputPath), "--mnx" };
-    checkStderr({ "Processing", pathString(inputPath.filename()), "!validation error" }, [&]() {
-        EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath);
-    });
+    ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), "--mnx"};
+    checkStderr({"Processing", pathString(inputPath.filename()), "!validation error"},
+        [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath); });
 
     auto doc = mnxdom::Document::create(inputPath.parent_path() / "tempo_text_shape.mnx");
     auto measures = doc.global().measures();
@@ -172,16 +167,14 @@ TEST(MnxGlobal, TempoToolChanges)
     std::filesystem::path inputPath;
     copyInputToOutput("tempo_changes.musx", inputPath);
     {
-        ArgList args = { DENIGMA_NAME, "export", pathString(inputPath), "--enigmaxml" };
-        checkStderr({ "Processing", pathString(inputPath.filename()), "!validation error" }, [&]() {
-            EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to enigmaxml: " << pathString(inputPath);
-        });
+        ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), "--enigmaxml"};
+        checkStderr({"Processing", pathString(inputPath.filename()), "!validation error"},
+            [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to enigmaxml: " << pathString(inputPath); });
     }
     {
-        ArgList args = { DENIGMA_NAME, "export", pathString(inputPath), "--mnx", "--include-tempo-tool" };
-            checkStderr({ "Processing", pathString(inputPath.filename()), "!validation error" }, [&]() {
-            EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath);
-        });
+        ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), "--mnx", "--include-tempo-tool"};
+        checkStderr({"Processing", pathString(inputPath.filename()), "!validation error"},
+            [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath); });
     }
 
     std::vector<char> xmlBuf;
@@ -193,8 +186,7 @@ TEST(MnxGlobal, TempoToolChanges)
     auto measures = mnxDoc.global().measures();
     ASSERT_GE(measures.size(), 4) << "should be at least 4 measures";
 
-    for (size_t x = 0; x < 4; x++)
-    {
+    for (size_t x = 0; x < 4; x++) {
         auto musxTempoChanges = musxDoc->getOthers()->getArray<others::TempoChange>(SCORE_PARTID, static_cast<Cmper>(x + 1));
         auto mnxTempoChanges = measures[x].tempos();
         ASSERT_GT(musxTempoChanges.size(), 0);
@@ -216,10 +208,9 @@ TEST(MnxGlobal, CompositeTime)
     setupTestDataPaths();
     std::filesystem::path inputPath;
     copyInputToOutput("timesigs_composite.musx", inputPath);
-    ArgList args = { DENIGMA_NAME, "export", pathString(inputPath), "--mnx" };
-    checkStderr({ "Processing", pathString(inputPath.filename()), "!validation error" }, [&]() {
-        EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath);
-    });
+    ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), "--mnx"};
+    checkStderr({"Processing", pathString(inputPath.filename()), "!validation error"},
+        [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath); });
 
     auto doc = mnxdom::Document::create(inputPath.parent_path() / "timesigs_composite.mnx");
     auto measures = doc.global().measures();
@@ -243,20 +234,17 @@ struct ExpectedTime
 /// @brief Verifies the `time` object of each global measure. A `std::nullopt` entry means the measure
 /// carries the previous measure's time signature forward and must not emit a `time` object of its own.
 /// @param expectCleanValidation Pass false for a document with a known, unrelated semantic validation error.
-void checkGlobalTimes(const std::string& fileName, const std::vector<std::optional<ExpectedTime>>& expected,
-    bool expectCleanValidation = true)
+void checkGlobalTimes(const std::string& fileName, const std::vector<std::optional<ExpectedTime>>& expected, bool expectCleanValidation = true)
 {
     setupTestDataPaths();
     std::filesystem::path inputPath;
     copyInputToOutput(fileName + ".musx", inputPath);
-    ArgList args = { DENIGMA_NAME, "export", pathString(inputPath), "--mnx" };
-    std::vector<std::string> expectedMessages = { "Processing", pathString(inputPath.filename()) };
+    ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), "--mnx"};
+    std::vector<std::string> expectedMessages = {"Processing", pathString(inputPath.filename())};
     if (expectCleanValidation) {
         expectedMessages.emplace_back("!validation error");
     }
-    checkStderr(expectedMessages, [&]() {
-        EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath);
-    });
+    checkStderr(expectedMessages, [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath); });
 
     auto displayName = [](const std::optional<mnxdom::TimeSignatureDisplay>& display) -> std::string {
         if (!display) {
@@ -297,21 +285,14 @@ TEST(MnxGlobal, TimeSignatureDisplaySymbols)
     // independent (per-staff) time signatures this document uses. The expectations below are therefore all
     // score-level meters, and the export emits a semantic validation error unrelated to time signature
     // display: entries on a staff with its own meter overfill the global measure duration.
-    checkGlobalTimes("timesigs_independent", {
-        ExpectedTime{ 4, Unit::Quarter, std::nullopt },  // 4/4, but common time is not abbreviated document-wide
-        std::nullopt,
-        ExpectedTime{ 3, Unit::Quarter, std::nullopt },
-        std::nullopt,
-        std::nullopt,
-        ExpectedTime{ 4, Unit::Quarter, Display::Common }, // abbreviated 4/4 display time signature
-        ExpectedTime{ 2, Unit::Half, Display::Cut },       // 2/2 abbreviated by the document-wide cut time option
-        ExpectedTime{ 6, Unit::Eighth, std::nullopt },     // 2/4 display time signature: not representable in MNX
-        ExpectedTime{ 5, Unit::Eighth, std::nullopt },
-        std::nullopt,
-        ExpectedTime{ 3, Unit::Quarter, std::nullopt },
-        std::nullopt,
-        std::nullopt
-    }, /*expectCleanValidation*/ false);
+    checkGlobalTimes("timesigs_independent",
+        {ExpectedTime{4, Unit::Quarter, std::nullopt},  // 4/4, but common time is not abbreviated document-wide
+            std::nullopt, ExpectedTime{3, Unit::Quarter, std::nullopt}, std::nullopt, std::nullopt,
+            ExpectedTime{4, Unit::Quarter, Display::Common}, // abbreviated 4/4 display time signature
+            ExpectedTime{2, Unit::Half, Display::Cut},       // 2/2 abbreviated by the document-wide cut time option
+            ExpectedTime{6, Unit::Eighth, std::nullopt},     // 2/4 display time signature: not representable in MNX
+            ExpectedTime{5, Unit::Eighth, std::nullopt}, std::nullopt, ExpectedTime{3, Unit::Quarter, std::nullopt}, std::nullopt, std::nullopt},
+        /*expectCleanValidation*/ false);
 }
 
 TEST(MnxGlobal, TimeSignatureDisplayNotAbbreviated)
@@ -320,13 +301,9 @@ TEST(MnxGlobal, TimeSignatureDisplayNotAbbreviated)
 
     // Measure 1 is a 1/4 pickup whose display time signature is 4/4, and measure 2 is an actual 4/4.
     // Neither may emit a common-time symbol, because "Abbreviate Common Time" is off in this document.
-    checkGlobalTimes("timesigs_changing", {
-        ExpectedTime{ 1, Unit::Quarter, std::nullopt },
-        ExpectedTime{ 4, Unit::Quarter, std::nullopt },
-        ExpectedTime{ 5, Unit::Eighth, std::nullopt },
-        ExpectedTime{ 7, Unit::Eighth, std::nullopt },
-        ExpectedTime{ 3, Unit::Quarter, std::nullopt }
-    });
+    checkGlobalTimes("timesigs_changing",
+        {ExpectedTime{1, Unit::Quarter, std::nullopt}, ExpectedTime{4, Unit::Quarter, std::nullopt}, ExpectedTime{5, Unit::Eighth, std::nullopt},
+            ExpectedTime{7, Unit::Eighth, std::nullopt}, ExpectedTime{3, Unit::Quarter, std::nullopt}});
 }
 
 TEST(MnxGlobal, TimeSignatureDisplayChange)
@@ -339,8 +316,8 @@ TEST(MnxGlobal, TimeSignatureDisplayChange)
     constexpr size_t numMeasures = 29;
     constexpr size_t measureThatAbbreviates = 3; // zero-based index of measure 4
     std::vector<std::optional<ExpectedTime>> expected(numMeasures, std::nullopt);
-    expected.front() = ExpectedTime{ 4, Unit::Quarter, std::nullopt };
-    expected[measureThatAbbreviates] = ExpectedTime{ 4, Unit::Quarter, Display::Common };
+    expected.front() = ExpectedTime{4, Unit::Quarter, std::nullopt};
+    expected[measureThatAbbreviates] = ExpectedTime{4, Unit::Quarter, Display::Common};
     checkGlobalTimes("repeats", expected);
 }
 
@@ -349,10 +326,9 @@ TEST(MnxGlobal, BarlineTypes)
     setupTestDataPaths();
     std::filesystem::path inputPath;
     copyInputToOutput("barline_types.musx", inputPath);
-    ArgList args = { DENIGMA_NAME, "export", pathString(inputPath), "--mnx" };
-    checkStderr({ "Processing", pathString(inputPath.filename()), "!validation error" }, [&]() {
-        EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath);
-    });
+    ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), "--mnx"};
+    checkStderr({"Processing", pathString(inputPath.filename()), "!validation error"},
+        [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath); });
 
     auto doc = mnxdom::Document::create(inputPath.parent_path() / "barline_types.mnx");
     auto measures = doc.global().measures();
@@ -368,7 +344,7 @@ TEST(MnxGlobal, BarlineTypes)
         mnxdom::BarlineType::NoBarline,
         mnxdom::BarlineType::Short,
         mnxdom::BarlineType::Tick,
-        mnxdom::BarlineType::Double
+        mnxdom::BarlineType::Double,
     };
 
     for (size_t i = 0; i < expected.size(); ++i) {
@@ -386,10 +362,9 @@ TEST(MnxGlobal, FinalMeasureWithNormalBarlineUsesImplicitFinal)
     setupTestDataPaths();
     std::filesystem::path inputPath;
     copyInputToOutput("barline_short_normal.musx", inputPath);
-    ArgList args = { DENIGMA_NAME, "export", pathString(inputPath), "--mnx" };
-    checkStderr({ "Processing", pathString(inputPath.filename()), "!validation error" }, [&]() {
-        EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath);
-    });
+    ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), "--mnx"};
+    checkStderr({"Processing", pathString(inputPath.filename()), "!validation error"},
+        [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath); });
 
     auto doc = mnxdom::Document::create(inputPath.parent_path() / "barline_short_normal.mnx");
     auto measures = doc.global().measures();

@@ -25,8 +25,7 @@
 
  // Keep this header dependency free
 
-namespace mnx {
-}
+namespace mnx {}
 namespace mnxdom = ::mnx;
 
 namespace denigma {

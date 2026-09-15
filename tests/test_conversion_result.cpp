@@ -40,9 +40,7 @@ public:
     [[nodiscard]] denigma::FormatId sourceFormat() const override { return denigma::FormatId::EnigmaXml; }
     [[nodiscard]] denigma::FormatId targetFormat() const override { return denigma::FormatId::MnxJson; }
 
-    denigma::ConversionResult convert(std::span<const std::byte>,
-                                      std::ostream& output,
-                                      const denigma::ConversionRequest&) const override
+    denigma::ConversionResult convert(std::span<const std::byte>, std::ostream& output, const denigma::ConversionRequest&) const override
     {
         output << "mnx";
         denigma::ConversionResult result;
@@ -57,9 +55,8 @@ public:
     [[nodiscard]] denigma::FormatId sourceFormat() const override { return denigma::FormatId::Musx; }
     [[nodiscard]] denigma::FormatId targetFormat() const override { return denigma::FormatId::MusicXml; }
 
-    denigma::ConversionResult convert(const denigma::IRandomAccessReader&,
-                                      const denigma::MultiOutputCallback& outputCallback,
-                                      const denigma::ConversionRequest&) const override
+    denigma::ConversionResult convert(
+        const denigma::IRandomAccessReader&, const denigma::MultiOutputCallback& outputCallback, const denigma::ConversionRequest&) const override
     {
         const std::string score = "score";
         const std::string part = "part";
@@ -75,17 +72,12 @@ public:
     [[nodiscard]] denigma::FormatId sourceFormat() const override { return denigma::FormatId::EnigmaXml; }
     [[nodiscard]] denigma::FormatId targetFormat() const override { return denigma::FormatId::Svg; }
 
-    denigma::ConversionResult convert(std::span<const std::byte>,
-                                      std::ostream&,
-                                      const denigma::ConversionRequest&) const override
-    {
-        return {};
-    }
+    denigma::ConversionResult convert(std::span<const std::byte>, std::ostream&, const denigma::ConversionRequest&) const override { return {}; }
 };
 
 std::string outputText(const denigma::ConversionOutput& output)
 {
-    return { reinterpret_cast<const char*>(output.data.data()), output.data.size() };
+    return {reinterpret_cast<const char*>(output.data.data()), output.data.size()};
 }
 
 } // namespace
@@ -105,7 +97,7 @@ TEST(ConversionResult, TracksDiagnosticsAndErrorState)
     EXPECT_EQ(result.diagnostics().front().severity, denigma::MessageSeverity::Warning);
     EXPECT_EQ(result.diagnostics().front().message, "warning");
 
-    result.addDiagnostic(denigma::Diagnostic{ denigma::MessageSeverity::Error, "error" });
+    result.addDiagnostic(denigma::Diagnostic{denigma::MessageSeverity::Error, "error"});
     EXPECT_FALSE(result);
     EXPECT_TRUE(result.hasError());
     ASSERT_EQ(result.diagnostics().size(), 2u);
@@ -117,25 +109,24 @@ TEST(GapCollector, PreservesTypedGaps)
 {
     denigma::GapCollector collector;
     denigma::classify::ChordSymbolClassification chord;
-    collector.add({ "P1.m1", 1, denigma::GapPosition{ 1, 4 } }, chord);
+    collector.add({"P1.m1", 1, denigma::GapPosition{1, 4}}, chord);
 
     ASSERT_EQ(collector.gaps().size(), 1u);
     EXPECT_EQ(collector.gaps().front().anchor.id, "P1.m1");
-    EXPECT_TRUE(std::holds_alternative<denigma::classify::ChordSymbolClassification>(
-        collector.gaps().front().payload));
+    EXPECT_TRUE(std::holds_alternative<denigma::classify::ChordSymbolClassification>(collector.gaps().front().payload));
 }
 
 TEST(GapCollector, SerializesEmptyAndStructuredReports)
 {
     denigma::GapCollector collector;
-    const denigma::GapReportProducer producer{ "denigma", "TEST", "abc123" };
+    const denigma::GapReportProducer producer{"denigma", "TEST", "abc123"};
     const auto empty = denigma::serializeGapReport(collector, producer);
     EXPECT_NE(empty.find("\"gaps\": []"), std::string::npos);
 
     denigma::classify::ChordSymbolClassification chord;
-    chord.suffix.strings.push_back({ "6", denigma::classify::chord::SuffixString::Position::Above });
-    chord.suffix.strings.push_back({ "9", denigma::classify::chord::SuffixString::Position::Below });
-    collector.add({ "P1.m1", std::nullopt, denigma::GapPosition{ 0, 1 } }, std::move(chord));
+    chord.suffix.strings.push_back({"6", denigma::classify::chord::SuffixString::Position::Above});
+    chord.suffix.strings.push_back({"9", denigma::classify::chord::SuffixString::Position::Below});
+    collector.add({"P1.m1", std::nullopt, denigma::GapPosition{0, 1}}, std::move(chord));
 
     const auto report = denigma::serializeGapReport(collector, producer);
     EXPECT_NE(report.find("\"position\": \"above\""), std::string::npos);
@@ -149,9 +140,7 @@ TEST(ConverterRegistry, CollectsOwnedSingleOutputAndDiagnostics)
     registry.add(std::make_unique<MemoryConverter>());
     const std::byte input{};
 
-    const auto artifact = registry.convert(denigma::FormatId::EnigmaXml,
-                                           denigma::FormatId::MnxJson,
-                                           std::span(&input, 1));
+    const auto artifact = registry.convert(denigma::FormatId::EnigmaXml, denigma::FormatId::MnxJson, std::span(&input, 1));
 
     EXPECT_TRUE(artifact);
     ASSERT_EQ(artifact.outputs().size(), 1u);
@@ -184,9 +173,7 @@ TEST(ConverterRegistry, PreservesEmptySingleOutput)
     registry.add(std::make_unique<EmptyMemoryConverter>());
     const std::byte input{};
 
-    const auto artifact = registry.convert(denigma::FormatId::EnigmaXml,
-                                           denigma::FormatId::Svg,
-                                           std::span(&input, 1));
+    const auto artifact = registry.convert(denigma::FormatId::EnigmaXml, denigma::FormatId::Svg, std::span(&input, 1));
 
     EXPECT_TRUE(artifact);
     ASSERT_EQ(artifact.outputs().size(), 1u);
@@ -198,9 +185,7 @@ TEST(ConverterRegistry, ReportsUnsupportedConversion)
     const denigma::ConverterRegistry registry;
     const std::byte input{};
 
-    const auto artifact = registry.convert(denigma::FormatId::EnigmaXml,
-                                           denigma::FormatId::Svg,
-                                           std::span(&input, 1));
+    const auto artifact = registry.convert(denigma::FormatId::EnigmaXml, denigma::FormatId::Svg, std::span(&input, 1));
 
     EXPECT_FALSE(artifact);
     EXPECT_TRUE(artifact.hasError());

@@ -31,8 +31,8 @@
 #include <vector>
 
 #include "denigma/classify/articulations.h"
-#include "denigma/classify/dynamics.h"
 #include "denigma/classify/classifier_common.h"
+#include "denigma/classify/dynamics.h"
 #include "denigma/classify/keyboard_pedals.h"
 #include "musx/musx.h"
 
@@ -44,8 +44,7 @@ using ExpressionCategoryType = musx::dom::others::MarkingCategory::CategoryType;
 
 /// @enum ExpressionType
 /// @brief Exporter-neutral semantic classes for Finale/MUSX text expressions.
-enum class ExpressionType
-{
+enum class ExpressionType {
     GenericText, ///< Text with no more specific recognized semantic.
     Dynamic, ///< A dynamic mark.
     Fermata, ///< A fermata symbol.
@@ -69,8 +68,7 @@ enum class ExpressionType
 
 /// @enum ClassificationBasis
 /// @brief Diagnostic reason for the selected expression classification.
-enum class ClassificationBasis
-{
+enum class ClassificationBasis {
     FinaleCategory, ///< Classification follows the assigned Finale category.
     Heuristic, ///< Classification was inferred without a usable Finale category.
     FinaleCategoryConfirmed, ///< Content analysis confirmed the assigned Finale category.
@@ -86,8 +84,7 @@ struct TechniqueText
 {
     /// @enum Type
     /// @brief Common performance technique text values recognized by the classifier.
-    enum class Type
-    {
+    enum class Type {
         None, ///< No technique value.
         Arco, ///< Bowed string technique.
         Pizzicato, ///< Plucked string technique.
@@ -144,7 +141,7 @@ struct MetronomeMark
     /// @brief Source text and any independently configured Finale playback values.
     TempoInfo tempo;
     /// @brief Undotted semantic value of the displayed metronome note.
-    musx::dom::NoteType noteType{ musx::dom::NoteType::Quarter };
+    musx::dom::NoteType noteType{musx::dom::NoteType::Quarter};
     /// @brief Canonical SMuFL name of the metronome-note glyph.
     std::string noteGlyphName;
     /// @brief Number of augmentation dots following the note.
@@ -191,8 +188,7 @@ struct HarpDiagram
 {
     /// @enum PedalPosition
     /// @brief Notated position of one harp pedal.
-    enum class PedalPosition
-    {
+    enum class PedalPosition {
         Flat, ///< Upper pedal position.
         Natural, ///< Middle pedal position.
         Sharp ///< Lower pedal position.
@@ -269,7 +265,7 @@ struct GenericText
 struct DynamicQualifier
 {
     /// @brief Dynamic change indicated by the qualifier.
-    dynamics::Change change{ dynamics::Change::Absolute };
+    dynamics::Change change{dynamics::Change::Absolute};
     /// @brief Source display text.
     std::string text;
 };
@@ -285,13 +281,11 @@ struct Error
 /// @struct Suppress
 /// @brief Marker payload for an expression that should not be exported.
 struct Suppress
-{
-};
+{};
 
 /// @brief Semantic payload associated with one classified expression text run.
-using RunValue = std::variant<
-    std::monostate, dynamics::Mark, DynamicQualifier, Fermata, BreathMark, TempoText,
-    TempoAlteration, TechniqueText, RehearsalMark, GenericText, Error, Suppress>;
+using RunValue = std::variant<std::monostate, dynamics::Mark, DynamicQualifier, Fermata, BreathMark, TempoText, TempoAlteration, TechniqueText,
+    RehearsalMark, GenericText, Error, Suppress>;
 
 /// @struct RunClassification
 /// @brief Classification of one logical run within an expression.
@@ -300,7 +294,7 @@ struct RunClassification
     /// @brief Parsed Finale text chunk represented by this run.
     musx::util::EnigmaTextChunk chunk;
     /// @brief Evidence used to select #value.
-    ClassificationBasis basis{ ClassificationBasis::FallbackToGenericText };
+    ClassificationBasis basis{ClassificationBasis::FallbackToGenericText};
     /// @brief Semantic payload for this run.
     RunValue value{};
 
@@ -309,17 +303,17 @@ struct RunClassification
     /// @return A pointer to the payload, or `nullptr` when the active alternative differs.
     template <typename T>
     const T* as() const noexcept
-    { return std::get_if<T>(&value); }
+    {
+        return std::get_if<T>(&value);
+    }
 };
 
 } // namespace expression
 
 /// @brief Semantic payload associated with an @ref ExpressionClassification.
-using ExpressionValue = std::variant<
-    std::monostate, dynamics::Mark, expression::Fermata, expression::BreathMark,
-    articulation::StringMute, articulation::AccordionRegistration, expression::HarpDiagram, keyboardpedal::Type, PseudoTie,
-    expression::NonArpeggio, expression::TempoText, expression::MetronomeMark, expression::TempoAlteration,
-    expression::TechniqueText, expression::RehearsalMark, expression::MultimeasureRestNumber,
+using ExpressionValue = std::variant<std::monostate, dynamics::Mark, expression::Fermata, expression::BreathMark, articulation::StringMute,
+    articulation::AccordionRegistration, expression::HarpDiagram, keyboardpedal::Type, PseudoTie, expression::NonArpeggio, expression::TempoText,
+    expression::MetronomeMark, expression::TempoAlteration, expression::TechniqueText, expression::RehearsalMark, expression::MultimeasureRestNumber,
     expression::MeasureRepeatCount, expression::GenericText, expression::Error, expression::Suppress>;
 
 /// @struct ExpressionClassification
@@ -327,9 +321,9 @@ using ExpressionValue = std::variant<
 struct ExpressionClassification
 {
     /// @brief Top-level semantic class.
-    ExpressionType type{ ExpressionType::GenericText };
+    ExpressionType type{ExpressionType::GenericText};
     /// @brief Evidence used to select #type and #value.
-    ClassificationBasis basis{ ClassificationBasis::FallbackToGenericText };
+    ClassificationBasis basis{ClassificationBasis::FallbackToGenericText};
     /// @brief Parsing context retained when the source contains Enigma text commands.
     std::optional<musx::util::EnigmaParsingContext> enigmaCtx;
     /// @brief Semantic payload associated with #type.
@@ -342,7 +336,9 @@ struct ExpressionClassification
     /// @return A pointer to the payload, or `nullptr` when the active alternative differs.
     template <typename T>
     const T* as() const noexcept
-    { return std::get_if<T>(&value); }
+    {
+        return std::get_if<T>(&value);
+    }
 
 private:
     template <typename T, ExpressionType EnumVal>
@@ -356,96 +352,98 @@ private:
     }
 
 public:
-
     /// @brief Returns the classified dynamic mark.
     /// @throws std::logic_error if #type is not ExpressionType::Dynamic.
-    const dynamics::Mark& dynamic() const
-    { return checkedPayload<dynamics::Mark, ExpressionType::Dynamic>("Dynamic"); }
+    const dynamics::Mark& dynamic() const { return checkedPayload<dynamics::Mark, ExpressionType::Dynamic>("Dynamic"); }
 
     /// @brief Returns the classified fermata.
     /// @throws std::logic_error if #type is not ExpressionType::Fermata.
-    const expression::Fermata& fermata() const
-    { return checkedPayload<expression::Fermata, ExpressionType::Fermata>("Fermata"); }
+    const expression::Fermata& fermata() const { return checkedPayload<expression::Fermata, ExpressionType::Fermata>("Fermata"); }
 
     /// @brief Returns the classified breath mark.
     /// @throws std::logic_error if #type is not ExpressionType::BreathMark.
-    const expression::BreathMark& breathMark() const
-    { return checkedPayload<expression::BreathMark, ExpressionType::BreathMark>("BreathMark"); }
+    const expression::BreathMark& breathMark() const { return checkedPayload<expression::BreathMark, ExpressionType::BreathMark>("BreathMark"); }
 
     /// @brief Returns the classified string-mute symbol.
     /// @throws std::logic_error if #type is not ExpressionType::StringMute.
-    const articulation::StringMute& stringMute() const
-    { return checkedPayload<articulation::StringMute, ExpressionType::StringMute>("StringMute"); }
+    const articulation::StringMute& stringMute() const { return checkedPayload<articulation::StringMute, ExpressionType::StringMute>("StringMute"); }
 
     /// @brief Returns the classified accordion-registration glyph sequence.
     /// @throws std::logic_error if #type is not ExpressionType::AccordionRegistration.
     const articulation::AccordionRegistration& accordionRegistration() const
-    { return checkedPayload<articulation::AccordionRegistration, ExpressionType::AccordionRegistration>("AccordionRegistration"); }
+    {
+        return checkedPayload<articulation::AccordionRegistration, ExpressionType::AccordionRegistration>("AccordionRegistration");
+    }
 
     /// @brief Returns the classified harp-pedal diagram.
     /// @throws std::logic_error if #type is not ExpressionType::HarpDiagram.
-    const expression::HarpDiagram& harpDiagram() const
-    { return checkedPayload<expression::HarpDiagram, ExpressionType::HarpDiagram>("HarpDiagram"); }
+    const expression::HarpDiagram& harpDiagram() const { return checkedPayload<expression::HarpDiagram, ExpressionType::HarpDiagram>("HarpDiagram"); }
 
     /// @brief Returns the classified keyboard-pedal marking.
     /// @throws std::logic_error if #type is not ExpressionType::KeyboardPedal.
-    keyboardpedal::Type keyboardPedal() const
-    { return checkedPayload<keyboardpedal::Type, ExpressionType::KeyboardPedal>("KeyboardPedal"); }
+    keyboardpedal::Type keyboardPedal() const { return checkedPayload<keyboardpedal::Type, ExpressionType::KeyboardPedal>("KeyboardPedal"); }
 
     /// @brief Returns the classified pseudo-tie.
     /// @throws std::logic_error if #type is not ExpressionType::PseudoTie.
-    const PseudoTie& pseudoTie() const
-    { return checkedPayload<PseudoTie, ExpressionType::PseudoTie>("PseudoTie"); }
+    const PseudoTie& pseudoTie() const { return checkedPayload<PseudoTie, ExpressionType::PseudoTie>("PseudoTie"); }
 
     /// @brief Returns the classified non-arpeggio sign.
     /// @throws std::logic_error if #type is not ExpressionType::NonArpeggio.
-    const expression::NonArpeggio& nonArpeggio() const
-    { return checkedPayload<expression::NonArpeggio, ExpressionType::NonArpeggio>("NonArpeggio"); }
+    const expression::NonArpeggio& nonArpeggio() const { return checkedPayload<expression::NonArpeggio, ExpressionType::NonArpeggio>("NonArpeggio"); }
 
     /// @brief Returns the classified absolute tempo indication.
     /// @throws std::logic_error if #type is not ExpressionType::TempoMark.
-    const expression::TempoText& tempoText() const
-    { return checkedPayload<expression::TempoText, ExpressionType::TempoMark>("TempoText"); }
+    const expression::TempoText& tempoText() const { return checkedPayload<expression::TempoText, ExpressionType::TempoMark>("TempoText"); }
 
     /// @brief Returns the classified standalone metronome marking.
     /// @throws std::logic_error if #type is not ExpressionType::MetronomeMark.
     const expression::MetronomeMark& metronomeMark() const
-    { return checkedPayload<expression::MetronomeMark, ExpressionType::MetronomeMark>("MetronomeMark"); }
+    {
+        return checkedPayload<expression::MetronomeMark, ExpressionType::MetronomeMark>("MetronomeMark");
+    }
 
     /// @brief Returns the classified relative tempo alteration.
     /// @throws std::logic_error if #type is not ExpressionType::TempoAlteration.
     const expression::TempoAlteration& tempoAlteration() const
-    { return checkedPayload<expression::TempoAlteration, ExpressionType::TempoAlteration>("TempoAlteration"); }
+    {
+        return checkedPayload<expression::TempoAlteration, ExpressionType::TempoAlteration>("TempoAlteration");
+    }
 
     /// @brief Returns the classified performance-technique text.
     /// @throws std::logic_error if #type is not ExpressionType::TechniqueText.
     const expression::TechniqueText& techniqueText() const
-    { return checkedPayload<expression::TechniqueText, ExpressionType::TechniqueText>("TechniqueText"); }
+    {
+        return checkedPayload<expression::TechniqueText, ExpressionType::TechniqueText>("TechniqueText");
+    }
 
     /// @brief Returns the classified rehearsal mark.
     /// @throws std::logic_error if #type is not ExpressionType::RehearsalMark.
     const expression::RehearsalMark& rehearsalMark() const
-    { return checkedPayload<expression::RehearsalMark, ExpressionType::RehearsalMark>("RehearsalMark"); }
+    {
+        return checkedPayload<expression::RehearsalMark, ExpressionType::RehearsalMark>("RehearsalMark");
+    }
 
     /// @brief Returns the classified multimeasure rest number.
     /// @throws std::logic_error if #type is not ExpressionType::MultimeasureRestNumber.
     const expression::MultimeasureRestNumber& multimeasureRestNumber() const
-    { return checkedPayload<expression::MultimeasureRestNumber, ExpressionType::MultimeasureRestNumber>("MultimeasureRestNumber"); }
+    {
+        return checkedPayload<expression::MultimeasureRestNumber, ExpressionType::MultimeasureRestNumber>("MultimeasureRestNumber");
+    }
 
     /// @brief Returns the classified measure repeat count.
     /// @throws std::logic_error if #type is not ExpressionType::MeasureRepeatCount.
     const expression::MeasureRepeatCount& measureRepeatCount() const
-    { return checkedPayload<expression::MeasureRepeatCount, ExpressionType::MeasureRepeatCount>("MeasureRepeatCount"); }
+    {
+        return checkedPayload<expression::MeasureRepeatCount, ExpressionType::MeasureRepeatCount>("MeasureRepeatCount");
+    }
 
     /// @brief Returns the unclassified expression text.
     /// @throws std::logic_error if #type is not ExpressionType::GenericText.
-    const expression::GenericText& genericText() const
-    { return checkedPayload<expression::GenericText, ExpressionType::GenericText>("GenericText"); }
+    const expression::GenericText& genericText() const { return checkedPayload<expression::GenericText, ExpressionType::GenericText>("GenericText"); }
 
     /// @brief Returns the classification diagnostic.
     /// @throws std::logic_error if #type is not ExpressionType::Error.
-    const expression::Error& error() const
-    { return checkedPayload<expression::Error, ExpressionType::Error>("Error"); }
+    const expression::Error& error() const { return checkedPayload<expression::Error, ExpressionType::Error>("Error"); }
 };
 
 /// @struct ExpressionAssignmentClassification
@@ -461,8 +459,7 @@ struct ExpressionAssignmentClassification
 /// @brief Classifies the expression referenced by a Finale measure-expression assignment.
 /// @param assignment Source assignment whose expression definition is resolved and classified.
 /// @return Exporter-neutral expression classification.
-ExpressionClassification classifyExpression(
-    const musx::dom::MusxInstance<musx::dom::others::MeasureExprAssign>& assignment);
+ExpressionClassification classifyExpression(const musx::dom::MusxInstance<musx::dom::others::MeasureExprAssign>& assignment);
 
 /// @brief Classifies a list of Finale measure-expression assignments.
 /// @param assignments Source assignments to classify.
@@ -474,16 +471,14 @@ std::vector<ExpressionAssignmentClassification> classifyExpressionAssignments(
 /// @param def Source text-expression definition.
 /// @param assignment Optional assignment providing placement and category context.
 /// @return Exporter-neutral expression classification.
-ExpressionClassification classifyExpression(
-    const musx::dom::MusxInstance<musx::dom::others::TextExpressionDef>& def,
+ExpressionClassification classifyExpression(const musx::dom::MusxInstance<musx::dom::others::TextExpressionDef>& def,
     const musx::dom::MusxInstance<musx::dom::others::MeasureExprAssign>& assignment = {});
 
 /// @brief Classifies a Finale shape-expression definition.
 /// @param def Source shape-expression definition.
 /// @param assignment Optional assignment providing placement and category context.
 /// @return Exporter-neutral expression classification.
-ExpressionClassification classifyExpression(
-    const musx::dom::MusxInstance<musx::dom::others::ShapeExpressionDef>& def,
+ExpressionClassification classifyExpression(const musx::dom::MusxInstance<musx::dom::others::ShapeExpressionDef>& def,
     const musx::dom::MusxInstance<musx::dom::others::MeasureExprAssign>& assignment = {});
 
 } // namespace classify

@@ -19,9 +19,9 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#include <iostream>
 #include <filesystem>
 #include <fstream>
+#include <iostream>
 #include <unordered_map>
 
 #include "mnx.h"
@@ -32,9 +32,7 @@ namespace mnx {
 namespace detail {
 
 // Helper function to create a JSON representation of a single staff
-static void buildMnxStaff(mnxdom::layout::Staff&& mnxStaff,
-    const MnxMusxMappingPtr& context,
-    const MusxInstance<others::Measure>& meas,
+static void buildMnxStaff(mnxdom::layout::Staff&& mnxStaff, const MnxMusxMappingPtr& context, const MusxInstance<others::Measure>& meas,
     const MusxInstance<others::StaffUsed>& staffSlot)
 {
     auto it = context->inst2Part.find(staffSlot->staffId);
@@ -70,7 +68,7 @@ static void buildMnxStaff(mnxdom::layout::Staff&& mnxStaff,
                 if (staff->masks->abrvName) {
                     mnxSource.set_label(staff->getAbbreviatedInstrumentName());
                 } else {
-                    mnxSource.set_labelref(mnxdom::LabelRef::ShortName);                    
+                    mnxSource.set_labelref(mnxdom::LabelRef::ShortName);
                 }
             }
         }
@@ -80,14 +78,9 @@ static void buildMnxStaff(mnxdom::layout::Staff&& mnxStaff,
     }
     if (!staff->hideStems) {
         switch (staff->stemDirection) {
-        default:
-            break;
-        case StemDirection::AlwaysUp:
-            mnxSource.set_stem(mnxdom::StemDirection::Up);
-            break;
-        case StemDirection::AlwaysDown:
-            mnxSource.set_stem(mnxdom::StemDirection::Down);
-            break;
+        default: break;
+        case StemDirection::AlwaysUp: mnxSource.set_stem(mnxdom::StemDirection::Up); break;
+        case StemDirection::AlwaysDown: mnxSource.set_stem(mnxdom::StemDirection::Down); break;
         }
     }
 
@@ -98,9 +91,7 @@ static void buildMnxStaff(mnxdom::layout::Staff&& mnxStaff,
     */
 }
 
-static bool hasInstrumentStaffGroupMapping(
-    const MnxMusxMappingPtr& context,
-    const details::StaffGroupInfo& groupInfo)
+static bool hasInstrumentStaffGroupMapping(const MnxMusxMappingPtr& context, const details::StaffGroupInfo& groupInfo)
 {
     if (!groupInfo.startSlot) {
         return false;
@@ -115,15 +106,9 @@ static bool hasInstrumentStaffGroupMapping(
     return instInfo.staffGroupId == groupInfo.group->getCmper2();
 }
 
-static void buildOrderedContent(
-    mnxdom::layout::LayoutContent&& content,
-    const MnxMusxMappingPtr& context,
-    const std::vector<details::StaffGroupInfo>& groups,
-    const MusxInstanceList<others::StaffUsed>& systemStaves,
-    const MusxInstance<others::Measure> forMeas,
-    size_t fromIndex = 0,
-    size_t toIndex = std::numeric_limits<size_t>::max(),
-    size_t groupIndex = 0)
+static void buildOrderedContent(mnxdom::layout::LayoutContent&& content, const MnxMusxMappingPtr& context,
+    const std::vector<details::StaffGroupInfo>& groups, const MusxInstanceList<others::StaffUsed>& systemStaves,
+    const MusxInstance<others::Measure> forMeas, size_t fromIndex = 0, size_t toIndex = std::numeric_limits<size_t>::max(), size_t groupIndex = 0)
 {
     json retval = json::array();
     size_t index = fromIndex;
@@ -140,18 +125,15 @@ static void buildOrderedContent(
                 mnxGroup.set_or_clear_barlineStyle(mnxdom::StaffGroupBarlineStyle::Individual);
                 break;
             case details::StaffGroup::DrawBarlineStyle::ThroughStaves:
-                mnxGroup.set_or_clear_barlineStyle(hasInstrumentStaffGroupMapping(context, group)
-                    ? mnxdom::StaffGroupBarlineStyle::Instrument
-                    : mnxdom::StaffGroupBarlineStyle::Unified);
+                mnxGroup.set_or_clear_barlineStyle(hasInstrumentStaffGroupMapping(context, group) ? mnxdom::StaffGroupBarlineStyle::Instrument
+                                                                                                  : mnxdom::StaffGroupBarlineStyle::Unified);
                 break;
             case details::StaffGroup::DrawBarlineStyle::Mensurstriche:
                 mnxGroup.set_or_clear_barlineStyle(mnxdom::StaffGroupBarlineStyle::Mensurstrich);
                 break;
             }
             if (!group.group->hideName) {
-                auto name = forMeas->calcShouldShowFullNames()
-                    ? group.group->getFullInstrumentName()
-                    : group.group->getAbbreviatedInstrumentName();
+                auto name = forMeas->calcShouldShowFullNames() ? group.group->getFullInstrumentName() : group.group->getAbbreviatedInstrumentName();
                 if (!name.empty()) {
                     mnxGroup.set_label(name);
                 }
@@ -175,10 +157,18 @@ static void buildOrderedContent(
 static void sortGroups(std::vector<details::StaffGroupInfo>& groups)
 {
     std::sort(groups.begin(), groups.end(), [](const details::StaffGroupInfo& lhs, const details::StaffGroupInfo& rhs) {
-        if (lhs.startSlot < rhs.startSlot) return true; // Earlier start slot comes first
-        if (lhs.startSlot > rhs.startSlot) return false;
-        if (lhs.endSlot > rhs.endSlot) return true;    // Wider span comes first
-        if (lhs.endSlot < rhs.endSlot) return false;
+        if (lhs.startSlot < rhs.startSlot) {
+            return true; // Earlier start slot comes first
+        }
+        if (lhs.startSlot > rhs.startSlot) {
+            return false;
+        }
+        if (lhs.endSlot > rhs.endSlot) {
+            return true;    // Wider span comes first
+        }
+        if (lhs.endSlot < rhs.endSlot) {
+            return false;
+        }
         // Same span: prioritize by leftmost bracket
         if (lhs.group->bracket && rhs.group->bracket) {
             return lhs.group->bracket->horzAdjLeft < rhs.group->bracket->horzAdjLeft;
@@ -202,7 +192,7 @@ void createLayouts(const MnxMusxMappingPtr& context)
         const bool layoutIsCalculated = linkedPart->isLayoutCalculated();
         if (!layoutIsCalculated) {
             context->denigmaContext->logMessage(LogMsg() << "Part \"" << calcLinkedPartDisplayName(linkedPart)
-                << "\" has an uncalculated page layout; omitting its per-system layouts and pages.",
+                                                         << "\" has an uncalculated page layout; omitting its per-system layouts and pages.",
                 MessageSeverity::Verbose);
         }
         const SystemCmper maxSystem = layoutIsCalculated ? SystemCmper(staffSystems.size()) : BASE_SYSTEM_ID;
@@ -218,16 +208,15 @@ void createLayouts(const MnxMusxMappingPtr& context)
             layout.set_id(calcSystemLayoutId(linkedPart->getCmper(), sysId));
 
             // Retrieve staff groups and staves in scroll view order.
-            const auto systemStaves = context->document->getOthers()->getArray<others::StaffUsed>(
-                linkedPart->getCmper(), systemIuList);
+            const auto systemStaves = context->document->getOthers()->getArray<others::StaffUsed>(linkedPart->getCmper(), systemIuList);
             const MeasCmper forMeas = sysId ? staffSystems[sysId - 1]->startMeas : 1;
             std::vector<details::StaffGroupInfo> groups = details::StaffGroupInfo::getGroupsAtMeasure(forMeas, linkedPart->getCmper(), systemStaves);
             sortGroups(groups);
             // Create a sequential content array.
             auto meas = context->document->getOthers()->get<others::Measure>(linkedPart->getCmper(), forMeas);
             if (!meas) {
-                throw std::logic_error("No Measure instance found for measure " + std::to_string(forMeas)
-                    + " in linked part " + std::to_string(linkedPart->getCmper()));
+                throw std::logic_error(
+                    "No Measure instance found for measure " + std::to_string(forMeas) + " in linked part " + std::to_string(linkedPart->getCmper()));
             }
             buildOrderedContent(layout.content(), context, groups, systemStaves, meas);
         }

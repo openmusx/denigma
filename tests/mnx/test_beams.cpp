@@ -19,21 +19,21 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#include <string>
 #include <filesystem>
-#include <iterator>
 #include <fstream>
+#include <iterator>
 #include <memory>
+#include <string>
 
-#include "gtest/gtest.h"
 #include "core/denigma.h"
 #include "mnxdom.h"
 #include "test_utils.h"
+#include "gtest/gtest.h"
 
 using namespace denigma;
 
-static void getNote(std::shared_ptr<mnx::sequence::Note>& note, const std::optional<mnx::Array<mnx::part::Measure>>& measures,
-    size_t measureIndex, size_t contentIndex, size_t expectedContentSize)
+static void getNote(std::shared_ptr<mnx::sequence::Note>& note, const std::optional<mnx::Array<mnx::part::Measure>>& measures, size_t measureIndex,
+    size_t contentIndex, size_t expectedContentSize)
 {
     ASSERT_TRUE(measures.has_value()) << "no measure array in first part";
     ASSERT_GT(measures.value().size(), measureIndex) << "fewer than " << measureIndex + 1 << " measures in measure array of part";
@@ -63,10 +63,9 @@ TEST(MnxBeams, MultiMeasureBeamsToMnxMeasures)
     setupTestDataPaths();
     std::filesystem::path inputPath;
     copyInputToOutput("multimeas_beam.musx", inputPath);
-    ArgList args = { DENIGMA_NAME, "export", pathString(inputPath), "--mnx" };
-    checkStderr({ "Processing", pathString(inputPath.filename()), "!validation error" }, [&]() {
-        EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath);
-    });
+    ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), "--mnx"};
+    checkStderr({"Processing", pathString(inputPath.filename()), "!validation error"},
+        [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath); });
 
     auto doc = mnx::Document::create(inputPath.parent_path() / "multimeas_beam.mnx");
     auto parts = doc.parts();
@@ -99,10 +98,9 @@ TEST(MnxBeams, MultiMeasureBeams)
 {
     std::filesystem::path inputPath;
     copyInputToOutput("multimeas_beam.musx", inputPath);
-    ArgList args = { DENIGMA_NAME, "export", pathString(inputPath), "--mnx" };
-    checkStderr({ "Processing", pathString(inputPath.filename()), "!validation error" }, [&]() {
-        EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath);
-    });
+    ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), "--mnx"};
+    checkStderr({"Processing", pathString(inputPath.filename()), "!validation error"},
+        [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath); });
 
     auto doc = mnx::Document::create(inputPath.parent_path() / "multimeas_beam.mnx");
     auto parts = doc.parts();
@@ -134,10 +132,9 @@ TEST(MnxBeams, BeamHooksAndInner)
     setupTestDataPaths();
     std::filesystem::path inputPath;
     copyInputToOutput("secbeams.musx", inputPath);
-    ArgList args = { DENIGMA_NAME, "export", pathString(inputPath), "--mnx" };
-    checkStderr({ "Processing", pathString(inputPath.filename()), "!validation error" }, [&]() {
-        EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath);
-    });
+    ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), "--mnx"};
+    checkStderr({"Processing", pathString(inputPath.filename()), "!validation error"},
+        [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath); });
 
     auto doc = mnx::Document::create(inputPath.parent_path() / "secbeams.mnx");
     auto parts = doc.parts();
@@ -188,10 +185,9 @@ TEST(MnxBeams, BeamRestWorkarounds)
     setupTestDataPaths();
     std::filesystem::path inputPath;
     copyInputToOutput("beam_workaround.musx", inputPath);
-    ArgList args = { DENIGMA_NAME, "export", pathString(inputPath), "--mnx" };
-    checkStderr({ "Processing", pathString(inputPath.filename()), "!validation error" }, [&]() {
-        EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath);
-    });
+    ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), "--mnx"};
+    checkStderr({"Processing", pathString(inputPath.filename()), "!validation error"},
+        [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath); });
 
     auto doc = mnx::Document::create(inputPath.parent_path() / "beam_workaround.mnx");
     auto parts = doc.parts();
@@ -253,10 +249,7 @@ TEST(MnxBeams, BeamRestWorkarounds)
     EXPECT_FALSE(ev20.rest().value().staffPosition().has_value());
     EXPECT_FALSE(ev20.stemDirection().has_value());
 
-    EXPECT_THROW(
-        auto evNonExist = doc.getEntityMap().get<mnx::sequence::Event>("badId"),
-        mnx::util::mapping_error
-    );
+    EXPECT_THROW(auto evNonExist = doc.getEntityMap().get<mnx::sequence::Event>("badId"), mnx::util::mapping_error);
 }
 
 TEST(MnxBeams, BeamsOverSystemBreakBarlines)
@@ -264,10 +257,9 @@ TEST(MnxBeams, BeamsOverSystemBreakBarlines)
     setupTestDataPaths();
     std::filesystem::path inputPath;
     copyInputToOutput("beamovers.musx", inputPath);
-    ArgList args = { DENIGMA_NAME, "export", pathString(inputPath), "--mnx" };
-    checkStderr({ "Processing", pathString(inputPath.filename()), "!validation error" }, [&]() {
-        EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath);
-    });
+    ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), "--mnx"};
+    checkStderr({"Processing", pathString(inputPath.filename()), "!validation error"},
+        [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath); });
 
     auto doc = mnx::Document::create(inputPath.parent_path() / "beamovers.mnx");
     auto parts = doc.parts();

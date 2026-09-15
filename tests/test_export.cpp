@@ -19,20 +19,20 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#include <string>
-#include <ctime>
 #include <array>
 #include <cstddef>
+#include <ctime>
 #include <filesystem>
 #include <iterator>
 #include <span>
+#include <string>
 
-#include "gtest/gtest.h"
-#include "denigma/io/random_access_reader.h"
 #include "core/denigma.h"
+#include "denigma/io/random_access_reader.h"
 #include "test_utils.h"
 #include "unzip.h"
 #include "utils/ziputils.h"
+#include "gtest/gtest.h"
 
 using namespace denigma;
 
@@ -44,19 +44,17 @@ TEST(Export, InPlace)
     copyInputToOutput(inputFile + ".musx", inputPath);
     // enigmaxml
     {
-        ArgList args = { DENIGMA_NAME, "export", pathString(inputPath) };
-        checkStderr({ "Processing", pathString(inputPath.filename()) }, [&]() {
-            EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create " << pathString(inputPath);
-        });
+        ArgList args = {DENIGMA_NAME, "export", pathString(inputPath)};
+        checkStderr({"Processing", pathString(inputPath.filename())},
+            [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create " << pathString(inputPath); });
         ArgList quietArgs = args;
         quietArgs.add(_ARG("--quiet"));
         checkStderr(inputFile + ".enigmaxml exists. Use --force to overwrite it.", [&]() {
             EXPECT_EQ(denigmaTestMain(quietArgs.argc(), quietArgs.argv()), 0) << "no force options when creating " << pathString(inputPath);
         });
         args.add(_ARG("--force"));
-        checkStderr({ "Overwriting", inputFile + ".enigmaxml" }, [&]() {
-            EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "force create " << pathString(inputPath);
-        });
+        checkStderr({"Overwriting", inputFile + ".enigmaxml"},
+            [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "force create " << pathString(inputPath); });
         std::filesystem::path enigmaFilename = utils::utf8ToPath(inputFile + ".enigmaxml");
         std::filesystem::path referencePath = getInputPath() / "reference" / enigmaFilename;
         EXPECT_TRUE(std::filesystem::exists(getOutputPath() / enigmaFilename));
@@ -64,17 +62,14 @@ TEST(Export, InPlace)
     }
     // mss
     {
-        ArgList args = { DENIGMA_NAME, "export", pathString(inputPath), "--mss" };
-        checkStderr({ "Processing", pathString(inputPath.filename()) }, [&]() {
-            EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create " << pathString(inputPath);
-        });
-        checkStderr(inputFile + ".mss exists. Use --force to overwrite it.", [&]() {
-            EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "no force options when creating " << pathString(inputPath);
-        });
+        ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), "--mss"};
+        checkStderr({"Processing", pathString(inputPath.filename())},
+            [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create " << pathString(inputPath); });
+        checkStderr(inputFile + ".mss exists. Use --force to overwrite it.",
+            [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "no force options when creating " << pathString(inputPath); });
         args.add(_ARG("--force"));
-        checkStderr({ "Overwriting", inputFile + ".mss" }, [&]() {
-            EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "force create " << pathString(inputPath);
-        });
+        checkStderr({"Overwriting", inputFile + ".mss"},
+            [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "force create " << pathString(inputPath); });
         std::filesystem::path mssFilename = utils::utf8ToPath(inputFile + ".mss");
         std::filesystem::path referencePath = getInputPath() / "reference" / mssFilename;
         EXPECT_TRUE(std::filesystem::exists(getOutputPath() / mssFilename));
@@ -90,10 +85,9 @@ TEST(Export, Subdirectory)
     copyInputToOutput(inputFile + ".musx", inputPath);
     // enigmaxml
     {
-        ArgList args = { DENIGMA_NAME, "export", pathString(inputPath), "--enigmaxml", "-exports" };
-        checkStderr({ "Processing", pathString(inputPath.filename()) }, [&]() {
-            EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create " << pathString(inputPath);
-        });
+        ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), "--enigmaxml", "-exports"};
+        checkStderr({"Processing", pathString(inputPath.filename())},
+            [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create " << pathString(inputPath); });
         std::filesystem::path enigmaFilename = utils::utf8ToPath(inputFile + ".enigmaxml");
         std::filesystem::path referencePath = getInputPath() / "reference" / enigmaFilename;
         EXPECT_TRUE(std::filesystem::exists(std::filesystem::current_path() / "-exports" / enigmaFilename));
@@ -101,10 +95,9 @@ TEST(Export, Subdirectory)
     }
     // mss
     {
-        ArgList args = { DENIGMA_NAME, "export", pathString(inputPath), "--mss", "-exports" };
-        checkStderr({ "Processing", pathString(inputPath.filename()) }, [&]() {
-            EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create " << pathString(inputPath);
-        });
+        ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), "--mss", "-exports"};
+        checkStderr({"Processing", pathString(inputPath.filename())},
+            [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create " << pathString(inputPath); });
         std::filesystem::path mssFilename = utils::utf8ToPath(inputFile + ".mss");
         std::filesystem::path referencePath = getInputPath() / "reference" / mssFilename;
         EXPECT_TRUE(std::filesystem::exists(std::filesystem::current_path() / "-exports" / mssFilename));
@@ -120,10 +113,9 @@ TEST(Export, OutputFilename)
     copyInputToOutput(inputFile + ".musx", inputPath);
     // enigmaxml
     {
-        ArgList args = { DENIGMA_NAME, "export", pathString(inputPath), "--enigmaxml", "-exports/output.enigmaxml" };
-        checkStderr({ "Processing", pathString(inputPath.filename()) }, [&]() {
-            EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create " << pathString(inputPath);
-        });
+        ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), "--enigmaxml", "-exports/output.enigmaxml"};
+        checkStderr({"Processing", pathString(inputPath.filename())},
+            [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create " << pathString(inputPath); });
         std::filesystem::path enigmaFilename = utils::utf8ToPath("output.enigmaxml");
         std::filesystem::path referencePath = getInputPath() / "reference" / utils::utf8ToPath(inputFile + ".enigmaxml");
         EXPECT_TRUE(std::filesystem::exists(std::filesystem::current_path() / "-exports" / enigmaFilename));
@@ -131,10 +123,9 @@ TEST(Export, OutputFilename)
     }
     // mss
     {
-        ArgList args = { DENIGMA_NAME, "export", pathString(inputPath), "--mss", "-exports/output.mss" };
-        checkStderr({ "Processing", pathString(inputPath.filename()) }, [&]() {
-            EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create " << pathString(inputPath);
-        });
+        ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), "--mss", "-exports/output.mss"};
+        checkStderr({"Processing", pathString(inputPath.filename())},
+            [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create " << pathString(inputPath); });
         std::filesystem::path mssFilename = utils::utf8ToPath("output.mss");
         std::filesystem::path referencePath = getInputPath() / "reference" / utils::utf8ToPath(inputFile + ".mss");
         EXPECT_TRUE(std::filesystem::exists(std::filesystem::current_path() / "-exports" / mssFilename));
@@ -149,20 +140,18 @@ TEST(Export, SvgOutput)
     std::filesystem::path inputPath;
     copyInputToOutput(inputFile + ".musx", inputPath);
     {
-        ArgList args = { DENIGMA_NAME, "export", pathString(inputPath), "--svg", "--shape-def", "3" };
-        checkStderr({ "Processing", pathString(inputPath.filename()) }, [&]() {
-            EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "default svg output";
-        });
+        ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), "--svg", "--shape-def", "3"};
+        checkStderr({"Processing", pathString(inputPath.filename())},
+            [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "default svg output"; });
         auto outputFilename = utils::utf8ToPath(inputFile + ".shape-3.svg");
         auto outputPath = getOutputPath() / outputFilename;
         EXPECT_TRUE(std::filesystem::exists(outputPath));
         assertStringInFile("<svg", outputPath);
     }
     {
-        ArgList args = { DENIGMA_NAME, "export", pathString(inputPath), "--svg", "-exports/output.svg", "--shape-def", "3" };
-        checkStderr({ "Processing", pathString(inputPath.filename()) }, [&]() {
-            EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "explicit svg output filename";
-        });
+        ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), "--svg", "-exports/output.svg", "--shape-def", "3"};
+        checkStderr({"Processing", pathString(inputPath.filename())},
+            [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "explicit svg output filename"; });
         auto explicitFile = std::filesystem::current_path() / utils::utf8ToPath("-exports/output.svg");
         auto suffixedFile = std::filesystem::current_path() / utils::utf8ToPath("-exports/output.shape-3.svg");
         EXPECT_TRUE(std::filesystem::exists(explicitFile));
@@ -180,15 +169,14 @@ TEST(Export, SvgPageScaledShapeRefs)
 
     const std::filesystem::path referenceDir = getInputPath() / "pageDiffThanOpts_page_scaled";
 
-    const std::array<int, 6> shapeCmpers{ 2, 3, 4, 5, 6, 7 };
+    const std::array<int, 6> shapeCmpers{2, 3, 4, 5, 6, 7};
     for (const int shapeCmper : shapeCmpers) {
         const std::string cmperText = std::to_string(shapeCmper);
         const std::filesystem::path outputSvg = getOutputPath() / utils::utf8ToPath(cmperText + "-test.svg");
-        ArgList args = { DENIGMA_NAME, "export", pathString(inputPath), "--svg", pathString(outputSvg),
-                         "--shape-def", cmperText, "--svg-page-scale", "--force" };
-        checkStderr({ "Processing", pathString(inputPath.filename()) }, [&]() {
-            EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "svg export for shape cmper " << cmperText;
-        });
+        ArgList args = {
+            DENIGMA_NAME, "export", pathString(inputPath), "--svg", pathString(outputSvg), "--shape-def", cmperText, "--svg-page-scale", "--force"};
+        checkStderr({"Processing", pathString(inputPath.filename())},
+            [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "svg export for shape cmper " << cmperText; });
 
         const std::filesystem::path referenceSvg = referenceDir / utils::utf8ToPath(cmperText + ".svg");
         EXPECT_TRUE(std::filesystem::exists(referenceSvg));
@@ -203,19 +191,16 @@ TEST(Export, Parts)
     std::string inputFile = "notAscii-其れ";
     std::filesystem::path inputPath;
     copyInputToOutput(inputFile + ".musx", inputPath);
-    // inplace 
+    // inplace
     {
-        ArgList args = { DENIGMA_NAME, "export", pathString(inputPath), "--mss", "--part" };
-        checkStderr({ "Processing", pathString(inputPath.filename()) }, [&]() {
-            EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create from " << pathString(inputPath);
-        });
-        checkStderr(inputFile + ".オボえ.mss exists. Use --force to overwrite it.", [&]() {
-            EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "no force options when creating from " << pathString(inputPath);
-        });
+        ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), "--mss", "--part"};
+        checkStderr({"Processing", pathString(inputPath.filename())},
+            [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create from " << pathString(inputPath); });
+        checkStderr(inputFile + ".オボえ.mss exists. Use --force to overwrite it.",
+            [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "no force options when creating from " << pathString(inputPath); });
         args.add(_ARG("--force"));
-        checkStderr({ "Overwriting", inputFile + ".オボえ.mss" }, [&]() {
-            EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "force create from " << pathString(inputPath);
-        });
+        checkStderr({"Overwriting", inputFile + ".オボえ.mss"},
+            [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "force create from " << pathString(inputPath); });
         std::filesystem::path mssFilename = utils::utf8ToPath(inputFile + ".オボえ.mss");
         std::filesystem::path referencePath = getInputPath() / "reference" / mssFilename;
         EXPECT_TRUE(std::filesystem::exists(getOutputPath() / mssFilename));
@@ -223,10 +208,9 @@ TEST(Export, Parts)
     }
     // explicit to subdir
     {
-        ArgList args = { DENIGMA_NAME, "export", pathString(inputPath), "--mss", "-exports", "--part", "オボえ" };
-        checkStderr({ "Processing", pathString(inputPath.filename()) }, [&]() {
-            EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create " << pathString(inputPath);
-        });
+        ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), "--mss", "-exports", "--part", "オボえ"};
+        checkStderr({"Processing", pathString(inputPath.filename())},
+            [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create " << pathString(inputPath); });
         std::filesystem::path mssFilename = utils::utf8ToPath(inputFile + ".オボえ.mss");
         std::filesystem::path referencePath = getInputPath() / "reference" / mssFilename;
         EXPECT_TRUE(std::filesystem::exists(std::filesystem::current_path() / "-exports" / mssFilename));
@@ -234,17 +218,15 @@ TEST(Export, Parts)
     }
     // non-existent part
     {
-        ArgList args = { DENIGMA_NAME, "export", pathString(inputPath), "--mss", "-exports", "--part", "Doesn't Exist" };
-        checkStderr({ "No part name starting with \"Doesn't Exist\" was found", pathString(inputPath.filename()) }, [&]() {
-            EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create from " << pathString(inputPath);
-        });
+        ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), "--mss", "-exports", "--part", "Doesn't Exist"};
+        checkStderr({"No part name starting with \"Doesn't Exist\" was found", pathString(inputPath.filename())},
+            [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create from " << pathString(inputPath); });
     }
     // all parts and score
     {
-        ArgList args = { DENIGMA_NAME, "export", pathString(inputPath), "--mss", "-exports", "--all-parts", "--force" };
-        checkStderr({ "Overwriting", inputFile + ".mss" }, [&]() {
-            EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create from " << pathString(inputPath);
-        });
+        ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), "--mss", "-exports", "--all-parts", "--force"};
+        checkStderr({"Overwriting", inputFile + ".mss"},
+            [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create from " << pathString(inputPath); });
         std::filesystem::path mssFilename = utils::utf8ToPath(inputFile + ".mss");
         std::filesystem::path referencePath = getInputPath() / "reference" / mssFilename;
         EXPECT_TRUE(std::filesystem::exists(std::filesystem::current_path() / "-exports" / mssFilename));
@@ -273,37 +255,33 @@ TEST(Export, MusicXmlParts)
 
     // inplace
     {
-        ArgList args = { DENIGMA_NAME, "export", pathString(inputPath), "--musicxml", "--part" };
-        checkStderr({ "Processing", pathString(inputPath.filename()) }, [&]() {
-            EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create from " << pathString(inputPath);
-        });
+        ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), "--musicxml", "--part"};
+        checkStderr({"Processing", pathString(inputPath.filename())},
+            [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create from " << pathString(inputPath); });
         std::filesystem::path musicXmlFilename = utils::utf8ToPath(inputFile + ".オボえ.musicxml");
         ASSERT_TRUE(std::filesystem::exists(getOutputPath() / musicXmlFilename));
         expectValidMusicXml(getOutputPath() / musicXmlFilename);
     }
     // explicit to subdir
     {
-        ArgList args = { DENIGMA_NAME, "export", pathString(inputPath), "--musicxml", "-musicxml-exports", "--part", "オボえ" };
-        checkStderr({ "Processing", pathString(inputPath.filename()) }, [&]() {
-            EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create " << pathString(inputPath);
-        });
+        ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), "--musicxml", "-musicxml-exports", "--part", "オボえ"};
+        checkStderr({"Processing", pathString(inputPath.filename())},
+            [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create " << pathString(inputPath); });
         std::filesystem::path musicXmlFilename = utils::utf8ToPath(inputFile + ".オボえ.musicxml");
         ASSERT_TRUE(std::filesystem::exists(std::filesystem::current_path() / "-musicxml-exports" / musicXmlFilename));
         expectValidMusicXml(std::filesystem::current_path() / "-musicxml-exports" / musicXmlFilename);
     }
     // non-existent part
     {
-        ArgList args = { DENIGMA_NAME, "export", pathString(inputPath), "--musicxml", "-musicxml-exports", "--part", "Doesn't Exist" };
-        checkStderr("No part name starting with \"Doesn't Exist\" was found", [&]() {
-            EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create from " << pathString(inputPath);
-        });
+        ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), "--musicxml", "-musicxml-exports", "--part", "Doesn't Exist"};
+        checkStderr("No part name starting with \"Doesn't Exist\" was found",
+            [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create from " << pathString(inputPath); });
     }
     // all parts and score
     {
-        ArgList args = { DENIGMA_NAME, "export", pathString(inputPath), "--musicxml", "-musicxml-exports", "--all-parts", "--force" };
-        checkStderr({ "Processing", pathString(inputPath.filename()) }, [&]() {
-            EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create from " << pathString(inputPath);
-        });
+        ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), "--musicxml", "-musicxml-exports", "--all-parts", "--force"};
+        checkStderr({"Processing", pathString(inputPath.filename())},
+            [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create from " << pathString(inputPath); });
         std::filesystem::path musicXmlFilename = utils::utf8ToPath(inputFile + ".musicxml");
         ASSERT_TRUE(std::filesystem::exists(std::filesystem::current_path() / "-musicxml-exports" / musicXmlFilename));
         expectValidMusicXml(std::filesystem::current_path() / "-musicxml-exports" / musicXmlFilename);
@@ -319,10 +297,9 @@ TEST(Export, CalcPageFormat)
     std::string inputFile = "pageDiffThanOpts";
     std::filesystem::path inputPath;
     copyInputToOutput(inputFile + ".musx", inputPath);
-    ArgList args = { DENIGMA_NAME, "export", pathString(inputPath), "--mss" };
-    checkStderr({ "Processing", pathString(inputPath.filename()) }, [&]() {
-        EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create from " << pathString(inputPath);
-    });
+    ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), "--mss"};
+    checkStderr({"Processing", pathString(inputPath.filename())},
+        [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create from " << pathString(inputPath); });
     std::filesystem::path mssFilename = utils::utf8ToPath(inputFile + ".mss");
     std::filesystem::path referencePath = getInputPath() / "reference" / utils::utf8ToPath(inputFile + ".mss");
     EXPECT_TRUE(std::filesystem::exists(getOutputPath() / mssFilename));
@@ -338,10 +315,9 @@ TEST(Export, CurrentDirectoryPattern)
     copyInputToOutput("tremolos.musx", inputPath);
     auto currentPath = std::filesystem::current_path();
     std::filesystem::current_path(inputPath.parent_path());
-    ArgList args = { DENIGMA_NAME, "export", "*.musx", "--no-log" };
-    checkStderr({ "Processing", "pageDiffThanOpts.musx", "tremolos.musx", "notAscii-" }, [&]() {
-        EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create from " << "*.musx";
-    });
+    ArgList args = {DENIGMA_NAME, "export", "*.musx", "--no-log"};
+    checkStderr({"Processing", "pageDiffThanOpts.musx", "tremolos.musx", "notAscii-"},
+        [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create from " << "*.musx"; });
     std::filesystem::current_path(currentPath);
 }
 
@@ -354,10 +330,9 @@ TEST(Export, AutoGlobSimulation)
     copyInputToOutput("tremolos.musx", inputPath);
     auto currentPath = std::filesystem::current_path();
     std::filesystem::current_path(inputPath.parent_path());
-    ArgList args = { DENIGMA_NAME, "export", "notAscii-其れ.musx", "pageDiffThanOpts.musx", "tremolos.musx", "--no-log" };
-    checkStderr({ "Processing", "pageDiffThanOpts.musx", "tremolos.musx", "notAscii-" }, [&]() {
-        EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create from " << "*.musx";
-    });
+    ArgList args = {DENIGMA_NAME, "export", "notAscii-其れ.musx", "pageDiffThanOpts.musx", "tremolos.musx", "--no-log"};
+    checkStderr({"Processing", "pageDiffThanOpts.musx", "tremolos.musx", "notAscii-"},
+        [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create from " << "*.musx"; });
     std::filesystem::current_path(currentPath);
 }
 
@@ -367,10 +342,9 @@ TEST(Export, NoCommandSimplestForm)
     std::string inputFile = "secbeams";
     std::filesystem::path inputPath;
     copyInputToOutput(inputFile + ".musx", inputPath);
-    ArgList args = { DENIGMA_NAME, pathString(inputPath) };
-    checkStderr({ "Processing", pathString(inputPath.filename()) }, [&]() {
-        EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create " << pathString(inputPath);
-    });
+    ArgList args = {DENIGMA_NAME, pathString(inputPath)};
+    checkStderr({"Processing", pathString(inputPath.filename())},
+        [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create " << pathString(inputPath); });
 }
 
 TEST(Export, ReverseMusxTimestamp)
@@ -381,18 +355,16 @@ TEST(Export, ReverseMusxTimestamp)
 
     std::filesystem::path enigmaxmlPath = getOutputPath() / "pageDiffThanOpts.enigmaxml";
     {
-        ArgList args = { DENIGMA_NAME, "export", pathString(inputMusxPath), "--enigmaxml", "--force" };
-        checkStderr({ "Processing", pathString(inputMusxPath.filename()) }, [&]() {
-            EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create " << pathString(inputMusxPath);
-        });
+        ArgList args = {DENIGMA_NAME, "export", pathString(inputMusxPath), "--enigmaxml", "--force"};
+        checkStderr({"Processing", pathString(inputMusxPath.filename())},
+            [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create " << pathString(inputMusxPath); });
     }
 
     std::filesystem::path reverseMusxPath = std::filesystem::current_path() / "-exports" / "pageDiffThanOpts.rev.musx";
     {
-        ArgList args = { DENIGMA_NAME, "export", pathString(enigmaxmlPath), "--musx", "-exports/pageDiffThanOpts.rev.musx", "--force" };
-        checkStderr({ "Processing", pathString(enigmaxmlPath.filename()) }, [&]() {
-            EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create " << pathString(reverseMusxPath);
-        });
+        ArgList args = {DENIGMA_NAME, "export", pathString(enigmaxmlPath), "--musx", "-exports/pageDiffThanOpts.rev.musx", "--force"};
+        checkStderr({"Processing", pathString(enigmaxmlPath.filename())},
+            [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create " << pathString(reverseMusxPath); });
     }
 
     ASSERT_TRUE(std::filesystem::exists(reverseMusxPath));
@@ -434,15 +406,14 @@ TEST(Export, ReverseDefaultOutputMusx)
     std::filesystem::path defaultMusxOutputPath = inputEnigmaxmlPath;
     defaultMusxOutputPath.replace_extension(".musx");
     {
-        ArgList args = { DENIGMA_NAME, pathString(inputEnigmaxmlPath), "--force" };
-        checkStderr({ "Processing", pathString(inputEnigmaxmlPath.filename()), pathString(defaultMusxOutputPath.filename()) }, [&]() {
-            EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "default reverse output from " << pathString(inputEnigmaxmlPath);
-        });
+        ArgList args = {DENIGMA_NAME, pathString(inputEnigmaxmlPath), "--force"};
+        checkStderr({"Processing", pathString(inputEnigmaxmlPath.filename()), pathString(defaultMusxOutputPath.filename())},
+            [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "default reverse output from " << pathString(inputEnigmaxmlPath); });
     }
     ASSERT_TRUE(std::filesystem::exists(defaultMusxOutputPath));
     {
-        ArgList args = { DENIGMA_NAME, pathString(defaultMusxOutputPath), "--force" };
-        checkStderr({ "Processing", pathString(defaultMusxOutputPath.filename()), pathString(inputEnigmaxmlPath.filename()) }, [&]() {
+        ArgList args = {DENIGMA_NAME, pathString(defaultMusxOutputPath), "--force"};
+        checkStderr({"Processing", pathString(defaultMusxOutputPath.filename()), pathString(inputEnigmaxmlPath.filename())}, [&]() {
             EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "default forward output from " << pathString(defaultMusxOutputPath);
         });
     }
@@ -460,10 +431,9 @@ TEST(Export, ZippedEnigmaXmlInput)
     const std::filesystem::path referencePath = getInputPath() / "reference" / enigmaFilename;
     const std::filesystem::path outputPath = std::filesystem::current_path() / "-exports" / enigmaFilename;
     {
-        ArgList args = { DENIGMA_NAME, "export", pathString(inputPath), "--enigmaxml", "-exports" };
-        checkStderr({ "Processing", pathString(inputPath.filename()) }, [&]() {
-            EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "unzip " << pathString(inputPath);
-        });
+        ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), "--enigmaxml", "-exports"};
+        checkStderr({"Processing", pathString(inputPath.filename())},
+            [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "unzip " << pathString(inputPath); });
     }
     // the ".zip" wrapper must not survive into the output name
     ASSERT_TRUE(std::filesystem::exists(outputPath)) << "expected " << pathString(outputPath);
@@ -478,10 +448,9 @@ TEST(Export, ZippedEnigmaXmlMnxSourceMetadataIgnoresWrapper)
     std::filesystem::path inputPath;
     copyInputToOutput(inputFile + ".enigmaxml.zip", inputPath);
 
-    ArgList args = { DENIGMA_NAME, "export", pathString(inputPath), "--mnx" };
-    checkStderr({ "Processing", pathString(inputPath.filename()) }, [&]() {
-        EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath);
-    });
+    ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), "--mnx"};
+    checkStderr({"Processing", pathString(inputPath.filename())},
+        [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath); });
 
     const std::filesystem::path mnxOutput = getOutputPath() / utils::utf8ToPath(inputFile + ".mnx");
     ASSERT_TRUE(std::filesystem::exists(mnxOutput));
@@ -509,11 +478,10 @@ TEST(Export, OutputNeverClobbersAnotherInput)
     readFile(musxPath, musxBefore);
 
     // a bare directory scan queues both; neither may overwrite the other, even with --force
-    ArgList args = { DENIGMA_NAME, "export", pathString(getOutputPath()), "--force" };
-    checkStderr({ pathString(musxPath) + " is also an input for this run. No action taken.",
-                  pathString(enigmaXmlPath) + " is also an input for this run. No action taken." }, [&]() {
-        EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "scan " << pathString(getOutputPath());
-    });
+    ArgList args = {DENIGMA_NAME, "export", pathString(getOutputPath()), "--force"};
+    checkStderr({pathString(musxPath) + " is also an input for this run. No action taken.",
+                    pathString(enigmaXmlPath) + " is also an input for this run. No action taken."},
+        [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "scan " << pathString(getOutputPath()); });
 
     std::vector<char> musxAfter;
     readFile(musxPath, musxAfter);
@@ -532,10 +500,9 @@ TEST(Export, DirectoryScanIncludesEveryDefaultInputFormat)
     copyInputToOutput("reference/" + inputFile + ".enigmaxml", enigmaXmlPath);
 
     // a bare directory scans every default input format, not just musx
-    ArgList args = { DENIGMA_NAME, "--testing", "export", pathString(getOutputPath()), "--mnx", "-exports", "--recursive" };
-    checkStderr({ "Extracting " + pathString(musxPath), "Reading " + pathString(enigmaXmlPath), "Reading " + pathString(zipPath) }, [&]() {
-        EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "scan " << pathString(getOutputPath());
-    });
+    ArgList args = {DENIGMA_NAME, "--testing", "export", pathString(getOutputPath()), "--mnx", "-exports", "--recursive"};
+    checkStderr({"Extracting " + pathString(musxPath), "Reading " + pathString(enigmaXmlPath), "Reading " + pathString(zipPath)},
+        [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "scan " << pathString(getOutputPath()); });
 }
 
 TEST(ZipUtils, ReadSoleFileWithExtension)
@@ -587,10 +554,9 @@ TEST(Export, MnxFromEnigmaxmlNoMetadataStillWorks)
     std::filesystem::path inputPath;
     copyInputToOutput("reference/notAscii-其れ.enigmaxml", inputPath);
 
-    ArgList args = { DENIGMA_NAME, "export", pathString(inputPath), "--mnx" };
-    checkStderr({ "Processing", pathString(inputPath.filename()), "!validation error" }, [&]() {
-        EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath);
-    });
+    ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), "--mnx"};
+    checkStderr({"Processing", pathString(inputPath.filename()), "!validation error"},
+        [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath); });
 
     std::filesystem::path mnxOutput = inputPath;
     mnxOutput.replace_extension(".mnx");
@@ -606,10 +572,9 @@ TEST(Export, MultiOutputMnxAndMssFromMusx)
     std::filesystem::path inputPath;
     copyInputToOutput("pageDiffThanOpts.musx", inputPath);
 
-    ArgList args = { DENIGMA_NAME, "export", pathString(inputPath), "--mnx", "--mss" };
-    checkStderr({ "Processing", pathString(inputPath.filename()), "!validation error" }, [&]() {
-        EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx and mss: " << pathString(inputPath);
-    });
+    ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), "--mnx", "--mss"};
+    checkStderr({"Processing", pathString(inputPath.filename()), "!validation error"},
+        [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx and mss: " << pathString(inputPath); });
 
     std::filesystem::path mnxOutput = inputPath;
     mnxOutput.replace_extension(".mnx");

@@ -20,8 +20,8 @@
  * THE SOFTWARE.
  */
 #include "core/denigma.h"
-#include <limits>
 #include <iostream>
+#include <limits>
 #include <mutex>
 
 namespace denigma {
@@ -60,13 +60,27 @@ musx::util::Logger::LogCallback makeMusxBridge()
 musx::util::SvgConvert::SvgUnit parseSvgUnitOption(const std::string& input)
 {
     const std::string value = utils::toLowerCase(input);
-    if (value == "none") return musx::util::SvgConvert::SvgUnit::None;
-    if (value == "px") return musx::util::SvgConvert::SvgUnit::Pixels;
-    if (value == "pt") return musx::util::SvgConvert::SvgUnit::Points;
-    if (value == "pc") return musx::util::SvgConvert::SvgUnit::Picas;
-    if (value == "cm") return musx::util::SvgConvert::SvgUnit::Centimeters;
-    if (value == "mm") return musx::util::SvgConvert::SvgUnit::Millimeters;
-    if (value == "in") return musx::util::SvgConvert::SvgUnit::Inches;
+    if (value == "none") {
+        return musx::util::SvgConvert::SvgUnit::None;
+    }
+    if (value == "px") {
+        return musx::util::SvgConvert::SvgUnit::Pixels;
+    }
+    if (value == "pt") {
+        return musx::util::SvgConvert::SvgUnit::Points;
+    }
+    if (value == "pc") {
+        return musx::util::SvgConvert::SvgUnit::Picas;
+    }
+    if (value == "cm") {
+        return musx::util::SvgConvert::SvgUnit::Centimeters;
+    }
+    if (value == "mm") {
+        return musx::util::SvgConvert::SvgUnit::Millimeters;
+    }
+    if (value == "in") {
+        return musx::util::SvgConvert::SvgUnit::Inches;
+    }
     throw std::invalid_argument("Invalid value for --svg-unit: " + input + ". Expected one of: none, px, pt, pc, cm, mm, in.");
 }
 
@@ -118,15 +132,15 @@ std::vector<const arg_char*> DenigmaContext::parseOptions(int argc, arg_char* ar
     bool svgPageScaleExplicitlyEnabled = false;
     for (int x = 1; x < argc; x++) {
         auto getNextArg = [&]() -> arg_view {
-                if (x + 1 < argc) {
-                    arg_view arg(argv[x + 1]);
-                    if (x < (argc - 1) && arg.rfind(_ARG("--"), 0) != 0) {
-                        x++;
-                        return arg;
-                    }
+            if (x + 1 < argc) {
+                arg_view arg(argv[x + 1]);
+                if (x < (argc - 1) && arg.rfind(_ARG("--"), 0) != 0) {
+                    x++;
+                    return arg;
                 }
-                return {};
-            };
+            }
+            return {};
+        };
         const arg_view next(argv[x]);
         if (next == _ARG("--version")) {
             showVersion = true;
@@ -277,9 +291,7 @@ std::string calcLinkedPartDisplayName(const musx::dom::MusxInstance<musx::dom::o
     if (!name.empty()) {
         return name;
     }
-    return linkedPart->isScore()
-        ? std::string("Score")
-        : "Part " + std::to_string(linkedPart->getCmper());
+    return linkedPart->isScore() ? std::string("Score") : "Part " + std::to_string(linkedPart->getCmper());
 }
 
 std::string getTimeStamp(const std::string& fmt)
@@ -300,13 +312,13 @@ std::string getTimeStamp(const std::string& fmt)
 void DenigmaContext::logMessage(LogMsg&& msg, bool alwaysShow, MessageSeverity severity) const
 {
     auto getSeverityStr = [severity]() -> std::string {
-            switch (severity) {
-            default:
-            case MessageSeverity::Info: return "";
-            case MessageSeverity::Warning: return "[WARNING] ";
-            case MessageSeverity::Error: return "[***ERROR***] ";
-            }
-        };
+        switch (severity) {
+        default:
+        case MessageSeverity::Info: return "";
+        case MessageSeverity::Warning: return "[WARNING] ";
+        case MessageSeverity::Error: return "[***ERROR***] ";
+        }
+    };
     if (!alwaysShow) {
         if (severity == MessageSeverity::Verbose && (!verbose || quiet)) {
             return;
@@ -414,8 +426,7 @@ bool DenigmaContext::validatePathsAndOptions(const std::filesystem::path& output
     // Refuse to clobber a file that is itself queued as an input: it may not have been read yet,
     // so writing it would silently change what a later conversion in this run sees.
     if (scheduledInputPaths.count(comparablePath(outputFilePath)) > 0) {
-        logMessage(LogMsg() << utils::asUtf8Bytes(outputFilePath) << " is also an input for this run. No action taken.",
-            MessageSeverity::Warning);
+        logMessage(LogMsg() << utils::asUtf8Bytes(outputFilePath) << " is also an input for this run. No action taken.", MessageSeverity::Warning);
         return false;
     }
 
@@ -441,7 +452,7 @@ bool createDirectoryIfNeeded(const std::filesystem::path& path)
     bool exists = false;
     try {
         exists = std::filesystem::exists(path);
-    } catch(...) {}
+    } catch (...) {}
     if (!exists && !path.parent_path().empty()) {
         std::filesystem::create_directories(path.parent_path());
     }
@@ -486,7 +497,7 @@ void DenigmaContext::startLogging(const std::filesystem::path& defaultLogPath, i
             args << std::string(arg_string(argv[i])) << " ";
         }
         logMessage(std::move(args), true);
-    }   
+    }
 }
 
 void DenigmaContext::endLogging()
@@ -500,7 +511,8 @@ void DenigmaContext::endLogging()
     }
 }
 
-void DenigmaContext::processFile(const std::shared_ptr<ICommand>& currentCommand, const std::filesystem::path inpFilePath, const std::vector<const arg_char*>& args)
+void DenigmaContext::processFile(
+    const std::shared_ptr<ICommand>& currentCommand, const std::filesystem::path inpFilePath, const std::vector<const arg_char*>& args)
 {
     try {
         if (!std::filesystem::is_regular_file(inpFilePath) && !forTestOutput()) {
@@ -513,7 +525,8 @@ void DenigmaContext::processFile(const std::shared_ptr<ICommand>& currentCommand
 //        }
         constexpr char kProcessingMessage[] = "Processing File: ";
         constexpr size_t kProcessingMessageSize = sizeof(kProcessingMessage) - 1; // account for null terminator.
-        std::string delimiter(kProcessingMessageSize + inpFilePath.u32string().size(), '='); // use u32string().size to get actual number of characters displayed
+        std::string delimiter(
+            kProcessingMessageSize + inpFilePath.u32string().size(), '='); // use u32string().size to get actual number of characters displayed
         // log header for each file
         logMessage(LogMsg(), true);
         logMessage(LogMsg() << delimiter, true);
@@ -546,8 +559,8 @@ void DenigmaContext::processFile(const std::shared_ptr<ICommand>& currentCommand
             if (option.rfind(_ARG("--"), 0) == 0) {  // Options start with "--"
                 const auto outputFormat = static_cast<std::u8string>(arg_string(option.substr(2)));
                 std::filesystem::path outputFilePath = (i + 1 < args.size() && arg_string(args[i + 1]).rfind(_ARG("--"), 0) != 0)
-                                                     ? std::filesystem::path(args[++i])
-                                                     : inputFilePath.parent_path();
+                                                           ? std::filesystem::path(args[++i])
+                                                           : inputFilePath.parent_path();
                 currentCommand->processOutput(inputData, calcOutpuFilePath(outputFilePath, outputFormat), inputFilePath, *this);
                 outputFormatSpecified = true;
             }

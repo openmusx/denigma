@@ -41,10 +41,7 @@ namespace {
 constexpr int MAX_ARPEGGIO_NUMBER_LEVEL = 16;
 
 mx::api::NoteData* findArpeggioBoundaryNote(
-    MusicXmlMusxMapping& context,
-    const EntryInfoPtr& preferredEntry,
-    const EntryInfoPtr& fallbackEntry,
-    bool top)
+    MusicXmlMusxMapping& context, const EntryInfoPtr& preferredEntry, const EntryInfoPtr& fallbackEntry, bool top)
 {
     const auto findInEntry = [&](const EntryInfoPtr& entryInfo) -> mx::api::NoteData* {
         if (!entryInfo) {
@@ -57,7 +54,7 @@ mx::api::NoteData* findArpeggioBoundaryNote(
             return locationIt == context.noteLocations.end() ? nullptr : noteDataAt(context, locationIt->second);
         };
         if (top) {
-            for (size_t noteIndex = entry->notes.size(); noteIndex-- > 0; ) {
+            for (size_t noteIndex = entry->notes.size(); noteIndex-- > 0;) {
                 if (auto* note = findAtIndex(noteIndex)) {
                     return note;
                 }
@@ -106,8 +103,9 @@ void appendNonArpeggiate(MusicXmlMusxMapping& context, const ArpeggioSpanCandida
     auto* topNote = findArpeggioBoundaryNote(context, candidate.topEntry, candidate.bottomEntry, true);
     auto* bottomNote = findArpeggioBoundaryNote(context, candidate.bottomEntry, candidate.topEntry, false);
     if (!topNote || !bottomNote) {
-        context.logMessage(LogMsg() << "Non-arpeggio at entry " << sourceEntryNumber(candidate)
-            << " could not be attached to its MusicXML endpoint notes.", MessageSeverity::Info);
+        context.logMessage(
+            LogMsg() << "Non-arpeggio at entry " << sourceEntryNumber(candidate) << " could not be attached to its MusicXML endpoint notes.",
+            MessageSeverity::Info);
         return;
     }
 
@@ -135,8 +133,8 @@ void appendArpeggiate(MusicXmlMusxMapping& context, const ArpeggioSpanCandidate&
         collectEntryNotes(context, candidate.bottomEntry, notes);
     }
     if (notes.empty()) {
-        context.logMessage(LogMsg() << "Arpeggio at entry " << sourceEntryNumber(candidate)
-            << " could not be attached to any MusicXML note.", MessageSeverity::Info);
+        context.logMessage(LogMsg() << "Arpeggio at entry " << sourceEntryNumber(candidate) << " could not be attached to any MusicXML note.",
+            MessageSeverity::Info);
         return;
     }
 
@@ -174,12 +172,8 @@ void finalizeArpeggioCandidates(MusicXmlMusxMapping& context)
     int crossEntryCount = 0;
     for (const auto& candidate : context.deferredArpeggioCandidates) {
         switch (candidate.type) {
-        case ArpeggioSpanType::Bracket:
-            appendNonArpeggiate(context, candidate);
-            break;
-        case ArpeggioSpanType::Normal:
-            appendArpeggiate(context, candidate, crossEntryCount);
-            break;
+        case ArpeggioSpanType::Bracket: appendNonArpeggiate(context, candidate); break;
+        case ArpeggioSpanType::Normal: appendArpeggiate(context, candidate, crossEntryCount); break;
         }
     }
 }

@@ -19,16 +19,16 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#include <string>
 #include <filesystem>
-#include <iterator>
 #include <fstream>
+#include <iterator>
+#include <string>
 
-#include "gtest/gtest.h"
 #include "core/denigma.h"
 #include "denigma/classify/articulations.h"
 #include "formats/mnx/mnx.h"
 #include "test_utils.h"
+#include "gtest/gtest.h"
 
 using namespace denigma;
 
@@ -39,10 +39,9 @@ nlohmann::json exportMnxFixture(const std::string& fileName)
     setupTestDataPaths();
     std::filesystem::path inputPath;
     copyInputToOutput(fileName, inputPath);
-    ArgList args = { DENIGMA_NAME, "export", pathString(inputPath), "--mnx" };
-    checkStderr({ "Processing", pathString(inputPath.filename()), "!validation error" }, [&]() {
-        EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath);
-    });
+    ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), "--mnx"};
+    checkStderr({"Processing", pathString(inputPath.filename()), "!validation error"},
+        [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath); });
 
     nlohmann::json mnx;
     openJson(inputPath.parent_path() / (inputPath.stem().string() + ".mnx"), mnx);
@@ -65,14 +64,13 @@ TEST(MnxSequences, CalcPointing)
 TEST(MnxSequences, Voice2TripletAtEnd)
 {
     // test file contains voice 2 triplet at end of bar. The triplet was being overfilled.
-    
+
     setupTestDataPaths();
     std::filesystem::path inputPath;
     copyInputToOutput("v2triplet_at_end.musx", inputPath);
-    ArgList args = { DENIGMA_NAME, "export", pathString(inputPath), "--mnx" };
-    checkStderr({ "Processing", pathString(inputPath.filename()), "!validation error" }, [&]() {
-        EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath);
-    });
+    ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), "--mnx"};
+    checkStderr({"Processing", pathString(inputPath.filename()), "!validation error"},
+        [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath); });
 
     auto doc = mnxdom::Document::create(inputPath.parent_path() / "v2triplet_at_end.mnx");
 }
@@ -80,14 +78,13 @@ TEST(MnxSequences, Voice2TripletAtEnd)
 TEST(MnxSequences, Voice2TupletIncomplete)
 {
     // test file contains incomplete v2 triplet that should be reported without additional adding compensationg spacer to main sequence
-    
+
     setupTestDataPaths();
     std::filesystem::path inputPath;
     copyInputToOutput("v2tuplet_incomplete.musx", inputPath);
-    ArgList args = { DENIGMA_NAME, "export", pathString(inputPath), "--mnx" };
-    checkStderr({ "Processing", pathString(inputPath.filename()), "less than the expected", "!more than the expected" }, [&]() {
-        EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath);
-    });
+    ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), "--mnx"};
+    checkStderr({"Processing", pathString(inputPath.filename()), "less than the expected", "!more than the expected"},
+        [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath); });
 
     auto doc = mnxdom::Document::create(inputPath.parent_path() / "v2tuplet_incomplete.mnx");
 }
@@ -95,14 +92,13 @@ TEST(MnxSequences, Voice2TupletIncomplete)
 TEST(MnxSequences, NestedTuplets)
 {
     // test file contains a nested tuplets ending on the same note.
-    
+
     setupTestDataPaths();
     std::filesystem::path inputPath;
     copyInputToOutput("tuplets_nested.musx", inputPath);
-    ArgList args = { DENIGMA_NAME, "export", pathString(inputPath), "--mnx" };
-    checkStderr({ "Processing", pathString(inputPath.filename()), "!validation error" }, [&]() {
-        EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath);
-    });
+    ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), "--mnx"};
+    checkStderr({"Processing", pathString(inputPath.filename()), "!validation error"},
+        [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath); });
 
     auto doc = mnxdom::Document::create(inputPath.parent_path() / "tuplets_nested.mnx");
 }
@@ -110,14 +106,13 @@ TEST(MnxSequences, NestedTuplets)
 TEST(MnxSequences, NestedTrailingSingletonTuplet)
 {
     // test file contains a trailing singleton tuplet nested inside another tuplet.
-    
+
     setupTestDataPaths();
     std::filesystem::path inputPath;
     copyInputToOutput("tuplet-nested-singleton.musx", inputPath);
-    ArgList args = { DENIGMA_NAME, "export", pathString(inputPath), "--mnx" };
-    checkStderr({ "Processing", pathString(inputPath.filename()), "!validation error" }, [&]() {
-        EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath);
-    });
+    ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), "--mnx"};
+    checkStderr({"Processing", pathString(inputPath.filename()), "!validation error"},
+        [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath); });
 
     auto doc = mnxdom::Document::create(inputPath.parent_path() / "tuplet-nested-singleton.mnx");
 }
@@ -220,12 +215,12 @@ TEST(MnxSequences, EmptyMeasuresGetFullMeasureRestPerStaff)
 
     using Summary = std::vector<std::pair<int, bool>>;
     // Measure 3 is empty on both staves of the piano part.
-    EXPECT_EQ(summarizeSequences(measures[2]), (Summary{ { 1, true }, { 2, true } })) << measures[2].dump(4);
+    EXPECT_EQ(summarizeSequences(measures[2]), (Summary{{1, true}, {2, true}})) << measures[2].dump(4);
     // Measure 6 holds real whole-rest entries, which are exported as full-measure rests in their own right.
-    EXPECT_EQ(summarizeSequences(measures[5]), (Summary{ { 1, true }, { 2, true } })) << measures[5].dump(4);
+    EXPECT_EQ(summarizeSequences(measures[5]), (Summary{{1, true}, {2, true}})) << measures[5].dump(4);
     // Measure 7 is empty, but staff 1 has "Display Rests in Empty Measures" off through a staff style.
     // Staff 2 hides entered rests through "Display Rests", which does not suppress the empty-measure rest.
-    EXPECT_EQ(summarizeSequences(measures[6]), (Summary{ { 2, true } })) << measures[6].dump(4);
+    EXPECT_EQ(summarizeSequences(measures[6]), (Summary{{2, true}})) << measures[6].dump(4);
 }
 
 TEST(MnxSequences, EmptyMeasureRestOmitsStaffOnSingleStaffPart)

@@ -37,23 +37,16 @@ struct TextMetricsEvpu
     double descent{};
 };
 
-std::optional<TextMetricsEvpu> measureTextEvpu(const musx::dom::FontInfo& fontInfo,
-                                               std::u32string_view text,
-                                               std::optional<double> pointSizeOverride,
-                                               const DenigmaContext& denigmaContext);
+std::optional<TextMetricsEvpu> measureTextEvpu(
+    const musx::dom::FontInfo& fontInfo, std::u32string_view text, std::optional<double> pointSizeOverride, const DenigmaContext& denigmaContext);
 
-std::optional<double> measureGlyphWidthEvpu(const musx::dom::FontInfo& fontInfo,
-                                            char32_t codePoint,
-                                            std::optional<double> pointSizeOverride,
-                                            const DenigmaContext& denigmaContext);
+std::optional<double> measureGlyphWidthEvpu(
+    const musx::dom::FontInfo& fontInfo, char32_t codePoint, std::optional<double> pointSizeOverride, const DenigmaContext& denigmaContext);
 
-std::optional<double> measureFontHeightEvpu(const musx::dom::FontInfo& fontInfo,
-                                            double pointSize,
-                                            const DenigmaContext& denigmaContext);
+std::optional<double> measureFontHeightEvpu(const musx::dom::FontInfo& fontInfo, double pointSize, const DenigmaContext& denigmaContext);
 
-std::optional<TextMetricsEvpu> measureFontAscentDescentEvpu(const musx::dom::FontInfo& fontInfo,
-                                                            std::optional<double> pointSizeOverride,
-                                                            const DenigmaContext& denigmaContext);
+std::optional<TextMetricsEvpu> measureFontAscentDescentEvpu(
+    const musx::dom::FontInfo& fontInfo, std::optional<double> pointSizeOverride, const DenigmaContext& denigmaContext);
 
 musx::util::SvgConvert::GlyphMetricsFn makeSvgGlyphMetricsCallback(const DenigmaContext& denigmaContext);
 

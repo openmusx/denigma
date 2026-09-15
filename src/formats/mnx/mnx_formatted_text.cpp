@@ -76,7 +76,8 @@ static void applyStyle(T item, const EnigmaStyles& styles, const MnxFormattedTex
     style.set_or_clear_weight(styles.font->bold ? mnxdom::FontWeight::Bold : mnxdom::FontWeight::Plain);
 }
 
-static void appendTextChunk(mnxdom::FormattedText dst, const std::string& text, const EnigmaStyles& styles, const MnxFormattedTextOptions& options, bool addStyle = true)
+static void appendTextChunk(
+    mnxdom::FormattedText dst, const std::string& text, const EnigmaStyles& styles, const MnxFormattedTextOptions& options, bool addStyle = true)
 {
     if (text.empty()) {
         return;
@@ -90,7 +91,8 @@ static void appendTextChunk(mnxdom::FormattedText dst, const std::string& text, 
     }
 }
 
-static void appendSmuflChunk(mnxdom::FormattedText dst, const std::string& text, const std::vector<std::string>& glyphs, const EnigmaStyles& styles, const MnxFormattedTextOptions& options, bool addStyle = true)
+static void appendSmuflChunk(mnxdom::FormattedText dst, const std::string& text, const std::vector<std::string>& glyphs, const EnigmaStyles& styles,
+    const MnxFormattedTextOptions& options, bool addStyle = true)
 {
     if (glyphs.empty()) {
         return;
@@ -104,7 +106,8 @@ static void appendSmuflChunk(mnxdom::FormattedText dst, const std::string& text,
     }
 }
 
-static void appendConvertedChunk(mnxdom::FormattedText dst, const std::string& text, const EnigmaStyles& styles, const MnxFormattedTextOptions& options)
+static void appendConvertedChunk(
+    mnxdom::FormattedText dst, const std::string& text, const EnigmaStyles& styles, const MnxFormattedTextOptions& options)
 {
     if (text.empty() || !styles.font || (options.skipHiddenText && styles.font->hidden)) {
         return;
@@ -139,10 +142,7 @@ static void appendConvertedChunk(mnxdom::FormattedText dst, const std::string& t
 
 } // namespace
 
-void setFormattedText(
-    mnxdom::FormattedText dst,
-    const EnigmaParsingContext& src,
-    const MnxFormattedTextOptions& options)
+void setFormattedText(mnxdom::FormattedText dst, const EnigmaParsingContext& src, const MnxFormattedTextOptions& options)
 {
     dst.clear();
 
@@ -154,15 +154,15 @@ void setFormattedText(
         parsingOptions.ignoreStyleTags = true;
     }
 
-    src.parseEnigmaText([&](const std::string& chunk, const EnigmaStyles& styles) -> bool {
-        appendConvertedChunk(dst, chunk, styles, options);
-        return true;
-    }, parsingOptions);
+    src.parseEnigmaText(
+        [&](const std::string& chunk, const EnigmaStyles& styles) -> bool {
+            appendConvertedChunk(dst, chunk, styles, options);
+            return true;
+        },
+        parsingOptions);
 }
 
-mnxdom::FormattedText makeFormattedText(
-    const EnigmaParsingContext& src,
-    const MnxFormattedTextOptions& options)
+mnxdom::FormattedText makeFormattedText(const EnigmaParsingContext& src, const MnxFormattedTextOptions& options)
 {
     mnxdom::FormattedText result;
     setFormattedText(result, src, options);

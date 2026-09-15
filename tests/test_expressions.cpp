@@ -57,9 +57,8 @@ struct ShapeExpressionContext
 static const dynamics::Mark& firstDynamicMark(const ExpressionClassification& classification)
 {
     static const dynamics::Mark noMark{};
-    const auto dynamicIt = std::find_if(classification.runs.begin(), classification.runs.end(), [](const expression::RunClassification& run) {
-        return run.as<dynamics::Mark>() != nullptr;
-    });
+    const auto dynamicIt = std::find_if(classification.runs.begin(), classification.runs.end(),
+        [](const expression::RunClassification& run) { return run.as<dynamics::Mark>() != nullptr; });
     if (dynamicIt == classification.runs.end()) {
         ADD_FAILURE() << "expression has no dynamic run";
         return noMark;
@@ -70,9 +69,8 @@ static const dynamics::Mark& firstDynamicMark(const ExpressionClassification& cl
 static const expression::DynamicQualifier& firstDynamicQualifier(const ExpressionClassification& classification)
 {
     static const expression::DynamicQualifier noQualifier{};
-    const auto qualifierIt = std::find_if(classification.runs.begin(), classification.runs.end(), [](const expression::RunClassification& run) {
-        return run.as<expression::DynamicQualifier>() != nullptr;
-    });
+    const auto qualifierIt = std::find_if(classification.runs.begin(), classification.runs.end(),
+        [](const expression::RunClassification& run) { return run.as<expression::DynamicQualifier>() != nullptr; });
     if (qualifierIt == classification.runs.end()) {
         ADD_FAILURE() << "expression has no dynamic qualifier run";
         return noQualifier;
@@ -101,10 +99,10 @@ static std::string categoryXml(ExpressionCategoryType categoryType, const std::s
     if (xmlName.empty()) {
         return {};
     }
-    return "    <markingsCategory cmper=\"" + std::to_string(static_cast<int>(categoryType)) + "\">\n"
-           "      <categoryType>" + xmlName + "</categoryType>\n"
-           + extraCategoryXml +
-           "    </markingsCategory>\n";
+    return "    <markingsCategory cmper=\"" + std::to_string(static_cast<int>(categoryType))
+           + "\">\n"
+             "      <categoryType>"
+           + xmlName + "</categoryType>\n" + extraCategoryXml + "    </markingsCategory>\n";
 }
 
 /// Options block declaring the document default font for multimeasure rest numbers. The font is
@@ -124,26 +122,23 @@ static std::string multimeasureRestFontOptionsXml()
 
 static std::string fontDefinitionXml(int cmper, const std::string& fontName, int charsetVal)
 {
-    return "    <fontName cmper=\"" + std::to_string(cmper) + "\">\n"
-           "      <charsetBank>Mac</charsetBank>\n"
-           "      <charsetVal>" + std::to_string(charsetVal) + "</charsetVal>\n"
-           "      <pitch>0</pitch>\n"
-           "      <family>0</family>\n"
-           "      <name>" + fontName + "</name>\n"
-           "    </fontName>\n";
+    return "    <fontName cmper=\"" + std::to_string(cmper)
+           + "\">\n"
+             "      <charsetBank>Mac</charsetBank>\n"
+             "      <charsetVal>"
+           + std::to_string(charsetVal)
+           + "</charsetVal>\n"
+             "      <pitch>0</pitch>\n"
+             "      <family>0</family>\n"
+             "      <name>"
+           + fontName
+           + "</name>\n"
+             "    </fontName>\n";
 }
 
-static TextExpressionContext makeTextExpressionContext(
-    const std::string& text,
-    ExpressionCategoryType categoryType = ExpressionCategoryType::Invalid,
-    const std::string& playbackXml = {},
-    bool assignmentTopStaff = false,
-    const std::string& fontName = "Times New Roman",
-    int charsetVal = 0,
-    const std::string& expressionXml = {},
-    const std::string& mmRestFontName = {},
-    int mmRestCharsetVal = 0,
-    const std::string& extraCategoryXml = {},
+static TextExpressionContext makeTextExpressionContext(const std::string& text, ExpressionCategoryType categoryType = ExpressionCategoryType::Invalid,
+    const std::string& playbackXml = {}, bool assignmentTopStaff = false, const std::string& fontName = "Times New Roman", int charsetVal = 0,
+    const std::string& expressionXml = {}, const std::string& mmRestFontName = {}, int mmRestCharsetVal = 0, const std::string& extraCategoryXml = {},
     const std::string& extraOthersXml = {})
 {
     std::string xml = R"xml(<?xml version="1.0" encoding="UTF-8"?>
@@ -187,7 +182,7 @@ static TextExpressionContext makeTextExpressionContext(
     auto document = musx::factory::DocumentFactory::create<denigma::MusxReader>(buffer);
     MusxInstance<others::MeasureExprAssign> assignment;
     if (assignmentTopStaff) {
-        auto mutableAssignment = std::make_shared<others::MeasureExprAssign>(document, SCORE_PARTID, EnigmaBase::ShareMode::All, Cmper{ 1 }, Inci{ 0 });
+        auto mutableAssignment = std::make_shared<others::MeasureExprAssign>(document, SCORE_PARTID, EnigmaBase::ShareMode::All, Cmper{1}, Inci{0});
         mutableAssignment->textExprId = 1;
         mutableAssignment->staffAssign = static_cast<StaffCmper>(others::StaffList::FloatingValues::TopStaff);
         assignment = mutableAssignment;
@@ -195,14 +190,12 @@ static TextExpressionContext makeTextExpressionContext(
     return {
         document,
         document->getOthers()->get<others::TextExpressionDef>(SCORE_PARTID, 1),
-        assignment
+        assignment,
     };
 }
 
 static ShapeExpressionContext makeShapeExpressionContext(
-    ExpressionCategoryType categoryType = ExpressionCategoryType::Invalid,
-    const std::string& playbackXml = {},
-    bool assignmentTopStaff = false)
+    ExpressionCategoryType categoryType = ExpressionCategoryType::Invalid, const std::string& playbackXml = {}, bool assignmentTopStaff = false)
 {
     std::string xml = R"xml(<?xml version="1.0" encoding="UTF-8"?>
 <finale>
@@ -224,7 +217,7 @@ static ShapeExpressionContext makeShapeExpressionContext(
     auto document = musx::factory::DocumentFactory::create<denigma::MusxReader>(buffer);
     MusxInstance<others::MeasureExprAssign> assignment;
     if (assignmentTopStaff) {
-        auto mutableAssignment = std::make_shared<others::MeasureExprAssign>(document, SCORE_PARTID, EnigmaBase::ShareMode::All, Cmper{ 1 }, Inci{ 0 });
+        auto mutableAssignment = std::make_shared<others::MeasureExprAssign>(document, SCORE_PARTID, EnigmaBase::ShareMode::All, Cmper{1}, Inci{0});
         mutableAssignment->shapeExprId = 1;
         mutableAssignment->staffAssign = static_cast<StaffCmper>(others::StaffList::FloatingValues::TopStaff);
         assignment = mutableAssignment;
@@ -232,13 +225,11 @@ static ShapeExpressionContext makeShapeExpressionContext(
     return {
         document,
         document->getOthers()->get<others::ShapeExpressionDef>(SCORE_PARTID, 1),
-        assignment
+        assignment,
     };
 }
 
-static ExpressionClassification classifyTextExpression(
-    const std::string& text,
-    ExpressionCategoryType categoryType = ExpressionCategoryType::Invalid)
+static ExpressionClassification classifyTextExpression(const std::string& text, ExpressionCategoryType categoryType = ExpressionCategoryType::Invalid)
 {
     return classifyExpression(makeTextExpressionContext(text, categoryType).def);
 }
@@ -246,17 +237,17 @@ static ExpressionClassification classifyTextExpression(
 static std::string tempoPlaybackXml(int bpm = 120, int beatUnitEdu = 1024)
 {
     return "      <playType>time</playType>\n"
-           "      <value>" + std::to_string(bpm) + "</value>\n"
-           "      <auxdata1>" + std::to_string(beatUnitEdu) + "</auxdata1>\n";
+           "      <value>"
+           + std::to_string(bpm)
+           + "</value>\n"
+             "      <auxdata1>"
+           + std::to_string(beatUnitEdu) + "</auxdata1>\n";
 }
 
 static MusxInstance<others::MeasureExprAssign> makeStaffTextAssignment(
-    const DocumentPtr& document,
-    Cmper textExpressionId,
-    StaffCmper staff,
-    Inci inci = Inci{ 1 })
+    const DocumentPtr& document, Cmper textExpressionId, StaffCmper staff, Inci inci = Inci{1})
 {
-    auto assignment = std::make_shared<others::MeasureExprAssign>(document, SCORE_PARTID, EnigmaBase::ShareMode::All, Cmper{ 1 }, inci);
+    auto assignment = std::make_shared<others::MeasureExprAssign>(document, SCORE_PARTID, EnigmaBase::ShareMode::All, Cmper{1}, inci);
     assignment->textExprId = textExpressionId;
     assignment->staffAssign = staff;
     return assignment;
@@ -277,9 +268,8 @@ TEST(ExpressionClassification, ClassifiesConcreteDynamicsAndCarriesSurroundingTe
 
     EXPECT_EQ(result.type, ExpressionType::Dynamic);
     EXPECT_EQ(result.basis, ClassificationBasis::FinaleCategoryConfirmed);
-    const auto dynamicIt = std::find_if(result.runs.begin(), result.runs.end(), [](const expression::RunClassification& run) {
-        return run.as<dynamics::Mark>() != nullptr;
-    });
+    const auto dynamicIt = std::find_if(
+        result.runs.begin(), result.runs.end(), [](const expression::RunClassification& run) { return run.as<dynamics::Mark>() != nullptr; });
     ASSERT_NE(dynamicIt, result.runs.end());
     EXPECT_EQ(dynamicIt->as<dynamics::Mark>()->dynamic, dynamics::Dynamic::pp);
     ASSERT_EQ(result.runs.size(), 3u);
@@ -318,14 +308,13 @@ TEST(ExpressionClassification, ClassifiesStringMuteGlyphExpressions)
     };
 
     const std::vector<ExpectedStringMute> expected = {
-        { u8"\uE616", articulation::StringMute::Type::On },
-        { u8"\uE617", articulation::StringMute::Type::Off }
+        {u8"\uE616", articulation::StringMute::Type::On},
+        {u8"\uE617", articulation::StringMute::Type::Off},
     };
 
     for (const auto& item : expected) {
         const auto context = makeTextExpressionContext(
-            "^fontid(0)^size(24)^nfx(0)" + makeGlyphText(item.glyph),
-            ExpressionCategoryType::Misc, {}, false, "Finale Maestro", 4095);
+            "^fontid(0)^size(24)^nfx(0)" + makeGlyphText(item.glyph), ExpressionCategoryType::Misc, {}, false, "Finale Maestro", 4095);
         const auto result = classifyExpression(context.def);
         EXPECT_EQ(result.type, ExpressionType::StringMute);
         EXPECT_EQ(result.basis, ClassificationBasis::Heuristic);
@@ -335,9 +324,8 @@ TEST(ExpressionClassification, ClassifiesStringMuteGlyphExpressions)
 
 TEST(ExpressionClassification, ClassifiesAccordionRegistrationGlyph)
 {
-    const auto context = makeTextExpressionContext(
-        "^fontid(0)^size(24)^nfx(0)" + makeGlyphText(u8"\uE8A1"),
-        ExpressionCategoryType::Misc, {}, false, "Bravura");
+    const auto context =
+        makeTextExpressionContext("^fontid(0)^size(24)^nfx(0)" + makeGlyphText(u8"\uE8A1"), ExpressionCategoryType::Misc, {}, false, "Bravura");
     const auto result = classifyExpression(context.def);
 
     ASSERT_EQ(result.type, ExpressionType::AccordionRegistration);
@@ -353,12 +341,8 @@ TEST(ExpressionClassification, ClassifiesAccordionRegistrationGlyph)
 
 TEST(ExpressionClassification, ClassifiesHarpPedalDiagramGlyphSequence)
 {
-    const auto context = makeTextExpressionContext(
-        "^fontid(0)^size(24)^nfx(0)" + makeGlyphText(u8"\uE680\uE681\uE682\uE683\uE682\uE681\uE680\uE682"),
-        ExpressionCategoryType::Misc,
-        {},
-        false,
-        "Bravura");
+    const auto context = makeTextExpressionContext("^fontid(0)^size(24)^nfx(0)" + makeGlyphText(u8"\uE680\uE681\uE682\uE683\uE682\uE681\uE680\uE682"),
+        ExpressionCategoryType::Misc, {}, false, "Bravura");
     const auto result = classifyExpression(context.def);
 
     ASSERT_EQ(result.type, ExpressionType::HarpDiagram);
@@ -374,12 +358,8 @@ TEST(ExpressionClassification, ClassifiesHarpPedalDiagramGlyphSequence)
 
 TEST(ExpressionClassification, RejectsIncompleteHarpPedalDiagramGlyphSequence)
 {
-    const auto context = makeTextExpressionContext(
-        "^fontid(0)^size(24)^nfx(0)" + makeGlyphText(u8"\uE680\uE681\uE682\uE683\uE682\uE681\uE680"),
-        ExpressionCategoryType::Misc,
-        {},
-        false,
-        "Bravura");
+    const auto context = makeTextExpressionContext("^fontid(0)^size(24)^nfx(0)" + makeGlyphText(u8"\uE680\uE681\uE682\uE683\uE682\uE681\uE680"),
+        ExpressionCategoryType::Misc, {}, false, "Bravura");
     const auto result = classifyExpression(context.def);
 
     EXPECT_EQ(result.type, ExpressionType::GenericText);
@@ -388,25 +368,25 @@ TEST(ExpressionClassification, RejectsIncompleteHarpPedalDiagramGlyphSequence)
 TEST(ExpressionClassification, ClassifiesKeyboardPedalText)
 {
     const std::vector<std::pair<std::string, keyboardpedal::Type>> cases = {
-        { "ped.", keyboardpedal::Type::PedalOne },
-        { "Ped. I", keyboardpedal::Type::PedalOne },
-        { "Ped. 1", keyboardpedal::Type::PedalOne },
-        { "sost", keyboardpedal::Type::PedalTwo },
-        { "Ped. II", keyboardpedal::Type::PedalTwo },
-        { "Ped. 2", keyboardpedal::Type::PedalTwo },
-        { "una corda", keyboardpedal::Type::PedalThree },
-        { "Ped. III", keyboardpedal::Type::PedalThree },
-        { "Ped. 3", keyboardpedal::Type::PedalThree },
-        { "*", keyboardpedal::Type::PedalUp },
-        { "sempre Ped.", keyboardpedal::Type::PedalOne },
-        { "Sost. Ped.", keyboardpedal::Type::PedalTwo },
-        { "con Ped.", keyboardpedal::Type::PedalOne },
-        { "senza Ped.", keyboardpedal::Type::PedalUp },
-        { "Ped. simile", keyboardpedal::Type::PedalOne },
-        { "Ped. ad lib.", keyboardpedal::Type::PedalOne },
-        { "PED: II", keyboardpedal::Type::PedalTwo },
-        { "Sost.-Ped.", keyboardpedal::Type::PedalTwo },
-        { "Ped., sempre", keyboardpedal::Type::PedalOne },
+        {"ped.", keyboardpedal::Type::PedalOne},
+        {"Ped. I", keyboardpedal::Type::PedalOne},
+        {"Ped. 1", keyboardpedal::Type::PedalOne},
+        {"sost", keyboardpedal::Type::PedalTwo},
+        {"Ped. II", keyboardpedal::Type::PedalTwo},
+        {"Ped. 2", keyboardpedal::Type::PedalTwo},
+        {"una corda", keyboardpedal::Type::PedalThree},
+        {"Ped. III", keyboardpedal::Type::PedalThree},
+        {"Ped. 3", keyboardpedal::Type::PedalThree},
+        {"*", keyboardpedal::Type::PedalUp},
+        {"sempre Ped.", keyboardpedal::Type::PedalOne},
+        {"Sost. Ped.", keyboardpedal::Type::PedalTwo},
+        {"con Ped.", keyboardpedal::Type::PedalOne},
+        {"senza Ped.", keyboardpedal::Type::PedalUp},
+        {"Ped. simile", keyboardpedal::Type::PedalOne},
+        {"Ped. ad lib.", keyboardpedal::Type::PedalOne},
+        {"PED: II", keyboardpedal::Type::PedalTwo},
+        {"Sost.-Ped.", keyboardpedal::Type::PedalTwo},
+        {"Ped., sempre", keyboardpedal::Type::PedalOne},
     };
 
     for (const auto& [text, expected] : cases) {
@@ -423,9 +403,8 @@ TEST(ExpressionClassification, ClassifiesKeyboardPedalText)
 TEST(ExpressionClassification, ClassifiesKeyboardPedalGlyphs)
 {
     const auto classifyGlyphs = [](std::u8string_view glyphs) {
-        return classifyExpression(makeTextExpressionContext(
-            "^fontid(0)^size(24)^nfx(0)" + makeGlyphText(glyphs),
-            ExpressionCategoryType::Misc, {}, false, "Bravura").def);
+        return classifyExpression(
+            makeTextExpressionContext("^fontid(0)^size(24)^nfx(0)" + makeGlyphText(glyphs), ExpressionCategoryType::Misc, {}, false, "Bravura").def);
     };
     const auto expectPedal = [&](std::u8string_view glyphs, keyboardpedal::Type expected) {
         const auto result = classifyGlyphs(glyphs);
@@ -457,9 +436,8 @@ TEST(ExpressionClassification, ClassifiesKeyboardPedalGlyphs)
 
 TEST(ExpressionClassification, DoesNotClassifyKeyboardPedalPictograms)
 {
-    const auto result = classifyExpression(makeTextExpressionContext(
-        "^fontid(0)^size(24)^nfx(0)" + makeGlyphText(u8"\uE660"),
-        ExpressionCategoryType::Misc, {}, false, "Bravura").def);
+    const auto result = classifyExpression(
+        makeTextExpressionContext("^fontid(0)^size(24)^nfx(0)" + makeGlyphText(u8"\uE660"), ExpressionCategoryType::Misc, {}, false, "Bravura").def);
     EXPECT_EQ(result.type, ExpressionType::GenericText);
 }
 
@@ -489,16 +467,16 @@ TEST(ExpressionClassification, ClassifiesRelativeDynamicQualifiers)
 
     EXPECT_EQ(gradual.type, ExpressionType::Dynamic);
     EXPECT_EQ(firstDynamicMark(gradual).dynamic, dynamics::Dynamic::mf);
-    EXPECT_EQ(std::none_of(gradual.runs.begin(), gradual.runs.end(), [](const expression::RunClassification& run) {
-        return run.as<expression::DynamicQualifier>() != nullptr;
-    }), true);
+    EXPECT_EQ(std::none_of(gradual.runs.begin(), gradual.runs.end(),
+                  [](const expression::RunClassification& run) { return run.as<expression::DynamicQualifier>() != nullptr; }),
+        true);
 }
 
 TEST(ExpressionClassification, DoesNotClassifyDynamicCategoryTextAsADynamic)
 {
     // The Dynamics category does not make expressive text a dynamic. Only the spelling does, so
     // "dolce espr." stays text while a level written out as a word is still recognized.
-    for (const std::string_view text : { "dolce", "dolce espr.", "cantabile" }) {
+    for (const std::string_view text : {"dolce", "dolce espr.", "cantabile"}) {
         const auto result = classifyTextExpression(std::string(text), ExpressionCategoryType::Dynamics);
         EXPECT_EQ(result.type, ExpressionType::GenericText) << text;
         EXPECT_EQ(result.genericText().text, text) << text;
@@ -513,9 +491,7 @@ TEST(ExpressionClassification, DoesNotFindWordDynamicsInsideALongerPhrase)
 {
     // "piano" and "forte" are ordinary words as well as dynamics. A level spelled out names the
     // whole marking; a phrase that merely contains one is a performance instruction.
-    for (const std::string_view text : {
-        "inside the piano", "muted piano", "forte only", "col forte", "senza piano"
-    }) {
+    for (const std::string_view text : {"inside the piano", "muted piano", "forte only", "col forte", "senza piano"}) {
         const auto result = classifyTextExpression(std::string(text), ExpressionCategoryType::TechniqueText);
         EXPECT_EQ(result.type, ExpressionType::GenericText) << text;
         EXPECT_EQ(result.genericText().text, text) << text;
@@ -553,8 +529,8 @@ TEST(ExpressionClassification, UsesCategoryForTempoTechniqueAndRehearsalText)
 
 TEST(ExpressionClassification, ClassifiesVisualOnlyLegacyMetronomeMarks)
 {
-    const auto context = makeTextExpressionContext(
-        "^fontid(0)^size(12)^nfx(0)qd=120", ExpressionCategoryType::TempoMarks, {}, false, "Engraver Text T");
+    const auto context =
+        makeTextExpressionContext("^fontid(0)^size(12)^nfx(0)qd=120", ExpressionCategoryType::TempoMarks, {}, false, "Engraver Text T");
     const auto result = classifyExpression(context.def);
 
     ASSERT_EQ(result.type, ExpressionType::MetronomeMark);
@@ -570,18 +546,8 @@ TEST(ExpressionClassification, ClassifiesVisualOnlyLegacyMetronomeMarks)
 
 TEST(ExpressionClassification, ClassifiesSmuflMetronomeMarksAcrossFontChanges)
 {
-    const auto context = makeTextExpressionContext(
-        "^fontid(0)^size(24)^nfx(0)&#xECA3;&#xECB7;^fontid(1)^size(12)^nfx(0) . = 72",
-        ExpressionCategoryType::Misc,
-        {},
-        false,
-        "Finale Maestro",
-        4095,
-        {},
-        {},
-        0,
-        {},
-        fontDefinitionXml(1, "Times New Roman", 0));
+    const auto context = makeTextExpressionContext("^fontid(0)^size(24)^nfx(0)&#xECA3;&#xECB7;^fontid(1)^size(12)^nfx(0) . = 72",
+        ExpressionCategoryType::Misc, {}, false, "Finale Maestro", 4095, {}, {}, 0, {}, fontDefinitionXml(1, "Times New Roman", 0));
     const auto result = classifyExpression(context.def);
 
     ASSERT_EQ(result.type, ExpressionType::MetronomeMark);
@@ -596,12 +562,7 @@ TEST(ExpressionClassification, ClassifiesSmuflMetronomeMarksAcrossFontChanges)
 TEST(ExpressionClassification, KeepsMetronomePlaybackSeparateFromTheDisplayedNumber)
 {
     const auto context = makeTextExpressionContext(
-        "^fontid(0)^size(24)^nfx(0)&#xECA5; = 96",
-        ExpressionCategoryType::TempoMarks,
-        tempoPlaybackXml(100, 1024),
-        false,
-        "Finale Maestro",
-        4095);
+        "^fontid(0)^size(24)^nfx(0)&#xECA5; = 96", ExpressionCategoryType::TempoMarks, tempoPlaybackXml(100, 1024), false, "Finale Maestro", 4095);
     const auto result = classifyExpression(context.def);
 
     ASSERT_EQ(result.type, ExpressionType::MetronomeMark);
@@ -613,13 +574,9 @@ TEST(ExpressionClassification, KeepsMetronomePlaybackSeparateFromTheDisplayedNum
 
 TEST(ExpressionClassification, ReadsAFractionalDisplayedMetronomeNumber)
 {
-    const auto result = classifyExpression(makeTextExpressionContext(
-        "^fontid(0)^size(24)^nfx(0)&#xECA5; = 132.5",
-        ExpressionCategoryType::TempoMarks,
-        {},
-        false,
-        "Finale Maestro",
-        4095).def);
+    const auto result = classifyExpression(
+        makeTextExpressionContext("^fontid(0)^size(24)^nfx(0)&#xECA5; = 132.5", ExpressionCategoryType::TempoMarks, {}, false, "Finale Maestro", 4095)
+            .def);
 
     ASSERT_EQ(result.type, ExpressionType::MetronomeMark);
     const auto& mark = result.metronomeMark();
@@ -629,15 +586,11 @@ TEST(ExpressionClassification, ReadsAFractionalDisplayedMetronomeNumber)
 
 TEST(ExpressionClassification, RejectsAMalformedDecimalMetronomeNumber)
 {
-    const std::vector<std::string> malformed = { "132..5", "132.5.5", ".5", "132." };
+    const std::vector<std::string> malformed = {"132..5", "132.5.5", ".5", "132."};
     for (const auto& number : malformed) {
         const auto result = classifyExpression(makeTextExpressionContext(
-            "^fontid(0)^size(24)^nfx(0)&#xECA5; = " + number,
-            ExpressionCategoryType::TempoMarks,
-            {},
-            false,
-            "Finale Maestro",
-            4095).def);
+            "^fontid(0)^size(24)^nfx(0)&#xECA5; = " + number, ExpressionCategoryType::TempoMarks, {}, false, "Finale Maestro", 4095)
+                .def);
         EXPECT_NE(result.type, ExpressionType::MetronomeMark) << number;
     }
 }
@@ -646,39 +599,35 @@ TEST(ExpressionClassification, MapsEverySimpleMetronomeNoteGlyphToANoteType)
 {
     using TestCase = std::pair<std::string, NoteType>;
     const std::vector<TestCase> cases = {
-        { "&#xECA0;", NoteType::Breve },
-        { "&#xECA1;", NoteType::Breve },
-        { "&#xECA2;", NoteType::Whole },
-        { "&#xECA3;", NoteType::Half },
-        { "&#xECA4;", NoteType::Half },
-        { "&#xECA5;", NoteType::Quarter },
-        { "&#xECA6;", NoteType::Quarter },
-        { "&#xECA7;", NoteType::Eighth },
-        { "&#xECA8;", NoteType::Eighth },
-        { "&#xECA9;", NoteType::Note16th },
-        { "&#xECAA;", NoteType::Note16th },
-        { "&#xECAB;", NoteType::Note32nd },
-        { "&#xECAC;", NoteType::Note32nd },
-        { "&#xECAD;", NoteType::Note64th },
-        { "&#xECAE;", NoteType::Note64th },
-        { "&#xECAF;", NoteType::Note128th },
-        { "&#xECB0;", NoteType::Note128th },
-        { "&#xECB1;", NoteType::Note256th },
-        { "&#xECB2;", NoteType::Note256th },
-        { "&#xECB3;", NoteType::Note512th },
-        { "&#xECB4;", NoteType::Note512th },
-        { "&#xECB5;", NoteType::Note1024th },
-        { "&#xECB6;", NoteType::Note1024th }
+        {"&#xECA0;", NoteType::Breve},
+        {"&#xECA1;", NoteType::Breve},
+        {"&#xECA2;", NoteType::Whole},
+        {"&#xECA3;", NoteType::Half},
+        {"&#xECA4;", NoteType::Half},
+        {"&#xECA5;", NoteType::Quarter},
+        {"&#xECA6;", NoteType::Quarter},
+        {"&#xECA7;", NoteType::Eighth},
+        {"&#xECA8;", NoteType::Eighth},
+        {"&#xECA9;", NoteType::Note16th},
+        {"&#xECAA;", NoteType::Note16th},
+        {"&#xECAB;", NoteType::Note32nd},
+        {"&#xECAC;", NoteType::Note32nd},
+        {"&#xECAD;", NoteType::Note64th},
+        {"&#xECAE;", NoteType::Note64th},
+        {"&#xECAF;", NoteType::Note128th},
+        {"&#xECB0;", NoteType::Note128th},
+        {"&#xECB1;", NoteType::Note256th},
+        {"&#xECB2;", NoteType::Note256th},
+        {"&#xECB3;", NoteType::Note512th},
+        {"&#xECB4;", NoteType::Note512th},
+        {"&#xECB5;", NoteType::Note1024th},
+        {"&#xECB6;", NoteType::Note1024th},
     };
 
     for (const auto& [glyph, expected] : cases) {
         const auto result = classifyExpression(makeTextExpressionContext(
-            "^fontid(0)^size(24)^nfx(0)" + glyph + "=60",
-            ExpressionCategoryType::TempoMarks,
-            {},
-            false,
-            "Finale Maestro",
-            4095).def);
+            "^fontid(0)^size(24)^nfx(0)" + glyph + "=60", ExpressionCategoryType::TempoMarks, {}, false, "Finale Maestro", 4095)
+                .def);
         ASSERT_EQ(result.type, ExpressionType::MetronomeMark) << glyph;
         EXPECT_EQ(result.metronomeMark().noteType, expected) << glyph;
     }
@@ -687,39 +636,22 @@ TEST(ExpressionClassification, MapsEverySimpleMetronomeNoteGlyphToANoteType)
 TEST(ExpressionClassification, DoesNotExtractMetronomeMarksFromLongerText)
 {
     const auto extraText = classifyExpression(makeTextExpressionContext(
-        "Allegro ^fontid(0)^size(24)^nfx(0)&#xECA5;=120",
-        ExpressionCategoryType::Invalid,
-        {},
-        false,
-        "Finale Maestro",
-        4095).def);
+        "Allegro ^fontid(0)^size(24)^nfx(0)&#xECA5;=120", ExpressionCategoryType::Invalid, {}, false, "Finale Maestro", 4095)
+            .def);
     EXPECT_EQ(extraText.type, ExpressionType::GenericText);
 
     const auto extraGlyph = classifyExpression(makeTextExpressionContext(
-        "^fontid(0)^size(24)^nfx(0)&#xECA5;&#xECA7;=120",
-        ExpressionCategoryType::TempoMarks,
-        {},
-        false,
-        "Finale Maestro",
-        4095).def);
+        "^fontid(0)^size(24)^nfx(0)&#xECA5;&#xECA7;=120", ExpressionCategoryType::TempoMarks, {}, false, "Finale Maestro", 4095)
+            .def);
     EXPECT_EQ(extraGlyph.type, ExpressionType::TempoMark);
 
-    const auto missingNumber = classifyExpression(makeTextExpressionContext(
-        "^fontid(0)^size(24)^nfx(0)&#xECA5;=",
-        ExpressionCategoryType::TempoMarks,
-        {},
-        false,
-        "Finale Maestro",
-        4095).def);
+    const auto missingNumber = classifyExpression(
+        makeTextExpressionContext("^fontid(0)^size(24)^nfx(0)&#xECA5;=", ExpressionCategoryType::TempoMarks, {}, false, "Finale Maestro", 4095).def);
     EXPECT_EQ(missingNumber.type, ExpressionType::TempoMark);
 
-    const auto splitNumber = classifyExpression(makeTextExpressionContext(
-        "^fontid(0)^size(24)^nfx(0)&#xECA5;=1 20",
-        ExpressionCategoryType::TempoMarks,
-        {},
-        false,
-        "Finale Maestro",
-        4095).def);
+    const auto splitNumber = classifyExpression(
+        makeTextExpressionContext("^fontid(0)^size(24)^nfx(0)&#xECA5;=1 20", ExpressionCategoryType::TempoMarks, {}, false, "Finale Maestro", 4095)
+            .def);
     EXPECT_EQ(splitNumber.type, ExpressionType::TempoMark);
 }
 
@@ -770,43 +702,43 @@ TEST(ExpressionClassification, ClassifiesStringTechniqueTokens)
     };
 
     const std::vector<ExpectedTechnique> expected = {
-        { "arco", expression::TechniqueText::Type::Arco },
-        { "pizz", expression::TechniqueText::Type::Pizzicato },
-        { "pizz.", expression::TechniqueText::Type::Pizzicato },
-        { "col legno", expression::TechniqueText::Type::ColLegno },
-        { "col legno.", expression::TechniqueText::Type::ColLegno },
-        { "c. legno.", expression::TechniqueText::Type::ColLegno },
-        { "col legno batt.", expression::TechniqueText::Type::ColLegnoBattuto },
-        { "c. legno battuto", expression::TechniqueText::Type::ColLegnoBattuto },
-        { "col legno tratt.", expression::TechniqueText::Type::ColLegnoTratto },
-        { "c. legno tratto", expression::TechniqueText::Type::ColLegnoTratto },
-        { "sul pont.", expression::TechniqueText::Type::SulPonticello },
-        { "s. pont", expression::TechniqueText::Type::SulPonticello },
-        { "sul tasto", expression::TechniqueText::Type::SulTasto },
-        { "s. tasto.", expression::TechniqueText::Type::SulTasto },
-        { "flaut", expression::TechniqueText::Type::Flautando },
-        { "flaut.", expression::TechniqueText::Type::Flautando },
-        { "flautando", expression::TechniqueText::Type::Flautando },
-        { "ordinario", expression::TechniqueText::Type::Ordinario },
-        { "ord", expression::TechniqueText::Type::Ordinario },
-        { "ord.", expression::TechniqueText::Type::Ordinario },
-        { "straight mute", expression::TechniqueText::Type::StraightMute },
-        { "straight", expression::TechniqueText::Type::StraightMute },
-        { "metal mute", expression::TechniqueText::Type::StraightMute },
-        { "wood mute", expression::TechniqueText::Type::StraightMute },
-        { "fiber mute", expression::TechniqueText::Type::StraightMute },
-        { "fibre mute", expression::TechniqueText::Type::StraightMute },
-        { "cup mute", expression::TechniqueText::Type::CupMute },
-        { "cup", expression::TechniqueText::Type::CupMute },
-        { "harmon mute", expression::TechniqueText::Type::HarmonMute },
-        { "wah-wah", expression::TechniqueText::Type::HarmonMute },
-        { "plunger mute", expression::TechniqueText::Type::PlungerMute },
-        { "bucket mute", expression::TechniqueText::Type::BucketMute },
-        { "solotone mute", expression::TechniqueText::Type::SolotoneMute },
-        { "stop mute", expression::TechniqueText::Type::StopMute },
-        { "brass mute", expression::TechniqueText::Type::StopMute },
-        { "stopped", expression::TechniqueText::Type::Stopped },
-        { "stop", expression::TechniqueText::Type::Stopped }
+        {"arco", expression::TechniqueText::Type::Arco},
+        {"pizz", expression::TechniqueText::Type::Pizzicato},
+        {"pizz.", expression::TechniqueText::Type::Pizzicato},
+        {"col legno", expression::TechniqueText::Type::ColLegno},
+        {"col legno.", expression::TechniqueText::Type::ColLegno},
+        {"c. legno.", expression::TechniqueText::Type::ColLegno},
+        {"col legno batt.", expression::TechniqueText::Type::ColLegnoBattuto},
+        {"c. legno battuto", expression::TechniqueText::Type::ColLegnoBattuto},
+        {"col legno tratt.", expression::TechniqueText::Type::ColLegnoTratto},
+        {"c. legno tratto", expression::TechniqueText::Type::ColLegnoTratto},
+        {"sul pont.", expression::TechniqueText::Type::SulPonticello},
+        {"s. pont", expression::TechniqueText::Type::SulPonticello},
+        {"sul tasto", expression::TechniqueText::Type::SulTasto},
+        {"s. tasto.", expression::TechniqueText::Type::SulTasto},
+        {"flaut", expression::TechniqueText::Type::Flautando},
+        {"flaut.", expression::TechniqueText::Type::Flautando},
+        {"flautando", expression::TechniqueText::Type::Flautando},
+        {"ordinario", expression::TechniqueText::Type::Ordinario},
+        {"ord", expression::TechniqueText::Type::Ordinario},
+        {"ord.", expression::TechniqueText::Type::Ordinario},
+        {"straight mute", expression::TechniqueText::Type::StraightMute},
+        {"straight", expression::TechniqueText::Type::StraightMute},
+        {"metal mute", expression::TechniqueText::Type::StraightMute},
+        {"wood mute", expression::TechniqueText::Type::StraightMute},
+        {"fiber mute", expression::TechniqueText::Type::StraightMute},
+        {"fibre mute", expression::TechniqueText::Type::StraightMute},
+        {"cup mute", expression::TechniqueText::Type::CupMute},
+        {"cup", expression::TechniqueText::Type::CupMute},
+        {"harmon mute", expression::TechniqueText::Type::HarmonMute},
+        {"wah-wah", expression::TechniqueText::Type::HarmonMute},
+        {"plunger mute", expression::TechniqueText::Type::PlungerMute},
+        {"bucket mute", expression::TechniqueText::Type::BucketMute},
+        {"solotone mute", expression::TechniqueText::Type::SolotoneMute},
+        {"stop mute", expression::TechniqueText::Type::StopMute},
+        {"brass mute", expression::TechniqueText::Type::StopMute},
+        {"stopped", expression::TechniqueText::Type::Stopped},
+        {"stop", expression::TechniqueText::Type::Stopped},
     };
 
     for (const auto& item : expected) {
@@ -820,7 +752,7 @@ TEST(ExpressionClassification, ClassifiesStringTechniqueTokens)
 
 TEST(ExpressionClassification, LeavesGenericMuteTextUnclassified)
 {
-    for (const std::string_view text : { "con sord.", "mute", "muted", "remove mute", "senza sord.", "open" }) {
+    for (const std::string_view text : {"con sord.", "mute", "muted", "remove mute", "senza sord.", "open"}) {
         const auto result = classifyTextExpression(std::string(text), ExpressionCategoryType::ExpressiveText);
         EXPECT_EQ(result.type, ExpressionType::GenericText) << text;
         EXPECT_EQ(result.genericText().text, text) << text;
@@ -837,7 +769,7 @@ TEST(ExpressionClassification, DoesNotClassifyTremoloTextAsTechnique)
 
 TEST(ExpressionClassification, ClassifiesTempoPrimoAsTempoAlteration)
 {
-    for (const auto* text : { "Tempo I", "tempo primo", "Tempo Iº" }) {
+    for (const auto* text : {"Tempo I", "tempo primo", "Tempo Iº"}) {
         const auto result = classifyTextExpression(text, ExpressionCategoryType::TempoAlterations);
         EXPECT_EQ(result.type, ExpressionType::TempoAlteration) << text;
         EXPECT_EQ(result.basis, ClassificationBasis::FinaleCategoryConfirmed) << text;
@@ -929,13 +861,7 @@ TEST(ExpressionClassification, BatchClassificationPropagatesTopStaffSystemTextBy
 TEST(ExpressionClassification, ClassifiesSystemExpressionWithRehearsalMarkStyleAsRehearsalMark)
 {
     const auto rehearsalContext = makeTextExpressionContext(
-        "Dolce",
-        ExpressionCategoryType::Misc,
-        {},
-        true,
-        "Times New Roman",
-        0,
-        "      <rehearsalMarkStyle>letters</rehearsalMarkStyle>\n");
+        "Dolce", ExpressionCategoryType::Misc, {}, true, "Times New Roman", 0, "      <rehearsalMarkStyle>letters</rehearsalMarkStyle>\n");
     const auto rehearsal = classifyExpression(rehearsalContext.assignment);
 
     EXPECT_EQ(rehearsal.type, ExpressionType::RehearsalMark);
@@ -945,10 +871,7 @@ TEST(ExpressionClassification, ClassifiesSystemExpressionWithRehearsalMarkStyleA
 
 TEST(ExpressionClassification, ExtractsTextExpressionTempoPlayback)
 {
-    const auto context = makeTextExpressionContext(
-        "Allegro",
-        ExpressionCategoryType::Misc,
-        tempoPlaybackXml(132, 1024));
+    const auto context = makeTextExpressionContext("Allegro", ExpressionCategoryType::Misc, tempoPlaybackXml(132, 1024));
     const auto result = classifyExpression(context.def);
 
     EXPECT_EQ(result.type, ExpressionType::TempoMark);
@@ -960,10 +883,7 @@ TEST(ExpressionClassification, ExtractsTextExpressionTempoPlayback)
 
 TEST(ExpressionClassification, TempoPlaybackOverridesTextExpressionCategory)
 {
-    const auto context = makeTextExpressionContext(
-        "dolce",
-        ExpressionCategoryType::Dynamics,
-        tempoPlaybackXml(88, 1024));
+    const auto context = makeTextExpressionContext("dolce", ExpressionCategoryType::Dynamics, tempoPlaybackXml(88, 1024));
     const auto result = classifyExpression(context.def);
 
     EXPECT_EQ(result.type, ExpressionType::TempoMark);
@@ -975,9 +895,7 @@ TEST(ExpressionClassification, TempoPlaybackOverridesTextExpressionCategory)
 
 TEST(ExpressionClassification, ClassifiesShapeExpressionTempoPlayback)
 {
-    const auto context = makeShapeExpressionContext(
-        ExpressionCategoryType::TempoMarks,
-        tempoPlaybackXml(96, 512));
+    const auto context = makeShapeExpressionContext(ExpressionCategoryType::TempoMarks, tempoPlaybackXml(96, 512));
     const auto result = classifyExpression(context.def);
 
     EXPECT_EQ(result.type, ExpressionType::TempoMark);
@@ -1000,16 +918,12 @@ static std::string centeredExpressionXml()
            "      <horzExprAlign>center</horzExprAlign>\n";
 }
 
-static ExpressionClassification classifyMultimeasureRestNumberCandidate(
-    const std::string& text,
-    const std::string& expressionXml = centeredExpressionXml(),
-    const std::string& mmRestFontName = "Maestro",
-    ExpressionCategoryType categoryType = ExpressionCategoryType::ExpressiveText,
-    const std::string& extraCategoryXml = {})
+static ExpressionClassification classifyMultimeasureRestNumberCandidate(const std::string& text,
+    const std::string& expressionXml = centeredExpressionXml(), const std::string& mmRestFontName = "Maestro",
+    ExpressionCategoryType categoryType = ExpressionCategoryType::ExpressiveText, const std::string& extraCategoryXml = {})
 {
-    const auto context = makeTextExpressionContext(
-        text, categoryType, {}, false, "Times New Roman", 0, expressionXml,
-        mmRestFontName, 0, extraCategoryXml);
+    const auto context =
+        makeTextExpressionContext(text, categoryType, {}, false, "Times New Roman", 0, expressionXml, mmRestFontName, 0, extraCategoryXml);
     return classifyExpression(context.def);
 }
 
@@ -1025,10 +939,8 @@ TEST(ExpressionClassification, ClassifiesMultimeasureRestNumberFromAsciiDigits)
 TEST(ExpressionClassification, ClassifiesMultimeasureRestNumberFromTimeSignatureGlyphs)
 {
     // Bravura encodes time-signature digits at U+E080-U+E089; U+E081 U+E082 spells "12".
-    const auto result = classifyMultimeasureRestNumberCandidate(
-        "^fontid(1)^size(24)^nfx(0)" + makeGlyphText(u8""),
-        centeredExpressionXml(),
-        "Bravura");
+    const auto result =
+        classifyMultimeasureRestNumberCandidate("^fontid(1)^size(24)^nfx(0)" + makeGlyphText(u8""), centeredExpressionXml(), "Bravura");
 
     ASSERT_EQ(result.type, ExpressionType::MultimeasureRestNumber);
     EXPECT_EQ(result.multimeasureRestNumber().number, 12);
@@ -1036,10 +948,9 @@ TEST(ExpressionClassification, ClassifiesMultimeasureRestNumberFromTimeSignature
 
 TEST(ExpressionClassification, ClassifiesMultimeasureRestNumberCenteredOverBarlines)
 {
-    const auto result = classifyMultimeasureRestNumberCandidate(
-        "^fontid(1)^size(24)^nfx(0)7",
-        "      <horzMeasExprAlign>centerOverBarlines</horzMeasExprAlign>\n"
-        "      <horzExprAlign>center</horzExprAlign>\n");
+    const auto result =
+        classifyMultimeasureRestNumberCandidate("^fontid(1)^size(24)^nfx(0)7", "      <horzMeasExprAlign>centerOverBarlines</horzMeasExprAlign>\n"
+                                                                               "      <horzExprAlign>center</horzExprAlign>\n");
 
     ASSERT_EQ(result.type, ExpressionType::MultimeasureRestNumber);
     EXPECT_EQ(result.multimeasureRestNumber().number, 7);
@@ -1050,11 +961,8 @@ TEST(ExpressionClassification, ClassifiesMultimeasureRestNumberThatTracksItsCate
     // Marking categories synchronize the positioning stored on each expression definition rather
     // than overriding it, so useCategoryPos accompanies the definition's own centered values. This
     // is the shape Finale writes for a category-managed expression.
-    const auto result = classifyMultimeasureRestNumberCandidate(
-        "^fontid(1)^size(24)^nfx(0)23",
-        centeredExpressionXml() + "      <useCategoryPos/>\n",
-        "Maestro",
-        ExpressionCategoryType::ExpressiveText,
+    const auto result = classifyMultimeasureRestNumberCandidate("^fontid(1)^size(24)^nfx(0)23", centeredExpressionXml() + "      <useCategoryPos/>\n",
+        "Maestro", ExpressionCategoryType::ExpressiveText,
         "      <horzAlign>centerOverMusic</horzAlign>\n"
         "      <justification>center</justification>\n");
 
@@ -1065,10 +973,7 @@ TEST(ExpressionClassification, ClassifiesMultimeasureRestNumberThatTracksItsCate
 TEST(ExpressionClassification, RejectsMultimeasureRestNumberWhenOnlyItsCategoryIsCentered)
 {
     // If a corrupt file disagrees with its category, the definition is what Finale draws.
-    const auto result = classifyMultimeasureRestNumberCandidate(
-        "^fontid(1)^size(24)^nfx(0)23",
-        "      <useCategoryPos/>\n",
-        "Maestro",
+    const auto result = classifyMultimeasureRestNumberCandidate("^fontid(1)^size(24)^nfx(0)23", "      <useCategoryPos/>\n", "Maestro",
         ExpressionCategoryType::ExpressiveText,
         "      <horzAlign>centerOverMusic</horzAlign>\n"
         "      <justification>center</justification>\n");
@@ -1086,10 +991,9 @@ TEST(ExpressionClassification, RejectsMultimeasureRestNumberInOtherFont)
 
 TEST(ExpressionClassification, RejectsMultimeasureRestNumberThatIsNotCentered)
 {
-    const auto result = classifyMultimeasureRestNumberCandidate(
-        "^fontid(1)^size(24)^nfx(0)12",
-        "      <horzMeasExprAlign>leftEdge</horzMeasExprAlign>\n"
-        "      <horzExprAlign>left</horzExprAlign>\n");
+    const auto result =
+        classifyMultimeasureRestNumberCandidate("^fontid(1)^size(24)^nfx(0)12", "      <horzMeasExprAlign>leftEdge</horzMeasExprAlign>\n"
+                                                                                "      <horzExprAlign>left</horzExprAlign>\n");
 
     EXPECT_EQ(result.type, ExpressionType::GenericText);
 }
@@ -1104,10 +1008,7 @@ TEST(ExpressionClassification, RejectsMultimeasureRestNumberWithNonNumericText)
 TEST(ExpressionClassification, PrefersRehearsalMarkCategoryOverMultimeasureRestNumber)
 {
     const auto result = classifyMultimeasureRestNumberCandidate(
-        "^fontid(1)^size(24)^nfx(0)12",
-        centeredExpressionXml(),
-        "Maestro",
-        ExpressionCategoryType::RehearsalMarks);
+        "^fontid(1)^size(24)^nfx(0)12", centeredExpressionXml(), "Maestro", ExpressionCategoryType::RehearsalMarks);
 
     EXPECT_EQ(result.type, ExpressionType::RehearsalMark);
 }
@@ -1117,8 +1018,7 @@ TEST(ExpressionClassification, ClassifiesMultimeasureRestNumberBeforeSystemTextR
     // A top-staff assignment routes through the system-text path, whose rehearsal-mark heuristic
     // would otherwise claim a bare two-digit number.
     const auto context = makeTextExpressionContext(
-        "^fontid(1)^size(24)^nfx(0)12", ExpressionCategoryType::ExpressiveText, {}, true,
-        "Times New Roman", 0, centeredExpressionXml(), "Maestro");
+        "^fontid(1)^size(24)^nfx(0)12", ExpressionCategoryType::ExpressiveText, {}, true, "Times New Roman", 0, centeredExpressionXml(), "Maestro");
     const auto result = classifyExpression(context.def, context.assignment);
 
     ASSERT_EQ(result.type, ExpressionType::MultimeasureRestNumber);
@@ -1138,20 +1038,15 @@ static std::string staffXml(const std::string& altNotation)
 
 /// Classifies @p text as it would appear on staff 1, which displays measure 1 with @p altNotation.
 /// @p configureAssignment adjusts the assignment before it is classified.
-static ExpressionClassification classifyMeasureRepeatCountCandidate(
-    const std::string& text,
-    const std::string& altNotation = "oneBarRepeat",
-    const std::string& expressionXml = centeredExpressionXml(),
-    ExpressionCategoryType categoryType = ExpressionCategoryType::Misc,
+static ExpressionClassification classifyMeasureRepeatCountCandidate(const std::string& text, const std::string& altNotation = "oneBarRepeat",
+    const std::string& expressionXml = centeredExpressionXml(), ExpressionCategoryType categoryType = ExpressionCategoryType::Misc,
     const std::function<void(others::MeasureExprAssign&)>& configureAssignment = {})
 {
-    const auto context = makeTextExpressionContext(
-        text, categoryType, {}, false, "Times New Roman", 0, expressionXml,
-        {}, 0, {}, staffXml(altNotation));
-    auto assignment = std::make_shared<others::MeasureExprAssign>(
-        context.document, SCORE_PARTID, EnigmaBase::ShareMode::All, Cmper{ 1 }, Inci{ 1 });
+    const auto context =
+        makeTextExpressionContext(text, categoryType, {}, false, "Times New Roman", 0, expressionXml, {}, 0, {}, staffXml(altNotation));
+    auto assignment = std::make_shared<others::MeasureExprAssign>(context.document, SCORE_PARTID, EnigmaBase::ShareMode::All, Cmper{1}, Inci{1});
     assignment->textExprId = 1;
-    assignment->staffAssign = StaffCmper{ 1 };
+    assignment->staffAssign = StaffCmper{1};
     if (configureAssignment) {
         configureAssignment(*assignment);
     }
@@ -1194,9 +1089,7 @@ TEST(ExpressionClassification, RejectsMeasureRepeatCountUnderOtherAlternateNotat
 
 TEST(ExpressionClassification, RejectsMeasureRepeatCountThatIsNotCentered)
 {
-    const auto result = classifyMeasureRepeatCountCandidate(
-        "2",
-        "oneBarRepeat",
+    const auto result = classifyMeasureRepeatCountCandidate("2", "oneBarRepeat",
         "      <horzMeasExprAlign>leftEdge</horzMeasExprAlign>\n"
         "      <horzExprAlign>left</horzExprAlign>\n");
 
@@ -1220,8 +1113,7 @@ TEST(ExpressionClassification, RejectsMeasureRepeatCountOfZero)
 
 TEST(ExpressionClassification, PrefersRehearsalMarkCategoryOverMeasureRepeatCount)
 {
-    const auto result = classifyMeasureRepeatCountCandidate(
-        "2", "oneBarRepeat", centeredExpressionXml(), ExpressionCategoryType::RehearsalMarks);
+    const auto result = classifyMeasureRepeatCountCandidate("2", "oneBarRepeat", centeredExpressionXml(), ExpressionCategoryType::RehearsalMarks);
 
     EXPECT_EQ(result.type, ExpressionType::RehearsalMark);
 }
@@ -1230,8 +1122,7 @@ TEST(ExpressionClassification, RejectsMeasureRepeatCountAssignedThroughStaffList
 {
     // One assignment covering a list of staves marks the passage rather than the notation of the
     // staff it happens to resolve to.
-    const auto result = classifyMeasureRepeatCountCandidate(
-        "2", "oneBarRepeat", centeredExpressionXml(), ExpressionCategoryType::Misc,
+    const auto result = classifyMeasureRepeatCountCandidate("2", "oneBarRepeat", centeredExpressionXml(), ExpressionCategoryType::Misc,
         [](others::MeasureExprAssign& assignment) { assignment.staffList = 1; });
 
     EXPECT_EQ(result.type, ExpressionType::GenericText);
@@ -1241,8 +1132,7 @@ TEST(ExpressionClassification, ClassifiesMeasureRepeatCountOnHiddenAssignment)
 {
     // Whether a marking is drawn is the consumer's business, so a hidden assignment is still
     // classified as what it is.
-    const auto result = classifyMeasureRepeatCountCandidate(
-        "2", "oneBarRepeat", centeredExpressionXml(), ExpressionCategoryType::Misc,
+    const auto result = classifyMeasureRepeatCountCandidate("2", "oneBarRepeat", centeredExpressionXml(), ExpressionCategoryType::Misc,
         [](others::MeasureExprAssign& assignment) { assignment.hidden = true; });
 
     ASSERT_EQ(result.type, ExpressionType::MeasureRepeatCount);
@@ -1252,11 +1142,8 @@ TEST(ExpressionClassification, ClassifiesMeasureRepeatCountOnHiddenAssignment)
 TEST(ExpressionClassification, ClassifiesMeasureRepeatCountNotAssignedInRequestedPart)
 {
     // A part-only assignment is drawn in no part here, which again is for the consumer to filter.
-    const auto result = classifyMeasureRepeatCountCandidate(
-        "2", "oneBarRepeat", centeredExpressionXml(), ExpressionCategoryType::Misc,
-        [](others::MeasureExprAssign& assignment) {
-            assignment.showStaffList = others::MeasureExprAssign::ShowStaffList::PartOnly;
-        });
+    const auto result = classifyMeasureRepeatCountCandidate("2", "oneBarRepeat", centeredExpressionXml(), ExpressionCategoryType::Misc,
+        [](others::MeasureExprAssign& assignment) { assignment.showStaffList = others::MeasureExprAssign::ShowStaffList::PartOnly; });
 
     ASSERT_EQ(result.type, ExpressionType::MeasureRepeatCount);
     EXPECT_EQ(result.measureRepeatCount().count, 2);
@@ -1266,12 +1153,12 @@ TEST(ExpressionClassification, ClassifiesMeasureRepeatCountBeforeSystemTextRehea
 {
     // A top-staff assignment routes through the system-text path, whose rehearsal-mark heuristic
     // would otherwise claim a bare number. Scroll view resolves the top staff to staff 1.
-    const auto context = makeTextExpressionContext(
-        "2", ExpressionCategoryType::ExpressiveText, {}, true, "Times New Roman", 0,
-        centeredExpressionXml(), {}, 0, {},
-        staffXml("oneBarRepeat") + "    <instUsed cmper=\"0\" inci=\"0\">\n"
-                                   "      <inst>1</inst>\n"
-                                   "    </instUsed>\n");
+    const auto context =
+        makeTextExpressionContext("2", ExpressionCategoryType::ExpressiveText, {}, true, "Times New Roman", 0, centeredExpressionXml(), {}, 0, {},
+            staffXml("oneBarRepeat")
+                + "    <instUsed cmper=\"0\" inci=\"0\">\n"
+                  "      <inst>1</inst>\n"
+                  "    </instUsed>\n");
     const auto result = classifyExpression(context.def, context.assignment);
 
     ASSERT_EQ(result.type, ExpressionType::MeasureRepeatCount);

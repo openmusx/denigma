@@ -28,15 +28,11 @@ namespace denigma {
 namespace formats {
 namespace enigmaxml {
 
-ConversionResult MusxToEnigmaXmlConverter::convert(const IRandomAccessReader& input,
-                                                   std::ostream& output,
-                                                   const Options& options) const
+ConversionResult MusxToEnigmaXmlConverter::convert(const IRandomAccessReader& input, std::ostream& output, const Options& options) const
 {
     ConversionResult result;
     DenigmaContext context(DENIGMA_NAME);
-    context.inputFilePath = options.common.sourceName.empty()
-        ? std::filesystem::path("input.musx")
-        : utils::utf8ToPath(options.common.sourceName);
+    context.inputFilePath = options.common.sourceName.empty() ? std::filesystem::path("input.musx") : utils::utf8ToPath(options.common.sourceName);
     context.noValidate = !options.common.validate;
     context.logCallback = options.common.logCallback;
     context.conversionResult = &result;
@@ -47,9 +43,7 @@ ConversionResult MusxToEnigmaXmlConverter::convert(const IRandomAccessReader& in
     return result;
 }
 
-ConversionResult MusxToEnigmaXmlConverter::convert(const IRandomAccessReader& input,
-                                                   std::ostream& output,
-                                                   const ConversionRequest& request) const
+ConversionResult MusxToEnigmaXmlConverter::convert(const IRandomAccessReader& input, std::ostream& output, const ConversionRequest& request) const
 {
     return convert(input, output, optionsFromRequest<Options>(request, "MusxToEnigmaXmlConverter"));
 }

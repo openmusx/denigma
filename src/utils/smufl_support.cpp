@@ -19,9 +19,9 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#include <istream>
 #include <array>
 #include <fstream>
+#include <istream>
 #include <optional>
 #include <stdexcept>
 #include <string>
@@ -94,11 +94,8 @@ static SmuflFontMetadata parseSmuflMetadata(std::istream& jsonFile)
             if (!sw.is_array() || !ne.is_array() || sw.size() < 2 || ne.size() < 2) {
                 continue;
             }
-            metadata.glyphBBoxes.emplace(item.key(),
-                                         std::array<EvpuFloat, 4>{ sw[0].get<EvpuFloat>(),
-                                                                   sw[1].get<EvpuFloat>(),
-                                                                   ne[0].get<EvpuFloat>(),
-                                                                   ne[1].get<EvpuFloat>() });
+            metadata.glyphBBoxes.emplace(
+                item.key(), std::array<EvpuFloat, 4>{sw[0].get<EvpuFloat>(), sw[1].get<EvpuFloat>(), ne[0].get<EvpuFloat>(), ne[1].get<EvpuFloat>()});
         }
     }
     return metadata;
@@ -125,8 +122,7 @@ static const SmuflFontMetadata* metadataForFont(const std::filesystem::path& fon
 
 } // namespace
 
-static std::optional<std::string> smuflGlyphNameFromMetadata(
-    const std::filesystem::path& fontMetadataPath, char32_t codepoint)
+static std::optional<std::string> smuflGlyphNameFromMetadata(const std::filesystem::path& fontMetadataPath, char32_t codepoint)
 {
     if (const auto* metadata = metadataForFont(fontMetadataPath)) {
         auto it = metadata->optionalGlyphNames.find(codepoint);
@@ -220,9 +216,7 @@ std::optional<SmuflGlyphMetricsEvpu> smuflGlyphMetricsForFont(const FontInfo& fo
 
     SmuflGlyphMetricsEvpu result;
     auto advanceIt = metadata->glyphAdvanceWidths.find(glyphName.value());
-    const EvpuFloat advanceInSpaces = (advanceIt != metadata->glyphAdvanceWidths.end())
-                                      ? advanceIt->second
-                                      : (bbox[2] - bbox[0]);
+    const EvpuFloat advanceInSpaces = (advanceIt != metadata->glyphAdvanceWidths.end()) ? advanceIt->second : (bbox[2] - bbox[0]);
     result.advance = advanceInSpaces * evpuPerSpaceAtSize;
     result.top = bbox[3] * evpuPerSpaceAtSize;
     result.bottom = bbox[1] * evpuPerSpaceAtSize;
@@ -249,7 +243,7 @@ std::vector<SmuflGlyphRun> smuflSplitRunsByGlyphMapping(const MusxInstance<FontI
 
     const auto append = [&](bool isSmufl, std::string_view source, size_t offset, size_t length) -> SmuflGlyphRun& {
         if (result.empty() || result.back().isSmufl != isSmufl) {
-            result.push_back(SmuflGlyphRun{ isSmufl, {}, {} });
+            result.push_back(SmuflGlyphRun{isSmufl, {}, {}});
         }
         result.back().text.append(source.substr(offset, length));
         return result.back();

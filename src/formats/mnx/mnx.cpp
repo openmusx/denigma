@@ -19,15 +19,15 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#include <iostream>
 #include <filesystem>
 #include <fstream>
+#include <iostream>
 #include <ostream>
 #include <unordered_map>
 
-#include "mnx.h"
 #include "core/element_ids.h"
 #include "core/musx_reader.h"
+#include "mnx.h"
 #include "mnx_gaps.h"
 #include "utils/stringutils.h"
 
@@ -66,7 +66,9 @@ void MnxMusxMapping::logMessage(LogMsg&& msg, MessageSeverity severity)
             if (document) {
                 if (auto staff = others::StaffComposite::createCurrent(document, SCORE_PARTID, current.staff, current.meas, 0)) {
                     auto instName = staff->getFullInstrumentName();
-                    if (!instName.empty()) return instName;
+                    if (!instName.empty()) {
+                        return instName;
+                    }
                 }
             }
             return "Staff " + std::to_string(current.staff);
@@ -84,17 +86,17 @@ void MnxMusxMapping::logMessage(LogMsg&& msg, MessageSeverity severity)
 void MnxMusxMapping::logDiscardedCueLayerFrame(LayerIndex layer)
 {
     discardedCueFrames++;
-    logMessage(LogMsg() << "discarded cue material detected by --cue-layer in measure "
-        << current.meas << ", staff " << current.staff << ", layer " << (layer + 1)
-        << "; MNX does not currently support cues.", MessageSeverity::Verbose);
+    logMessage(LogMsg() << "discarded cue material detected by --cue-layer in measure " << current.meas << ", staff " << current.staff << ", layer "
+                        << (layer + 1) << "; MNX does not currently support cues.",
+        MessageSeverity::Verbose);
 }
 
 void MnxMusxMapping::logDiscardedHeuristicCueStaffMeasure()
 {
     discardedCueFrames++;
-    logMessage(LogMsg() << "discarded cue material detected heuristically in measure "
-        << current.meas << ", staff " << current.staff
-        << "; MNX does not currently support cues.", MessageSeverity::Verbose);
+    logMessage(LogMsg() << "discarded cue material detected heuristically in measure " << current.meas << ", staff " << current.staff
+                        << "; MNX does not currently support cues.",
+        MessageSeverity::Verbose);
 }
 
 void MnxMusxMapping::setCurrentMeasureStaff(const MusxInstance<others::Measure>& musxMeasure, StaffCmper staffCmper)
@@ -102,8 +104,7 @@ void MnxMusxMapping::setCurrentMeasureStaff(const MusxInstance<others::Measure>&
     current.clear();
     current.meas = musxMeasure->getCmper();
     current.staff = staffCmper;
-    current.staffMeasureContext.emplace(
-        musxMeasure->getDocument(), musxMeasure->getRequestedPartId(), staffCmper, musxMeasure->getCmper());
+    current.staffMeasureContext.emplace(musxMeasure->getDocument(), musxMeasure->getRequestedPartId(), staffCmper, musxMeasure->getCmper());
     if (!*current.staffMeasureContext) {
         return;
     }
@@ -125,8 +126,7 @@ void MnxMusxMapping::setCurrentMeasureStaff(const MusxInstance<others::Measure>&
             return;
         }
     }
-    if (current.cuePlan.forcedCueLayer
-        && !current.cuePlan.detectedCueLayers.contains(*current.cuePlan.forcedCueLayer)) {
+    if (current.cuePlan.forcedCueLayer && !current.cuePlan.detectedCueLayers.contains(*current.cuePlan.forcedCueLayer)) {
         logDiscardedCueLayerFrame(*current.cuePlan.forcedCueLayer);
     }
 }
@@ -203,27 +203,23 @@ static void createScores(const MnxMusxMappingPtr& context)
         // This name is written into the MNX file, so it keeps proper accidental glyphs and its own
         // fallback. calcLinkedPartDisplayName is deliberately not used here: that helper exists for
         // filenames and log messages, where ASCII is the rule.
-        auto mnxScore = mnxDocument->ensure_scores().append(
-            linkedPart->getName(EnigmaString::AccidentalStyle::Unicode));
+        auto mnxScore = mnxDocument->ensure_scores().append(linkedPart->getName(EnigmaString::AccidentalStyle::Unicode));
         if (mnxScore.name().empty()) {
-            mnxScore.set_name(linkedPart->isScore()
-                              ? std::string("Score")
-                              : std::string("Part ") + std::to_string(linkedPart->getCmper()));
+            mnxScore.set_name(linkedPart->isScore() ? std::string("Score") : std::string("Part ") + std::to_string(linkedPart->getCmper()));
         }
         mnxScore.set_layout(calcSystemLayoutId(linkedPart->getCmper(), BASE_SYSTEM_ID));
         auto mmRests = context->document->getOthers()->getArray<others::MultimeasureRest>(linkedPart->getCmper());
         for (const auto& mmRest : mmRests) {
-            auto mnxMmRest = mnxScore.ensure_multimeasureRests().append(
-                core::calcGlobalMeasureId(mmRest->getStartMeasure()), mmRest->calcNumberOfMeasures());
+            auto mnxMmRest =
+                mnxScore.ensure_multimeasureRests().append(core::calcGlobalMeasureId(mmRest->getStartMeasure()), mmRest->calcNumberOfMeasures());
             if (!mmRest->calcIsNumberVisible()) {
                 mnxMmRest.set_label("");
             }
         }
         // Pages describe which systems fall where, which an uncalculated layout never resolved.
         // createLayouts already reported this part and omitted its per-system layouts.
-        auto pages = linkedPart->isLayoutCalculated()
-            ? context->document->getOthers()->getArray<others::Page>(linkedPart->getCmper())
-            : MusxInstanceList<others::Page>(context->document, linkedPart->getCmper());
+        auto pages = linkedPart->isLayoutCalculated() ? context->document->getOthers()->getArray<others::Page>(linkedPart->getCmper())
+                                                      : MusxInstanceList<others::Page>(context->document, linkedPart->getCmper());
         for (size_t x = 0; x < pages.size(); x++) {
             auto mnxPage = mnxScore.ensure_pages().append();
             auto mnxSystems = mnxPage.systems();
@@ -232,8 +228,8 @@ static void createScores(const MnxMusxMappingPtr& context)
                 for (SystemCmper sysId = page->firstSystemId; sysId <= page->lastSystemId.value(); sysId++) {
                     auto system = context->document->getOthers()->get<others::StaffSystem>(linkedPart->getCmper(), sysId);
                     if (!system) {
-                        throw std::logic_error("System " + std::to_string(sysId) + " on page " + std::to_string(page->getCmper())
-                            + " in part " + linkedPart->getName() + " does not exist.");
+                        throw std::logic_error("System " + std::to_string(sysId) + " on page " + std::to_string(page->getCmper()) + " in part "
+                                               + linkedPart->getName() + " does not exist.");
                     }
                     auto mnxSystem = mnxSystems.append(core::calcGlobalMeasureId(system->startMeas));
                     mnxSystem.set_layout(calcSystemLayoutId(linkedPart->getCmper(), sysId));
@@ -265,8 +261,9 @@ static std::unique_ptr<mnxdom::Document> createMnxDocument(const CommandInputDat
         createScores(context); // must come after createLayouts
     }
     if (context->discardedCueFrames > 0) {
-        denigmaContext.logMessage(LogMsg() << "discarded " << context->discardedCueFrames
-            << " cue frames because MNX does not currently support cues.", MessageSeverity::Verbose);
+        denigmaContext.logMessage(
+            LogMsg() << "discarded " << context->discardedCueFrames << " cue frames because MNX does not currently support cues.",
+            MessageSeverity::Verbose);
     }
     return std::move(context->mnxDocument);
 }
@@ -290,7 +287,7 @@ static void validateMnxDocument(const mnxdom::Document& mnxDocument, const Denig
             } else {
                 size_t layoutSize = mnxDocument.layouts() ? mnxDocument.layouts().value().size() : 0;
                 denigmaContext.logMessage(LogMsg() << "Semantic validation complete (" << mnxDocument.global().measures().size() << " measures, "
-                    << mnxDocument.parts().size() << " parts, " << layoutSize << " layouts).");
+                                                   << mnxDocument.parts().size() << " parts, " << layoutSize << " layouts).");
             }
         }
     }
@@ -315,7 +312,9 @@ void exportJson(const std::filesystem::path& outputPath, const CommandInputData&
         denigmaContext.logMessage(LogMsg() << "Converting to " << utils::asUtf8Bytes(outputPath));
         return;
     }
-    if (!denigmaContext.validatePathsAndOptions(outputPath)) return;
+    if (!denigmaContext.validatePathsAndOptions(outputPath)) {
+        return;
+    }
 
     std::ofstream output;
     output.exceptions(std::ofstream::failbit | std::ofstream::badbit);

@@ -24,10 +24,10 @@
 #include <string>
 #include <vector>
 
-#include "gtest/gtest.h"
 #include "core/denigma.h"
 #include "mnxdom.h"
 #include "test_utils.h"
+#include "gtest/gtest.h"
 
 // winapi defines RELATIVE macro. >eye-roll<
 #ifdef RELATIVE
@@ -62,8 +62,7 @@ void checkDynamic(const mnx::part::DynamicGroupBase& dynamic, const ExpectedDyna
         EXPECT_FALSE(dynamic.glyphs().has_value()) << label;
     } else {
         ASSERT_TRUE(dynamic.glyphs().has_value()) << label;
-        EXPECT_EQ(std::vector<std::string>(dynamic.glyphs().value().begin(), dynamic.glyphs().value().end()),
-            expected.glyphs) << label;
+        EXPECT_EQ(std::vector<std::string>(dynamic.glyphs().value().begin(), dynamic.glyphs().value().end()), expected.glyphs) << label;
     }
     if (expected.relativeValue) {
         EXPECT_EQ(dynamic.get<mnx::part::DynamicRelative>().relativeValue(), expected.relativeValue.value()) << label;
@@ -101,10 +100,9 @@ TEST(MnxDynamics, DynamicsAndHairpins)
     setupTestDataPaths();
     std::filesystem::path inputPath;
     copyInputToOutput("dynamics_hairpins.musx", inputPath);
-    ArgList args = { DENIGMA_NAME, "export", pathString(inputPath), "--mnx" };
-    checkStderr({ "Processing", pathString(inputPath.filename()), "!validation error" }, [&]() {
-        EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath);
-    });
+    ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), "--mnx"};
+    checkStderr({"Processing", pathString(inputPath.filename()), "!validation error"},
+        [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath); });
 
     auto doc = mnx::Document::create(inputPath.parent_path() / "dynamics_hairpins.mnx");
     auto parts = doc.parts();
@@ -112,36 +110,45 @@ TEST(MnxDynamics, DynamicsAndHairpins)
     auto measures = parts[0].measures();
     ASSERT_GE(measures.size(), 6);
 
-    checkMeasureDynamics(measures[1], {
-        { IMMEDIATE, mnx::DynamicValue::pppp, {}, {}, { "dynamicPPPP" }, {}, {}, {}, {} },
-        { ACCENT, mnx::DynamicValue::ffff, {}, {}, { "dynamicSforzando", "dynamicFFFF", "dynamicZ" },
-            {}, mnx::DynamicPrefix::s, mnx::DynamicSuffix::z, {} },
-        { GRADUAL, {}, {}, {}, {}, {}, {}, {}, mnx::DynamicWedgeType::Increasing },
-    }, "measure 2");
+    checkMeasureDynamics(measures[1],
+        {
+            {IMMEDIATE, mnx::DynamicValue::pppp, {}, {}, {"dynamicPPPP"}, {}, {}, {}, {}},
+            {ACCENT, mnx::DynamicValue::ffff, {}, {}, {"dynamicSforzando", "dynamicFFFF", "dynamicZ"}, {}, mnx::DynamicPrefix::s,
+                mnx::DynamicSuffix::z, {}},
+            {GRADUAL, {}, {}, {}, {}, {}, {}, {}, mnx::DynamicWedgeType::Increasing},
+        },
+        "measure 2");
 
-    checkMeasureDynamics(measures[2], {
-        { IMMEDIATE, mnx::DynamicValue::mf, {}, {}, { "dynamicMF" }, {}, {}, {}, {} },
-        { IMMEDIATE, mnx::DynamicValue::pp, {}, {}, { "dynamicPP" }, {}, {}, {}, {} },
-        { GRADUAL, {}, {}, {}, {}, {}, {}, {}, mnx::DynamicWedgeType::Increasing },
-        { GRADUAL, {}, {}, {}, {}, {}, {}, {}, mnx::DynamicWedgeType::Decreasing },
-    }, "measure 3");
+    checkMeasureDynamics(measures[2],
+        {
+            {IMMEDIATE, mnx::DynamicValue::mf, {}, {}, {"dynamicMF"}, {}, {}, {}, {}},
+            {IMMEDIATE, mnx::DynamicValue::pp, {}, {}, {"dynamicPP"}, {}, {}, {}, {}},
+            {GRADUAL, {}, {}, {}, {}, {}, {}, {}, mnx::DynamicWedgeType::Increasing},
+            {GRADUAL, {}, {}, {}, {}, {}, {}, {}, mnx::DynamicWedgeType::Decreasing},
+        },
+        "measure 3");
 
     // A dynamic whose glyph is surrounded by words is still a dynamic. The words belong in the
     // prefix or suffix, and "più"/"menos" additionally make the dynamic a relative one.
-    checkMeasureDynamics(measures[3], {
-        { RELATIVE, mnx::DynamicValue::f, "più", {}, { "dynamicForte" }, mnx::DynamicRelativeValue::Louder, {}, {}, {} },
-        { IMMEDIATE, mnx::DynamicValue::p, "sub.", {}, { "dynamicPiano" }, {}, {}, {}, {} },
-    }, "measure 4");
+    checkMeasureDynamics(measures[3],
+        {
+            {RELATIVE, mnx::DynamicValue::f, "più", {}, {"dynamicForte"}, mnx::DynamicRelativeValue::Louder, {}, {}, {}},
+            {IMMEDIATE, mnx::DynamicValue::p, "sub.", {}, {"dynamicPiano"}, {}, {}, {}, {}},
+        },
+        "measure 4");
 
-    checkMeasureDynamics(measures[4], {
-        { IMMEDIATE, mnx::DynamicValue::ff, {}, "sempre", { "dynamicFF" }, {}, {}, {}, {} },
-        { RELATIVE, mnx::DynamicValue::f, "menos", {}, { "dynamicForte" }, mnx::DynamicRelativeValue::Softer, {}, {}, {} },
-    }, "measure 5");
+    checkMeasureDynamics(measures[4],
+        {
+            {IMMEDIATE, mnx::DynamicValue::ff, {}, "sempre", {"dynamicFF"}, {}, {}, {}, {}},
+            {RELATIVE, mnx::DynamicValue::f, "menos", {}, {"dynamicForte"}, mnx::DynamicRelativeValue::Softer, {}, {}, {}},
+        },
+        "measure 5");
 
-    checkMeasureDynamics(measures[5], {
-        { ACCENT, mnx::DynamicValue::ff, {}, {}, { "dynamicFF", "dynamicZ" },
-            {}, mnx::DynamicPrefix::None, mnx::DynamicSuffix::z, {} },
-        { IMMEDIATE, mnx::DynamicValue::ppp, {}, {}, { "dynamicPPP" }, {}, {}, {}, {} },
-        { GRADUAL, {}, {}, {}, {}, {}, {}, {}, mnx::DynamicWedgeType::Decreasing },
-    }, "measure 6");
+    checkMeasureDynamics(measures[5],
+        {
+            {ACCENT, mnx::DynamicValue::ff, {}, {}, {"dynamicFF", "dynamicZ"}, {}, mnx::DynamicPrefix::None, mnx::DynamicSuffix::z, {}},
+            {IMMEDIATE, mnx::DynamicValue::ppp, {}, {}, {"dynamicPPP"}, {}, {}, {}, {}},
+            {GRADUAL, {}, {}, {}, {}, {}, {}, {}, mnx::DynamicWedgeType::Decreasing},
+        },
+        "measure 6");
 }

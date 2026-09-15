@@ -36,14 +36,14 @@ struct Options final : public IOptions
 {
     /// Options common to all converters.
     CommonOptions common;
-    bool includeTempoTool{ false };
+    bool includeTempoTool{false};
     /// Shift non-floating whole rests to the SMuFL glyph-origin position.
     /// Preserve Finale's nominal position for non-floating whole rests instead of using the SMuFL default.
-    bool useFinaleRestPosition{ false };
+    bool useFinaleRestPosition{false};
     /// Optional 1-based Finale layer to treat as cue material in addition to automatically detected cues.
     std::optional<int> cueLayer;
     /// Emit the score plus all linked parts for multi-output conversion.
-    bool allPartsAndScore{ false };
+    bool allPartsAndScore{false};
     /// Optional part-name prefix for multi-output conversion.
     std::optional<std::string> partName;
 };
@@ -57,14 +57,11 @@ public:
     [[nodiscard]] FormatId targetFormat() const override { return FormatId::MusicXml; }
 
     /// Converts Enigma XML from memory and invokes outputCallback for each MusicXML document.
-    ConversionResult convert(std::span<const std::byte> input,
-                             const MultiOutputCallback& outputCallback,
-                             const Options& options = {}) const;
+    ConversionResult convert(std::span<const std::byte> input, const MultiOutputCallback& outputCallback, const Options& options = {}) const;
 
     /// Converts Enigma XML using type-erased registry options.
-    ConversionResult convert(std::span<const std::byte> input,
-                             const MultiOutputCallback& outputCallback,
-                             const ConversionRequest& request = {}) const override;
+    ConversionResult convert(
+        std::span<const std::byte> input, const MultiOutputCallback& outputCallback, const ConversionRequest& request = {}) const override;
 };
 
 /// @class MusxToMusicXmlMultiOutputConverter
@@ -76,14 +73,11 @@ public:
     [[nodiscard]] FormatId targetFormat() const override { return FormatId::MusicXml; }
 
     /// Extracts a MUSX archive and invokes outputCallback for each MusicXML document.
-    ConversionResult convert(const IRandomAccessReader& input,
-                             const MultiOutputCallback& outputCallback,
-                             const Options& options = {}) const;
+    ConversionResult convert(const IRandomAccessReader& input, const MultiOutputCallback& outputCallback, const Options& options = {}) const;
 
     /// Extracts a MUSX archive using type-erased registry options.
-    ConversionResult convert(const IRandomAccessReader& input,
-                             const MultiOutputCallback& outputCallback,
-                             const ConversionRequest& request = {}) const override;
+    ConversionResult convert(
+        const IRandomAccessReader& input, const MultiOutputCallback& outputCallback, const ConversionRequest& request = {}) const override;
 };
 
 /// Registers all MusicXML format converters with the supplied registry.

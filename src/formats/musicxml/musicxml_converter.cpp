@@ -47,9 +47,7 @@ Buffer copyBytes(std::span<const std::byte> input)
 DenigmaContext makeMusicXmlContext(const Options& options, const std::filesystem::path& defaultSourceName)
 {
     DenigmaContext context("denigma");
-    context.inputFilePath = options.common.sourceName.empty()
-        ? defaultSourceName
-        : utils::utf8ToPath(options.common.sourceName);
+    context.inputFilePath = options.common.sourceName.empty() ? defaultSourceName : utils::utf8ToPath(options.common.sourceName);
     context.noValidate = !options.common.validate;
     context.verbose = options.common.verbose;
     context.quiet = options.common.quiet;
@@ -64,9 +62,8 @@ DenigmaContext makeMusicXmlContext(const Options& options, const std::filesystem
 
 } // namespace
 
-ConversionResult EnigmaXmlToMusicXmlMultiOutputConverter::convert(std::span<const std::byte> input,
-                                                                   const MultiOutputCallback& outputCallback,
-                                                                   const Options& options) const
+ConversionResult EnigmaXmlToMusicXmlMultiOutputConverter::convert(
+    std::span<const std::byte> input, const MultiOutputCallback& outputCallback, const Options& options) const
 {
     ConversionResult result;
     auto buffer = copyBytes(input);
@@ -75,7 +72,7 @@ ConversionResult EnigmaXmlToMusicXmlMultiOutputConverter::convert(std::span<cons
     context.conversionResult = &result;
 
     try {
-        detail::convert(CommandInputData{ std::move(buffer), std::nullopt, {} }, context, outputCallback);
+        detail::convert(CommandInputData{std::move(buffer), std::nullopt, {}}, context, outputCallback);
     } catch (const std::exception& ex) {
         context.logMessage(LogMsg() << "unable to convert Enigma XML to MusicXML", MessageSeverity::Error);
         context.logMessage(LogMsg() << " (exception: " << ex.what() << ")", MessageSeverity::Error);
@@ -83,16 +80,14 @@ ConversionResult EnigmaXmlToMusicXmlMultiOutputConverter::convert(std::span<cons
     return result;
 }
 
-ConversionResult EnigmaXmlToMusicXmlMultiOutputConverter::convert(std::span<const std::byte> input,
-                                                                   const MultiOutputCallback& outputCallback,
-                                                                   const ConversionRequest& request) const
+ConversionResult EnigmaXmlToMusicXmlMultiOutputConverter::convert(
+    std::span<const std::byte> input, const MultiOutputCallback& outputCallback, const ConversionRequest& request) const
 {
     return convert(input, outputCallback, optionsFromRequest<Options>(request, "EnigmaXmlToMusicXmlMultiOutputConverter"));
 }
 
-ConversionResult MusxToMusicXmlMultiOutputConverter::convert(const IRandomAccessReader& input,
-                                                              const MultiOutputCallback& outputCallback,
-                                                              const Options& options) const
+ConversionResult MusxToMusicXmlMultiOutputConverter::convert(
+    const IRandomAccessReader& input, const MultiOutputCallback& outputCallback, const Options& options) const
 {
     ConversionResult result;
     auto context = makeMusicXmlContext(options, "input.musx");
@@ -108,9 +103,8 @@ ConversionResult MusxToMusicXmlMultiOutputConverter::convert(const IRandomAccess
     return result;
 }
 
-ConversionResult MusxToMusicXmlMultiOutputConverter::convert(const IRandomAccessReader& input,
-                                                              const MultiOutputCallback& outputCallback,
-                                                              const ConversionRequest& request) const
+ConversionResult MusxToMusicXmlMultiOutputConverter::convert(
+    const IRandomAccessReader& input, const MultiOutputCallback& outputCallback, const ConversionRequest& request) const
 {
     return convert(input, outputCallback, optionsFromRequest<Options>(request, "MusxToMusicXmlMultiOutputConverter"));
 }

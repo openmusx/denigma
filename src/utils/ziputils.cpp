@@ -47,7 +47,8 @@ struct RandomAccessZipStream
     bool error{};
 };
 
-struct ZipEntryInfo {
+struct ZipEntryInfo
+{
     std::string filename;
     unz_file_info64 info{};
     bool isDirectory{};
@@ -69,7 +70,7 @@ enum : unsigned {
     Dir = 0x10,
     TypeMask = 0x90
 };
-}
+} // namespace WindowsFileAttributes
 
 namespace UnixFileAttributes {
 enum : unsigned {
@@ -77,7 +78,7 @@ enum : unsigned {
     SymLink = 0120000,
     TypeMask = 0170000
 };
-}
+} // namespace UnixFileAttributes
 
 static unsigned zipEntryHostOS(const unz_file_info64& info)
 {
@@ -138,7 +139,7 @@ static voidpf ZCALLBACK randomAccessOpen64(voidpf opaque, const void*, int mode)
     if (!reader) {
         return nullptr;
     }
-    return new RandomAccessZipStream{ reader, 0, false };
+    return new RandomAccessZipStream{reader, 0, false};
 }
 
 static uLong ZCALLBACK randomAccessRead(voidpf, voidpf stream, void* buffer, uLong size)
@@ -150,8 +151,7 @@ static uLong ZCALLBACK randomAccessRead(voidpf, voidpf stream, void* buffer, uLo
 
     try {
         const auto bytesRead = zipStream->reader->readAt(
-            zipStream->position,
-            std::span<std::byte>(reinterpret_cast<std::byte*>(buffer), static_cast<std::size_t>(size)));
+            zipStream->position, std::span<std::byte>(reinterpret_cast<std::byte*>(buffer), static_cast<std::size_t>(size)));
         zipStream->position += bytesRead;
         return static_cast<uLong>(bytesRead);
     } catch (...) {
@@ -180,17 +180,10 @@ static long ZCALLBACK randomAccessSeek64(voidpf, voidpf stream, ZPOS64_T offset,
 
     std::uint64_t base{};
     switch (origin) {
-    case ZLIB_FILEFUNC_SEEK_SET:
-        base = 0;
-        break;
-    case ZLIB_FILEFUNC_SEEK_CUR:
-        base = zipStream->position;
-        break;
-    case ZLIB_FILEFUNC_SEEK_END:
-        base = zipStream->reader->size();
-        break;
-    default:
-        return -1;
+    case ZLIB_FILEFUNC_SEEK_SET: base = 0; break;
+    case ZLIB_FILEFUNC_SEEK_CUR: base = zipStream->position; break;
+    case ZLIB_FILEFUNC_SEEK_END: base = zipStream->reader->size(); break;
+    default: return -1;
     }
 
     const auto nextPosition = base + static_cast<std::uint64_t>(offset);
@@ -256,15 +249,7 @@ static ZipEntryInfo getCurrentEntryInfo(unzFile zip)
 
     std::string fileName(entry.info.size_filename, '\0');
     rc = unzGetCurrentFileInfo64(
-        zip,
-        &entry.info,
-        fileName.empty() ? nullptr : fileName.data(),
-        static_cast<uLong>(fileName.size()),
-        nullptr,
-        0,
-        nullptr,
-        0
-    );
+        zip, &entry.info, fileName.empty() ? nullptr : fileName.data(), static_cast<uLong>(fileName.size()), nullptr, 0, nullptr, 0);
     if (rc != UNZ_OK) {
         throw std::runtime_error("unable to read zip entry filename");
     }
@@ -304,8 +289,7 @@ static std::string readCurrentFile(unzFile zip)
     return output;
 }
 
-static bool iterateFiles(unzFile zip, const std::optional<std::string>& searchForFile,
-    const std::function<bool(const ZipEntryInfo&)>& iterator)
+static bool iterateFiles(unzFile zip, const std::optional<std::string>& searchForFile, const std::function<bool(const ZipEntryInfo&)>& iterator)
 {
     int rc = unzGoToFirstFile(zip);
     if (rc == UNZ_END_OF_LIST_OF_FILE) {
@@ -352,18 +336,7 @@ static void writeEntryToZip(zipFile outputZip, const ZipEntryInfo& fileInfo, con
     const int method = (fileInfo.info.compression_method == 0) ? 0 : Z_DEFLATED;
     const int useZip64 = fileContents.size() >= 0xffffffffULL ? 1 : 0;
     int rc = zipOpenNewFileInZip64(
-        outputZip,
-        fileInfo.filename.c_str(),
-        &zipInfo,
-        nullptr,
-        0,
-        nullptr,
-        0,
-        nullptr,
-        method,
-        Z_DEFAULT_COMPRESSION,
-        useZip64
-    );
+        outputZip, fileInfo.filename.c_str(), &zipInfo, nullptr, 0, nullptr, 0, nullptr, method, Z_DEFAULT_COMPRESSION, useZip64);
     if (rc != ZIP_OK) {
         throw std::runtime_error("unable to create entry in output zip archive");
     }
@@ -408,7 +381,8 @@ static std::string getMusicXmlScoreName(const std::filesystem::path& zipFilePath
         });
         return utils::utf8ToString(fileName);
     } catch (const std::exception& ex) {
-        denigmaContext.logMessage(LogMsg() << "unable to extract META-INF/container.xml from file " << utils::asUtf8Bytes(zipFilePath), MessageSeverity::Error);
+        denigmaContext.logMessage(
+            LogMsg() << "unable to extract META-INF/container.xml from file " << utils::asUtf8Bytes(zipFilePath), MessageSeverity::Error);
         denigmaContext.logMessage(LogMsg() << " (exception: " << ex.what() << ")", MessageSeverity::Error);
         throw;
     }
@@ -458,8 +432,8 @@ std::string readSoleFileWithExtension(const IRandomAccessReader& reader, std::u8
                 return true;
             }
             if (result.has_value()) {
-                throw std::runtime_error("zip archive contains more than one ." + extensionForMessages
-                    + " entry (" + foundName + " and " + fileInfo.filename + ")");
+                throw std::runtime_error(
+                    "zip archive contains more than one ." + extensionForMessages + " entry (" + foundName + " and " + fileInfo.filename + ")");
             }
             foundName = fileInfo.filename;
             result = readCurrentFile(zip);
@@ -506,9 +480,7 @@ MusxArchiveFiles readMusxArchiveFiles(const IRandomAccessReader& reader, const D
             }
 
             const std::filesystem::path entryPath = utils::utf8ToPath(fileInfo.filename);
-            if (!fileInfo.isFile
-                || entryPath.parent_path().u8string() != kGraphicsDirName
-                || !entryPath.has_filename()) {
+            if (!fileInfo.isFile || entryPath.parent_path().u8string() != kGraphicsDirName || !entryPath.has_filename()) {
                 return true;
             }
 
@@ -549,7 +521,8 @@ std::string getMusicXmlScoreFile(const std::filesystem::path& zipFilePath, const
     }
 }
 
-bool iterateMusicXmlPartFiles(const std::filesystem::path& zipFilePath, const denigma::DenigmaContext& denigmaContext, const std::optional<std::string>& fileName, IteratorFunc iterator)
+bool iterateMusicXmlPartFiles(const std::filesystem::path& zipFilePath, const denigma::DenigmaContext& denigmaContext,
+    const std::optional<std::string>& fileName, IteratorFunc iterator)
 {
     unzFile zip = openZipForRead(zipFilePath, denigmaContext);
     try {
@@ -578,7 +551,8 @@ bool iterateMusicXmlPartFiles(const std::filesystem::path& zipFilePath, const de
     }
 }
 
-bool iterateModifyFilesInPlace(const std::filesystem::path& zipFilePath, const std::filesystem::path& outputPath, const denigma::DenigmaContext& denigmaContext, ModifyIteratorFunc iterator)
+bool iterateModifyFilesInPlace(const std::filesystem::path& zipFilePath, const std::filesystem::path& outputPath,
+    const denigma::DenigmaContext& denigmaContext, ModifyIteratorFunc iterator)
 {
     unzFile inputZip = openZipForRead(zipFilePath, denigmaContext);
     zipFile outputZip = openZipForWrite(outputPath);

@@ -23,9 +23,9 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdlib>
 #include <cwchar>
 #include <cwctype>
-#include <cstdlib>
 #include <filesystem>
 #include <limits>
 #include <mutex>
@@ -43,8 +43,8 @@
 #include "utils/stringutils.h"
 
 #if defined(DENIGMA_USE_DIRECTWRITE)
-#include <windows.h>
 #include <dwrite.h>
+#include <windows.h>
 #endif
 
 #if defined(DENIGMA_USE_FREETYPE)
@@ -70,23 +70,21 @@ namespace {
     static std::once_flag warningOnce;
     std::call_once(warningOnce, [&denigmaContext]() {
         denigmaContext.logMessage(LogMsg() << "FreeType text metrics backend is not enabled in this build. Falling back to heuristic text metrics.",
-                                  MessageSeverity::Warning);
+            MessageSeverity::Warning);
     });
 }
 
 bool styleLooksBold(std::string_view style)
 {
     const std::string normalized = utils::normalizedFontName(style);
-    return normalized.find("bold") != std::string::npos
-        || normalized.find("demi") != std::string::npos
-        || normalized.find("black") != std::string::npos;
+    return normalized.find("bold") != std::string::npos || normalized.find("demi") != std::string::npos
+           || normalized.find("black") != std::string::npos;
 }
 
 bool styleLooksItalic(std::string_view style)
 {
     const std::string normalized = utils::normalizedFontName(style);
-    return normalized.find("italic") != std::string::npos
-        || normalized.find("oblique") != std::string::npos;
+    return normalized.find("italic") != std::string::npos || normalized.find("oblique") != std::string::npos;
 }
 
 #if defined(DENIGMA_USE_FREETYPE)
@@ -104,18 +102,12 @@ struct FaceKey
     std::string filePath;
     int faceIndex{};
 
-    bool operator==(const FaceKey& other) const
-    {
-        return faceIndex == other.faceIndex && filePath == other.filePath;
-    }
+    bool operator==(const FaceKey& other) const { return faceIndex == other.faceIndex && filePath == other.filePath; }
 };
 
 struct FaceKeyHash
 {
-    std::size_t operator()(const FaceKey& value) const
-    {
-        return std::hash<std::string>()(value.filePath) ^ (std::hash<int>()(value.faceIndex) << 1);
-    }
+    std::size_t operator()(const FaceKey& value) const { return std::hash<std::string>()(value.filePath) ^ (std::hash<int>()(value.faceIndex) << 1); }
 };
 
 struct IndexedFace
@@ -152,16 +144,12 @@ public:
         }
     }
 
-    std::optional<TextMetricsEvpu> measureText(const musx::dom::FontInfo& fontInfo,
-                                               std::u32string_view text,
-                                               std::optional<double> pointSizeOverride,
-                                               const DenigmaContext& denigmaContext)
+    std::optional<TextMetricsEvpu> measureText(
+        const musx::dom::FontInfo& fontInfo, std::u32string_view text, std::optional<double> pointSizeOverride, const DenigmaContext& denigmaContext)
     {
         std::scoped_lock<std::mutex> lock(m_mutex);
         const double pointSize = pointSizeOverride.value_or(static_cast<double>(fontInfo.fontSize));
-        auto face = resolveFaceLocked(fontInfo,
-                                      pointSize,
-                                      denigmaContext);
+        auto face = resolveFaceLocked(fontInfo, pointSize, denigmaContext);
         if (!face) {
             return std::nullopt;
         }
@@ -233,15 +221,11 @@ public:
         return result;
     }
 
-    std::optional<double> measureGlyphWidth(const musx::dom::FontInfo& fontInfo,
-                                            char32_t codePoint,
-                                            std::optional<double> pointSizeOverride,
-                                            const DenigmaContext& denigmaContext)
+    std::optional<double> measureGlyphWidth(
+        const musx::dom::FontInfo& fontInfo, char32_t codePoint, std::optional<double> pointSizeOverride, const DenigmaContext& denigmaContext)
     {
         std::scoped_lock<std::mutex> lock(m_mutex);
-        auto face = resolveFaceLocked(fontInfo,
-                                      pointSizeOverride.value_or(static_cast<double>(fontInfo.fontSize)),
-                                      denigmaContext);
+        auto face = resolveFaceLocked(fontInfo, pointSizeOverride.value_or(static_cast<double>(fontInfo.fontSize)), denigmaContext);
         if (!face) {
             return std::nullopt;
         }
@@ -256,9 +240,7 @@ public:
         return (std::max)(0.0, static_cast<double>((*face)->glyph->metrics.width) / 64.0 * EVPU_PER_POINT);
     }
 
-    std::optional<double> measureHeight(const musx::dom::FontInfo& fontInfo,
-                                        double pointSize,
-                                        const DenigmaContext& denigmaContext)
+    std::optional<double> measureHeight(const musx::dom::FontInfo& fontInfo, double pointSize, const DenigmaContext& denigmaContext)
     {
         std::scoped_lock<std::mutex> lock(m_mutex);
         auto face = resolveFaceLocked(fontInfo, pointSize, denigmaContext);
@@ -269,15 +251,12 @@ public:
         return vertical.ascent + vertical.descent;
     }
 
-    std::optional<TextMetricsEvpu> measureAscentDescent(const musx::dom::FontInfo& fontInfo,
-                                                        std::optional<double> pointSizeOverride,
-                                                        const DenigmaContext& denigmaContext)
+    std::optional<TextMetricsEvpu> measureAscentDescent(
+        const musx::dom::FontInfo& fontInfo, std::optional<double> pointSizeOverride, const DenigmaContext& denigmaContext)
     {
         std::scoped_lock<std::mutex> lock(m_mutex);
         const double pointSize = pointSizeOverride.value_or(static_cast<double>(fontInfo.fontSize));
-        auto face = resolveFaceLocked(fontInfo,
-                                      pointSize,
-                                      denigmaContext);
+        auto face = resolveFaceLocked(fontInfo, pointSize, denigmaContext);
         if (!face) {
             return std::nullopt;
         }
@@ -325,8 +304,8 @@ private:
             return;
         }
         m_warnedBackendUnavailable = true;
-        denigmaContext.logMessage(LogMsg() << "Unable to initialize FreeType text metrics backend. Falling back to heuristic text metrics.",
-                                  MessageSeverity::Warning);
+        denigmaContext.logMessage(
+            LogMsg() << "Unable to initialize FreeType text metrics backend. Falling back to heuristic text metrics.", MessageSeverity::Warning);
     }
 
     void warnUnresolvedFamilyLocked(const DenigmaContext& denigmaContext, const std::string& familyName)
@@ -335,9 +314,8 @@ private:
         if (!m_warnedUnresolvedFamilies.insert(key).second) {
             return;
         }
-        denigmaContext.logMessage(LogMsg() << "Unable to resolve/load a font file for \"" << key
-                                           << "\". Falling back to heuristic text metrics.",
-                                  MessageSeverity::Warning);
+        denigmaContext.logMessage(LogMsg() << "Unable to resolve/load a font file for \"" << key << "\". Falling back to heuristic text metrics.",
+            MessageSeverity::Warning);
     }
 
     static std::vector<std::filesystem::path> candidateFontDirectories()
@@ -386,9 +364,7 @@ private:
     static bool hasSupportedExtension(const std::filesystem::path& filePath)
     {
         auto ext = filePath.extension().u8string();
-        std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c) {
-            return static_cast<char8_t>(utils::toLowerCase(c));
-        });
+        std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c) { return static_cast<char8_t>(utils::toLowerCase(c)); });
         return ext == u8".ttf" || ext == u8".otf" || ext == u8".ttc" || ext == u8".otc" || ext == u8".pfa" || ext == u8".pfb";
     }
 
@@ -406,10 +382,10 @@ private:
         const bool italic = (face->style_flags & FT_STYLE_FLAG_ITALIC) != 0 || styleLooksItalic(style);
 
         m_faceIndex.push_back(IndexedFace{
-            ResolvedFace{ utils::utf8ToString(fontPathUtf8), static_cast<int>(faceIndex) },
+            ResolvedFace{utils::utf8ToString(fontPathUtf8), static_cast<int>(faceIndex)},
             utils::normalizedFontName(family),
             bold,
-            italic
+            italic,
         });
 
         FT_Done_Face(face);
@@ -456,9 +432,7 @@ private:
     }
 
 #if defined(DENIGMA_USE_FONTCONFIG)
-    std::optional<ResolvedFace> resolveWithFontconfigLocked(const std::string& familyName,
-                                                            bool bold,
-                                                            bool italic) const
+    std::optional<ResolvedFace> resolveWithFontconfigLocked(const std::string& familyName, bool bold, bool italic) const
     {
         if (!m_fontconfigAvailable) {
             return std::nullopt;
@@ -485,7 +459,7 @@ private:
         }
         int faceIndex = 0;
         (void)FcPatternGetInteger(matched, FC_INDEX, 0, &faceIndex);
-        ResolvedFace resolved{ reinterpret_cast<const char*>(filePath), faceIndex };
+        ResolvedFace resolved{reinterpret_cast<const char*>(filePath), faceIndex};
         FcPatternDestroy(matched);
         return resolved;
     }
@@ -625,9 +599,7 @@ private:
         return normalizedResolved;
     }
 
-    std::optional<ResolvedFace> resolveWithDirectWriteLocked(const std::string& familyName,
-                                                             bool bold,
-                                                             bool italic) const
+    std::optional<ResolvedFace> resolveWithDirectWriteLocked(const std::string& familyName, bool bold, bool italic) const
     {
         const std::wstring familyWide = utf8ToWide(familyName);
         if (familyWide.empty()) {
@@ -660,10 +632,8 @@ private:
                 return false;
             }
 
-            if (FAILED(family->GetFirstMatchingFont(bold ? DWRITE_FONT_WEIGHT_BOLD : DWRITE_FONT_WEIGHT_REGULAR,
-                                                    DWRITE_FONT_STRETCH_NORMAL,
-                                                    italic ? DWRITE_FONT_STYLE_ITALIC : DWRITE_FONT_STYLE_NORMAL,
-                                                    &font))
+            if (FAILED(family->GetFirstMatchingFont(bold ? DWRITE_FONT_WEIGHT_BOLD : DWRITE_FONT_WEIGHT_REGULAR, DWRITE_FONT_STRETCH_NORMAL,
+                    italic ? DWRITE_FONT_STYLE_ITALIC : DWRITE_FONT_STYLE_NORMAL, &font))
                 || !font) {
                 return false;
             }
@@ -720,8 +690,7 @@ private:
         std::optional<ResolvedFace> resolved = std::nullopt;
 
         if (SUCCEEDED(files.front()->GetLoader(&fileLoader)) && fileLoader) {
-            if (SUCCEEDED(fileLoader->QueryInterface(__uuidof(IDWriteLocalFontFileLoader), reinterpret_cast<void**>(&localLoader)))
-                && localLoader) {
+            if (SUCCEEDED(fileLoader->QueryInterface(__uuidof(IDWriteLocalFontFileLoader), reinterpret_cast<void**>(&localLoader))) && localLoader) {
                 files.front()->GetReferenceKey(&referenceKey, &referenceKeySize);
                 if (referenceKey && referenceKeySize > 0) {
                     UINT32 pathLength = 0;
@@ -772,11 +741,8 @@ private:
         return {};
     }
 
-    std::optional<int> resolveFaceIndexInFileLocked(const std::string& filePath,
-                                                    const std::string& postScriptName,
-                                                    const std::string& familyName,
-                                                    bool bold,
-                                                    bool italic) const
+    std::optional<int> resolveFaceIndexInFileLocked(
+        const std::string& filePath, const std::string& postScriptName, const std::string& familyName, bool bold, bool italic) const
     {
         if (!m_library || filePath.empty()) {
             return std::nullopt;
@@ -805,8 +771,7 @@ private:
             if (!targetFamily.empty()) {
                 if (candidateFamily == targetFamily) {
                     score += 100;
-                } else if (candidateFamily.find(targetFamily) != std::string::npos
-                           || targetFamily.find(candidateFamily) != std::string::npos) {
+                } else if (candidateFamily.find(targetFamily) != std::string::npos || targetFamily.find(candidateFamily) != std::string::npos) {
                     score += 40;
                 } else {
                     score -= 40;
@@ -819,8 +784,8 @@ private:
                 if (candidatePostScript == targetPostScript) {
                     score += 1000;
                 } else if (!candidatePostScript.empty()
-                        && (candidatePostScript.find(targetPostScript) != std::string::npos
-                            || targetPostScript.find(candidatePostScript) != std::string::npos)) {
+                           && (candidatePostScript.find(targetPostScript) != std::string::npos
+                               || targetPostScript.find(candidatePostScript) != std::string::npos)) {
                     score += 300;
                 } else {
                     score -= 80;
@@ -844,9 +809,7 @@ private:
         return bestIndex;
     }
 
-    std::optional<ResolvedFace> resolveWithCoreTextLocked(const std::string& familyName,
-                                                           bool bold,
-                                                           bool italic) const
+    std::optional<ResolvedFace> resolveWithCoreTextLocked(const std::string& familyName, bool bold, bool italic) const
     {
         if (familyName.empty()) {
             return std::nullopt;
@@ -856,18 +819,16 @@ private:
         if (!cfFamily) {
             return std::nullopt;
         }
-        CFMutableDictionaryRef attrs = CFDictionaryCreateMutable(kCFAllocatorDefault, 2,
-                                                                 &kCFCopyStringDictionaryKeyCallBacks,
-                                                                 &kCFTypeDictionaryValueCallBacks);
+        CFMutableDictionaryRef attrs =
+            CFDictionaryCreateMutable(kCFAllocatorDefault, 2, &kCFCopyStringDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
         if (!attrs) {
             CFRelease(cfFamily);
             return std::nullopt;
         }
         CFDictionarySetValue(attrs, kCTFontFamilyNameAttribute, cfFamily);
 
-        CFMutableDictionaryRef traits = CFDictionaryCreateMutable(kCFAllocatorDefault, 2,
-                                                                  &kCFCopyStringDictionaryKeyCallBacks,
-                                                                  &kCFTypeDictionaryValueCallBacks);
+        CFMutableDictionaryRef traits =
+            CFDictionaryCreateMutable(kCFAllocatorDefault, 2, &kCFCopyStringDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
         if (traits) {
             const double weight = bold ? 0.4 : 0.0;
             const double slant = italic ? 1.0 : 0.0;
@@ -879,8 +840,12 @@ private:
             if (slantNumber) {
                 CFDictionarySetValue(traits, kCTFontSlantTrait, slantNumber);
             }
-            if (weightNumber) CFRelease(weightNumber);
-            if (slantNumber) CFRelease(slantNumber);
+            if (weightNumber) {
+                CFRelease(weightNumber);
+            }
+            if (slantNumber) {
+                CFRelease(slantNumber);
+            }
             CFDictionarySetValue(attrs, kCTFontTraitsAttribute, traits);
             CFRelease(traits);
         }
@@ -929,9 +894,7 @@ private:
     }
 #endif
 
-    std::optional<ResolvedFace> resolveWithNativeLocked(const std::string& familyName,
-                                                        bool bold,
-                                                        bool italic) const
+    std::optional<ResolvedFace> resolveWithNativeLocked(const std::string& familyName, bool bold, bool italic) const
     {
 #if defined(MUSX_RUNNING_ON_WINDOWS) && defined(DENIGMA_USE_DIRECTWRITE)
         if (auto resolved = resolveWithDirectWriteLocked(familyName, bold, italic)) {
@@ -951,9 +914,7 @@ private:
         return std::nullopt;
     }
 
-    std::optional<ResolvedFace> resolveWithIndexLocked(const std::string& familyName,
-                                                       bool bold,
-                                                       bool italic)
+    std::optional<ResolvedFace> resolveWithIndexLocked(const std::string& familyName, bool bold, bool italic)
     {
         ensureIndexBuiltLocked();
         if (m_faceIndex.empty()) {
@@ -968,8 +929,8 @@ private:
             if (candidate.familyNormalized == familyNorm) {
                 score += 100;
             } else if (!familyNorm.empty()
-                    && (candidate.familyNormalized.find(familyNorm) != std::string::npos
-                        || familyNorm.find(candidate.familyNormalized) != std::string::npos)) {
+                       && (candidate.familyNormalized.find(familyNorm) != std::string::npos
+                           || familyNorm.find(candidate.familyNormalized) != std::string::npos)) {
                 score += 50;
             } else {
                 continue;
@@ -986,9 +947,7 @@ private:
         return bestMatch;
     }
 
-    std::optional<FT_Face> resolveFaceLocked(const musx::dom::FontInfo& fontInfo,
-                                             double pointSize,
-                                             const DenigmaContext& denigmaContext)
+    std::optional<FT_Face> resolveFaceLocked(const musx::dom::FontInfo& fontInfo, double pointSize, const DenigmaContext& denigmaContext)
     {
         if (!m_initialized || !m_library) {
             warnBackendUnavailableLocked(denigmaContext);
@@ -1015,7 +974,7 @@ private:
             return std::nullopt;
         }
 
-        const FaceKey key{ resolved->filePath, resolved->faceIndex };
+        const FaceKey key{resolved->filePath, resolved->faceIndex};
         FT_Face face = nullptr;
         auto cacheIt = m_faces.find(key);
         if (cacheIt == m_faces.end()) {
@@ -1061,10 +1020,8 @@ FreeTypeTextMetricsBackend& backend()
 
 } // namespace
 
-std::optional<TextMetricsEvpu> measureTextEvpu(const musx::dom::FontInfo& fontInfo,
-                                               std::u32string_view text,
-                                               std::optional<double> pointSizeOverride,
-                                               const DenigmaContext& denigmaContext)
+std::optional<TextMetricsEvpu> measureTextEvpu(
+    const musx::dom::FontInfo& fontInfo, std::u32string_view text, std::optional<double> pointSizeOverride, const DenigmaContext& denigmaContext)
 {
 #if defined(DENIGMA_USE_FREETYPE)
     return backend().measureText(fontInfo, text, pointSizeOverride, denigmaContext);
@@ -1077,10 +1034,8 @@ std::optional<TextMetricsEvpu> measureTextEvpu(const musx::dom::FontInfo& fontIn
 #endif
 }
 
-std::optional<double> measureGlyphWidthEvpu(const musx::dom::FontInfo& fontInfo,
-                                            char32_t codePoint,
-                                            std::optional<double> pointSizeOverride,
-                                            const DenigmaContext& denigmaContext)
+std::optional<double> measureGlyphWidthEvpu(
+    const musx::dom::FontInfo& fontInfo, char32_t codePoint, std::optional<double> pointSizeOverride, const DenigmaContext& denigmaContext)
 {
 #if defined(DENIGMA_USE_FREETYPE)
     return backend().measureGlyphWidth(fontInfo, codePoint, pointSizeOverride, denigmaContext);
@@ -1093,9 +1048,7 @@ std::optional<double> measureGlyphWidthEvpu(const musx::dom::FontInfo& fontInfo,
 #endif
 }
 
-std::optional<double> measureFontHeightEvpu(const musx::dom::FontInfo& fontInfo,
-                                            double pointSize,
-                                            const DenigmaContext& denigmaContext)
+std::optional<double> measureFontHeightEvpu(const musx::dom::FontInfo& fontInfo, double pointSize, const DenigmaContext& denigmaContext)
 {
 #if defined(DENIGMA_USE_FREETYPE)
     return backend().measureHeight(fontInfo, pointSize, denigmaContext);
@@ -1107,9 +1060,8 @@ std::optional<double> measureFontHeightEvpu(const musx::dom::FontInfo& fontInfo,
 #endif
 }
 
-std::optional<TextMetricsEvpu> measureFontAscentDescentEvpu(const musx::dom::FontInfo& fontInfo,
-                                                            std::optional<double> pointSizeOverride,
-                                                            const DenigmaContext& denigmaContext)
+std::optional<TextMetricsEvpu> measureFontAscentDescentEvpu(
+    const musx::dom::FontInfo& fontInfo, std::optional<double> pointSizeOverride, const DenigmaContext& denigmaContext)
 {
 #if defined(DENIGMA_USE_FREETYPE)
     return backend().measureAscentDescent(fontInfo, pointSizeOverride, denigmaContext);
@@ -1124,8 +1076,7 @@ std::optional<TextMetricsEvpu> measureFontAscentDescentEvpu(const musx::dom::Fon
 musx::util::SvgConvert::GlyphMetricsFn makeSvgGlyphMetricsCallback(const DenigmaContext& denigmaContext)
 {
     const DenigmaContext* contextPtr = &denigmaContext;
-    return [contextPtr](const musx::dom::FontInfo& font,
-                        std::u32string_view text) -> std::optional<musx::util::SvgConvert::GlyphMetrics> {
+    return [contextPtr](const musx::dom::FontInfo& font, std::u32string_view text) -> std::optional<musx::util::SvgConvert::GlyphMetrics> {
         if (!contextPtr) {
             return std::nullopt;
         }
@@ -1135,12 +1086,8 @@ musx::util::SvgConvert::GlyphMetricsFn makeSvgGlyphMetricsCallback(const Denigma
         }
         auto verticalMetrics = measureFontAscentDescentEvpu(font, std::nullopt, *contextPtr);
         const bool useMeasuredVerticals = (measured->ascent != 0.0) || (measured->descent != 0.0);
-        const double glyphAscent = useMeasuredVerticals
-            ? measured->ascent
-            : (verticalMetrics ? verticalMetrics->ascent : measured->ascent);
-        const double glyphDescent = useMeasuredVerticals
-            ? measured->descent
-            : (verticalMetrics ? verticalMetrics->descent : measured->descent);
+        const double glyphAscent = useMeasuredVerticals ? measured->ascent : (verticalMetrics ? verticalMetrics->ascent : measured->ascent);
+        const double glyphDescent = useMeasuredVerticals ? measured->descent : (verticalMetrics ? verticalMetrics->descent : measured->descent);
         std::string fontName;
         try {
             fontName = font.getName();
@@ -1150,15 +1097,11 @@ musx::util::SvgConvert::GlyphMetricsFn makeSvgGlyphMetricsCallback(const Denigma
         const uint32_t cp = text.empty() ? 0 : static_cast<uint32_t>(text.front());
         contextPtr->logMessage(LogMsg() << "SVG metrics callback [freetype]"
                                         << " font=\"" << fontName << "\""
-                                        << " sizePt=" << font.fontSize
-                                        << " cpDec=" << cp
-                                        << " measuredAdvance=" << measured->advance
-                                        << " measuredAscent=" << measured->ascent
-                                        << " measuredDescent=" << measured->descent
-                                        << " finalAscent=" << glyphAscent
-                                        << " finalDescent=" << glyphDescent,
-                             MessageSeverity::Verbose);
-        return musx::util::SvgConvert::GlyphMetrics{ measured->advance, glyphAscent, glyphDescent };
+                                        << " sizePt=" << font.fontSize << " cpDec=" << cp << " measuredAdvance=" << measured->advance
+                                        << " measuredAscent=" << measured->ascent << " measuredDescent=" << measured->descent
+                                        << " finalAscent=" << glyphAscent << " finalDescent=" << glyphDescent,
+            MessageSeverity::Verbose);
+        return musx::util::SvgConvert::GlyphMetrics{measured->advance, glyphAscent, glyphDescent};
     };
 }
 

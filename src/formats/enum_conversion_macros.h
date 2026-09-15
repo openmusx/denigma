@@ -23,13 +23,13 @@
 
 // These macros must be expanded in the namespace where enumConvert is declared
 // and where its specializations should live.
-#define DEFINE_ENUM_CONVERT_TEMPLATE \
-template <typename ToEnum, typename FromEnum> \
-ToEnum enumConvert(FromEnum) \
-{ \
-    static_assert(sizeof(FromEnum) == 0, "No specialization exists for this conversion"); \
-    return {}; \
-}
+#define DEFINE_ENUM_CONVERT_TEMPLATE                                                          \
+    template <typename ToEnum, typename FromEnum>                                             \
+    ToEnum enumConvert(FromEnum)                                                              \
+    {                                                                                         \
+        static_assert(sizeof(FromEnum) == 0, "No specialization exists for this conversion"); \
+        return {};                                                                            \
+    }
 
 // Names the failing specialization in the diagnostic, so an unmapped value identifies
 // its own conversion instead of leaving 50-odd call sites to search.
@@ -40,14 +40,12 @@ ToEnum enumConvert(FromEnum) \
 #endif
 
 #define BEGIN_ENUM_CONVERSION(FromEnum, ToEnum) \
-template<> \
-ToEnum enumConvert(FromEnum value) \
-{ \
-    switch (value) {
-
-#define END_ENUM_CONVERSION \
-    } \
-    assert(false && "unmapped enum encountered"); \
-    throw std::invalid_argument(std::string("Unable to convert enum value: ") \
-        + std::to_string(int(value)) + " in " + ENUM_CONVERSION_SIGNATURE); \
-}
+    template <>                                 \
+    ToEnum enumConvert(FromEnum value)          \
+    {                                           \
+        switch (value) {
+#define END_ENUM_CONVERSION                                                                                                                       \
+    }                                                                                                                                             \
+    assert(false && "unmapped enum encountered");                                                                                                 \
+    throw std::invalid_argument(std::string("Unable to convert enum value: ") + std::to_string(int(value)) + " in " + ENUM_CONVERSION_SIGNATURE); \
+    }

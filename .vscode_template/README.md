@@ -1,7 +1,8 @@
 # VS Code Templates
 
 These templates provide starter VS Code configs for macOS, Linux, and Windows.
-Each template includes launch configurations for both the `denigma` app and `denigma_tests`.
+Each template includes launch configurations for both the `denigma` app and `denigma_tests`,
+and a `settings.json` that formats C++ on save with the repository's `.clang-format`.
 
 ## Suggested extensions
 - C/C++ (`ms-vscode.cpptools`)
@@ -30,7 +31,7 @@ Notes:
 
 ## Optional: local dependency overrides
 
-If you are editing the dependencies simultaneosly, create `.vscode/settings.json` with:
+If you are editing the dependencies simultaneously, add to `.vscode/settings.json`:
 
 ```json
 {

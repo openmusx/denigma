@@ -17,18 +17,18 @@
  * THE SOFTWARE.
  */
 
-#include <map>
-#include <cmath>
 #include <algorithm>
+#include <cmath>
 #include <filesystem>
+#include <map>
 #include <optional>
 #include <string>
 #include <vector>
 
-#include "gtest/gtest.h"
-#include "mx/api/ScoreData.h"
 #include "musicxml_test.h"
+#include "mx/api/ScoreData.h"
 #include "test_utils.h"
+#include "gtest/gtest.h"
 
 using namespace denigma;
 using namespace denigma::test::musicxml;
@@ -46,8 +46,8 @@ struct LayoutFixture
 const std::vector<LayoutFixture>& layoutFixtures()
 {
     static const std::vector<LayoutFixture> fixtures{
-        { "musicxml/page70-staff82ev.musx", "musicxml/page70-staff82ev-ref.musicxml", 211 },
-        { "musicxml/page70nohold-staff82ev.musx", "musicxml/page70nohold-staff82ev-ref.musicxml", 211 }
+        {"musicxml/page70-staff82ev.musx", "musicxml/page70-staff82ev-ref.musicxml", 211},
+        {"musicxml/page70nohold-staff82ev.musx", "musicxml/page70nohold-staff82ev-ref.musicxml", 211},
     };
     return fixtures;
 }
@@ -68,14 +68,12 @@ void comparePageLayout(const mx::api::DefaultsData& actual, const mx::api::Defau
         expectRoundedValue(actual.pageLayout.size->width, expected.pageLayout.size->width, "page-layout.size.width");
     }
 
-    ASSERT_EQ(actual.pageLayout.margins.odd.has_value(), expected.pageLayout.margins.odd.has_value())
-        << "Presence mismatch for odd page margins";
+    ASSERT_EQ(actual.pageLayout.margins.odd.has_value(), expected.pageLayout.margins.odd.has_value()) << "Presence mismatch for odd page margins";
     if (expected.pageLayout.margins.odd) {
         compareMargins(*actual.pageLayout.margins.odd, *expected.pageLayout.margins.odd, "page-layout.margins.odd");
     }
 
-    ASSERT_EQ(actual.pageLayout.margins.even.has_value(), expected.pageLayout.margins.even.has_value())
-        << "Presence mismatch for even page margins";
+    ASSERT_EQ(actual.pageLayout.margins.even.has_value(), expected.pageLayout.margins.even.has_value()) << "Presence mismatch for even page margins";
     if (expected.pageLayout.margins.even) {
         compareMargins(*actual.pageLayout.margins.even, *expected.pageLayout.margins.even, "page-layout.margins.even");
     }
@@ -83,8 +81,7 @@ void comparePageLayout(const mx::api::DefaultsData& actual, const mx::api::Defau
 
 void compareSystemLayout(const mx::api::DefaultsData& actual, const mx::api::DefaultsData& expected, long expectedTopSystemDistance)
 {
-    ASSERT_EQ(actual.systemLayout.margins.has_value(), expected.systemLayout.margins.has_value())
-        << "Presence mismatch for system margins";
+    ASSERT_EQ(actual.systemLayout.margins.has_value(), expected.systemLayout.margins.has_value()) << "Presence mismatch for system margins";
     if (expected.systemLayout.margins) {
         expectRoundedValue(actual.systemLayout.margins->left, expected.systemLayout.margins->left, "system-layout.margins.left");
         expectRoundedValue(actual.systemLayout.margins->right, expected.systemLayout.margins->right, "system-layout.margins.right");
@@ -104,7 +101,7 @@ AppearanceMap createAppearanceMap(const std::vector<mx::api::AppearanceData>& ap
 {
     AppearanceMap result;
     for (const auto& data : appearance) {
-        const auto [it, inserted] = result.emplace(AppearanceKey{ data.appearanceType, data.appearanceSubType }, data.value);
+        const auto [it, inserted] = result.emplace(AppearanceKey{data.appearanceType, data.appearanceSubType}, data.value);
         EXPECT_TRUE(inserted) << "Duplicate appearance entry: " << data.appearanceSubType;
     }
     return result;
@@ -124,15 +121,8 @@ void compareAppearance(const mx::api::DefaultsData& actual, const mx::api::Defau
 
 bool isGenericFontFamilyFallback(const std::string& fontFamily)
 {
-    return fontFamily == "music"
-        || fontFamily == "engraved"
-        || fontFamily == "handwritten"
-        || fontFamily == "text"
-        || fontFamily == "serif"
-        || fontFamily == "sans-serif"
-        || fontFamily == "cursive"
-        || fontFamily == "fantasy"
-        || fontFamily == "monospace";
+    return fontFamily == "music" || fontFamily == "engraved" || fontFamily == "handwritten" || fontFamily == "text" || fontFamily == "serif"
+           || fontFamily == "sans-serif" || fontFamily == "cursive" || fontFamily == "fantasy" || fontFamily == "monospace";
 }
 
 mx::api::FontStyle explicitFontStyle(mx::api::FontStyle style)
@@ -168,10 +158,7 @@ void compareFontData(const mx::api::FontData& actual, const mx::api::FontData& e
     EXPECT_EQ(actual.lineThrough, expected.lineThrough) << label << ".line-through";
 }
 
-void compareOptionalFontData(
-    const std::optional<mx::api::FontData>& actual,
-    const std::optional<mx::api::FontData>& expected,
-    const char* label)
+void compareOptionalFontData(const std::optional<mx::api::FontData>& actual, const std::optional<mx::api::FontData>& expected, const char* label)
 {
     ASSERT_EQ(actual.has_value(), expected.has_value()) << "Presence mismatch for " << label;
     if (expected) {
@@ -255,10 +242,9 @@ TEST(MusicXmlDefaults, UncalculatedPartLayoutKeepsScoreSystemBreaks)
 
     std::filesystem::path inputPath;
     copyInputToOutput("zwei_gesange.musx", inputPath);
-    ArgList args = { DENIGMA_NAME, "export", pathString(inputPath), "--musicxml", "--all-parts" };
-    checkStderr({ "Processing", pathString(inputPath.filename()) }, [&]() {
-        EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to musicxml: " << pathString(inputPath);
-    });
+    ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), "--musicxml", "--all-parts"};
+    checkStderr({"Processing", pathString(inputPath.filename())},
+        [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to musicxml: " << pathString(inputPath); });
 
     const auto countSystemBreaks = [](const std::filesystem::path& path) -> int {
         const auto score = loadScoreData(path);
@@ -266,8 +252,8 @@ TEST(MusicXmlDefaults, UncalculatedPartLayoutKeepsScoreSystemBreaks)
         if (!score) {
             return -1;
         }
-        return static_cast<int>(std::count_if(score->layout.begin(), score->layout.end(),
-            [](const auto& entry) { return entry.second.system.newSystem == mx::api::Bool::yes; }));
+        return static_cast<int>(std::count_if(
+            score->layout.begin(), score->layout.end(), [](const auto& entry) { return entry.second.system.newSystem == mx::api::Bool::yes; }));
     };
 
     auto scorePath = inputPath;
@@ -276,7 +262,7 @@ TEST(MusicXmlDefaults, UncalculatedPartLayoutKeepsScoreSystemBreaks)
     // first measure is dropped, since MusicXML has nothing to break away from there.
     EXPECT_EQ(countSystemBreaks(scorePath), 7);
 
-    for (const auto& partName : { "Alto", "Viola", "Piano" }) {
+    for (const auto& partName : {"Alto", "Viola", "Piano"}) {
         auto partPath = inputPath;
         partPath.replace_extension("");
         partPath += std::string(".") + partName + ".musicxml";
@@ -293,9 +279,8 @@ TEST(MusicXmlDefaults, ExportsAuthoredPageBreaks)
     const auto score = loadScoreData(outputPath);
     ASSERT_TRUE(score);
 
-    const auto pageBreaks = std::count_if(score->layout.begin(), score->layout.end(), [](const auto& entry) {
-        return entry.second.page.newPage == mx::api::Bool::yes;
-    });
+    const auto pageBreaks =
+        std::count_if(score->layout.begin(), score->layout.end(), [](const auto& entry) { return entry.second.page.newPage == mx::api::Bool::yes; });
     EXPECT_EQ(pageBreaks, 1);
     EXPECT_TRUE(std::none_of(score->layout.begin(), score->layout.end(), [](const auto& entry) {
         return entry.second.page.newPage == mx::api::Bool::yes && entry.second.system.newSystem != mx::api::Bool::unspecified;

@@ -23,17 +23,15 @@
 
 #include <filesystem>
 
-#include "denigma/conversion.h"
 #include "core/denigma.h"
+#include "denigma/conversion.h"
 
 namespace denigma {
 namespace formats {
 namespace svg {
 namespace detail {
 
-void convert(const CommandInputData& inputData,
-             const DenigmaContext& denigmaContext,
-             const MultiOutputCallback& outputCallback);
+void convert(const CommandInputData& inputData, const DenigmaContext& denigmaContext, const MultiOutputCallback& outputCallback);
 void convert(const std::filesystem::path& outputPath, const CommandInputData& inputData, const DenigmaContext& denigmaContext);
 
 } // namespace detail

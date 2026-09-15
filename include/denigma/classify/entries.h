@@ -39,8 +39,7 @@ struct ArtificialHarmonic
 {
     /// @enum TouchInterval
     /// @brief The notated interval from the stopped note up to the touched node.
-    enum class TouchInterval
-    {
+    enum class TouchInterval {
         Fourth,
         MajorThird,
         Fifth
@@ -55,7 +54,7 @@ struct ArtificialHarmonic
     /// Notehead classification already computed for #touchedNote.
     NoteheadClassification touchedNotehead;
     /// Notated interval from #stoppedNote to #touchedNote.
-    TouchInterval interval{ TouchInterval::Fourth };
+    TouchInterval interval{TouchInterval::Fourth};
     /// A third note in the chord at the theoretical sounding pitch, if the source explicitly includes one.
     /// Falsy if the chord has no such note.
     musx::dom::NoteInfoPtr soundingNote;
@@ -82,18 +81,21 @@ struct EntryNoteheadClassification
     entry::NoteheadValue value{};
 
     /// Returns true when a chord-level notehead pattern was recognized.
-    explicit operator bool() const noexcept
-    { return !std::holds_alternative<std::monostate>(value); }
+    explicit operator bool() const noexcept { return !std::holds_alternative<std::monostate>(value); }
 
     /// Returns the classified payload as T, or nullptr when it has another type.
     template <typename T>
     const T* as() const noexcept
-    { return std::get_if<T>(&value); }
+    {
+        return std::get_if<T>(&value);
+    }
 
     /// Returns true when the classified payload has type T.
     template <typename T>
     bool is() const noexcept
-    { return std::holds_alternative<T>(value); }
+    {
+        return std::holds_alternative<T>(value);
+    }
 };
 
 /// Classifies chord-level notehead patterns (e.g. artificial harmonics) for an entry.

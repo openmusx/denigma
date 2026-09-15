@@ -84,11 +84,11 @@ FinaleOptions loadFinaleOptions(const musx::dom::DocumentPtr& document, musx::do
     auto measNumRegions = document->getOthers()->getArray<others::MeasureNumberRegion>(forPartId);
     if (!measNumRegions.empty()) {
         retval.effectiveMeasNumScorePart = (forPartId && measNumRegions[0]->useScoreInfoForPart && measNumRegions[0]->partData)
-                                         ? measNumRegions[0]->partData
-                                         : measNumRegions[0]->scoreData;
+                                               ? measNumRegions[0]->partData
+                                               : measNumRegions[0]->scoreData;
         if (!retval.effectiveMeasNumScorePart) {
-            throw std::invalid_argument("document contains no ScorePartData for measure number region "
-                + std::to_string(measNumRegions[0]->getCmper()));
+            throw std::invalid_argument(
+                "document contains no ScorePartData for measure number region " + std::to_string(measNumRegions[0]->getCmper()));
         }
     }
 

@@ -84,47 +84,30 @@ struct MusicXmlPageTextContent
 };
 
 void parseMusicXmlFormattedText(
-    const MusicXmlMusxMapping& context,
-    const musx::util::EnigmaParsingContext& text,
-    const MusicXmlFormattedTextOptions& options = {});
+    const MusicXmlMusxMapping& context, const musx::util::EnigmaParsingContext& text, const MusicXmlFormattedTextOptions& options = {});
 std::optional<mx::api::WordsData> musicXmlWordsFromEnigmaTextChunk(
-    const MusicXmlMusxMapping& context,
-    const musx::util::EnigmaTextChunk& chunk,
-    const MusicXmlFormattedTextOptions& options = {});
-mx::api::LyricData musicXmlLyricFromSyllable(
-    const MusicXmlMusxMapping& context,
-    const musx::dom::texts::LyricsTextBase& lyricText,
-    size_t syllableIndex,
-    const MusicXmlFormattedTextOptions& options = {});
+    const MusicXmlMusxMapping& context, const musx::util::EnigmaTextChunk& chunk, const MusicXmlFormattedTextOptions& options = {});
+mx::api::LyricData musicXmlLyricFromSyllable(const MusicXmlMusxMapping& context, const musx::dom::texts::LyricsTextBase& lyricText,
+    size_t syllableIndex, const MusicXmlFormattedTextOptions& options = {});
 /// @brief Builds a `<symbol>` for @p glyphName from the words it replaces.
 ///
 /// Shared by every path that substitutes a glyph for text, so that all of them agree on what a
 /// symbol carries. The source font family, style, and weight are deliberately dropped; see the
 /// implementation and the symbol entry in design-decisions.md for why.
 mx::api::SymbolData musicXmlSymbolFromWords(
-    const mx::api::WordsData& sourceWords,
-    const musx::dom::MusxInstance<musx::dom::FontInfo>& font,
-    std::string glyphName);
+    const mx::api::WordsData& sourceWords, const musx::dom::MusxInstance<musx::dom::FontInfo>& font, std::string glyphName);
 /// @brief Converts formatted text into an ordered run of words and SMuFL symbols.
 ///
 /// Music-font characters become `<symbol>` items according to MusicXmlFormattedTextOptions::symbolPolicy,
 /// so that a glyph survives on a system lacking the source font. Chunk order and fonts are retained.
 std::vector<mx::api::WordsChoice> musicXmlWordsFromEnigmaText(
-    const MusicXmlMusxMapping& context,
-    const musx::util::EnigmaParsingContext& text,
-    const MusicXmlFormattedTextOptions& options = {});
+    const MusicXmlMusxMapping& context, const musx::util::EnigmaParsingContext& text, const MusicXmlFormattedTextOptions& options = {});
 /// @brief Appends one direction type holding an ordered run of words and symbols.
-void appendMusicXmlWordsRun(
-    mx::api::DirectionData& direction,
-    std::vector<mx::api::WordsChoice> run);
+void appendMusicXmlWordsRun(mx::api::DirectionData& direction, std::vector<mx::api::WordsChoice> run);
 /// @brief Appends one words-only direction type, for callers that build WordsData directly.
-void appendMusicXmlWordsRun(
-    mx::api::DirectionData& direction,
-    std::vector<mx::api::WordsData> words);
+void appendMusicXmlWordsRun(mx::api::DirectionData& direction, std::vector<mx::api::WordsData> words);
 std::optional<MusicXmlPageTextContent> musicXmlPageTextContentFromEnigmaText(
-    const MusicXmlMusxMapping& context,
-    const musx::util::EnigmaParsingContext& text,
-    const MusicXmlFormattedTextOptions& options = {});
+    const MusicXmlMusxMapping& context, const musx::util::EnigmaParsingContext& text, const MusicXmlFormattedTextOptions& options = {});
 
 } // namespace detail
 } // namespace musicxml

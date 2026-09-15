@@ -19,15 +19,15 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#include <string>
 #include <filesystem>
-#include <iterator>
 #include <fstream>
+#include <iterator>
+#include <string>
 
-#include "gtest/gtest.h"
 #include "core/denigma.h"
 #include "mnxdom.h"
 #include "test_utils.h"
+#include "gtest/gtest.h"
 
 using namespace denigma;
 
@@ -36,10 +36,9 @@ TEST(MnxLayouts, MultiInstrumentTest)
     setupTestDataPaths();
     std::filesystem::path inputPath;
     copyInputToOutput("multistaff_inst.musx", inputPath);
-    ArgList args = { DENIGMA_NAME, "export", pathString(inputPath), "--mnx" };
-    checkStderr({ "Processing", pathString(inputPath.filename()), "!validation error" }, [&]() {
-        EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath);
-    });
+    ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), "--mnx"};
+    checkStderr({"Processing", pathString(inputPath.filename()), "!validation error"},
+        [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath); });
 
     nlohmann::json mnx;
     openJson(inputPath.parent_path() / "multistaff_inst.mnx", mnx);
@@ -156,28 +155,28 @@ TEST(MnxLayouts, MultiInstrumentTest)
     EXPECT_EQ(layouts[1]["content"][1]["label"], "Harpsichord 1");
     EXPECT_EQ(layouts[1]["content"][1]["symbol"], "brace");
     ASSERT_EQ(layouts[1]["content"][1]["content"].size(), 2);
-    
+
     EXPECT_EQ(layouts[1]["content"][1]["content"][0]["type"], "staff");
     EXPECT_EQ(layouts[1]["content"][1]["content"][0]["sources"][0]["part"], "P2");
     EXPECT_EQ(layouts[1]["content"][1]["content"][0]["sources"][0]["staff"], 1);
     EXPECT_EQ(layouts[1]["content"][1]["content"][0]["sources"][0]["label"], "RH");
-    
+
     EXPECT_EQ(layouts[1]["content"][1]["content"][1]["type"], "staff");
     EXPECT_EQ(layouts[1]["content"][1]["content"][1]["sources"][0]["part"], "P2");
     EXPECT_EQ(layouts[1]["content"][1]["content"][1]["sources"][0]["staff"], 2);
     EXPECT_EQ(layouts[1]["content"][1]["content"][1]["sources"][0]["label"], "LH");
-    
+
     /// Harpsichord 2
     EXPECT_EQ(layouts[1]["content"][2]["type"], "group");
     EXPECT_EQ(layouts[1]["content"][2]["label"], "Harpsichord 2");
     EXPECT_EQ(layouts[1]["content"][2]["symbol"], "brace");
     ASSERT_EQ(layouts[1]["content"][2]["content"].size(), 2);
-    
+
     EXPECT_EQ(layouts[1]["content"][2]["content"][0]["type"], "staff");
     EXPECT_EQ(layouts[1]["content"][2]["content"][0]["sources"][0]["part"], "P3");
     EXPECT_EQ(layouts[1]["content"][2]["content"][0]["sources"][0]["staff"], 1);
     EXPECT_EQ(layouts[1]["content"][2]["content"][0]["sources"][0]["label"], "RH");
-    
+
     EXPECT_EQ(layouts[1]["content"][2]["content"][1]["type"], "staff");
     EXPECT_EQ(layouts[1]["content"][2]["content"][1]["sources"][0]["part"], "P3");
     EXPECT_EQ(layouts[1]["content"][2]["content"][1]["sources"][0]["staff"], 2);
@@ -224,41 +223,41 @@ TEST(MnxLayouts, MultiInstrumentTest)
     EXPECT_EQ(layouts[2]["content"][1]["label"], "Hpschd. 1");
     EXPECT_EQ(layouts[2]["content"][1]["symbol"], "brace");
     ASSERT_EQ(layouts[2]["content"][1]["content"].size(), 2);
-    
+
     EXPECT_EQ(layouts[2]["content"][1]["content"][0]["type"], "staff");
     EXPECT_EQ(layouts[2]["content"][1]["content"][0]["sources"][0]["part"], "P2");
     EXPECT_EQ(layouts[2]["content"][1]["content"][0]["sources"][0]["staff"], 1);
-    
+
     EXPECT_EQ(layouts[2]["content"][1]["content"][1]["type"], "staff");
     EXPECT_EQ(layouts[2]["content"][1]["content"][1]["sources"][0]["part"], "P2");
     EXPECT_EQ(layouts[2]["content"][1]["content"][1]["sources"][0]["staff"], 2);
-    
+
     /// Harpsichord 2
     EXPECT_EQ(layouts[2]["content"][2]["type"], "group");
     EXPECT_EQ(layouts[2]["content"][2]["label"], "Hpschd. 2");
     EXPECT_EQ(layouts[2]["content"][2]["symbol"], "brace");
     ASSERT_EQ(layouts[2]["content"][2]["content"].size(), 2);
-    
+
     EXPECT_EQ(layouts[2]["content"][2]["content"][0]["type"], "staff");
     EXPECT_EQ(layouts[2]["content"][2]["content"][0]["sources"][0]["part"], "P3");
     EXPECT_EQ(layouts[2]["content"][2]["content"][0]["sources"][0]["staff"], 1);
     EXPECT_EQ(layouts[2]["content"][2]["content"][0]["sources"][0]["label"], "fs");
     EXPECT_EQ(layouts[2]["content"][2]["content"][0]["sources"][0]["stem"], "up");
-    
+
     EXPECT_EQ(layouts[2]["content"][2]["content"][1]["type"], "staff");
     EXPECT_EQ(layouts[2]["content"][2]["content"][1]["sources"][0]["part"], "P3");
     EXPECT_EQ(layouts[2]["content"][2]["content"][1]["sources"][0]["staff"], 2);
-    
+
     /// Other Staves
     EXPECT_EQ(layouts[2]["content"][3]["type"], "staff");
     EXPECT_EQ(layouts[2]["content"][3]["sources"][0]["part"], "P4");
     EXPECT_EQ(layouts[2]["content"][3]["sources"][0]["label"], "fs 1");
     EXPECT_EQ(layouts[2]["content"][3]["sources"][0]["stem"], "up");
-    
+
     EXPECT_EQ(layouts[2]["content"][4]["type"], "staff");
     EXPECT_EQ(layouts[2]["content"][4]["sources"][0]["part"], "P5");
     EXPECT_EQ(layouts[2]["content"][4]["sources"][0]["labelref"], "shortName");
-    
+
     // Validate fourth layout (S0-Sys3)
     EXPECT_EQ(layouts[3]["id"], "S0-Sys3");
     ASSERT_EQ(layouts[3]["content"].size(), 5);
@@ -288,34 +287,34 @@ TEST(MnxLayouts, MultiInstrumentTest)
     EXPECT_EQ(layouts[3]["content"][1]["label"], "Hpschd. 1");
     EXPECT_EQ(layouts[3]["content"][1]["symbol"], "brace");
     ASSERT_EQ(layouts[3]["content"][1]["content"].size(), 2);
-    
+
     EXPECT_EQ(layouts[3]["content"][1]["content"][0]["type"], "staff");
     EXPECT_EQ(layouts[3]["content"][1]["content"][0]["sources"][0]["part"], "P2");
     EXPECT_EQ(layouts[3]["content"][1]["content"][0]["sources"][0]["staff"], 1);
-    
+
     EXPECT_EQ(layouts[3]["content"][1]["content"][1]["type"], "staff");
     EXPECT_EQ(layouts[3]["content"][1]["content"][1]["sources"][0]["part"], "P2");
     EXPECT_EQ(layouts[3]["content"][1]["content"][1]["sources"][0]["staff"], 2);
-    
+
     /// Harpsichord 2
     EXPECT_EQ(layouts[3]["content"][2]["type"], "group");
     EXPECT_EQ(layouts[3]["content"][2]["label"], "Hpschd. 2");
     EXPECT_EQ(layouts[3]["content"][2]["symbol"], "brace");
     ASSERT_EQ(layouts[3]["content"][2]["content"].size(), 2);
-    
+
     EXPECT_EQ(layouts[3]["content"][2]["content"][0]["type"], "staff");
     EXPECT_EQ(layouts[3]["content"][2]["content"][0]["sources"][0]["part"], "P3");
     EXPECT_EQ(layouts[3]["content"][2]["content"][0]["sources"][0]["staff"], 1);
-    
+
     EXPECT_EQ(layouts[3]["content"][2]["content"][1]["type"], "staff");
     EXPECT_EQ(layouts[3]["content"][2]["content"][1]["sources"][0]["part"], "P3");
     EXPECT_EQ(layouts[3]["content"][2]["content"][1]["sources"][0]["staff"], 2);
-    
+
     /// Other Staves
     EXPECT_EQ(layouts[3]["content"][3]["type"], "staff");
     EXPECT_EQ(layouts[3]["content"][3]["sources"][0]["part"], "P4");
     EXPECT_EQ(layouts[3]["content"][3]["sources"][0]["labelref"], "shortName");
-    
+
     EXPECT_EQ(layouts[3]["content"][4]["type"], "staff");
     EXPECT_EQ(layouts[3]["content"][4]["sources"][0]["part"], "P5");
     EXPECT_EQ(layouts[3]["content"][4]["sources"][0]["labelref"], "shortName");
@@ -326,13 +325,12 @@ TEST(MnxLayouts, Piano3StaffTest)
     setupTestDataPaths();
     std::filesystem::path inputPath;
     copyInputToOutput("piano3staff.musx", inputPath);
-    ArgList args = { DENIGMA_NAME, "export", pathString(inputPath), "--mnx" };
-    checkStderr({ "Processing", pathString(inputPath.filename()), "!validation error" }, [&]() {
-        EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath);
-    });
+    ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), "--mnx"};
+    checkStderr({"Processing", pathString(inputPath.filename()), "!validation error"},
+        [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath); });
 
     auto doc = mnx::Document::create(inputPath.parent_path() / "piano3staff.mnx");
-    ASSERT_TRUE( doc.layouts());
+    ASSERT_TRUE(doc.layouts());
     auto layouts = doc.layouts().value();
     ASSERT_GE(layouts.size(), 6);
 

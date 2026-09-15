@@ -36,26 +36,16 @@ namespace {
 std::string_view musicXmlFontFamilyFallbackName(MusicXmlFontFamilyFallback fallback)
 {
     switch (fallback) {
-    case MusicXmlFontFamilyFallback::None:
-        return {};
-    case MusicXmlFontFamilyFallback::Music:
-        return "music";
-    case MusicXmlFontFamilyFallback::Engraved:
-        return "engraved";
-    case MusicXmlFontFamilyFallback::Handwritten:
-        return "handwritten";
-    case MusicXmlFontFamilyFallback::Text:
-        return "text";
-    case MusicXmlFontFamilyFallback::Serif:
-        return "serif";
-    case MusicXmlFontFamilyFallback::SansSerif:
-        return "sans-serif";
-    case MusicXmlFontFamilyFallback::Cursive:
-        return "cursive";
-    case MusicXmlFontFamilyFallback::Fantasy:
-        return "fantasy";
-    case MusicXmlFontFamilyFallback::Monospace:
-        return "monospace";
+    case MusicXmlFontFamilyFallback::None: return {};
+    case MusicXmlFontFamilyFallback::Music: return "music";
+    case MusicXmlFontFamilyFallback::Engraved: return "engraved";
+    case MusicXmlFontFamilyFallback::Handwritten: return "handwritten";
+    case MusicXmlFontFamilyFallback::Text: return "text";
+    case MusicXmlFontFamilyFallback::Serif: return "serif";
+    case MusicXmlFontFamilyFallback::SansSerif: return "sans-serif";
+    case MusicXmlFontFamilyFallback::Cursive: return "cursive";
+    case MusicXmlFontFamilyFallback::Fantasy: return "fantasy";
+    case MusicXmlFontFamilyFallback::Monospace: return "monospace";
     }
     throw std::invalid_argument("Unknown MusicXML font-family fallback.");
 }
@@ -64,11 +54,15 @@ std::string_view musicXmlFontFamilyFallbackName(MusicXmlFontFamilyFallback fallb
 bool isGenericFontFamily(std::string_view name)
 {
     static constexpr MusicXmlFontFamilyFallback kGenerics[] = {
-        MusicXmlFontFamilyFallback::Music, MusicXmlFontFamilyFallback::Engraved,
-        MusicXmlFontFamilyFallback::Handwritten, MusicXmlFontFamilyFallback::Text,
-        MusicXmlFontFamilyFallback::Serif, MusicXmlFontFamilyFallback::SansSerif,
-        MusicXmlFontFamilyFallback::Cursive, MusicXmlFontFamilyFallback::Fantasy,
-        MusicXmlFontFamilyFallback::Monospace
+        MusicXmlFontFamilyFallback::Music,
+        MusicXmlFontFamilyFallback::Engraved,
+        MusicXmlFontFamilyFallback::Handwritten,
+        MusicXmlFontFamilyFallback::Text,
+        MusicXmlFontFamilyFallback::Serif,
+        MusicXmlFontFamilyFallback::SansSerif,
+        MusicXmlFontFamilyFallback::Cursive,
+        MusicXmlFontFamilyFallback::Fantasy,
+        MusicXmlFontFamilyFallback::Monospace,
     };
     return std::any_of(std::begin(kGenerics), std::end(kGenerics),
         [name](MusicXmlFontFamilyFallback fallback) { return name == musicXmlFontFamilyFallbackName(fallback); });
@@ -76,8 +70,8 @@ bool isGenericFontFamily(std::string_view name)
 
 } // namespace
 
-mx::api::FontData MusicXmlMusxMapping::musicXmlFontDataFromFontInfo(const musx::dom::FontInfo& fontInfo,
-    MusicXmlFontFamilyFallback fallback, MusicXmlFontScaling fontScaling) const
+mx::api::FontData MusicXmlMusxMapping::musicXmlFontDataFromFontInfo(
+    const musx::dom::FontInfo& fontInfo, MusicXmlFontFamilyFallback fallback, MusicXmlFontScaling fontScaling) const
 {
     mx::api::FontData result;
     const auto fontName = fontInfo.getName();
@@ -100,7 +94,8 @@ mx::api::FontData MusicXmlMusxMapping::musicXmlFontDataFromFontInfo(const musx::
                 scaling = finaleOptions.effectivePageFormat->calcPageScaling().toDouble();
             } else {
                 const bool hasInitializedScaling = musicXmlScore && musicXmlScore->defaults.scalingMillimeters > 0.0;
-                ASSERT_IF(!hasInitializedScaling) {
+                ASSERT_IF(!hasInitializedScaling)
+                {
                     throw std::logic_error("MusicXML font conversion requires initialized score scaling for non-absolute font sizes.");
                 }
                 scaling = musicXmlScore->defaults.scalingMillimeters / kUnscaledMmPerStaff;
@@ -119,25 +114,29 @@ mx::api::FontData MusicXmlMusxMapping::musicXmlFontDataFromFontInfo(const musx::
     return result;
 }
 
-void parseMusicXmlFormattedText(const MusicXmlMusxMapping& context, const musx::util::EnigmaParsingContext& text,
-    const MusicXmlFormattedTextOptions& options)
+void parseMusicXmlFormattedText(
+    const MusicXmlMusxMapping& context, const musx::util::EnigmaParsingContext& text, const MusicXmlFormattedTextOptions& options)
 {
     const musx::util::EnigmaString::EnigmaParsingOptions parsingOptions(options.accidentalStyle);
-    text.parseEnigmaText([&](const std::string& chunk, const musx::util::EnigmaStyles& styles) -> bool {
-        ASSERT_IF(!styles.font) {
-            throw std::logic_error("MusicXML formatted text chunk has no font data.");
-        }
-        if (options.onChunk) {
-            options.onChunk(context.musicXmlFontDataFromFontInfo(*styles.font, options.fallback), chunk);
-        }
-        return true;
-    }, parsingOptions);
+    text.parseEnigmaText(
+        [&](const std::string& chunk, const musx::util::EnigmaStyles& styles) -> bool {
+            ASSERT_IF(!styles.font)
+            {
+                throw std::logic_error("MusicXML formatted text chunk has no font data.");
+            }
+            if (options.onChunk) {
+                options.onChunk(context.musicXmlFontDataFromFontInfo(*styles.font, options.fallback), chunk);
+            }
+            return true;
+        },
+        parsingOptions);
 }
 
-std::optional<mx::api::WordsData> musicXmlWordsFromEnigmaTextChunk(const MusicXmlMusxMapping& context, const musx::util::EnigmaTextChunk& chunk,
-    const MusicXmlFormattedTextOptions& options)
+std::optional<mx::api::WordsData> musicXmlWordsFromEnigmaTextChunk(
+    const MusicXmlMusxMapping& context, const musx::util::EnigmaTextChunk& chunk, const MusicXmlFormattedTextOptions& options)
 {
-    ASSERT_IF(!chunk.styles.font) {
+    ASSERT_IF(!chunk.styles.font)
+    {
         throw std::logic_error("MusicXML formatted text chunk has no font data.");
     }
     if (chunk.styles.font->hidden) {
@@ -167,10 +166,11 @@ mx::api::LyricSyllabic lyricSyllabicForRun(bool hasHyphenBefore, bool hasHyphenA
 
 } // namespace
 
-mx::api::LyricData musicXmlLyricFromSyllable(const MusicXmlMusxMapping& context,
-    const musx::dom::texts::LyricsTextBase& lyricText, size_t syllableIndex, const MusicXmlFormattedTextOptions& options)
+mx::api::LyricData musicXmlLyricFromSyllable(const MusicXmlMusxMapping& context, const musx::dom::texts::LyricsTextBase& lyricText,
+    size_t syllableIndex, const MusicXmlFormattedTextOptions& options)
 {
-    ASSERT_IF(syllableIndex >= lyricText.syllables.size()) {
+    ASSERT_IF(syllableIndex >= lyricText.syllables.size())
+    {
         throw std::out_of_range("MusicXML lyric syllable index is out of range.");
     }
 
@@ -190,7 +190,8 @@ mx::api::LyricData musicXmlLyricFromSyllable(const MusicXmlMusxMapping& context,
     };
 
     const auto runs = syllable->calcElisionRuns();
-    ASSERT_IF(runs.empty()) {
+    ASSERT_IF(runs.empty())
+    {
         throw std::logic_error("MusicXML lyric syllable produced no elision runs.");
     }
 
@@ -200,7 +201,8 @@ mx::api::LyricData musicXmlLyricFromSyllable(const MusicXmlMusxMapping& context,
     // mx::api::LyricData carries one font for the whole lyric (continuations have no font field
     // of their own), so only the first run's own first style chunk is consulted here.
     runs.front().iterateStyles([&](const std::string&, const musx::util::EnigmaStyles& styles) -> bool {
-        ASSERT_IF(!styles.font) {
+        ASSERT_IF(!styles.font)
+        {
             throw std::logic_error("MusicXML lyric syllable chunk has no font data.");
         }
         const auto fontData = context.musicXmlFontDataFromFontInfo(*styles.font, options.fallback);
@@ -257,8 +259,8 @@ mx::api::LyricData musicXmlLyricFromSyllable(const MusicXmlMusxMapping& context,
 /// unspecified by default and an unspecified style inherits from whatever ran before. A legacy
 /// source therefore gets an explicit normal rather than nothing, for the same reason
 /// #musicXmlFontDataFromFontInfo states normal on ordinary words.
-mx::api::SymbolData musicXmlSymbolFromWords(const mx::api::WordsData& sourceWords,
-    const musx::dom::MusxInstance<musx::dom::FontInfo>& font, std::string glyphName)
+mx::api::SymbolData musicXmlSymbolFromWords(
+    const mx::api::WordsData& sourceWords, const musx::dom::MusxInstance<musx::dom::FontInfo>& font, std::string glyphName)
 {
     mx::api::SymbolData result;
     result.smufl = std::move(glyphName);
@@ -267,8 +269,8 @@ mx::api::SymbolData musicXmlSymbolFromWords(const mx::api::WordsData& sourceWord
     if (font && font->calcIsSMuFL()) {
         result.fontData = sourceWords.fontData;
         auto& families = result.fontData.fontFamily;
-        families.erase(std::remove_if(families.begin(), families.end(),
-            [](const std::string& family) { return isGenericFontFamily(family); }), families.end());
+        families.erase(
+            std::remove_if(families.begin(), families.end(), [](const std::string& family) { return isGenericFontFamily(family); }), families.end());
         families.emplace_back(musicXmlFontFamilyFallbackName(MusicXmlFontFamilyFallback::Engraved));
         if (sourceFontType != smufl_mapping::MusicFontType::Engraving) {
             result.fontData.sizeType = mx::api::FontSizeType::unspecified;
@@ -335,25 +337,25 @@ void appendChunkToWordsRun(std::vector<mx::api::WordsChoice>& run, const mx::api
 
 } // namespace
 
-std::vector<mx::api::WordsChoice> musicXmlWordsFromEnigmaText(const MusicXmlMusxMapping& context,
-    const musx::util::EnigmaParsingContext& text, const MusicXmlFormattedTextOptions& options)
+std::vector<mx::api::WordsChoice> musicXmlWordsFromEnigmaText(
+    const MusicXmlMusxMapping& context, const musx::util::EnigmaParsingContext& text, const MusicXmlFormattedTextOptions& options)
 {
     std::vector<mx::api::WordsChoice> result;
-    const auto symbolPolicy = context.denigmaContext->allFontsAvailable
-        ? utils::SmuflSymbolPolicy::PreserveText
-        : options.symbolPolicy;
-    text.parseEnigmaText([&](const std::string& chunkText, const musx::util::EnigmaStyles& styles) -> bool {
-        musx::util::EnigmaTextChunk chunk{ chunkText, styles };
-        auto words = musicXmlWordsFromEnigmaTextChunk(context, chunk, options);
-        if (!words) {
+    const auto symbolPolicy = context.denigmaContext->allFontsAvailable ? utils::SmuflSymbolPolicy::PreserveText : options.symbolPolicy;
+    text.parseEnigmaText(
+        [&](const std::string& chunkText, const musx::util::EnigmaStyles& styles) -> bool {
+            musx::util::EnigmaTextChunk chunk{chunkText, styles};
+            auto words = musicXmlWordsFromEnigmaTextChunk(context, chunk, options);
+            if (!words) {
+                return true;
+            }
+            if (options.onChunk) {
+                options.onChunk(words->fontData, words->text);
+            }
+            appendChunkToWordsRun(result, *words, styles.font, symbolPolicy);
             return true;
-        }
-        if (options.onChunk) {
-            options.onChunk(words->fontData, words->text);
-        }
-        appendChunkToWordsRun(result, *words, styles.font, symbolPolicy);
-        return true;
-    }, musx::util::EnigmaString::EnigmaParsingOptions(options.accidentalStyle));
+        },
+        musx::util::EnigmaString::EnigmaParsingOptions(options.accidentalStyle));
     return result;
 }
 
@@ -378,8 +380,8 @@ void appendMusicXmlWordsRun(mx::api::DirectionData& direction, std::vector<mx::a
     direction.directionTypes.emplace_back(std::move(run));
 }
 
-std::optional<MusicXmlPageTextContent> musicXmlPageTextContentFromEnigmaText(const MusicXmlMusxMapping& context,
-    const musx::util::EnigmaParsingContext& text, const MusicXmlFormattedTextOptions& options)
+std::optional<MusicXmlPageTextContent> musicXmlPageTextContentFromEnigmaText(
+    const MusicXmlMusxMapping& context, const musx::util::EnigmaParsingContext& text, const MusicXmlFormattedTextOptions& options)
 {
     MusicXmlPageTextContent result;
     bool foundVisibleFont = false;
@@ -389,44 +391,63 @@ std::optional<MusicXmlPageTextContent> musicXmlPageTextContentFromEnigmaText(con
         }
     };
     const auto creditTypeForInsert = [](std::string_view command) -> std::string_view {
-        if (command == "title") { return "title"; }
-        if (command == "subtitle") { return "subtitle"; }
-        if (command == "composer") { return "composer"; }
-        if (command == "lyricist") { return "lyricist"; }
-        if (command == "arranger") { return "arranger"; }
-        if (command == "copyright") { return "rights"; }
-        if (command == "partname") { return "part name"; }
-        if (command == "page") { return "page number"; }
+        if (command == "title") {
+            return "title";
+        }
+        if (command == "subtitle") {
+            return "subtitle";
+        }
+        if (command == "composer") {
+            return "composer";
+        }
+        if (command == "lyricist") {
+            return "lyricist";
+        }
+        if (command == "arranger") {
+            return "arranger";
+        }
+        if (command == "copyright") {
+            return "rights";
+        }
+        if (command == "partname") {
+            return "part name";
+        }
+        if (command == "page") {
+            return "page number";
+        }
         return {};
     };
 
-    text.parseEnigmaText([&](const std::string& chunk, const musx::util::EnigmaStyles& styles) -> bool {
-        ASSERT_IF(!styles.font) {
-            throw std::logic_error("MusicXML page text chunk has no font data.");
-        }
-        if (styles.font->hidden) {
-            return true;
-        }
-        const auto fontData = context.musicXmlFontDataFromFontInfo(
-            *styles.font, options.fallback, MusicXmlFontScaling::Page);
-        if (!foundVisibleFont) {
-            result.fontData = fontData;
-            foundVisibleFont = true;
-        }
-        // TODO: mx::api::PageTextData has one FontData and emits one credit-words element, so later font changes are flattened.
-        result.text += chunk;
-        if (options.onChunk) {
-            options.onChunk(fontData, chunk);
-        }
-        return true;
-    }, [&](const std::vector<std::string>& components) -> std::optional<std::string> {
-        if (!components.empty()) {
-            if (const auto type = creditTypeForInsert(components.front()); !type.empty()) {
-                addCreditType(type);
+    text.parseEnigmaText(
+        [&](const std::string& chunk, const musx::util::EnigmaStyles& styles) -> bool {
+            ASSERT_IF(!styles.font)
+            {
+                throw std::logic_error("MusicXML page text chunk has no font data.");
             }
-        }
-        return std::nullopt;
-    }, musx::util::EnigmaString::EnigmaParsingOptions(options.accidentalStyle));
+            if (styles.font->hidden) {
+                return true;
+            }
+            const auto fontData = context.musicXmlFontDataFromFontInfo(*styles.font, options.fallback, MusicXmlFontScaling::Page);
+            if (!foundVisibleFont) {
+                result.fontData = fontData;
+                foundVisibleFont = true;
+            }
+        // TODO: mx::api::PageTextData has one FontData and emits one credit-words element, so later font changes are flattened.
+            result.text += chunk;
+            if (options.onChunk) {
+                options.onChunk(fontData, chunk);
+            }
+            return true;
+        },
+        [&](const std::vector<std::string>& components) -> std::optional<std::string> {
+            if (!components.empty()) {
+                if (const auto type = creditTypeForInsert(components.front()); !type.empty()) {
+                    addCreditType(type);
+                }
+            }
+            return std::nullopt;
+        },
+        musx::util::EnigmaString::EnigmaParsingOptions(options.accidentalStyle));
 
     if (!foundVisibleFont || result.text.empty()) {
         return std::nullopt;

@@ -38,11 +38,7 @@ struct TextRepeatContext
 };
 
 static TextRepeatContext makeTextRepeatContext(
-    const std::string& text,
-    const std::string& fontName = "Times New Roman",
-    int charsetVal = 0,
-    const std::string& action = "",
-    int target = 0)
+    const std::string& text, const std::string& fontName = "Times New Roman", int charsetVal = 0, const std::string& action = "", int target = 0)
 {
     std::string xml = R"xml(<?xml version="1.0" encoding="UTF-8"?>
 <finale>
@@ -87,8 +83,8 @@ static TextRepeatContext makeTextRepeatContext(
 
     std::vector<char> buffer(xml.begin(), xml.end());
     auto document = musx::factory::DocumentFactory::create<denigma::MusxReader>(buffer);
-    return { document, document->getOthers()->get<others::TextRepeatDef>(SCORE_PARTID, 1),
-        document->getOthers()->get<others::TextRepeatAssign>(SCORE_PARTID, Cmper(1), Inci(0)) };
+    return {document, document->getOthers()->get<others::TextRepeatDef>(SCORE_PARTID, 1),
+        document->getOthers()->get<others::TextRepeatAssign>(SCORE_PARTID, Cmper(1), Inci(0))};
 }
 
 static TextRepeatContext makeJumpToMarkContext()
@@ -133,8 +129,8 @@ static TextRepeatContext makeJumpToMarkContext()
 
     std::vector<char> buffer(xml.begin(), xml.end());
     auto document = musx::factory::DocumentFactory::create<denigma::MusxReader>(buffer);
-    return { document, document->getOthers()->get<others::TextRepeatDef>(SCORE_PARTID, 1),
-        document->getOthers()->get<others::TextRepeatAssign>(SCORE_PARTID, Cmper(1), Inci(0)) };
+    return {document, document->getOthers()->get<others::TextRepeatDef>(SCORE_PARTID, 1),
+        document->getOthers()->get<others::TextRepeatAssign>(SCORE_PARTID, Cmper(1), Inci(0))};
 }
 
 static jump::Jump classifyTestJump(const std::string& text)

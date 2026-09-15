@@ -42,11 +42,7 @@ struct SmartShapeContext
     MusxInstance<others::SmartShape> shape;
 };
 
-SmartShapeContext makeCustomLine(
-    std::string_view startText,
-    std::string_view continuationText,
-    std::string_view endText,
-    std::string_view lineXml)
+SmartShapeContext makeCustomLine(std::string_view startText, std::string_view continuationText, std::string_view endText, std::string_view lineXml)
 {
     std::string xml = R"xml(<?xml version="1.0" encoding="UTF-8"?>
 <finale>
@@ -94,19 +90,17 @@ SmartShapeContext makeCustomLine(
 
     std::vector<char> buffer(xml.begin(), xml.end());
     auto document = musx::factory::DocumentFactory::create<denigma::MusxReader>(buffer);
-    return { document, document->getOthers()->get<others::SmartShape>(SCORE_PARTID, 1) };
+    return {document, document->getOthers()->get<others::SmartShape>(SCORE_PARTID, 1)};
 }
 
 } // namespace
 
 TEST(SmartShapeClassification, ClassifiesPedalTextAtEachCustomLinePosition)
 {
-    const auto context = makeCustomLine(
-        "^fontid(0)^size(24)^nfx(0)&#xE650;",
-        "^fontid(0)^size(24)^nfx(0)&#xE656;",
-        "^fontid(0)^size(24)^nfx(0)&#xE655;",
-        "      <lineStyle>char</lineStyle>\n"
-        "      <charParams><lineChar>32</lineChar><fontID>0</fontID><fontSize>24</fontSize></charParams>\n");
+    const auto context =
+        makeCustomLine("^fontid(0)^size(24)^nfx(0)&#xE650;", "^fontid(0)^size(24)^nfx(0)&#xE656;", "^fontid(0)^size(24)^nfx(0)&#xE655;",
+            "      <lineStyle>char</lineStyle>\n"
+            "      <charParams><lineChar>32</lineChar><fontID>0</fontID><fontSize>24</fontSize></charParams>\n");
     ASSERT_TRUE(context.shape);
 
     const auto classification = classifySmartShape(context.shape);
@@ -126,8 +120,7 @@ TEST(SmartShapeClassification, ClassifiesPedalTextAtEachCustomLinePosition)
 
 TEST(SmartShapeClassification, ClassifiesAsciiPedalTextWithOrdinaryHooks)
 {
-    const auto context = makeCustomLine(
-        "Sost. Ped.", {}, {},
+    const auto context = makeCustomLine("Sost. Ped.", {}, {},
         "      <lineStyle>solid</lineStyle>\n"
         "      <solidParams><lineWidth>141</lineWidth></solidParams>\n"
         "      <lineCapStartType>hook</lineCapStartType>\n"
@@ -148,8 +141,7 @@ TEST(SmartShapeClassification, ClassifiesAsciiPedalTextWithOrdinaryHooks)
 
 TEST(SmartShapeClassification, IdentifiesUnaCordaPedalFromCustomLineText)
 {
-    const auto context = makeCustomLine(
-        {}, "una corda", {},
+    const auto context = makeCustomLine({}, "una corda", {},
         "      <lineStyle>solid</lineStyle>\n"
         "      <solidParams><lineWidth>141</lineWidth></solidParams>\n");
 
@@ -163,8 +155,7 @@ TEST(SmartShapeClassification, IdentifiesUnaCordaPedalFromCustomLineText)
 
 TEST(SmartShapeClassification, DoesNotClassifyOrdinaryHooksWithoutPedalEvidence)
 {
-    const auto context = makeCustomLine(
-        {}, {}, {},
+    const auto context = makeCustomLine({}, {}, {},
         "      <lineStyle>solid</lineStyle>\n"
         "      <solidParams><lineWidth>141</lineWidth></solidParams>\n"
         "      <lineCapStartType>hook</lineCapStartType>\n"
@@ -176,8 +167,7 @@ TEST(SmartShapeClassification, DoesNotClassifyOrdinaryHooksWithoutPedalEvidence)
 
 TEST(SmartShapeClassification, ClassifiesPedalReleaseAtRightEnd)
 {
-    const auto context = makeCustomLine(
-        {}, {}, "*",
+    const auto context = makeCustomLine({}, {}, "*",
         "      <lineStyle>dashed</lineStyle>\n"
         "      <dashedParams><lineWidth>141</lineWidth><dashOn>1152</dashOn><dashOff>1152</dashOff></dashedParams>\n");
 
@@ -205,8 +195,7 @@ TEST(SmartShapeClassification, ClassifiesPedalPumpCustomCaps)
     EXPECT_EQ(startPump->line.startCap.customArrowheadType, KnownShapeDefType::PedalArrowheadLongUpDownShortUp);
 
     const auto classifyStartArrow = [&](Cmper shapeId) {
-        auto mutableLine = std::make_shared<others::SmartShapeCustomLine>(
-            document, SCORE_PARTID, EnigmaBase::ShareMode::All, Cmper{ 100 });
+        auto mutableLine = std::make_shared<others::SmartShapeCustomLine>(document, SCORE_PARTID, EnigmaBase::ShareMode::All, Cmper{100});
         mutableLine->lineCapStartType = others::SmartShapeCustomLine::LineCapType::ArrowheadCustom;
         mutableLine->lineCapStartArrowId = shapeId;
         return classifyKeyboardPedalCustomLine(mutableLine);

@@ -66,8 +66,7 @@ std::size_t FileRandomAccessReader::readAt(std::uint64_t offset, std::span<std::
 
 BufferRandomAccessReader::BufferRandomAccessReader(std::span<const std::byte> data)
     : m_data(data)
-{
-}
+{}
 
 std::uint64_t BufferRandomAccessReader::size() const
 {

@@ -17,13 +17,13 @@
  * THE SOFTWARE.
  */
 
-#include "gtest/gtest.h"
 #include "musicxml_test.h"
+#include "gtest/gtest.h"
 
+#include <algorithm>
 #include <filesystem>
 #include <ostream>
 #include <set>
-#include <algorithm>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -31,8 +31,8 @@
 #include "mx/api/CurveData.h"
 #include "mx/api/GlissandoData.h"
 #include "mx/api/NoteData.h"
-#include "mx/api/WavyLineData.h"
 #include "mx/api/ScoreData.h"
+#include "mx/api/WavyLineData.h"
 #include "pugixml.hpp"
 #include "test_utils.h"
 
@@ -60,17 +60,9 @@ struct ComparableSlurEvent
 
 std::ostream& operator<<(std::ostream& os, const ComparableSlurEvent& event)
 {
-    return os << event.endpoint
-              << " part=" << event.partIndex
-              << " measure=" << event.measureIndex
-              << " staff=" << event.staffIndex
-              << " note=" << event.noteIndex
-              << " chord=" << event.isChord
-              << " step=" << static_cast<int>(event.step)
-              << " alter=" << event.alter
-              << " octave=" << event.octave
-              << " number=" << event.numberLevel
-              << " orientation=" << static_cast<int>(event.curveOrientation)
+    return os << event.endpoint << " part=" << event.partIndex << " measure=" << event.measureIndex << " staff=" << event.staffIndex
+              << " note=" << event.noteIndex << " chord=" << event.isChord << " step=" << static_cast<int>(event.step) << " alter=" << event.alter
+              << " octave=" << event.octave << " number=" << event.numberLevel << " orientation=" << static_cast<int>(event.curveOrientation)
               << " lineType=" << static_cast<int>(event.lineType);
 }
 
@@ -114,7 +106,7 @@ std::vector<ComparableSlurEvent> createComparableSlurEvents(const mx::api::Score
                                 note.isRest ? 0 : note.pitchData.octave,
                                 normalizeNumberLevel(numberLevel),
                                 curveOrientation,
-                                lineType
+                                lineType,
                             });
                         };
 
@@ -125,8 +117,7 @@ std::vector<ComparableSlurEvent> createComparableSlurEvents(const mx::api::Score
                         }
                         for (const auto& stop : note.noteAttachmentData.curveStops) {
                             if (stop.curveType == mx::api::CurveType::slur) {
-                                appendEvent("stop", stop.number.level(), mx::api::CurveOrientation::unspecified,
-                                            mx::api::LineType::unspecified);
+                                appendEvent("stop", stop.number.level(), mx::api::CurveOrientation::unspecified, mx::api::LineType::unspecified);
                             }
                         }
                     }
@@ -217,8 +208,7 @@ TEST(MusicXmlSmartShapes, OverlappingSlursAcrossStavesCarryDistinctNumbers)
                                 sawDocumentOrderOverlap = true;
                             }
                             EXPECT_TRUE(openNumbers.insert(number).second)
-                                << "slur number " << number << " started in measure "
-                                << measure.attribute("number").as_string()
+                                << "slur number " << number << " started in measure " << measure.attribute("number").as_string()
                                 << " while a slur with the same number was still open";
                         } else if (type == "stop") {
                             openNumbers.erase(number);
@@ -228,9 +218,8 @@ TEST(MusicXmlSmartShapes, OverlappingSlursAcrossStavesCarryDistinctNumbers)
             }
         }
     }
-    EXPECT_TRUE(sawDocumentOrderOverlap)
-        << "fixture contains no slurs that overlap in document order, so the number-level "
-           "contract was not exercised";
+    EXPECT_TRUE(sawDocumentOrderOverlap) << "fixture contains no slurs that overlap in document order, so the number-level "
+                                            "contract was not exercised";
 }
 
 /// Beat-attached slurs whose endpoints coincide with no entry anchor to synthesized
@@ -379,37 +368,33 @@ TEST(MusicXmlSmartShapes, OttavaEndOfBar)
 }
 
 static void expectOttava(const mx::api::PartData& part, size_t startMeasureIdx, size_t startNoteIdx, mx::api::OttavaType ottavaType,
-    mx::api::Placement placement, size_t endMeasureIdx, size_t endNoteIdx)
-{
-    {
-        const auto& staff = part.measures.at(startMeasureIdx).staves.at(0);
-        ASSERT_FALSE(staff.directions.empty());
-        const auto starts = directionOttavaStarts(staff.directions.front());
-        ASSERT_EQ(starts.size(), 1);
-        EXPECT_EQ(staff.directions.front().placement, placement);
-        EXPECT_EQ(starts.front().ottavaType, ottavaType);
-        const bool expectsDefaultSize = ottavaType == mx::api::OttavaType::o8va
-            || ottavaType == mx::api::OttavaType::o8vb;
-        EXPECT_EQ(starts.front().writeDefaultSize, expectsDefaultSize);
-        const auto& voice = staff.voices.at(0);
-        ASSERT_GT(voice.notes.size(), startNoteIdx);        
-        const auto expectedStartTick = voice.notes.at(startNoteIdx).tickTimePosition;
-        EXPECT_EQ(directionDrawnTick(staff.directions.front()), expectedStartTick);
-    }
+    mx::api::Placement placement, size_t endMeasureIdx, size_t endNoteIdx){{const auto& staff = part.measures.at(startMeasureIdx).staves.at(0);
+ASSERT_FALSE(staff.directions.empty());
+const auto starts = directionOttavaStarts(staff.directions.front());
+ASSERT_EQ(starts.size(), 1);
+EXPECT_EQ(staff.directions.front().placement, placement);
+EXPECT_EQ(starts.front().ottavaType, ottavaType);
+const bool expectsDefaultSize = ottavaType == mx::api::OttavaType::o8va || ottavaType == mx::api::OttavaType::o8vb;
+EXPECT_EQ(starts.front().writeDefaultSize, expectsDefaultSize);
+const auto& voice = staff.voices.at(0);
+ASSERT_GT(voice.notes.size(), startNoteIdx);
+const auto expectedStartTick = voice.notes.at(startNoteIdx).tickTimePosition;
+EXPECT_EQ(directionDrawnTick(staff.directions.front()), expectedStartTick);
+}
 
-    {
-        const auto& staff = part.measures.at(endMeasureIdx).staves.at(0);
-        ASSERT_FALSE(staff.directions.empty());
-        const auto stops = directionOttavaStops(staff.directions.back());
-        ASSERT_FALSE(stops.empty());
-        EXPECT_EQ(staff.directions.back().placement, placement);
-        const auto& voice = staff.voices.at(0);
-        ASSERT_GT(voice.notes.size(), endNoteIdx);
-        const auto expectedStopTick = voice.notes.at(endNoteIdx).tickTimePosition
-            + voice.notes.at(endNoteIdx).durationData.durationTimeTicks;
-        EXPECT_EQ(directionDrawnTick(staff.directions.back()), expectedStopTick);
-    }
-};
+{
+    const auto& staff = part.measures.at(endMeasureIdx).staves.at(0);
+    ASSERT_FALSE(staff.directions.empty());
+    const auto stops = directionOttavaStops(staff.directions.back());
+    ASSERT_FALSE(stops.empty());
+    EXPECT_EQ(staff.directions.back().placement, placement);
+    const auto& voice = staff.voices.at(0);
+    ASSERT_GT(voice.notes.size(), endNoteIdx);
+    const auto expectedStopTick = voice.notes.at(endNoteIdx).tickTimePosition + voice.notes.at(endNoteIdx).durationData.durationTimeTicks;
+    EXPECT_EQ(directionDrawnTick(staff.directions.back()), expectedStopTick);
+}
+}
+;
 
 TEST(MusicXmlSmartShapes, OttavasSimpleMatchesExpectedOttavas)
 {
@@ -564,7 +549,7 @@ TEST(MusicXmlSmartShapes, SmartShapeLinesOttavaCarriers)
         EXPECT_EQ(countOttavaStarts(staff1.measures.at(15).staves.at(0)), 0u);
         const auto stop = firstOttavaStop(staff1.measures.at(22).staves.at(0));
         ASSERT_TRUE(stop.has_value());
-        EXPECT_EQ(noteOctaves(m14), (std::vector<int>{ 6, 6, 6, 7 }));
+        EXPECT_EQ(noteOctaves(m14), (std::vector<int>{6, 6, 6, 7}));
     }
 
     // The unpaired "8vb" line inside the quindicesima is its own carrier; where the
@@ -573,8 +558,8 @@ TEST(MusicXmlSmartShapes, SmartShapeLinesOttavaCarriers)
         const auto start = firstOttavaStart(staff1.measures.at(18).staves.at(0));
         ASSERT_TRUE(start.has_value());
         EXPECT_EQ(start->ottavaType, mx::api::OttavaType::o8vb);
-        EXPECT_EQ(noteOctaves(staff1.measures.at(18).staves.at(0)), (std::vector<int>{ 6, 6, 5, 6 }));
-        EXPECT_EQ(noteOctaves(staff1.measures.at(19).staves.at(0)), (std::vector<int>{ 5, 5, 5, 6 }));
+        EXPECT_EQ(noteOctaves(staff1.measures.at(18).staves.at(0)), (std::vector<int>{6, 6, 5, 6}));
+        EXPECT_EQ(noteOctaves(staff1.measures.at(19).staves.at(0)), (std::vector<int>{5, 5, 5, 6}));
     }
 
     // The canonical pair: the hidden octaveUp emits despite hidden; its visible
@@ -587,8 +572,8 @@ TEST(MusicXmlSmartShapes, SmartShapeLinesOttavaCarriers)
         EXPECT_EQ(start->ottavaType, mx::api::OttavaType::o8va);
         const auto stop = firstOttavaStop(staff1.measures.at(27).staves.at(0));
         ASSERT_TRUE(stop.has_value());
-        EXPECT_EQ(noteOctaves(m26), (std::vector<int>{ 5, 5, 5, 6 }));
-        EXPECT_EQ(noteOctaves(staff1.measures.at(27).staves.at(0)), (std::vector<int>{ 5, 5, 4, 5 }));
+        EXPECT_EQ(noteOctaves(m26), (std::vector<int>{5, 5, 5, 6}));
+        EXPECT_EQ(noteOctaves(staff1.measures.at(27).staves.at(0)), (std::vector<int>{5, 5, 4, 5}));
     }
 
     // The unpaired "8vb" line on staff 3 is a carrier.
@@ -599,7 +584,7 @@ TEST(MusicXmlSmartShapes, SmartShapeLinesOttavaCarriers)
         ASSERT_TRUE(start.has_value());
         EXPECT_EQ(start->ottavaType, mx::api::OttavaType::o8vb);
         // Staff 3 is written A4 B4 C5 D5 per measure; m22 sounds an octave lower.
-        EXPECT_EQ(noteOctaves(staff3.measures.at(21).staves.at(0)), (std::vector<int>{ 3, 3, 4, 4 }));
+        EXPECT_EQ(noteOctaves(staff3.measures.at(21).staves.at(0)), (std::vector<int>{3, 3, 4, 4}));
     }
 }
 
@@ -611,8 +596,8 @@ TEST(MusicXmlSmartShapes, SmartShapeLinesOttavaNumberLevels)
     ASSERT_TRUE(score.has_value());
     ASSERT_GE(score->parts.size(), 3u);
 
-    const auto expectNumberLevels = [](const mx::api::StaffData& startStaff, const mx::api::StaffData& stopStaff,
-                                       int expectedNumberLevel, const char* which) {
+    const auto expectNumberLevels = [](const mx::api::StaffData& startStaff, const mx::api::StaffData& stopStaff, int expectedNumberLevel,
+                                        const char* which) {
         const auto start = firstOttavaStart(startStaff);
         ASSERT_TRUE(start.has_value()) << which;
         EXPECT_EQ(start->spannerStart.number.level(), expectedNumberLevel) << which << " start";
@@ -623,9 +608,7 @@ TEST(MusicXmlSmartShapes, SmartShapeLinesOttavaNumberLevels)
 
     const auto& staff1 = score->parts.at(0);
     ASSERT_GE(staff1.measures.size(), 28u);
-    const auto staff1At = [&](size_t measureIndex) -> const mx::api::StaffData& {
-        return staff1.measures.at(measureIndex).staves.at(0);
-    };
+    const auto staff1At = [&](size_t measureIndex) -> const mx::api::StaffData& { return staff1.measures.at(measureIndex).staves.at(0); };
     expectNumberLevels(staff1At(13), staff1At(22), 1, "hidden quindicesima m14-m23");
     expectNumberLevels(staff1At(18), staff1At(19), 2, "8vb line m19-m20");
     // The suppressed visual proxy of this pair emits nothing, so it holds no number
@@ -634,8 +617,7 @@ TEST(MusicXmlSmartShapes, SmartShapeLinesOttavaNumberLevels)
 
     const auto& staff3 = score->parts.at(2);
     ASSERT_GE(staff3.measures.size(), 23u);
-    expectNumberLevels(staff3.measures.at(20).staves.at(0), staff3.measures.at(22).staves.at(0), 1,
-                       "8vb line staff 3 m21-m23");
+    expectNumberLevels(staff3.measures.at(20).staves.at(0), staff3.measures.at(22).staves.at(0), 1, "8vb line staff 3 m21-m23");
 }
 
 TEST(MusicXmlSmartShapes, SmartShapeLinesGeneralLineBrackets)
@@ -725,15 +707,19 @@ TEST(MusicXmlSmartShapes, SmartShapeLinesTrillMark)
     ASSERT_NE(voiceIt, m11.voices.end());
     ASSERT_GE(voiceIt->second.notes.size(), 2u);
     const auto& note = voiceIt->second.notes.at(1);
-    const auto trillIt = std::ranges::find_if(note.noteAttachmentData.marks, [](const mx::api::MarkData& mark) {
-        return mark.markType == mx::api::MarkType::trillMark;
-    });
+    const auto trillIt = std::ranges::find_if(
+        note.noteAttachmentData.marks, [](const mx::api::MarkData& mark) { return mark.markType == mx::api::MarkType::trillMark; });
     EXPECT_NE(trillIt, note.noteAttachmentData.marks.end());
 
     // Counts the wavy-line ends across every voice of one measure's staff, so the assertions do
     // not depend on which note or voice an endpoint resolved to.
     const auto wavyLineEnds = [](const mx::api::StaffData& staff) {
-        struct Counts { size_t starts{}; size_t continues{}; size_t stops{}; };
+        struct Counts
+        {
+            size_t starts{};
+            size_t continues{};
+            size_t stops{};
+        };
         Counts counts;
         for (const auto& [voiceIndex, voice] : staff.voices) {
             static_cast<void>(voiceIndex);
@@ -763,9 +749,8 @@ TEST(MusicXmlSmartShapes, SmartShapeLinesTrillMark)
     for (const auto& [voiceIndex, voice] : staff3.measures.at(2).staves.at(0).voices) {
         static_cast<void>(voiceIndex);
         for (const auto& m3Note : voice.notes) {
-            EXPECT_TRUE(std::ranges::none_of(m3Note.noteAttachmentData.marks, [](const mx::api::MarkData& mark) {
-                return mark.markType == mx::api::MarkType::trillMark;
-            }));
+            EXPECT_TRUE(std::ranges::none_of(
+                m3Note.noteAttachmentData.marks, [](const mx::api::MarkData& mark) { return mark.markType == mx::api::MarkType::trillMark; }));
         }
     }
 }
@@ -837,12 +822,8 @@ struct ComparableSpanEvent
 
 std::ostream& operator<<(std::ostream& os, const ComparableSpanEvent& event)
 {
-    return os << event.element << ' ' << event.endpoint
-              << " part=" << event.partIndex
-              << " measure=" << event.measureNumber
-              << " step=" << static_cast<int>(event.step)
-              << " octave=" << event.octave
-              << " number=" << event.numberLevel
+    return os << event.element << ' ' << event.endpoint << " part=" << event.partIndex << " measure=" << event.measureNumber
+              << " step=" << static_cast<int>(event.step) << " octave=" << event.octave << " number=" << event.numberLevel
               << " lineType=" << static_cast<int>(event.lineType);
 }
 
@@ -856,22 +837,19 @@ std::vector<ComparableSpanEvent> createComparableSpanEvents(const mx::api::Score
                 for (const auto& [voiceIndex, voice] : staff.voices) {
                     static_cast<void>(voiceIndex);
                     for (const auto& note : voice.notes) {
-                        const auto append = [&](std::string element, std::string endpoint,
-                                                int numberLevel, mx::api::LineType lineType) {
-                            result.push_back({ std::move(element), std::move(endpoint), partIndex,
-                                measure.number, note.isRest ? mx::api::Step::unspecified : note.pitchData.step,
-                                note.isRest ? 0 : note.pitchData.octave, numberLevel, lineType });
+                        const auto append = [&](std::string element, std::string endpoint, int numberLevel, mx::api::LineType lineType) {
+                            result.push_back({std::move(element), std::move(endpoint), partIndex, measure.number,
+                                note.isRest ? mx::api::Step::unspecified : note.pitchData.step, note.isRest ? 0 : note.pitchData.octave, numberLevel,
+                                lineType});
                         };
                         const auto glissandoElement = [](mx::api::GlissandoType type) {
                             return type == mx::api::GlissandoType::slide ? "slide" : "glissando";
                         };
                         for (const auto& start : note.noteAttachmentData.glissandoStarts) {
-                            append(glissandoElement(start.glissandoType), "start",
-                                start.number.level(), start.lineData.lineType);
+                            append(glissandoElement(start.glissandoType), "start", start.number.level(), start.lineData.lineType);
                         }
                         for (const auto& stop : note.noteAttachmentData.glissandoStops) {
-                            append(glissandoElement(stop.glissandoType), "stop",
-                                stop.number.level(), stop.lineData.lineType);
+                            append(glissandoElement(stop.glissandoType), "stop", stop.number.level(), stop.lineData.lineType);
                         }
                         for (const auto& start : note.noteAttachmentData.wavyLineStarts) {
                             append("wavy-line", "start", start.number.level(), mx::api::LineType::unspecified);
@@ -963,8 +941,7 @@ TEST(MusicXmlSmartShapes, SingleNoteGlissandoWritesStartBeforeStop)
     size_t notesChecked = 0;
     for (const auto node : document.select_nodes(".//note")) {
         std::vector<std::string> types;
-        for (auto notations = node.node().child("notations"); notations;
-             notations = notations.next_sibling("notations")) {
+        for (auto notations = node.node().child("notations"); notations; notations = notations.next_sibling("notations")) {
             for (auto child = notations.first_child(); child; child = child.next_sibling()) {
                 const std::string name = child.name();
                 if (name == "glissando" || name == "slide") {

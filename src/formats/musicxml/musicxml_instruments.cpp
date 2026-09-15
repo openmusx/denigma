@@ -53,6 +53,7 @@ struct InstrumentSoundMapping
 
 std::optional<MusicXmlInstrumentSound> musicXmlInstrumentSoundFromUuid(std::string_view instUuid)
 {
+    // clang-format off
     static constexpr auto table = std::to_array<InstrumentSoundMapping>({
         // { uuid::BlankStaff,                     SoundID:: },
         // { uuid::BlankStaff2,                    SoundID:: },
@@ -869,10 +870,9 @@ std::optional<MusicXmlInstrumentSound> musicXmlInstrumentSoundFromUuid(std::stri
         { uuid::Udu,                            SoundID::drumUdu },
         { uuid::Zills,                          SoundID::metalBellsZills },
     });
+    // clang-format on
 
-    const auto iter = std::find_if(table.begin(), table.end(), [instUuid](const InstrumentSoundMapping& item) {
-        return item.instUuid == instUuid;
-    });
+    const auto iter = std::find_if(table.begin(), table.end(), [instUuid](const InstrumentSoundMapping& item) { return item.instUuid == instUuid; });
     if (iter == table.end()) {
         return std::nullopt;
     }
@@ -883,9 +883,9 @@ std::optional<MusicXmlInstrumentSound> musicXmlInstrumentSoundFromUuid(std::stri
         std::map<SoundID, unsigned> classifications;
         for (const auto& mapping : mappings) {
             switch (instrumentSoloOrEnsembleFromUuid(mapping.instUuid)) {
-                case SoloOrEnsemble::Solo: classifications[mapping.soundId] |= soloBit; break;
-                case SoloOrEnsemble::Ensemble: classifications[mapping.soundId] |= ensembleBit; break;
-                case SoloOrEnsemble::Unspecified: break;
+            case SoloOrEnsemble::Solo: classifications[mapping.soundId] |= soloBit; break;
+            case SoloOrEnsemble::Ensemble: classifications[mapping.soundId] |= ensembleBit; break;
+            case SoloOrEnsemble::Unspecified: break;
             }
         }
         std::set<SoundID> result;
@@ -897,10 +897,8 @@ std::optional<MusicXmlInstrumentSound> musicXmlInstrumentSoundFromUuid(std::stri
         return result;
     }(table);
 
-    const auto soloOrEnsemble = ambiguousSoundIds.contains(iter->soundId)
-        ? instrumentSoloOrEnsembleFromUuid(instUuid)
-        : SoloOrEnsemble::Unspecified;
-    return MusicXmlInstrumentSound{ iter->soundId, soloOrEnsemble };
+    const auto soloOrEnsemble = ambiguousSoundIds.contains(iter->soundId) ? instrumentSoloOrEnsembleFromUuid(instUuid) : SoloOrEnsemble::Unspecified;
+    return MusicXmlInstrumentSound{iter->soundId, soloOrEnsemble};
 }
 
 } // namespace detail

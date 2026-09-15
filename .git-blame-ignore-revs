@@ -1,0 +1,3 @@
+# Whole-repository formatting commits. Once per machine:
+#   git config --global blame.ignoreRevsFile .git-blame-ignore-revs
+b7331a013a555bd460bd30111534391a7e372162

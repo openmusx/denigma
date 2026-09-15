@@ -78,7 +78,7 @@ static RawTextContext makeRawTextContext(const std::string& enigmaText)
     std::vector<char> buffer(xml.begin(), xml.end());
     auto document = musx::factory::DocumentFactory::create<denigma::MusxReader>(buffer);
     auto text = document->getTexts()->get<texts::BlockText>(1);
-    return { document, text, text->getRawTextCtx(text, SCORE_PARTID) };
+    return {document, text, text->getRawTextCtx(text, SCORE_PARTID)};
 }
 
 } // namespace
@@ -210,8 +210,8 @@ TEST(MnxFormattedText, CallsOptionalChunkCallback)
 
     const auto formatted = makeFormattedText(ctx.parsingContext, options);
 
-    EXPECT_EQ(chunks, (std::vector<std::string>{ "Text ", "pf" }));
-    EXPECT_EQ(glyphs, (std::vector<std::vector<std::string>>{ {}, { "dynamicPiano", "dynamicForte" } }));
+    EXPECT_EQ(chunks, (std::vector<std::string>{"Text ", "pf"}));
+    EXPECT_EQ(glyphs, (std::vector<std::vector<std::string>>{{}, {"dynamicPiano", "dynamicForte"}}));
     EXPECT_EQ(mnxdom::json::parse(formatted.dump()), mnxdom::json::parse(R"json([
         {
             "text": "Text ",
@@ -241,8 +241,8 @@ TEST(MnxFormattedText, ChunkCallbackPreservesTextPolicy)
 
     const auto formatted = makeFormattedText(ctx.parsingContext, options);
 
-    EXPECT_EQ(chunks, (std::vector<std::string>{ "pf" }));
-    EXPECT_EQ(glyphs, (std::vector<std::vector<std::string>>{ {} }));
+    EXPECT_EQ(chunks, (std::vector<std::string>{"pf"}));
+    EXPECT_EQ(glyphs, (std::vector<std::vector<std::string>>{{}}));
     EXPECT_EQ(mnxdom::json::parse(formatted.dump()), mnxdom::json::parse(R"json([
         {
             "text": "pf",
@@ -268,10 +268,10 @@ TEST(MnxFormattedText, ChunkCallbackSplitsSmuflPolicy)
 
     static_cast<void>(makeFormattedText(ctx.parsingContext, options));
 
-    EXPECT_EQ(chunks, (std::vector<std::string>{ "p", " ", "f" }));
+    EXPECT_EQ(chunks, (std::vector<std::string>{"p", " ", "f"}));
     EXPECT_EQ(glyphs, (std::vector<std::vector<std::string>>{
-        { "dynamicPiano" },
-        {},
-        { "dynamicForte" }
-    }));
+                          {"dynamicPiano"},
+                          {},
+                          {"dynamicForte"},
+                      }));
 }

@@ -42,7 +42,7 @@ TEST(ConverterApi, EnigmaXmlToSvgInvokesOutputCallback)
 
     denigma::formats::svg::Options options;
     options.common.sourceName = "notAscii-其れ.enigmaxml";
-    options.shapeDefs = { 3 };
+    options.shapeDefs = {3};
 
     std::vector<std::pair<std::string, std::string>> outputs;
     const auto result = converter->convert(
@@ -53,7 +53,7 @@ TEST(ConverterApi, EnigmaXmlToSvgInvokesOutputCallback)
             std::memcpy(svgText.data(), data.data(), data.size());
             outputs.emplace_back(std::string(suggestedName), std::move(svgText));
         },
-        denigma::ConversionRequest{ &options });
+        denigma::ConversionRequest{&options});
 
     EXPECT_TRUE(result.diagnostics().empty());
     ASSERT_EQ(outputs.size(), 1u);
@@ -73,7 +73,7 @@ TEST(ConverterApi, MusxToSvgInvokesOutputCallback)
     denigma::FileRandomAccessReader input(getInputPath() / utils::utf8ToPath("notAscii-其れ.musx"));
     denigma::formats::svg::Options options;
     options.common.sourceName = "notAscii-其れ.musx";
-    options.shapeDefs = { 3 };
+    options.shapeDefs = {3};
 
     std::vector<std::pair<std::string, std::string>> outputs;
     const auto result = converter->convert(
@@ -84,7 +84,7 @@ TEST(ConverterApi, MusxToSvgInvokesOutputCallback)
             std::memcpy(svgText.data(), data.data(), data.size());
             outputs.emplace_back(std::string(suggestedName), std::move(svgText));
         },
-        denigma::ConversionRequest{ &options });
+        denigma::ConversionRequest{&options});
 
     EXPECT_TRUE(result.diagnostics().empty());
     ASSERT_EQ(outputs.size(), 1u);
@@ -104,7 +104,7 @@ TEST(ConverterApi, MusxToSvgCollectsWarningsInConversionResult)
     denigma::FileRandomAccessReader input(getInputPath() / utils::utf8ToPath("notAscii-其れ.musx"));
     denigma::formats::svg::Options options;
     options.common.sourceName = "notAscii-其れ.musx";
-    options.shapeDefs = { 9999 };
+    options.shapeDefs = {9999};
 
     std::vector<std::pair<std::string, std::string>> outputs;
     checkStderr("", [&]() {
@@ -116,7 +116,7 @@ TEST(ConverterApi, MusxToSvgCollectsWarningsInConversionResult)
                 std::memcpy(svgText.data(), data.data(), data.size());
                 outputs.emplace_back(std::string(suggestedName), std::move(svgText));
             },
-            denigma::ConversionRequest{ &options });
+            denigma::ConversionRequest{&options});
 
         EXPECT_TRUE(result);
         ASSERT_EQ(result.diagnostics().size(), 2u);

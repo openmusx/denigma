@@ -27,8 +27,7 @@
 namespace denigma {
 namespace classify {
 
-musx::dom::MusxInstance<musx::dom::FontInfo> singleVisibleFont(
-    const musx::util::EnigmaParsingContext& textContext)
+musx::dom::MusxInstance<musx::dom::FontInfo> singleVisibleFont(const musx::util::EnigmaParsingContext& textContext)
 {
     musx::dom::MusxInstance<musx::dom::FontInfo> result;
     for (const auto& chunk : textContext.collectEnigmaTextChunks()) {
@@ -49,9 +48,7 @@ musx::dom::MusxInstance<musx::dom::FontInfo> singleVisibleFont(
 
 namespace detail {
 
-std::optional<std::string> glyphNameForFont(
-    const std::shared_ptr<musx::dom::FontInfo>& font,
-    char32_t codepoint)
+std::optional<std::string> glyphNameForFont(const std::shared_ptr<musx::dom::FontInfo>& font, char32_t codepoint)
 {
     if (!font) {
         return std::nullopt;

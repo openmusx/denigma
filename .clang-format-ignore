@@ -1,0 +1,3 @@
+# Third-party code is not ours to edit.
+src/score_encoder/**
+third_party/**

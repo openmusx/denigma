@@ -35,8 +35,8 @@
 #include "denigma/classify/clefs.h"
 
 #include "mx/api/BarlineData.h"
-#include "mx/api/ClefData.h"
 #include "mx/api/ChordData.h"
+#include "mx/api/ClefData.h"
 #include "mx/api/DirectionData.h"
 #include "mx/api/KeyData.h"
 #include "mx/api/MeasureData.h"
@@ -56,9 +56,7 @@ namespace {
 
 using BarlineType = others::Measure::BarlineType;
 
-mx::api::BarlineData& ensureBarlineData(
-    mx::api::MeasureData& measure,
-    mx::api::HorizontalAlignment location)
+mx::api::BarlineData& ensureBarlineData(mx::api::MeasureData& measure, mx::api::HorizontalAlignment location)
 {
     for (auto& barline : measure.barlines) {
         if (barline.location == location) {
@@ -73,19 +71,15 @@ mx::api::BarlineData& ensureBarlineData(
         barline.tickTimePosition = mx::api::TICK_TIME_INFINITY;
     }
     if (location == mx::api::HorizontalAlignment::left) {
-        const auto rightBarlineIt = std::find_if(measure.barlines.begin(), measure.barlines.end(), [](const auto& existingBarline) {
-            return existingBarline.location == mx::api::HorizontalAlignment::right;
-        });
+        const auto rightBarlineIt = std::find_if(measure.barlines.begin(), measure.barlines.end(),
+            [](const auto& existingBarline) { return existingBarline.location == mx::api::HorizontalAlignment::right; });
         return *measure.barlines.insert(rightBarlineIt, barline);
     }
     measure.barlines.emplace_back(barline);
     return measure.barlines.back();
 }
 
-mx::api::BarlineData& setBarlineData(
-    mx::api::MeasureData& measure,
-    mx::api::BarlineType barlineType,
-    mx::api::HorizontalAlignment location)
+mx::api::BarlineData& setBarlineData(mx::api::MeasureData& measure, mx::api::BarlineType barlineType, mx::api::HorizontalAlignment location)
 {
     auto& barline = ensureBarlineData(measure, location);
     barline.barlineType = barlineType;
@@ -93,10 +87,7 @@ mx::api::BarlineData& setBarlineData(
 }
 
 void setBarline(
-    const MusicXmlMusxMapping& context,
-    mx::api::MeasureData& measure,
-    classify::barline::Type barlineType,
-    mx::api::HorizontalAlignment location)
+    const MusicXmlMusxMapping& context, mx::api::MeasureData& measure, classify::barline::Type barlineType, mx::api::HorizontalAlignment location)
 {
     const auto musicXmlBarlineType = enumConvert<mx::api::BarlineType>(barlineType);
     if (musicXmlBarlineType == mx::api::BarlineType::unspecified || musicXmlBarlineType == mx::api::BarlineType::unsupported) {
@@ -106,11 +97,7 @@ void setBarline(
     setBarlineData(measure, musicXmlBarlineType, location);
 }
 
-void setBarline(
-    const MusicXmlMusxMapping& context,
-    mx::api::MeasureData& measure,
-    BarlineType barlineType,
-    mx::api::HorizontalAlignment location)
+void setBarline(const MusicXmlMusxMapping& context, mx::api::MeasureData& measure, BarlineType barlineType, mx::api::HorizontalAlignment location)
 {
     const auto musicXmlBarlineType = enumConvert<mx::api::BarlineType>(barlineType);
     if (musicXmlBarlineType == mx::api::BarlineType::unspecified || musicXmlBarlineType == mx::api::BarlineType::unsupported) {
@@ -120,12 +107,8 @@ void setBarline(
     setBarlineData(measure, musicXmlBarlineType, location);
 }
 
-void assignBarlines(
-    MusicXmlMusxMapping& context,
-    mx::api::MeasureData& measure,
-    const MusxInstance<others::Measure>& musxMeasure,
-    bool isFinalMeasure,
-    const MusxInstance<others::Staff>& staff)
+void assignBarlines(MusicXmlMusxMapping& context, mx::api::MeasureData& measure, const MusxInstance<others::Measure>& musxMeasure,
+    bool isFinalMeasure, const MusxInstance<others::Staff>& staff)
 {
     const auto barlineOptions = context.finaleOptions.barlineOptions;
     if (musxMeasure->leftBarlineType != BarlineType::OptionsDefault && musxMeasure->leftBarlineType != BarlineType::None) {
@@ -160,23 +143,20 @@ void assignBarlines(
     };
 
     if (musxMeasure->forwardRepeatBar) {
-        setRepeat(
-            mx::api::HorizontalAlignment::left, mx::api::BarlineType::heavyLight, mx::api::RepeatDirection::forward);
+        setRepeat(mx::api::HorizontalAlignment::left, mx::api::BarlineType::heavyLight, mx::api::RepeatDirection::forward);
     }
     if (musxMeasure->backwardsRepeatBar) {
-        setRepeat(
-            mx::api::HorizontalAlignment::right, mx::api::BarlineType::lightHeavy, mx::api::RepeatDirection::backward);
+        setRepeat(mx::api::HorizontalAlignment::right, mx::api::BarlineType::lightHeavy, mx::api::RepeatDirection::backward);
     }
 }
 
-void assignRepeatEndings(
-    const MusicXmlMusxMapping& context,
-    mx::api::PartData& part)
+void assignRepeatEndings(const MusicXmlMusxMapping& context, mx::api::PartData& part)
 {
     const auto endingStarts = context.document->getOthers()->getArray<others::RepeatEndingStart>(context.forPartId);
     for (const auto& ending : endingStarts) {
         const auto measureIndex = static_cast<size_t>(ending->getCmper() - 1);
-        ASSERT_IF(measureIndex >= part.measures.size()) {
+        ASSERT_IF(measureIndex >= part.measures.size())
+        {
             continue;
         }
         /// @todo Carry the ending's appearance, above all its hidden state, when mx::api exposes the
@@ -206,7 +186,8 @@ void assignRepeatEndings(
         ensureBarlineData(part.measures[measureIndex], mx::api::HorizontalAlignment::left).ending = endingData;
 
         const auto endMeasureIndex = static_cast<size_t>(ending->getCmper() + ending->calcEndingLength() - 2);
-        ASSERT_IF(endMeasureIndex >= part.measures.size()) {
+        ASSERT_IF(endMeasureIndex >= part.measures.size())
+        {
             continue;
         }
         // The closing bracket repeats the numbers so that both barlines identify the same ending,
@@ -217,9 +198,7 @@ void assignRepeatEndings(
     }
 }
 
-mx::api::KeyMode musicXmlKeyModeFromMusxKeySignature(
-    const MusxInstance<KeySignature>& keySignature,
-    bool staffHidesKeySignature)
+mx::api::KeyMode musicXmlKeyModeFromMusxKeySignature(const MusxInstance<KeySignature>& keySignature, bool staffHidesKeySignature)
 {
     if (keySignature->keyless || keySignature->hideKeySigShowAccis || staffHidesKeySignature) {
         return mx::api::KeyMode::none;
@@ -259,7 +238,7 @@ std::string musicXmlDecimalText(const Fraction& value)
     constexpr int timeSignatureDecimalPlaces = 6;
     std::ostringstream stream;
     stream << std::fixed << std::setprecision(timeSignatureDecimalPlaces)
-        << static_cast<double>(value.numerator()) / static_cast<double>(value.denominator());
+           << static_cast<double>(value.numerator()) / static_cast<double>(value.denominator());
     auto result = stream.str();
     while (!result.empty() && result.back() == '0') {
         result.pop_back();
@@ -304,10 +283,7 @@ std::optional<mx::api::TimeFraction> musicXmlTimeFraction(const TimeSignature::T
     return mx::api::TimeFraction{std::move(beats), std::move(beatType)};
 }
 
-void processTempoChanges(
-    MusicXmlMusxMapping& context,
-    mx::api::MeasureData& measure,
-    const MusxInstance<others::Measure>& musxMeasure)
+void processTempoChanges(MusicXmlMusxMapping& context, mx::api::MeasureData& measure, const MusxInstance<others::Measure>& musxMeasure)
 {
     if (!context.denigmaContext->includeTempoTool || measure.staves.empty()) {
         return;
@@ -326,8 +302,7 @@ void processTempoChanges(
             tempoUnit = std::min(unit, NoteType::Quarter);
         }
         const auto noteType = tempoUnit.value_or(NoteType::Quarter);
-        const double quarterNotesPerMinute =
-            musicXmlQuarterNotesPerMinute(tempoChange->getAbsoluteTempo(noteType), Edu(noteType));
+        const double quarterNotesPerMinute = musicXmlQuarterNotesPerMinute(tempoChange->getAbsoluteTempo(noteType), Edu(noteType));
         if (quarterNotesPerMinute < 0.0) {
             continue;
         }
@@ -374,12 +349,8 @@ mx::api::TimeChoice createTimeChoice(const MusxInstance<TimeSignature>& timeSign
     return result;
 }
 
-int musicXmlKeyFifths(
-    const MusicXmlMusxMapping& context,
-    const MusxInstance<KeySignature>& keySignature,
-    MeasCmper measureId,
-    MusicXmlPitchContext pitchContext,
-    bool staffHidesKeySignature)
+int musicXmlKeyFifths(const MusicXmlMusxMapping& context, const MusxInstance<KeySignature>& keySignature, MeasCmper measureId,
+    MusicXmlPitchContext pitchContext, bool staffHidesKeySignature)
 {
     if (keySignature->keyless || keySignature->hideKeySigShowAccis || staffHidesKeySignature) {
         return 0;
@@ -403,28 +374,25 @@ mx::api::Accidental musicXmlAccidentalFor12EdoAlteration(int alteration)
     constexpr int kDoubleSharp = 2;
     constexpr int kTripleSharp = 3;
     switch (alteration) {
-        case kTripleFlat: return mx::api::Accidental::tripleFlat;
-        case kDoubleFlat: return mx::api::Accidental::flatFlat;
-        case kFlat: return mx::api::Accidental::flat;
-        case kSharp: return mx::api::Accidental::sharp;
-        case kDoubleSharp: return mx::api::Accidental::doubleSharp;
-        case kTripleSharp: return mx::api::Accidental::tripleSharp;
-        default: return mx::api::Accidental::none;
+    case kTripleFlat: return mx::api::Accidental::tripleFlat;
+    case kDoubleFlat: return mx::api::Accidental::flatFlat;
+    case kFlat: return mx::api::Accidental::flat;
+    case kSharp: return mx::api::Accidental::sharp;
+    case kDoubleSharp: return mx::api::Accidental::doubleSharp;
+    case kTripleSharp: return mx::api::Accidental::tripleSharp;
+    default: return mx::api::Accidental::none;
     }
 }
 
 void populateNonTraditional12EdoKey(
-    const MusicXmlMusxMapping& context,
-    const MusxInstance<KeySignature>& keySignature,
-    MeasCmper measureId,
-    mx::api::KeyData& key)
+    const MusicXmlMusxMapping& context, const MusxInstance<KeySignature>& keySignature, MeasCmper measureId, mx::api::KeyData& key)
 {
     const auto mode = keySignature->getKeyMode();
     const auto amounts = context.document->getOthers()->get<others::AcciAmountSharps>(SCORE_PARTID, mode);
     const auto order = context.document->getOthers()->get<others::AcciOrderSharps>(SCORE_PARTID, mode);
     if (!amounts || !order) {
-        context.logMessage(LogMsg() << "Skipping incomplete non-linear key signature " << mode
-            << " in measure " << measureId << ".", MessageSeverity::Info);
+        context.logMessage(
+            LogMsg() << "Skipping incomplete non-linear key signature " << mode << " in measure " << measureId << ".", MessageSeverity::Info);
         return;
     }
 
@@ -435,27 +403,22 @@ void populateNonTraditional12EdoKey(
         }
         const auto noteNameIndex = order->values[index];
         if (noteNameIndex >= music_theory::STANDARD_DIATONIC_STEPS) {
-            context.logMessage(LogMsg() << "Skipping invalid pitch index " << noteNameIndex << " in non-linear key signature "
-                << mode << " in measure " << measureId << ".", MessageSeverity::Info);
+            context.logMessage(LogMsg() << "Skipping invalid pitch index " << noteNameIndex << " in non-linear key signature " << mode
+                                        << " in measure " << measureId << ".",
+                MessageSeverity::Info);
             continue;
         }
         const auto noteName = static_cast<music_theory::NoteName>(noteNameIndex);
-        key.nonTraditional.emplace_back(
-            enumConvert<mx::api::Step>(noteName), alteration, 0.0, musicXmlAccidentalFor12EdoAlteration(alteration));
+        key.nonTraditional.emplace_back(enumConvert<mx::api::Step>(noteName), alteration, 0.0, musicXmlAccidentalFor12EdoAlteration(alteration));
     }
 }
 
-mx::api::KeyData createKeyData(
-    const MusicXmlMusxMapping& context,
-    const MusxInstance<KeySignature>& keySignature,
-    MeasCmper measureId,
-    MusicXmlPitchContext pitchContext,
-    bool staffHidesKeySignature)
+mx::api::KeyData createKeyData(const MusicXmlMusxMapping& context, const MusxInstance<KeySignature>& keySignature, MeasCmper measureId,
+    MusicXmlPitchContext pitchContext, bool staffHidesKeySignature)
 {
     auto key = mx::api::KeyData{};
     const bool keySignatureIsVisible = !(keySignature->keyless || keySignature->hideKeySigShowAccis || staffHidesKeySignature);
-    if (keySignatureIsVisible && keySignature->isNonLinear()
-        && keySignature->calcEDODivisions() == music_theory::STANDARD_12EDO_STEPS) {
+    if (keySignatureIsVisible && keySignature->isNonLinear() && keySignature->calcEDODivisions() == music_theory::STANDARD_12EDO_STEPS) {
         populateNonTraditional12EdoKey(context, keySignature, measureId, key);
         return key;
     }
@@ -464,9 +427,7 @@ mx::api::KeyData createKeyData(
     return key;
 }
 
-std::optional<mx::api::TransposeData> createTransposeData(
-    const MusicXmlMusxMapping& context,
-    const MusxInstance<others::StaffComposite>& staff)
+std::optional<mx::api::TransposeData> createTransposeData(const MusicXmlMusxMapping& context, const MusxInstance<others::StaffComposite>& staff)
 {
     const auto [transpositionDisp, transpositionAlt] = staff->calcTranspositionInterval();
     if (!transpositionDisp && !transpositionAlt) {
@@ -474,15 +435,13 @@ std::optional<mx::api::TransposeData> createTransposeData(
     }
 
     const bool shouldEmitTransposition = context.finaleOptions.effectivePartGlobals->showTransposed
-        || (context.finaleOptions.miscOptions->keepWrittenOctaveInConcertPitch
-            && music_theory::calcTranspositionIsOctave(transpositionDisp, transpositionAlt));
+                                         || (context.finaleOptions.miscOptions->keepWrittenOctaveInConcertPitch
+                                             && music_theory::calcTranspositionIsOctave(transpositionDisp, transpositionAlt));
     if (!shouldEmitTransposition) {
         return std::nullopt;
     }
 
-    return mx::api::TransposeData(
-        -music_theory::calc12EdoHalfstepsInInterval(transpositionDisp, transpositionAlt),
-        -transpositionDisp);
+    return mx::api::TransposeData(-music_theory::calc12EdoHalfstepsInInterval(transpositionDisp, transpositionAlt), -transpositionDisp);
 }
 
 bool keyDataEqualIgnoringStaffIndex(const mx::api::KeyData& lhs, const mx::api::KeyData& rhs)
@@ -494,9 +453,7 @@ bool keyDataEqualIgnoringStaffIndex(const mx::api::KeyData& lhs, const mx::api::
     return normalizedLhs == normalizedRhs;
 }
 
-bool keyDataChanged(
-    const std::optional<mx::api::KeyData>& previous,
-    const mx::api::KeyData& current)
+bool keyDataChanged(const std::optional<mx::api::KeyData>& previous, const mx::api::KeyData& current)
 {
     return !previous || !keyDataEqualIgnoringStaffIndex(*previous, current);
 }
@@ -512,9 +469,7 @@ bool transposeDataEqualIgnoringStaffAndTick(const mx::api::TransposeData& lhs, c
     return normalizedLhs == normalizedRhs;
 }
 
-bool transposeDataEqualIgnoringStaffAndTick(
-    const std::optional<mx::api::TransposeData>& lhs,
-    const std::optional<mx::api::TransposeData>& rhs)
+bool transposeDataEqualIgnoringStaffAndTick(const std::optional<mx::api::TransposeData>& lhs, const std::optional<mx::api::TransposeData>& rhs)
 {
     if (!lhs || !rhs) {
         return !lhs && !rhs;
@@ -522,24 +477,14 @@ bool transposeDataEqualIgnoringStaffAndTick(
     return transposeDataEqualIgnoringStaffAndTick(*lhs, *rhs);
 }
 
-void assignKeySignatures(
-    const MusicXmlMusxMapping& context,
-    mx::api::MeasureData& measure,
-    const MusxInstance<others::Measure>& musxMeasure,
-    const std::vector<StaffCmper>& staves,
-    MusicXmlPitchContext pitchContext,
-    std::vector<std::optional<mx::api::KeyData>>& prevKeyData)
+void assignKeySignatures(const MusicXmlMusxMapping& context, mx::api::MeasureData& measure, const MusxInstance<others::Measure>& musxMeasure,
+    const std::vector<StaffCmper>& staves, MusicXmlPitchContext pitchContext, std::vector<std::optional<mx::api::KeyData>>& prevKeyData)
 {
     std::vector<mx::api::KeyData> currentKeyData;
     currentKeyData.reserve(staves.size());
     for (size_t staffIndex = 0; staffIndex < staves.size(); ++staffIndex) {
-        const auto staff = others::StaffComposite::createCurrent(
-            context.document, context.forPartId, staves[staffIndex], musxMeasure->getCmper(), 0);
-        auto key = createKeyData(
-            context,
-            musxMeasure->createKeySignature(staves[staffIndex]),
-            musxMeasure->getCmper(),
-            pitchContext,
+        const auto staff = others::StaffComposite::createCurrent(context.document, context.forPartId, staves[staffIndex], musxMeasure->getCmper(), 0);
+        auto key = createKeyData(context, musxMeasure->createKeySignature(staves[staffIndex]), musxMeasure->getCmper(), pitchContext,
             staff && staff->hideKeySigsShowAccis);
         key.staffIndex = static_cast<int>(staffIndex);
         currentKeyData.emplace_back(key);
@@ -581,8 +526,7 @@ void assignKeySignatures(
 }
 
 mx::api::ClefData musicXmlClefFromMusxClef(
-    const MusxInstance<options::ClefOptions::ClefDef>& clefDef,
-    const MusxInstance<others::StaffComposite>& staff)
+    const MusxInstance<options::ClefOptions::ClefDef>& clefDef, const MusxInstance<others::StaffComposite>& staff)
 {
     auto result = mx::api::ClefData{};
     const auto clef = classify::classifyClef(clefDef, staff);
@@ -603,22 +547,18 @@ mx::api::ClefData musicXmlClefFromMusxClef(
     return result;
 }
 
-void assignTimeSignature(
-    const MusicXmlMusxMapping& context,
-    mx::api::MeasureData& measure,
-    const MusxInstance<others::Measure>& musxMeasure,
-    const std::vector<StaffCmper>& staves,
-    std::vector<std::optional<mx::api::TimeChoice>>& prevTimeSigs)
+void assignTimeSignature(const MusicXmlMusxMapping& context, mx::api::MeasureData& measure, const MusxInstance<others::Measure>& musxMeasure,
+    const std::vector<StaffCmper>& staves, std::vector<std::optional<mx::api::TimeChoice>>& prevTimeSigs)
 {
-    ASSERT_IF(staves.empty()) {
+    ASSERT_IF(staves.empty())
+    {
         return;
     }
 
     // Staff-level hiding trumps the measure's show mode: a staff that hides time signatures
     // never shows one, even for ShowTimeSigMode::Always.
     const auto staffHidesTimeSignature = [&](StaffCmper staffId) {
-        const auto staff = others::StaffComposite::createCurrent(context.document, context.forPartId, staffId,
-            musxMeasure->getCmper(), 0);
+        const auto staff = others::StaffComposite::createCurrent(context.document, context.forPartId, staffId, musxMeasure->getCmper(), 0);
         if (!staff) {
             return false;
         }
@@ -652,11 +592,9 @@ void assignTimeSignature(
         emitTimeSigs.emplace_back(std::move(emitTimeSig));
     }
 
-    const bool allStavesSame = std::all_of(emitTimeSigs.begin(), emitTimeSigs.end(),
-        [&](const auto& emitTimeSig) { return emitTimeSig == emitTimeSigs.front(); });
-    const auto staffEmits = [&](size_t staffIndex) {
-        return staffForced[staffIndex] || prevTimeSigs[staffIndex] != baseTimeSigs[staffIndex];
-    };
+    const bool allStavesSame =
+        std::all_of(emitTimeSigs.begin(), emitTimeSigs.end(), [&](const auto& emitTimeSig) { return emitTimeSig == emitTimeSigs.front(); });
+    const auto staffEmits = [&](size_t staffIndex) { return staffForced[staffIndex] || prevTimeSigs[staffIndex] != baseTimeSigs[staffIndex]; };
 
     if (allStavesSame) {
         // An unnumbered <time> applies to (and resets) every staff, so emit one part-wide
@@ -681,20 +619,13 @@ void assignTimeSignature(
     }
 }
 
-void assignClefs(
-    MusicXmlMusxMapping& context,
-    mx::api::StaffData& staff,
-    StaffCmper staffId,
-    const MusxInstance<others::Measure>& musxMeasure,
-    MusicXmlPitchContext pitchContext,
-    std::optional<ClefIndex>& prevClefIndex)
+void assignClefs(MusicXmlMusxMapping& context, mx::api::StaffData& staff, StaffCmper staffId, const MusxInstance<others::Measure>& musxMeasure,
+    MusicXmlPitchContext pitchContext, std::optional<ClefIndex>& prevClefIndex)
 {
     const auto& musxDocument = musxMeasure->getDocument();
-    const auto measureStartStaff = others::StaffComposite::createCurrent(musxDocument, context.forPartId, staffId,
-        musxMeasure->getCmper(), 0);
+    const auto measureStartStaff = others::StaffComposite::createCurrent(musxDocument, context.forPartId, staffId, musxMeasure->getCmper(), 0);
     if (!measureStartStaff) {
-        context.logMessage(LogMsg() << "No staff information found for staff " << staffId << ".",
-            MessageSeverity::Warning);
+        context.logMessage(LogMsg() << "No staff information found for staff " << staffId << ".", MessageSeverity::Warning);
         return;
     }
 
@@ -711,12 +642,11 @@ void assignClefs(
         }
         auto musxStaff = measureStartStaff;
         if (location && clefChange.showClefMode == ShowClefMode::WhenNeeded) {
-            musxStaff = others::StaffComposite::createCurrent(musxDocument, context.forPartId, staffId,
-                musxMeasure->getCmper(), location.calcEduDuration());
+            musxStaff =
+                others::StaffComposite::createCurrent(musxDocument, context.forPartId, staffId, musxMeasure->getCmper(), location.calcEduDuration());
         }
         if (!musxStaff) {
-            context.logMessage(LogMsg() << "No staff information found for staff " << staffId << ".",
-                MessageSeverity::Warning);
+            context.logMessage(LogMsg() << "No staff information found for staff " << staffId << ".", MessageSeverity::Warning);
             return;
         }
 
@@ -735,31 +665,28 @@ void assignClefs(
         if (isForcedRestatement) {
             clef.additional = mx::api::Bool::yes;
         }
-        if (clefChange.showClefMode == ShowClefMode::Never
-            || (clefChange.showClefMode == ShowClefMode::WhenNeeded && musxStaff->hideClefs)) {
+        if (clefChange.showClefMode == ShowClefMode::Never || (clefChange.showClefMode == ShowClefMode::WhenNeeded && musxStaff->hideClefs)) {
             clef.printObject = mx::api::Bool::no;
         }
         staff.clefs.emplace_back(clef);
         prevClefIndex = clefIndex;
     };
 
-    measureStartStaff->iterateClefChangesAtMeasure(musxMeasure->getCmper(), pitchContext == MusicXmlPitchContext::Written,
-        [&](const others::Staff::ClefChange& clefChange) {
+    measureStartStaff->iterateClefChangesAtMeasure(
+        musxMeasure->getCmper(), pitchContext == MusicXmlPitchContext::Written, [&](const others::Staff::ClefChange& clefChange) {
             addClef(clefChange);
             return true;
         });
 }
 
-void assignStaffAttributes(
-    MusicXmlMusxMapping& context,
-    mx::api::PartData& part,
-    const MusxInstanceList<others::Measure>& musxMeasures,
+void assignStaffAttributes(MusicXmlMusxMapping& context, mx::api::PartData& part, const MusxInstanceList<others::Measure>& musxMeasures,
     const std::vector<StaffCmper>& staves)
 {
-    ASSERT_IF(part.measures.size() != musxMeasures.size() || musxMeasures.empty()) {
+    ASSERT_IF(part.measures.size() != musxMeasures.size() || musxMeasures.empty())
+    {
         context.logMessage(LogMsg() << "Cannot assign MusicXML staff attributes for part " << part.uniqueId
-            << ": measure count mismatch or empty MUSX measure list (MusicXML measures="
-            << part.measures.size() << ", MUSX measures=" << musxMeasures.size() << ").",
+                                    << ": measure count mismatch or empty MUSX measure list (MusicXML measures=" << part.measures.size()
+                                    << ", MUSX measures=" << musxMeasures.size() << ").",
             MessageSeverity::Warning);
         return;
     }
@@ -768,7 +695,7 @@ void assignStaffAttributes(
 
     for (size_t staffIndex = 0; staffIndex < staves.size(); ++staffIndex) {
         const auto staffId = staves[staffIndex];
-        std::set<MusicPoint> attributeChanges{ MusicPoint{} };
+        std::set<MusicPoint> attributeChanges{MusicPoint{}};
         if (const auto rawStaff = context.document->getOthers()->get<others::Staff>(context.forPartId, staffId); rawStaff && rawStaff->hasStyles) {
             const auto styleAssigns = context.document->getOthers()->getArray<others::StaffStyleAssign>(context.forPartId, staffId);
             for (const auto& styleAssign : styleAssigns) {
@@ -796,12 +723,13 @@ void assignStaffAttributes(
                 continue;
             }
 
-            const auto pointStaff = others::StaffComposite::createCurrent(context.document, context.forPartId, staffId,
-                point.measureId, point.position.calcEduDuration());
-            ASSERT_IF(!pointStaff) {
-                context.logMessage(LogMsg() << "No staff composite found for staff " << staffId
-                    << " at measure " << point.measureId << ", edu " << point.position.calcEduDuration()
-                    << " while assigning MusicXML staff attributes.", MessageSeverity::Warning);
+            const auto pointStaff = others::StaffComposite::createCurrent(
+                context.document, context.forPartId, staffId, point.measureId, point.position.calcEduDuration());
+            ASSERT_IF(!pointStaff)
+            {
+                context.logMessage(LogMsg() << "No staff composite found for staff " << staffId << " at measure " << point.measureId << ", edu "
+                                            << point.position.calcEduDuration() << " while assigning MusicXML staff attributes.",
+                    MessageSeverity::Warning);
                 continue;
             }
 
@@ -819,19 +747,22 @@ void assignStaffAttributes(
                 // items here can only be changed at start of measure in musicxml/mx::api
                 const auto measureId = measureStartStaff->getMeasureId();
                 auto& measure = part.measures[size_t(measureId - 1)];
-                ASSERT_IF(measure.staves.size() != staves.size()) {
-                    context.logMessage(LogMsg() << "Measure " << measureId << " in part " << part.uniqueId
-                        << " has " << measure.staves.size() << " staves, expected " << staves.size()
-                        << " while assigning MusicXML measure-start staff attributes.", MessageSeverity::Warning);
+                ASSERT_IF(measure.staves.size() != staves.size())
+                {
+                    context.logMessage(LogMsg() << "Measure " << measureId << " in part " << part.uniqueId << " has " << measure.staves.size()
+                                                << " staves, expected " << staves.size()
+                                                << " while assigning MusicXML measure-start staff attributes.",
+                        MessageSeverity::Warning);
                     return;
                 }
                 // An uncalculated layout resolves no system, which is an expected saved state rather
                 // than an anomaly, so only a calculated layout missing a system is worth reporting.
                 // Warning here unconditionally would fire once per change point per staff.
                 const auto system = context.systemForMeasure(measureId);
-                ASSERT_IF(context.partLayoutIsCalculated && !system) {
+                ASSERT_IF(context.partLayoutIsCalculated && !system)
+                {
                     context.logMessage(LogMsg() << "No staff system found for measure " << measureId
-                        << " while assigning MusicXML staff attributes for staff " << staffId << ".",
+                                                << " while assigning MusicXML staff attributes for staff " << staffId << ".",
                         MessageSeverity::Warning);
                     continue;
                 }
@@ -851,14 +782,15 @@ void assignStaffAttributes(
             const auto currentTransposition = createTransposeData(context, pointStaff);
             if (!transposeDataEqualIgnoringStaffAndTick(prevTransposition, currentTransposition)) {
                 const bool initialPointCoveredByPart =
-                    point == MusicPoint{}
-                    && transposeDataEqualIgnoringStaffAndTick(currentTransposition, part.transposition);
+                    point == MusicPoint{} && transposeDataEqualIgnoringStaffAndTick(currentTransposition, part.transposition);
                 if (!initialPointCoveredByPart) {
                     auto& measure = part.measures[size_t(point.measureId - 1)];
-                    ASSERT_IF(measure.staves.size() != staves.size()) {
-                        context.logMessage(LogMsg() << "Measure " << point.measureId << " in part " << part.uniqueId
-                            << " has " << measure.staves.size() << " staves, expected " << staves.size()
-                            << " while assigning MusicXML transposition attributes.", MessageSeverity::Warning);
+                    ASSERT_IF(measure.staves.size() != staves.size())
+                    {
+                        context.logMessage(LogMsg()
+                                               << "Measure " << point.measureId << " in part " << part.uniqueId << " has " << measure.staves.size()
+                                               << " staves, expected " << staves.size() << " while assigning MusicXML transposition attributes.",
+                            MessageSeverity::Warning);
                         return;
                     }
                     auto transpose = currentTransposition.value_or(mx::api::TransposeData{});
@@ -874,23 +806,19 @@ void assignStaffAttributes(
     }
 }
 
-void processMeasureText(
-    MusicXmlMusxMapping& context,
-    mx::api::StaffData& staff,
-    const MusxInstance<others::Measure>& musxMeasure,
-    StaffCmper staffId)
+void processMeasureText(MusicXmlMusxMapping& context, mx::api::StaffData& staff, const MusxInstance<others::Measure>& musxMeasure, StaffCmper staffId)
 {
     if (!musxMeasure->hasTextBlock) {
         return;
     }
-    const auto textAssignments = context.document->getDetails()->getArray<details::MeasureTextAssign>(
-        musxMeasure->getRequestedPartId(), staffId, musxMeasure->getCmper());
+    const auto textAssignments =
+        context.document->getDetails()->getArray<details::MeasureTextAssign>(musxMeasure->getRequestedPartId(), staffId, musxMeasure->getCmper());
     for (const auto& assignment : textAssignments) {
         if (assignment->hidden) {
             continue;
         }
-        const auto currentStaff = others::StaffComposite::createCurrent(
-            context.document, context.forPartId, staffId, musxMeasure->getCmper(), assignment->xDispEdu);
+        const auto currentStaff =
+            others::StaffComposite::createCurrent(context.document, context.forPartId, staffId, musxMeasure->getCmper(), assignment->xDispEdu);
         if (!currentStaff) {
             continue;
         }
@@ -909,8 +837,7 @@ void processMeasureText(
 
         const auto textBlock = assignment->getTextBlock();
         // TextBlock::justify controls the alignment of lines within the text block.
-        const auto justify = textBlock ? enumConvert<mx::api::HorizontalAlignment>(textBlock->justify)
-                                       : mx::api::HorizontalAlignment::unspecified;
+        const auto justify = textBlock ? enumConvert<mx::api::HorizontalAlignment>(textBlock->justify) : mx::api::HorizontalAlignment::unspecified;
         const bool useStandardFrameEnclosure = textBlock && textBlock->shapeId == 0 && textBlock->stdLineThickness > 0;
         const Evpu resolvedYEvpu = assignment->yDisp + (textBlock ? textBlock->yAdd : Evpu{});
         const Evpu defaultXEvpu = (textBlock ? textBlock->xAdd : Evpu{}) + (assignment->xDispEdu == 0 ? assignment->xDispEvpu : Evpu{});
@@ -922,46 +849,42 @@ void processMeasureText(
         } else if (resolvedYEvpu < currentStaff->calcBottomLineEvpu()) {
             direction.placement = mx::api::Placement::below;
         }
-        forEachMusicXmlWordsRunItem(words, [&](mx::api::PositionData& positionData,
-                mx::api::Enclosure& enclosure, mx::api::HorizontalAlignment& itemJustify) {
-            if (hasDefaultX) {
-                positionData.defaultX = context.musicXmlTenthsFromEvpu(defaultXEvpu);
-                positionData.isDefaultXSpecified = true;
-            }
-            if (hasDefaultY) {
-                positionData.defaultY = context.musicXmlTenthsFromEvpu(defaultYEvpu);
-                positionData.isDefaultYSpecified = true;
-            }
+        forEachMusicXmlWordsRunItem(
+            words, [&](mx::api::PositionData& positionData, mx::api::Enclosure& enclosure, mx::api::HorizontalAlignment& itemJustify) {
+                if (hasDefaultX) {
+                    positionData.defaultX = context.musicXmlTenthsFromEvpu(defaultXEvpu);
+                    positionData.isDefaultXSpecified = true;
+                }
+                if (hasDefaultY) {
+                    positionData.defaultY = context.musicXmlTenthsFromEvpu(defaultYEvpu);
+                    positionData.isDefaultYSpecified = true;
+                }
             // Measure text is always anchored by its left edge, independently of its justification.
-            positionData.horizontalAlignment = mx::api::HorizontalAlignment::left;
-            itemJustify = justify;
-            if (useStandardFrameEnclosure) {
-                enclosure = mx::api::Enclosure::rectangle;
-            }
-        });
+                positionData.horizontalAlignment = mx::api::HorizontalAlignment::left;
+                itemJustify = justify;
+                if (useStandardFrameEnclosure) {
+                    enclosure = mx::api::Enclosure::rectangle;
+                }
+            });
 
         appendMusicXmlWordsRun(direction, std::move(words));
         staff.directions.emplace_back(std::move(direction));
     }
 }
 
-void processChords(
-    MusicXmlMusxMapping& context,
-    mx::api::StaffData& staff,
-    const MusxInstance<others::Measure>& musxMeasure,
-    StaffCmper staffId,
+void processChords(MusicXmlMusxMapping& context, mx::api::StaffData& staff, const MusxInstance<others::Measure>& musxMeasure, StaffCmper staffId,
     MusicXmlPitchContext pitchContext)
 {
-    const auto assignments = context.document->getDetails()->getArray<details::ChordAssign>(
-        context.forPartId, staffId, musxMeasure->getCmper());
+    const auto assignments = context.document->getDetails()->getArray<details::ChordAssign>(context.forPartId, staffId, musxMeasure->getCmper());
     if (assignments.empty()) {
         return;
     }
 
     const auto keySignature = musxMeasure->createKeySignature(staffId);
     if (!keySignature) {
-        context.logMessage(LogMsg() << "Skipping chord symbols in measure " << musxMeasure->getCmper()
-            << " because no effective key signature was found.", MessageSeverity::Warning);
+        context.logMessage(
+            LogMsg() << "Skipping chord symbols in measure " << musxMeasure->getCmper() << " because no effective key signature was found.",
+            MessageSeverity::Warning);
         return;
     }
 
@@ -975,12 +898,8 @@ void processChords(
         auto chord = mx::api::ChordData{};
         chord.root = enumConvert<mx::api::Step>(root.noteName);
         chord.rootAlter = root.alteration;
-        const auto suffix = assignment->showSuffix
-            ? classify::classifyChordSuffix(assignment->getChordSuffix())
-            : classify::classifyChordSuffix();
-        chord.chordKind = suffix.quality
-            ? enumConvert<mx::api::ChordKind>(*suffix.quality)
-            : mx::api::ChordKind::other;
+        const auto suffix = assignment->showSuffix ? classify::classifyChordSuffix(assignment->getChordSuffix()) : classify::classifyChordSuffix();
+        chord.chordKind = suffix.quality ? enumConvert<mx::api::ChordKind>(*suffix.quality) : mx::api::ChordKind::other;
         if (assignment->showSuffix) {
             chord.text = suffix.calcText();
             for (const auto& degree : suffix.degrees) {
@@ -1019,8 +938,9 @@ void processChords(
                 }
             }
             if (suffix.hasUnrecognizedGlyphs) {
-                context.logMessage(LogMsg() << "Chord suffix " << assignment->suffixId << " in measure "
-                    << musxMeasure->getCmper() << " contains unrecognized glyphs.", MessageSeverity::Warning);
+                context.logMessage(LogMsg() << "Chord suffix " << assignment->suffixId << " in measure " << musxMeasure->getCmper()
+                                            << " contains unrecognized glyphs.",
+                    MessageSeverity::Warning);
             }
         }
         if (assignment->showAltBass) {
@@ -1074,9 +994,7 @@ void processChords(
 
             const auto findFrameNote = [&](int stringNumber) {
                 return std::find_if(chord.frameData.notes.begin(), chord.frameData.notes.end(),
-                    [stringNumber](const auto& candidate) {
-                        return candidate.stringNumber == stringNumber;
-                    });
+                    [stringNumber](const auto& candidate) { return candidate.stringNumber == stringNumber; });
             };
             for (const auto& barre : fretboard->barres) {
                 // Finale anchors a barre to its endpoint strings whatever fret is played there, so a
@@ -1092,25 +1010,18 @@ void processChords(
                 }
             }
             std::stable_sort(chord.frameData.notes.begin(), chord.frameData.notes.end(),
-                [](const auto& left, const auto& right) {
-                    return left.stringNumber > right.stringNumber;
-                });
+                [](const auto& left, const auto& right) { return left.stringNumber > right.stringNumber; });
         }
 
         auto direction = mx::api::DirectionData{};
-        direction.tickTimePosition = context.timing.calcNearestMusicXmlDivisions(
-            Fraction::fromEdu((std::max)(Edu{}, assignment->horzEdu)));
+        direction.tickTimePosition = context.timing.calcNearestMusicXmlDivisions(Fraction::fromEdu((std::max)(Edu{}, assignment->horzEdu)));
         direction.chords.emplace_back(std::move(chord));
         staff.directions.emplace_back(std::move(direction));
     }
 }
 
-void addMeasureNumber(
-    MusicXmlMusxMapping& context,
-    mx::api::MeasureData& measure,
-    const MusxInstance<others::Measure>& musxMeasure,
-    const std::vector<StaffCmper>& staves,
-    const std::vector<StaffCmper>& scoreStaves)
+void addMeasureNumber(MusicXmlMusxMapping& context, mx::api::MeasureData& measure, const MusxInstance<others::Measure>& musxMeasure,
+    const std::vector<StaffCmper>& staves, const std::vector<StaffCmper>& scoreStaves)
 {
     const MeasCmper measureId = musxMeasure->getCmper();
     measure.number = std::to_string(measureId);
@@ -1119,9 +1030,7 @@ void addMeasureNumber(
         measure.implicit = mx::api::Bool::yes;
     }
     if (musxMeasureNumberRegion) {
-        const auto& scorePartData = context.forPartId == SCORE_PARTID
-            ? musxMeasureNumberRegion->scoreData
-            : musxMeasureNumberRegion->partData;
+        const auto& scorePartData = context.forPartId == SCORE_PARTID ? musxMeasureNumberRegion->scoreData : musxMeasureNumberRegion->partData;
         if (measureId == musxMeasureNumberRegion->startMeas) {
             if (scorePartData->hideFirstMeasure) {
                 measure.implicit = mx::api::Bool::yes;
@@ -1133,11 +1042,11 @@ void addMeasureNumber(
             const auto displayingStaffIndex = [&]() -> std::optional<size_t> {
                 for (size_t staffIndex = 0; staffIndex < staves.size(); staffIndex++) {
                     const StaffCmper staffId = staves[staffIndex];
-                    const auto staff = others::StaffComposite::createCurrent(
-                        context.document, context.forPartId, staffId, measureId, 0);
+                    const auto staff = others::StaffComposite::createCurrent(context.document, context.forPartId, staffId, measureId, 0);
                     if (!staff) {
-                        context.logMessage(LogMsg() << "Cannot determine measure-number visibility for staff " << staffId
-                            << " in measure " << measureId << ".", MessageSeverity::Warning);
+                        context.logMessage(
+                            LogMsg() << "Cannot determine measure-number visibility for staff " << staffId << " in measure " << measureId << ".",
+                            MessageSeverity::Warning);
                         continue;
                     }
                     if (!staff->hideMeasNums) {
@@ -1148,10 +1057,8 @@ void addMeasureNumber(
             }();
             const bool partDisplaysMeasureNumbers = displayingStaffIndex.has_value();
 
-            const bool partIsTopSystemStaff = !scoreStaves.empty()
-                && std::ranges::find(staves, scoreStaves.front()) != staves.end();
-            const bool partIsBottomSystemStaff = !scoreStaves.empty()
-                && std::ranges::find(staves, scoreStaves.back()) != staves.end();
+            const bool partIsTopSystemStaff = !scoreStaves.empty() && std::ranges::find(staves, scoreStaves.front()) != staves.end();
+            const bool partIsBottomSystemStaff = !scoreStaves.empty() && std::ranges::find(staves, scoreStaves.back()) != staves.end();
 
             const auto systemRelation = [&]() {
                 const bool onlyTop = scorePartData->showOnTop && !scorePartData->showOnBottom;
@@ -1189,20 +1096,15 @@ void addMeasureNumber(
                     // Mid-system numbers every nth measure. MusicXML offers only "every measure" and
                     // "start of system", so leave it unstated rather than overstate or erase it.
                     context.logMessage(LogMsg() << "Measure numbers shown on every " << scorePartData->incidence
-                        << " measures have no MusicXML equivalent; leaving measure numbering unspecified.",
+                                                << " measures have no MusicXML equivalent; leaving measure numbering unspecified.",
                         MessageSeverity::Verbose);
                 }
             } else {
                 measure.measureNumbering = mx::api::MeasureNumbering::none;
             }
-            if (measure.measureNumbering != mx::api::MeasureNumbering::unspecified
-                && measure.measureNumbering != mx::api::MeasureNumbering::none) {
-                measure.measureNumberingMultipleRestAlways = scorePartData->showOnMmRest
-                    ? mx::api::Bool::yes
-                    : mx::api::Bool::no;
-                measure.measureNumberingMultipleRestRange = scorePartData->showMmRange
-                    ? mx::api::Bool::yes
-                    : mx::api::Bool::no;
+            if (measure.measureNumbering != mx::api::MeasureNumbering::unspecified && measure.measureNumbering != mx::api::MeasureNumbering::none) {
+                measure.measureNumberingMultipleRestAlways = scorePartData->showOnMmRest ? mx::api::Bool::yes : mx::api::Bool::no;
+                measure.measureNumberingMultipleRestRange = scorePartData->showMmRange ? mx::api::Bool::yes : mx::api::Bool::no;
                 measure.measureNumberingSystemRelation = systemRelation;
                 // An absent staff index means the top staff, which is what index 0 would say anyway.
                 if (displayingStaffIndex.value_or(0) > 0) {
@@ -1250,8 +1152,7 @@ void createMeasuresForPart(MusicXmlMusxMapping& context, mx::api::PartData& part
         const bool isFinalMeasure = measureIndex + 1 == musxMeasures.size();
         auto& measure = part.measures.emplace_back(mx::api::MeasureData{});
         measure.id = mx::api::Id{core::calcPartMeasureId(part.uniqueId, musxMeasure->getCmper())};
-        if (const auto multimeasureRest = context.document->getOthers()->get<others::MultimeasureRest>(
-                context.forPartId, musxMeasure->getCmper())) {
+        if (const auto multimeasureRest = context.document->getOthers()->get<others::MultimeasureRest>(context.forPartId, musxMeasure->getCmper())) {
             if (const int measureCount = multimeasureRest->calcNumberOfMeasures(); measureCount > 0) {
                 measure.multiMeasureRest = measureCount;
                 if (multimeasureRest->calcUsesSymbols()) {
@@ -1275,8 +1176,8 @@ void createMeasuresForPart(MusicXmlMusxMapping& context, mx::api::PartData& part
             const StaffCmper staffId = stavesIt->second[staffIndex];
             auto& staff = measure.staves[staffIndex];
             assignClefs(context, staff, staffId, musxMeasure, pitchContext, prevClefIndices[staffIndex]);
-            const auto musxStaffAtEnd = others::StaffComposite::createCurrent(context.document, context.forPartId, staffId,
-                musxMeasure->getCmper(), musxMeasure->calcDuration(staffId).calcEduDuration());
+            const auto musxStaffAtEnd = others::StaffComposite::createCurrent(
+                context.document, context.forPartId, staffId, musxMeasure->getCmper(), musxMeasure->calcDuration(staffId).calcEduDuration());
             assignBarlines(context, measure, musxMeasure, isFinalMeasure, musxStaffAtEnd);
             createNotesForMeasureStaff(context, measure, staff, musxMeasure, staffId, measureIndex, staffIndex);
         }

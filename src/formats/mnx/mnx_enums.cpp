@@ -19,17 +19,17 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#include <iostream>
 #include <filesystem>
 #include <fstream>
+#include <iostream>
 #include <unordered_map>
 
-#include "mnx.h"
-#include "denigma/classify/barlines.h"
 #include "denigma/classify/articulations.h"
+#include "denigma/classify/barlines.h"
 #include "denigma/classify/classifier_common.h"
 #include "denigma/classify/dynamics.h"
 #include "formats/enum_conversion_macros.h"
+#include "mnx.h"
 
 namespace denigma {
 namespace formats {
@@ -38,6 +38,7 @@ namespace detail {
 
 DEFINE_ENUM_CONVERT_TEMPLATE
 
+// clang-format off
 BEGIN_ENUM_CONVERSION(details::TupletDef::AutoBracketStyle, mnxdom::AutoYesNo)
     case details::TupletDef::AutoBracketStyle::Always: return mnxdom::AutoYesNo::Yes;
     case details::TupletDef::AutoBracketStyle::NeverBeamSide: return mnxdom::AutoYesNo::Yes; // currently there is no exact analog for this Finale option in Mnx.
@@ -175,6 +176,7 @@ BEGIN_ENUM_CONVERSION(VerticalPlacement, mnxdom::MultiStaffOrientation)
     case VerticalPlacement::Above: return mnxdom::MultiStaffOrientation::Above;
     case VerticalPlacement::Below: return mnxdom::MultiStaffOrientation::Below;
 END_ENUM_CONVERSION
+// clang-format on
 
 } // namespace detail
 } // namespace mnx

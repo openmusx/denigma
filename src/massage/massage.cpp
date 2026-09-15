@@ -19,17 +19,17 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#include <filesystem>
-#include <iostream>
-#include <string>
 #include <array>
-#include <unordered_map>
-#include <optional>
+#include <filesystem>
 #include <functional>
+#include <iostream>
+#include <optional>
+#include <string>
+#include <unordered_map>
 
+#include "formats/enigmaxml/enigmaxml.h"
 #include "massage/massage.h"
 #include "massage/musicxml.h"
-#include "formats/enigmaxml/enigmaxml.h"
 
 namespace denigma {
 
@@ -48,28 +48,28 @@ constexpr auto inputProcessors = []() {
     struct InputProcessor
     {
         std::u8string_view extension;
-        CommandInputData(*processor)(const std::filesystem::path&, const DenigmaContext&);
+        CommandInputData (*processor)(const std::filesystem::path&, const DenigmaContext&);
     };
 
     return std::to_array<InputProcessor>({
-            { MXL_EXTENSION, nullFunc },
-            { MUSICXML_EXTENSION, readMusicXml },
-        });
-    }();
+        {MXL_EXTENSION, nullFunc},
+        {MUSICXML_EXTENSION, readMusicXml},
+    });
+}();
 
 // Output format processors
 constexpr auto outputProcessors = []() {
     struct OutputProcessor
     {
         std::u8string_view extension;
-        void(*processor)(const std::filesystem::path&, const std::filesystem::path&, const Buffer&, const DenigmaContext&);
+        void (*processor)(const std::filesystem::path&, const std::filesystem::path&, const Buffer&, const DenigmaContext&);
     };
 
     return std::to_array<OutputProcessor>({
-            { MXL_EXTENSION, musicxml::massageMxl },
-            { MUSICXML_EXTENSION, musicxml::massage },
-        });
-    }();
+        {MXL_EXTENSION, musicxml::massageMxl},
+        {MUSICXML_EXTENSION, musicxml::massage},
+    });
+}();
 
 int MassageCommand::showHelpPage(const std::string_view& programName, const std::string& indentSpaces) const
 {
@@ -81,21 +81,28 @@ int MassageCommand::showHelpPage(const std::string_view& programName, const std:
     std::cout << indentSpaces << "Usage: " << fullCommand << " <input-pattern> [--output options]" << std::endl;
     std::cout << std::endl;
     std::cout << indentSpaces << "Specific options:" << std::endl;
-    std::cout << indentSpaces << "  --finale-file <file|directory>  Specify a .musx or .enigmaxml file, or a directory to search for such files." << std::endl;
-    std::cout << indentSpaces << "                                  The Finale file is used as co-input, especially to identify rests for refloating." << std::endl;
-    std::cout << indentSpaces << "                                  If omitted, search the same directory as the input xml and its parent directory." << std::endl;
+    std::cout << indentSpaces << "  --finale-file <file|directory>  Specify a .musx or .enigmaxml file, or a directory to search for such files."
+              << std::endl;
+    std::cout << indentSpaces << "                                  The Finale file is used as co-input, especially to identify rests for refloating."
+              << std::endl;
+    std::cout << indentSpaces << "                                  If omitted, search the same directory as the input xml and its parent directory."
+              << std::endl;
     std::cout << indentSpaces << "  --refloat-rests                 Refloat rests (default: on)." << std::endl;
     std::cout << indentSpaces << "  --no-refloat-rests              Disable refloating of rests." << std::endl;
     std::cout << indentSpaces << "  --extend-ottavas-left           Extend ottavas to the left of grace notes (default: on)." << std::endl;
     std::cout << indentSpaces << "  --no-extend-ottavas-left        Disable extending ottavas to the left of grace notes." << std::endl;
     std::cout << indentSpaces << "  --extend-ottavas-right          Extend ottavas to the right by one note or chord (default: on)." << std::endl;
     std::cout << indentSpaces << "  --no-extend-ottavas-right       Disable extending ottavas to the right by one note or chord ." << std::endl;
-    std::cout << indentSpaces << "  --fermata-whole-rests           Convert fermatas on whole rests to full-measure rests (default: on)." << std::endl;
+    std::cout << indentSpaces << "  --fermata-whole-rests           Convert fermatas on whole rests to full-measure rests (default: on)."
+              << std::endl;
     std::cout << indentSpaces << "  --no-fermata-whole-rests        Disable converting on whole rests to full-measure rests ." << std::endl;
     std::cout << std::endl;
     std::cout << indentSpaces << "  --target <program-name>         Sets the above options for best results in that program." << std::endl;
-    std::cout << indentSpaces << "                                  If you specify this value first, you can override specific options later on the command line." << std::endl;
-    std::cout << indentSpaces << "                                  Currently supported options: \"musescore\" | \"dorico\" | \"lilypond\"" << std::endl;
+    std::cout << indentSpaces
+              << "                                  If you specify this value first, you can override specific options later on the command line."
+              << std::endl;
+    std::cout << indentSpaces << "                                  Currently supported options: \"musescore\" | \"dorico\" | \"lilypond\""
+              << std::endl;
     std::cout << std::endl;
 
     // Supported input formats
@@ -110,7 +117,8 @@ int MassageCommand::showHelpPage(const std::string_view& programName, const std:
     // Supported output formats
     std::cout << indentSpaces << "Supported output options:" << std::endl;
     for (const auto& output : outputProcessors) {
-        std::cout << indentSpaces << "  --" << utils::utf8ToString(output.extension) << " [optional filepath, relative to current directory]" << std::endl;
+        std::cout << indentSpaces << "  --" << utils::utf8ToString(output.extension) << " [optional filepath, relative to current directory]"
+                  << std::endl;
     }
     std::cout << indentSpaces << std::endl;
 
@@ -139,7 +147,8 @@ CommandInputData MassageCommand::processInput(const std::filesystem::path& input
     return inputProcessor(inputPath, denigmaContext);
 }
 
-void MassageCommand::processOutput(const CommandInputData& inputData, const std::filesystem::path& outputPath, const std::filesystem::path& inputPath, const DenigmaContext& denigmaContext) const
+void MassageCommand::processOutput(const CommandInputData& inputData, const std::filesystem::path& outputPath, const std::filesystem::path& inputPath,
+    const DenigmaContext& denigmaContext) const
 {
     MusxLoggerScope musxLogger(makeMusxLogCallback(denigmaContext));
     auto outputProcessor = findProcessor(outputProcessors, outputPath.extension().u8string());

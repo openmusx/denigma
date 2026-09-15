@@ -62,20 +62,20 @@ struct Ottava
     /// carriers participate in pitch mapping; paired visual custom lines return false.
     [[nodiscard]]
     bool calcIsSemanticCarrier() const noexcept
-    { return !hiddenCounterpart; }
+    {
+        return !hiddenCounterpart;
+    }
 };
 
 /// @struct Crescendo
 /// @brief A crescendo hairpin. Its extent comes from the source shape's endpoints.
 struct Crescendo
-{
-};
+{};
 
 /// @struct Decrescendo
 /// @brief A decrescendo hairpin. Its extent comes from the source shape's endpoints.
 struct Decrescendo
-{
-};
+{};
 
 /// @struct Slur
 /// @brief A slur between two entries.
@@ -87,7 +87,7 @@ struct Slur
     /// Exporters may host such floating endpoints however their target format allows.
     musx::dom::EntryInfoPtr endEntry;
     /// The slur's resolved curvature direction.
-    musx::dom::CurveContourDirection contour{ musx::dom::CurveContourDirection::Unspecified };
+    musx::dom::CurveContourDirection contour{musx::dom::CurveContourDirection::Unspecified};
 };
 
 /// @struct ArpeggiatedTie
@@ -97,7 +97,7 @@ struct ArpeggiatedTie
     musx::dom::NoteInfoPtr tiedFrom;    ///< The note the tie starts from.
     musx::dom::NoteInfoPtr tiedTo;      ///< The note the tie ends on.
     /// The tie's resolved curvature direction.
-    musx::dom::CurveContourDirection contour{ musx::dom::CurveContourDirection::Unspecified };
+    musx::dom::CurveContourDirection contour{musx::dom::CurveContourDirection::Unspecified};
 };
 
 /// @struct NonArpeggio
@@ -117,8 +117,7 @@ struct KeyboardPedal
 {
     /// @enum CapType
     /// @brief The pedal semantic of a line cap. (Appearance details are in #line.)
-    enum class CapType
-    {
+    enum class CapType {
         None,           ///< No cap, or a cap with no pedal meaning.
         Hook,           ///< A plain hook, which brackets the pedaled music without naming a pedal action.
         PedalDown,      ///< The cap engages the pedal.
@@ -188,20 +187,9 @@ struct Glissando
 /// std::monostate means the shape was not classified: it is invalid, or its type carries no
 /// semantics Denigma models. A @ref smartshape::GeneralLine is the fallback for a line-type shape
 /// that no more specific classification claimed.
-using SmartShapeValue = std::variant<
-    std::monostate,
-    smartshape::Ottava,
-    smartshape::Crescendo,
-    smartshape::Decrescendo,
-    smartshape::Slur,
-    smartshape::ArpeggiatedTie,
-    PseudoTie,
-    smartshape::NonArpeggio,
-    smartshape::KeyboardPedal,
-    smartshape::TrillLine,
-    smartshape::VibratoLine,
-    smartshape::Glissando,
-    smartshape::GeneralLine>;
+using SmartShapeValue = std::variant<std::monostate, smartshape::Ottava, smartshape::Crescendo, smartshape::Decrescendo, smartshape::Slur,
+    smartshape::ArpeggiatedTie, PseudoTie, smartshape::NonArpeggio, smartshape::KeyboardPedal, smartshape::TrillLine, smartshape::VibratoLine,
+    smartshape::Glissando, smartshape::GeneralLine>;
 
 /// @struct SmartShapeClassification
 /// @brief Result returned by smart-shape classification.
@@ -217,7 +205,9 @@ struct SmartShapeClassification
     /// @tparam T One of the alternatives of @ref SmartShapeValue.
     template <typename T>
     const T* as() const noexcept
-    { return std::get_if<T>(&value); }
+    {
+        return std::get_if<T>(&value);
+    }
 };
 
 /// @brief Classifies a smart shape's meaning.
@@ -225,8 +215,7 @@ struct SmartShapeClassification
 /// An invalid shape, or one whose type Denigma does not model, yields a classification whose
 /// value is std::monostate.
 [[nodiscard]]
-SmartShapeClassification classifySmartShape(
-    const musx::dom::MusxInstance<musx::dom::others::SmartShape>& shape);
+SmartShapeClassification classifySmartShape(const musx::dom::MusxInstance<musx::dom::others::SmartShape>& shape);
 
 /// @brief Classifies a custom line style as keyboard pedaling.
 ///

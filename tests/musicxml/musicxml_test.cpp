@@ -22,9 +22,9 @@
 #include "core/denigma.h"
 #include "formats/enigmaxml/enigmaxml.h"
 #include "formats/musicxml/musicxml.h"
-#include "gtest/gtest.h"
 #include "mx/api/DocumentManager.h"
 #include "test_utils.h"
+#include "gtest/gtest.h"
 
 namespace denigma::test::musicxml {
 
@@ -33,13 +33,12 @@ std::filesystem::path exportMusicXmlFixture(const std::string& musxFile, bool us
     std::filesystem::path inputPath;
     copyInputToOutput(musxFile, inputPath);
 
-    ArgList args = { DENIGMA_NAME, "export", pathString(inputPath), "--musicxml" };
+    ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), "--musicxml"};
     if (useFinaleRestPosition) {
         args.add("--finale-rest-position");
     }
-    checkStderr({ "Processing", pathString(inputPath.filename()) }, [&]() {
-        EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to musicxml: " << pathString(inputPath);
-    });
+    checkStderr({"Processing", pathString(inputPath.filename())},
+        [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to musicxml: " << pathString(inputPath); });
 
     auto outputPath = inputPath;
     outputPath.replace_extension(".musicxml");

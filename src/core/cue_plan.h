@@ -33,20 +33,12 @@ struct CueStaffMeasurePlan
     std::unordered_set<musx::dom::LayerIndex> detectedCueLayers; ///< Cue layers reported by musxdom analysis.
     std::optional<musx::dom::LayerIndex> forcedCueLayer; ///< 0-based layer selected by the caller, when present.
 
-    bool isCueLayer(musx::dom::LayerIndex layer) const
-    {
-        return cueLayers.contains(layer);
-    }
+    bool isCueLayer(musx::dom::LayerIndex layer) const { return cueLayers.contains(layer); }
 
-    bool isVisibleCueLayer(musx::dom::LayerIndex layer) const
-    {
-        return isCueLayer(layer) && visibleCueLayers.contains(layer);
-    }
+    bool isVisibleCueLayer(musx::dom::LayerIndex layer) const { return isCueLayer(layer) && visibleCueLayers.contains(layer); }
 };
 
 /// Creates exporter-neutral cue classification and requested-context visibility for one staff and measure.
-CueStaffMeasurePlan createCueStaffMeasurePlan(
-    const musx::dom::details::GFrameHoldContext& staffMeasureContext,
-    std::optional<int> forcedCueLayer);
+CueStaffMeasurePlan createCueStaffMeasurePlan(const musx::dom::details::GFrameHoldContext& staffMeasureContext, std::optional<int> forcedCueLayer);
 
 } // namespace denigma

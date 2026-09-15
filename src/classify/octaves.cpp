@@ -42,16 +42,15 @@ using octave::Direction;
 /// (or two conflicting weak ones) poison the result.
 struct MarkingParts
 {
-    enum class Strength
-    {
+    enum class Strength {
         None,
         Weak,
         Explicit
     };
 
     std::optional<int> magnitude;
-    Direction direction{ Direction::Unknown };
-    Strength strength{ Strength::None };
+    Direction direction{Direction::Unknown};
+    Strength strength{Strength::None};
     bool conflict{};
 
     void addMagnitude(int value)
@@ -115,10 +114,10 @@ struct SuffixDirection
 std::optional<SuffixDirection> directionForSuffix(std::string_view suffix)
 {
     if (suffix == "va" || suffix == "ma") {
-        return SuffixDirection{ Direction::Up, MarkingParts::Strength::Weak };
+        return SuffixDirection{Direction::Up, MarkingParts::Strength::Weak};
     }
     if (suffix == "vb" || suffix == "mb" || suffix == "ba") {
-        return SuffixDirection{ Direction::Down, MarkingParts::Strength::Explicit };
+        return SuffixDirection{Direction::Down, MarkingParts::Strength::Explicit};
     }
     return std::nullopt;
 }
@@ -201,19 +200,19 @@ bool applyOctaveGlyph(std::string_view glyphName, MarkingParts& parts, std::stri
     // The Alta glyph variants render as "8va"-style markings, so like the "va" text
     // suffix they imply alta only weakly. The Bassa variants are explicit.
     static constexpr GlyphSpec numberGlyphs[] = {
-        { "ottava", 1, Direction::Unknown, MarkingParts::Strength::None },
-        { "ottavaAlta", 1, Direction::Up, MarkingParts::Strength::Weak },
-        { "ottavaBassa", 1, Direction::Down, MarkingParts::Strength::Explicit },
-        { "ottavaBassaBa", 1, Direction::Down, MarkingParts::Strength::Explicit },
-        { "ottavaBassaVb", 1, Direction::Down, MarkingParts::Strength::Explicit },
-        { "quindicesima", 2, Direction::Unknown, MarkingParts::Strength::None },
-        { "quindicesimaAlta", 2, Direction::Up, MarkingParts::Strength::Weak },
-        { "quindicesimaBassa", 2, Direction::Down, MarkingParts::Strength::Explicit },
-        { "quindicesimaBassaMb", 2, Direction::Down, MarkingParts::Strength::Explicit },
-        { "ventiduesima", 3, Direction::Unknown, MarkingParts::Strength::None },
-        { "ventiduesimaAlta", 3, Direction::Up, MarkingParts::Strength::Weak },
-        { "ventiduesimaBassa", 3, Direction::Down, MarkingParts::Strength::Explicit },
-        { "ventiduesimaBassaMb", 3, Direction::Down, MarkingParts::Strength::Explicit },
+        {"ottava", 1, Direction::Unknown, MarkingParts::Strength::None},
+        {"ottavaAlta", 1, Direction::Up, MarkingParts::Strength::Weak},
+        {"ottavaBassa", 1, Direction::Down, MarkingParts::Strength::Explicit},
+        {"ottavaBassaBa", 1, Direction::Down, MarkingParts::Strength::Explicit},
+        {"ottavaBassaVb", 1, Direction::Down, MarkingParts::Strength::Explicit},
+        {"quindicesima", 2, Direction::Unknown, MarkingParts::Strength::None},
+        {"quindicesimaAlta", 2, Direction::Up, MarkingParts::Strength::Weak},
+        {"quindicesimaBassa", 2, Direction::Down, MarkingParts::Strength::Explicit},
+        {"quindicesimaBassaMb", 2, Direction::Down, MarkingParts::Strength::Explicit},
+        {"ventiduesima", 3, Direction::Unknown, MarkingParts::Strength::None},
+        {"ventiduesimaAlta", 3, Direction::Up, MarkingParts::Strength::Weak},
+        {"ventiduesimaBassa", 3, Direction::Down, MarkingParts::Strength::Explicit},
+        {"ventiduesimaBassaMb", 3, Direction::Down, MarkingParts::Strength::Explicit},
     };
     for (const auto& spec : numberGlyphs) {
         if (glyphName == spec.name) {
@@ -232,10 +231,14 @@ bool applyOctaveGlyph(std::string_view glyphName, MarkingParts& parts, std::stri
     }
     // Letter glyphs compose the marking's suffix (e.g., "v" + "a" after an "8" glyph).
     static constexpr std::pair<std::string_view, char> letterGlyphs[] = {
-        { "octaveBaselineA", 'a' }, { "octaveSuperscriptA", 'a' },
-        { "octaveBaselineB", 'b' }, { "octaveSuperscriptB", 'b' },
-        { "octaveBaselineM", 'm' }, { "octaveSuperscriptM", 'm' },
-        { "octaveBaselineV", 'v' }, { "octaveSuperscriptV", 'v' },
+        {"octaveBaselineA", 'a'},
+        {"octaveSuperscriptA", 'a'},
+        {"octaveBaselineB", 'b'},
+        {"octaveSuperscriptB", 'b'},
+        {"octaveBaselineM", 'm'},
+        {"octaveSuperscriptM", 'm'},
+        {"octaveBaselineV", 'v'},
+        {"octaveSuperscriptV", 'v'},
     };
     for (const auto& [name, letter] : letterGlyphs) {
         if (glyphName == name) {
@@ -258,12 +261,10 @@ std::optional<OctaveMarkingClassification> classifyOctaveMarking(std::string_vie
         // A bare ASCII number is too weak to classify on its own.
         return std::nullopt;
     }
-    return OctaveMarkingClassification{
-        *parts.magnitude, parts.direction, parts.strength == MarkingParts::Strength::Explicit, false };
+    return OctaveMarkingClassification{*parts.magnitude, parts.direction, parts.strength == MarkingParts::Strength::Explicit, false};
 }
 
-std::optional<OctaveMarkingClassification> classifyOctaveMarking(
-    const musx::util::EnigmaParsingContext& textContext)
+std::optional<OctaveMarkingClassification> classifyOctaveMarking(const musx::util::EnigmaParsingContext& textContext)
 {
     if (!textContext) {
         return std::nullopt;
@@ -273,8 +274,8 @@ std::optional<OctaveMarkingClassification> classifyOctaveMarking(
     std::string asciiText;
     bool sawGlyph = false;
     bool sawNumberGlyph = false;
-    const auto chunks = textContext.collectEnigmaTextChunks(
-        musx::util::EnigmaString::EnigmaParsingOptions(musx::util::EnigmaString::AccidentalStyle::Unicode));
+    const auto chunks =
+        textContext.collectEnigmaTextChunks(musx::util::EnigmaString::EnigmaParsingOptions(musx::util::EnigmaString::AccidentalStyle::Unicode));
     for (const auto& chunk : chunks) {
         if (!chunk.styles.font || chunk.styles.font->hidden || chunk.text.empty()) {
             continue;
@@ -307,8 +308,7 @@ std::optional<OctaveMarkingClassification> classifyOctaveMarking(
         // A bare ASCII number is too weak to classify; a bare octave glyph is unmistakable.
         return std::nullopt;
     }
-    return OctaveMarkingClassification{
-        *parts.magnitude, parts.direction, parts.strength == MarkingParts::Strength::Explicit, sawGlyph };
+    return OctaveMarkingClassification{*parts.magnitude, parts.direction, parts.strength == MarkingParts::Strength::Explicit, sawGlyph};
 }
 
 } // namespace denigma::classify

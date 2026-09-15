@@ -21,8 +21,8 @@
 #include <optional>
 #include <string>
 
-#include "gtest/gtest.h"
 #include "musicxml_test.h"
+#include "gtest/gtest.h"
 
 using namespace denigma::test::musicxml;
 
@@ -57,7 +57,7 @@ TEST(MusicXmlMetadata, exportsPageTextCredits)
     const auto composer = findCredit("composer");
     ASSERT_NE(composer, score->pageTextItems.end());
     EXPECT_EQ(composer->text, "R. G. PATTERSON (2012)");
-    EXPECT_EQ(composer->creditTypes, (std::vector<std::string>{ "composer", "rights" }));
+    EXPECT_EQ(composer->creditTypes, (std::vector<std::string>{"composer", "rights"}));
 }
 
 // Finale's Arranger field is distinct from Composer and has its own MusicXML creator type. Its
@@ -78,9 +78,7 @@ TEST(MusicXmlMetadata, arrangerBecomesCreatorAndSubtitleBecomesMiscellaneousFiel
 
     const auto findMiscellaneousField = [&](const std::string& key) -> std::optional<std::string> {
         const auto& fields = score->encoding.miscellaneousFields;
-        const auto found = std::find_if(fields.begin(), fields.end(), [&](const auto& field) {
-            return field.key == key;
-        });
+        const auto found = std::find_if(fields.begin(), fields.end(), [&](const auto& field) { return field.key == key; });
         if (found == fields.end()) {
             return std::nullopt;
         }
@@ -118,9 +116,7 @@ TEST(MusicXmlMetadata, pageTextFontSizeScalesToPageScalingOnly)
     ASSERT_EQ(score->pageTextItems.size(), 2u);
 
     const auto findCredit = [&](const std::string& text) {
-        return std::find_if(score->pageTextItems.begin(), score->pageTextItems.end(), [&](const auto& credit) {
-            return credit.text == text;
-        });
+        return std::find_if(score->pageTextItems.begin(), score->pageTextItems.end(), [&](const auto& credit) { return credit.text == text; });
     };
 
     constexpr double kPageScaling = 0.90;

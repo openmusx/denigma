@@ -16,6 +16,25 @@ on:
       - published
 
 jobs:
+  codestyle:
+    name: Code style / clang-format
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.x"
+
+      - name: Install clang-format
+        run: pip install clang-format==19.1.6
+
+      - name: Verify formatting
+        run: python scripts/check_format.py
+
   build:
     # Native release binaries are packaged by hand; a published release only
     # needs the WebAssembly job.

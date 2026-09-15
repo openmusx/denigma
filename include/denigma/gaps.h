@@ -35,7 +35,7 @@ namespace denigma {
 struct GapPosition
 {
     int numerator{};
-    int denominator{ 1 };
+    int denominator{1};
 };
 
 /// @struct GapAnchor
@@ -69,14 +69,11 @@ public:
     template <typename Payload>
     void add(GapAnchor anchor, Payload payload)
     {
-        m_gaps.push_back({ std::move(anchor), GapPayload(std::move(payload)) });
+        m_gaps.push_back({std::move(anchor), GapPayload(std::move(payload))});
     }
 
     /// Returns collected gaps in source traversal order.
-    [[nodiscard]] std::span<const Gap> gaps() const noexcept
-    {
-        return m_gaps;
-    }
+    [[nodiscard]] std::span<const Gap> gaps() const noexcept { return m_gaps; }
 
 private:
     std::vector<Gap> m_gaps;

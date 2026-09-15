@@ -46,60 +46,60 @@ NoteheadClassification classifyGlyphName(std::string glyphName)
 {
     static const std::unordered_map<std::string_view, std::pair<Shape, Fill>> glyphTable = {
         // Null
-        { "noteheadNull", { Shape::Null, Fill::Unspecified } },
+        {"noteheadNull", {Shape::Null, Fill::Unspecified}},
 
         // Regular
-        { "noteheadBlack", { Shape::Regular, Fill::Filled } },
-        { "noteheadHalfFilled", { Shape::Regular, Fill::Filled } },
-        { "noteheadWholeFilled", { Shape::Regular, Fill::Filled } },
-        { "noteheadHalf", { Shape::Regular, Fill::Unfilled } },
-        { "noteheadWhole", { Shape::Regular, Fill::Unfilled } },
-        { "noteheadDoubleWhole", { Shape::Regular, Fill::Unfilled } },
-        { "noteheadDoubleWholeSquare", { Shape::Regular, Fill::Unfilled } },
+        {"noteheadBlack", {Shape::Regular, Fill::Filled}},
+        {"noteheadHalfFilled", {Shape::Regular, Fill::Filled}},
+        {"noteheadWholeFilled", {Shape::Regular, Fill::Filled}},
+        {"noteheadHalf", {Shape::Regular, Fill::Unfilled}},
+        {"noteheadWhole", {Shape::Regular, Fill::Unfilled}},
+        {"noteheadDoubleWhole", {Shape::Regular, Fill::Unfilled}},
+        {"noteheadDoubleWholeSquare", {Shape::Regular, Fill::Unfilled}},
 
         // X
-        { "noteheadXBlack", { Shape::X, Fill::Filled } },
-        { "noteheadHeavyX", { Shape::X, Fill::Filled } },
-        { "noteheadHeavyXHat", { Shape::X, Fill::Filled } },
-        { "noteheadXHalf", { Shape::X, Fill::Unfilled } },
-        { "noteheadXWhole", { Shape::X, Fill::Unfilled } },
-        { "noteheadXDoubleWhole", { Shape::X, Fill::Unfilled } },
+        {"noteheadXBlack", {Shape::X, Fill::Filled}},
+        {"noteheadHeavyX", {Shape::X, Fill::Filled}},
+        {"noteheadHeavyXHat", {Shape::X, Fill::Filled}},
+        {"noteheadXHalf", {Shape::X, Fill::Unfilled}},
+        {"noteheadXWhole", {Shape::X, Fill::Unfilled}},
+        {"noteheadXDoubleWhole", {Shape::X, Fill::Unfilled}},
 
         // Diamond
-        { "noteheadDiamondBlack", { Shape::Diamond, Fill::Filled } },
-        { "noteheadDiamondBlackOld", { Shape::Diamond, Fill::Filled } },
-        { "noteheadDiamondBlackWide", { Shape::Diamond, Fill::Filled } },
-        { "noteheadDiamondHalfFilled", { Shape::Diamond, Fill::Filled } },
-        { "noteheadDiamondHalf", { Shape::Diamond, Fill::Unfilled } },
-        { "noteheadDiamondHalfOld", { Shape::Diamond, Fill::Unfilled } },
-        { "noteheadDiamondHalfWide", { Shape::Diamond, Fill::Unfilled } },
-        { "noteheadDiamondWhite", { Shape::Diamond, Fill::Unfilled } },
-        { "noteheadDiamondWhiteWide", { Shape::Diamond, Fill::Unfilled } },
-        { "noteheadDiamondWhole", { Shape::Diamond, Fill::Unfilled } },
-        { "noteheadDiamondWholeOld", { Shape::Diamond, Fill::Unfilled } },
-        { "noteheadDiamondDoubleWhole", { Shape::Diamond, Fill::Unfilled } },
-        { "noteheadDiamondDoubleWholeOld", { Shape::Diamond, Fill::Unfilled } },
-        { "noteheadDiamondOpen", { Shape::Diamond, Fill::Unfilled } },
+        {"noteheadDiamondBlack", {Shape::Diamond, Fill::Filled}},
+        {"noteheadDiamondBlackOld", {Shape::Diamond, Fill::Filled}},
+        {"noteheadDiamondBlackWide", {Shape::Diamond, Fill::Filled}},
+        {"noteheadDiamondHalfFilled", {Shape::Diamond, Fill::Filled}},
+        {"noteheadDiamondHalf", {Shape::Diamond, Fill::Unfilled}},
+        {"noteheadDiamondHalfOld", {Shape::Diamond, Fill::Unfilled}},
+        {"noteheadDiamondHalfWide", {Shape::Diamond, Fill::Unfilled}},
+        {"noteheadDiamondWhite", {Shape::Diamond, Fill::Unfilled}},
+        {"noteheadDiamondWhiteWide", {Shape::Diamond, Fill::Unfilled}},
+        {"noteheadDiamondWhole", {Shape::Diamond, Fill::Unfilled}},
+        {"noteheadDiamondWholeOld", {Shape::Diamond, Fill::Unfilled}},
+        {"noteheadDiamondDoubleWhole", {Shape::Diamond, Fill::Unfilled}},
+        {"noteheadDiamondDoubleWholeOld", {Shape::Diamond, Fill::Unfilled}},
+        {"noteheadDiamondOpen", {Shape::Diamond, Fill::Unfilled}},
 
         // SmallSlash
-        { "noteheadSlashVerticalEndsSmall", { Shape::SmallSlash, Fill::Filled } },
+        {"noteheadSlashVerticalEndsSmall", {Shape::SmallSlash, Fill::Filled}},
 
         // LargeSlash
-        { "noteheadSlashVerticalEnds", { Shape::LargeSlash, Fill::Filled } },
-        { "noteheadSlashHorizontalEnds", { Shape::LargeSlash, Fill::Filled } },
-        { "noteheadSlashWhiteWhole", { Shape::LargeSlash, Fill::Unfilled } },
-        { "noteheadSlashWhiteHalf", { Shape::LargeSlash, Fill::Unfilled } },
-        { "noteheadSlashWhiteDoubleWhole", { Shape::LargeSlash, Fill::Unfilled } },
+        {"noteheadSlashVerticalEnds", {Shape::LargeSlash, Fill::Filled}},
+        {"noteheadSlashHorizontalEnds", {Shape::LargeSlash, Fill::Filled}},
+        {"noteheadSlashWhiteWhole", {Shape::LargeSlash, Fill::Unfilled}},
+        {"noteheadSlashWhiteHalf", {Shape::LargeSlash, Fill::Unfilled}},
+        {"noteheadSlashWhiteDoubleWhole", {Shape::LargeSlash, Fill::Unfilled}},
 
         // Circled
-        { "noteheadCircledBlack", { Shape::Circled, Fill::Filled } },
-        { "noteheadCircledBlackLarge", { Shape::Circled, Fill::Filled } },
-        { "noteheadCircledHalf", { Shape::Circled, Fill::Unfilled } },
-        { "noteheadCircledHalfLarge", { Shape::Circled, Fill::Unfilled } },
-        { "noteheadCircledWhole", { Shape::Circled, Fill::Unfilled } },
-        { "noteheadCircledWholeLarge", { Shape::Circled, Fill::Unfilled } },
-        { "noteheadCircledDoubleWhole", { Shape::Circled, Fill::Unfilled } },
-        { "noteheadCircledDoubleWholeLarge", { Shape::Circled, Fill::Unfilled } },
+        {"noteheadCircledBlack", {Shape::Circled, Fill::Filled}},
+        {"noteheadCircledBlackLarge", {Shape::Circled, Fill::Filled}},
+        {"noteheadCircledHalf", {Shape::Circled, Fill::Unfilled}},
+        {"noteheadCircledHalfLarge", {Shape::Circled, Fill::Unfilled}},
+        {"noteheadCircledWhole", {Shape::Circled, Fill::Unfilled}},
+        {"noteheadCircledWholeLarge", {Shape::Circled, Fill::Unfilled}},
+        {"noteheadCircledDoubleWhole", {Shape::Circled, Fill::Unfilled}},
+        {"noteheadCircledDoubleWholeLarge", {Shape::Circled, Fill::Unfilled}},
     };
 
     const std::string_view glyph = glyphName;
@@ -117,8 +117,7 @@ NoteheadClassification classifyGlyphName(std::string glyphName)
 
 /// Recognizes a literal ASCII 'x'/'X' as a cross notehead, but only in a font that is not a symbol
 /// font (where such a codepoint would otherwise be a direct glyph-index reference to something else).
-NoteheadClassification classifyAsciiX(
-    const musx::dom::MusxInstance<musx::dom::FontInfo>& fontInfo, char32_t symbol)
+NoteheadClassification classifyAsciiX(const musx::dom::MusxInstance<musx::dom::FontInfo>& fontInfo, char32_t symbol)
 {
     if (!fontInfo || fontInfo->calcIsSymbolFont()) {
         return {};
@@ -131,8 +130,7 @@ NoteheadClassification classifyAsciiX(
 
 } // namespace
 
-NoteheadClassification classifyNoteheadSymbol(
-    const musx::dom::MusxInstance<musx::dom::FontInfo>& fontInfo, char32_t symbol)
+NoteheadClassification classifyNoteheadSymbol(const musx::dom::MusxInstance<musx::dom::FontInfo>& fontInfo, char32_t symbol)
 {
     NoteheadClassification result;
     if (symbol == U' ') {
@@ -140,11 +138,8 @@ NoteheadClassification classifyNoteheadSymbol(
     } else if (auto asciiClassification = classifyAsciiX(fontInfo, symbol)) {
         result = std::move(asciiClassification);
     } else if (fontInfo) {
-        if (const auto* glyphName = smufl_mapping::getGlyphNameForFont(
-                fontInfo->getName(),
-                symbol,
-                fontInfo->calcIsSMuFL(),
-                smufl_mapping::SmuflGlyphSource::Finale)) {
+        if (const auto* glyphName =
+                smufl_mapping::getGlyphNameForFont(fontInfo->getName(), symbol, fontInfo->calcIsSMuFL(), smufl_mapping::SmuflGlyphSource::Finale)) {
             result = classifyGlyphName(std::string(*glyphName));
         }
     }
@@ -167,8 +162,7 @@ NoteheadClassification classifyNotehead(const musx::dom::NoteInfoPtr& note)
 bool NoteheadClassification::calcFillOverridesDefault(musx::dom::NoteType noteType) const noexcept
 {
     const bool defaultsToFilled = musx::dom::Edu(noteType) <= musx::dom::Edu(musx::dom::NoteType::Quarter);
-    return (fill == notehead::Fill::Filled && !defaultsToFilled)
-        || (fill == notehead::Fill::Unfilled && defaultsToFilled);
+    return (fill == notehead::Fill::Filled && !defaultsToFilled) || (fill == notehead::Fill::Unfilled && defaultsToFilled);
 }
 
 bool NoteheadClassification::calcOverridesDefault(musx::dom::NoteType noteType) const noexcept

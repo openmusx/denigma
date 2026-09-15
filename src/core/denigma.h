@@ -21,36 +21,36 @@
  */
 #pragma once
 
-#include <string>
-#include <sstream>
 #include <array>
-#include <vector>
-#include <optional>
+#include <cassert>
 #include <fstream>
 #include <functional>
-#include <cassert>
+#include <optional>
 #include <span>
+#include <sstream>
+#include <string>
 #include <unordered_set>
 #include <utility>
+#include <vector>
 
 #include "denigma/conversion.h"
 #include "musx/musx.h"
 #include "utils/stringutils.h"
 
-constexpr char8_t MUSX_EXTENSION[]      = u8"musx";
+constexpr char8_t MUSX_EXTENSION[] = u8"musx";
 constexpr char8_t ENIGMAXML_EXTENSION[] = u8"enigmaxml";
-constexpr char8_t MNX_EXTENSION[]       = u8"mnx";
-constexpr char8_t JSON_EXTENSION[]      = u8"json";
-constexpr char8_t MSS_EXTENSION[]       = u8"mss";
-constexpr char8_t SVG_EXTENSION[]       = u8"svg";
-constexpr char8_t MXL_EXTENSION[]       = u8"mxl";
-constexpr char8_t MUSICXML_EXTENSION[]  = u8"musicxml";
-constexpr char8_t ZIP_EXTENSION[]       = u8"zip";
+constexpr char8_t MNX_EXTENSION[] = u8"mnx";
+constexpr char8_t JSON_EXTENSION[] = u8"json";
+constexpr char8_t MSS_EXTENSION[] = u8"mss";
+constexpr char8_t SVG_EXTENSION[] = u8"svg";
+constexpr char8_t MXL_EXTENSION[] = u8"mxl";
+constexpr char8_t MUSICXML_EXTENSION[] = u8"musicxml";
+constexpr char8_t ZIP_EXTENSION[] = u8"zip";
 
 /// @brief Compound extension for an EnigmaXML file stored as the sole entry of a zip archive.
 constexpr char8_t ENIGMAXML_ZIP_EXTENSION[] = u8"enigmaxml.zip";
 
-constexpr int JSON_INDENT_SPACES     = 4;
+constexpr int JSON_INDENT_SPACES = 4;
 
 #ifdef _WIN32
 #define _ARG(S) L##S
@@ -80,23 +80,31 @@ using arg_char = WCHAR;
 struct arg_string : public std::wstring
 {
     using std::wstring::wstring;
-    arg_string(const std::wstring& wstr) : std::wstring(wstr) {}
-    arg_string(const std::string& str) : std::wstring(utils::stringToWstring(str)) {}
-    arg_string(const char* str) : std::wstring(utils::stringToWstring(str)) {}
-    arg_string(std::string_view str) : std::wstring(utils::stringToWstring(std::string(str))) {}
-    arg_string(const std::u8string& str) : std::wstring(utils::stringToWstring(utils::utf8ToString(str))) {}
-    arg_string(std::u8string_view str) : std::wstring(utils::stringToWstring(utils::utf8ToString(str))) {}
-    arg_string(const char8_t* str) : std::wstring(utils::stringToWstring(utils::utf8ToString(str ? std::u8string_view(str) : std::u8string_view{}))) {}
+    arg_string(const std::wstring& wstr)
+        : std::wstring(wstr)
+    {}
+    arg_string(const std::string& str)
+        : std::wstring(utils::stringToWstring(str))
+    {}
+    arg_string(const char* str)
+        : std::wstring(utils::stringToWstring(str))
+    {}
+    arg_string(std::string_view str)
+        : std::wstring(utils::stringToWstring(std::string(str)))
+    {}
+    arg_string(const std::u8string& str)
+        : std::wstring(utils::stringToWstring(utils::utf8ToString(str)))
+    {}
+    arg_string(std::u8string_view str)
+        : std::wstring(utils::stringToWstring(utils::utf8ToString(str)))
+    {}
+    arg_string(const char8_t* str)
+        : std::wstring(utils::stringToWstring(utils::utf8ToString(str ? std::u8string_view(str) : std::u8string_view{})))
+    {}
 
-    operator std::string() const
-    {
-        return utils::wstringToString(*this);
-    }
+    operator std::string() const { return utils::wstringToString(*this); }
 
-    operator std::u8string() const
-    {
-        return utils::stringToUtf8(static_cast<std::string>(*this));
-    }
+    operator std::u8string() const { return utils::stringToUtf8(static_cast<std::string>(*this)); }
 };
 
 inline std::string operator+(const std::string& lhs, const arg_string& rhs)
@@ -109,16 +117,23 @@ using arg_char = char;
 struct arg_string : public std::string
 {
     using std::string::string;
-    arg_string(const std::string& str) : std::string(str) {}
-    arg_string(std::string_view str) : std::string(str) {}
-    arg_string(const std::u8string& str) : std::string(utils::utf8ToString(str)) {}
-    arg_string(std::u8string_view str) : std::string(utils::utf8ToString(str)) {}
-    arg_string(const char8_t* str) : std::string(utils::utf8ToString(str ? std::u8string_view(str) : std::u8string_view{})) {}
+    arg_string(const std::string& str)
+        : std::string(str)
+    {}
+    arg_string(std::string_view str)
+        : std::string(str)
+    {}
+    arg_string(const std::u8string& str)
+        : std::string(utils::utf8ToString(str))
+    {}
+    arg_string(std::u8string_view str)
+        : std::string(utils::utf8ToString(str))
+    {}
+    arg_string(const char8_t* str)
+        : std::string(utils::utf8ToString(str ? std::u8string_view(str) : std::u8string_view{}))
+    {}
 
-    operator std::u8string() const
-    {
-        return utils::stringToUtf8(*this);
-    }
+    operator std::u8string() const { return utils::stringToUtf8(*this); }
 };
 #endif
 
@@ -142,9 +157,7 @@ struct CommandInputData
 // see https://stackoverflow.com/questions/73555606/stdunordered-setstdfilesystempath-compile-error-on-clang-and-g-below
 struct PathHash
 {
-    auto operator()(const std::filesystem::path& p) const noexcept {
-        return std::filesystem::hash_value(p);
-    }
+    auto operator()(const std::filesystem::path& p) const noexcept { return std::filesystem::hash_value(p); }
 };
 using PathSet = std::unordered_set<std::filesystem::path, PathHash>;
 
@@ -210,8 +223,7 @@ inline decltype(Processors::value_type::processor) findProcessor(const Processor
     throw std::invalid_argument("Unsupported format: " + utils::utf8ToString(key));
 }
 
-enum class MusicProgramPreset
-{
+enum class MusicProgramPreset {
     Unspecified,
     MuseScore,
     Dorico,
@@ -221,9 +233,15 @@ enum class MusicProgramPreset
 inline MusicProgramPreset toMusicProgramPreset(const std::string& inp)
 {
     const std::string lc = utils::toLowerCase(inp);
-    if (lc == "musescore") return MusicProgramPreset::MuseScore;
-    if (lc == "dorico") return MusicProgramPreset::Dorico;
-    if (lc == "lilypond") return MusicProgramPreset::LilyPond;
+    if (lc == "musescore") {
+        return MusicProgramPreset::MuseScore;
+    }
+    if (lc == "dorico") {
+        return MusicProgramPreset::Dorico;
+    }
+    if (lc == "lilypond") {
+        return MusicProgramPreset::LilyPond;
+    }
     return MusicProgramPreset::Unspecified;
 }
 
@@ -233,8 +251,7 @@ struct DenigmaContext
 public:
     DenigmaContext(const arg_string& progName)
         : programName(std::string(progName))
-    {
-    }
+    {}
 
     mutable bool errorOccurred{};
     bool outputIsFilename;
@@ -266,14 +283,14 @@ public:
     GapCollector* gapCollector{};
 
     // Specific options for `massage` command
-    bool refloatRests{ true };
-    bool extendOttavasLeft{ true };
-    bool extendOttavasRight{ true };
-    bool fermataWholeRests{ true };
+    bool refloatRests{true};
+    bool extendOttavasLeft{true};
+    bool extendOttavasRight{true};
+    bool fermataWholeRests{true};
     std::optional<std::filesystem::path> finaleFilePath;
 
     // Specific options for `export --mnx` command
-    std::optional<int> indentSpaces{ JSON_INDENT_SPACES };
+    std::optional<int> indentSpaces{JSON_INDENT_SPACES};
     std::optional<std::filesystem::path> mnxSchemaPath;
     std::optional<std::string> mnxSchema;
     bool includeTempoTool{};
@@ -282,16 +299,18 @@ public:
 
     // Specific options for `export --svg` command
     std::vector<musx::dom::Cmper> svgShapeDefs;
-    musx::util::SvgConvert::SvgUnit svgUnit{ musx::util::SvgConvert::SvgUnit::Points };
-    bool svgUsePageScale{ false };
-    double svgScale{ 1.0 };
+    musx::util::SvgConvert::SvgUnit svgUnit{musx::util::SvgConvert::SvgUnit::Points};
+    bool svgUsePageScale{false};
+    double svgScale{1.0};
 
     bool testOutput{}; // this may be defined on the command line by the test program
 
     void setMassageTarget(const std::string& opt)
     {
         auto preset = toMusicProgramPreset(opt);
-        if (preset == MusicProgramPreset::Unspecified) return;
+        if (preset == MusicProgramPreset::Unspecified) {
+            return;
+        }
         refloatRests = extendOttavasLeft = fermataWholeRests = true;
         extendOttavasRight = (preset != MusicProgramPreset::LilyPond);
     }
@@ -302,7 +321,8 @@ public:
     // validate paths
     bool validatePathsAndOptions(const std::filesystem::path& outputFilePath) const;
 
-    void processFile(const std::shared_ptr<ICommand>& currentCommand, const std::filesystem::path inpFilePath, const std::vector<const arg_char*>& args);
+    void processFile(
+        const std::shared_ptr<ICommand>& currentCommand, const std::filesystem::path inpFilePath, const std::vector<const arg_char*>& args);
 
     // Logging methods
     void startLogging(const std::filesystem::path& defaultLogPath, int argc, arg_char* argv[]); ///< Starts logging if logging was requested
@@ -312,17 +332,11 @@ public:
      * @param msg a utf-8 encoded message.
      * @param severity the message severity
     */
-    void logMessage(LogMsg&& msg, MessageSeverity severity = MessageSeverity::Info) const
-    {
-        logMessage(std::move(msg), false, severity);
-    }
+    void logMessage(LogMsg&& msg, MessageSeverity severity = MessageSeverity::Info) const { logMessage(std::move(msg), false, severity); }
 
     void endLogging(); ///< Ends logging if logging was requested
 
-    bool forTestOutput() const
-    {
-        return testOutput;
-    }
+    bool forTestOutput() const { return testOutput; }
 
 private:
     void logMessage(LogMsg&& msg, bool alwaysShow, MessageSeverity severity = MessageSeverity::Info) const;
@@ -355,7 +369,8 @@ public:
 
     virtual bool canProcess(const std::filesystem::path& inputPath) const = 0;
     virtual CommandInputData processInput(const std::filesystem::path& inputPath, const DenigmaContext& denigmaContext) const = 0;
-    virtual void processOutput(const CommandInputData& inputData, const std::filesystem::path& outputPath, const std::filesystem::path& inputPath, const DenigmaContext& denigmaContext) const = 0;
+    virtual void processOutput(const CommandInputData& inputData, const std::filesystem::path& outputPath, const std::filesystem::path& inputPath,
+        const DenigmaContext& denigmaContext) const = 0;
     /// @brief The input formats searched when the input pattern names a bare directory.
     /// The first entry is reported as the command's default input format. An empty span
     /// means every file in the directory is considered.
@@ -373,9 +388,7 @@ bool isFontSMuFL(const std::shared_ptr<musx::dom::FontInfo>& font);
 
 // createMusxDocument is implemented as a template to avoid promoting pugixml to being a core dependency
 template <typename Reader>
-musx::dom::DocumentPtr createMusxDocument(
-    const CommandInputData& inputData,
-    const DenigmaContext& denigmaContext,
+musx::dom::DocumentPtr createMusxDocument(const CommandInputData& inputData, const DenigmaContext& denigmaContext,
     musx::dom::PartVoicingPolicy partVoicingPolicy = musx::dom::PartVoicingPolicy::Ignore)
 {
     musx::factory::DocumentFactory::CreateOptions::EmbeddedGraphicFiles embeddedGraphicFiles;
@@ -388,10 +401,7 @@ musx::dom::DocumentPtr createMusxDocument(
     }
 
     musx::factory::DocumentFactory::CreateOptions createOptions(
-        denigmaContext.inputFilePath,
-        inputData.notationMetadata.value_or(Buffer{}),
-        std::move(embeddedGraphicFiles),
-        partVoicingPolicy);
+        denigmaContext.inputFilePath, inputData.notationMetadata.value_or(Buffer{}), std::move(embeddedGraphicFiles), partVoicingPolicy);
 
     return musx::factory::DocumentFactory::create<Reader>(inputData.primaryBuffer, std::move(createOptions));
 }
@@ -420,8 +430,8 @@ std::string calcLinkedPartDisplayName(const musx::dom::MusxInstance<musx::dom::o
 } // namespace denigma
 
 #define ASSERT_IF(TEST) \
-assert(!(TEST)); \
-if (TEST)
+    assert(!(TEST));    \
+    if (TEST)
 
 #ifdef DENIGMA_TEST // this is defined on the command line by the test program
 #undef _MAIN

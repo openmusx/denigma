@@ -29,8 +29,7 @@ namespace classify {
 namespace barline {
 
 /// Barline types recognized by Denigma's classifier.
-enum class Type
-{
+enum class Type {
     Unsupported,
     NoBarline,
     Regular,
@@ -48,16 +47,14 @@ enum class Type
 struct BarlineClassification
 {
     /// Classified barline type.
-    barline::Type type{ barline::Type::Unsupported };
+    barline::Type type{barline::Type::Unsupported};
     /// True when the source barline is a short barline.
     bool isShort{};
 };
 
 /// Classifies the effective right barline for a Finale measure in staff context.
-BarlineClassification classifyBarline(
-    const musx::dom::MusxInstance<musx::dom::others::Staff>& staff,
-    const musx::dom::MusxInstance<musx::dom::others::Measure>& measure,
-    bool isFinalMeasure,
+BarlineClassification classifyBarline(const musx::dom::MusxInstance<musx::dom::others::Staff>& staff,
+    const musx::dom::MusxInstance<musx::dom::others::Measure>& measure, bool isFinalMeasure,
     const musx::dom::MusxInstance<musx::dom::options::BarlineOptions>& barlineOptions);
 
 } // namespace classify

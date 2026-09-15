@@ -111,11 +111,13 @@ TEST(EntryNoteheadClassification, ClassifiesArtificialHarmonicChords)
         ExpectedPitch stopped;
         ExpectedPitch touched;
     };
+    // clang-format off
     const std::vector<ExpectedHarmonic> expectedHarmonics = {
         { TouchInterval::MajorThird, { NoteName::E, 3, -1 }, { NoteName::G, 3, 0 } },
         { TouchInterval::Fourth,     { NoteName::B, 3, 0 },  { NoteName::E, 4, 0 } },
         { TouchInterval::Fifth,      { NoteName::F, 3, 0 },  { NoteName::C, 4, 0 } },
     };
+    // clang-format on
 
     ASSERT_EQ(found.size(), expectedHarmonics.size());
     for (size_t index = 0; index < expectedHarmonics.size(); ++index) {
@@ -152,8 +154,8 @@ TEST(EntryNoteheadClassification, ClassifiesWrittenSoundingPitch)
         ExpectedPitch sounding;
     };
     const std::vector<ExpectedHarmonic> expectedHarmonics = {
-        { TouchInterval::Fourth, { NoteName::G, 4, 0 }, { NoteName::C, 5, 0 }, { NoteName::G, 6, 0 } },
-        { TouchInterval::Fifth,  { NoteName::G, 4, 0 }, { NoteName::D, 5, 0 }, { NoteName::D, 6, 0 } },
+        {TouchInterval::Fourth, {NoteName::G, 4, 0}, {NoteName::C, 5, 0}, {NoteName::G, 6, 0}},
+        {TouchInterval::Fifth, {NoteName::G, 4, 0}, {NoteName::D, 5, 0}, {NoteName::D, 6, 0}},
     };
 
     ASSERT_EQ(found.size(), expectedHarmonics.size());

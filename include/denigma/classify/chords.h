@@ -37,14 +37,13 @@ namespace chord {
 /// @brief Diatonic pitch spelling used by a chord root or alternate bass.
 struct Pitch
 {
-    music_theory::NoteName step{ music_theory::NoteName::C };
+    music_theory::NoteName step{music_theory::NoteName::C};
     int alteration{};
 };
 
 /// @enum BassArrangement
 /// @brief Visual arrangement of an alternate bass relative to the chord root.
-enum class BassArrangement
-{
+enum class BassArrangement {
     Horizontal,
     Vertical,
     Diagonal
@@ -55,8 +54,7 @@ enum class BassArrangement
 ///
 /// These are the qualities MusicXML models as chord kinds. Anything the suffix adds beyond the
 /// quality is reported separately as a @ref chord::Degree.
-enum class Quality
-{
+enum class Quality {
     Major,              ///< Major triad. Also the quality of a chord with no displayed suffix.
     Minor,              ///< Minor triad.
     Augmented,          ///< Augmented triad.
@@ -92,8 +90,7 @@ struct Degree
 {
     /// @enum Type
     /// @brief How the degree modifies the chord.
-    enum class Type
-    {
+    enum class Type {
         Add,    ///< The degree is added to the chord.
         Remove, ///< The degree is omitted from the chord.
         Alter   ///< A degree already present in the chord is chromatically altered.
@@ -101,7 +98,7 @@ struct Degree
 
     int value{};                ///< Degree number relative to the root, such as 9, 11, or 13.
     int alteration{};           ///< Chromatic alteration in semitones: -1 for flat, 1 for sharp, 0 for none.
-    Type type{ Type::Add };     ///< How the degree modifies the chord.
+    Type type{Type::Add};     ///< How the degree modifies the chord.
     bool impliedByText{};       ///< True when the suffix text already spells this degree out, such as
                                 ///< the seventh in "7sus4". The chord sounds it, but a consumer that
                                 ///< renders the suffix text must not draw the degree a second time.
@@ -119,15 +116,14 @@ struct SuffixString
     ///
     /// Finale nudges parentheses and accidentals slightly off the baseline within a single line of
     /// text. Only a shift of at least half the em counts as a separately stacked line.
-    enum class Position
-    {
+    enum class Position {
         Inline, ///< On the suffix baseline.
         Above,  ///< Stacked above the suffix baseline.
         Below   ///< Stacked below the suffix baseline.
     };
 
     std::string text;                       ///< The string's text as Unicode.
-    Position position{ Position::Inline };  ///< The string's position relative to the suffix baseline.
+    Position position{Position::Inline};  ///< The string's position relative to the suffix baseline.
 };
 
 } // namespace chord
@@ -173,17 +169,14 @@ struct ChordSymbolClassification
 
 /// @brief Reconstructs a Finale chord suffix as Unicode text, resolving SMuFL and known legacy-font glyphs.
 /// @param suffix The chord suffix elements, normally from `details::ChordAssign::getChordSuffix`.
-ChordSuffixClassification classifyChordSuffix(
-    const musx::dom::MusxInstanceList<musx::dom::others::ChordSuffixElement>& suffix);
+ChordSuffixClassification classifyChordSuffix(const musx::dom::MusxInstanceList<musx::dom::others::ChordSuffixElement>& suffix);
 
 /// @brief Classifies a Finale chord with no displayed suffix as a major triad.
 ChordSuffixClassification classifyChordSuffix();
 
 /// @brief Classifies a Finale chord assignment using the effective key signature.
-std::optional<ChordSymbolClassification> classifyChordSymbol(
-    const musx::dom::MusxInstance<musx::dom::details::ChordAssign>& assignment,
-    const musx::dom::MusxInstance<musx::dom::KeySignature>& keySignature,
-    musx::dom::KeySignature::KeyContext keyContext);
+std::optional<ChordSymbolClassification> classifyChordSymbol(const musx::dom::MusxInstance<musx::dom::details::ChordAssign>& assignment,
+    const musx::dom::MusxInstance<musx::dom::KeySignature>& keySignature, musx::dom::KeySignature::KeyContext keyContext);
 
 /// @brief Returns the stable serialized name for a classified chord quality.
 std::string_view chordQualityName(chord::Quality quality);
