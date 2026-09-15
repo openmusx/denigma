@@ -22,8 +22,8 @@
 #include <string>
 #include <vector>
 
-#include "gtest/gtest.h"
 #include "pugixml.hpp"
+#include "gtest/gtest.h"
 
 #include "denigma/formats/mss.h"
 #include "denigma/io/random_access_reader.h"
@@ -44,11 +44,10 @@ TEST(ConverterApi, EnigmaXmlToMssXmlWritesToStream)
     std::string xmlText;
     denigma::formats::mss::Options options;
     options.common.sourceName = "notAscii-其れ.enigmaxml";
-    const auto result = converter->convert(std::as_bytes(std::span<const char>(input.data(), input.size())),
-                                           [&](std::string_view, std::span<const std::byte> data) {
-                                               xmlText.assign(reinterpret_cast<const char*>(data.data()), data.size());
-                                           },
-                                           denigma::ConversionRequest{ &options });
+    const auto result = converter->convert(
+        std::as_bytes(std::span<const char>(input.data(), input.size())),
+        [&](std::string_view, std::span<const std::byte> data) { xmlText.assign(reinterpret_cast<const char*>(data.data()), data.size()); },
+        denigma::ConversionRequest{&options});
 
     EXPECT_TRUE(result.diagnostics().empty());
     ASSERT_FALSE(xmlText.empty());
@@ -75,11 +74,9 @@ TEST(ConverterApi, MusxToMssXmlWritesToStream)
     std::string xmlText;
     denigma::formats::mss::Options options;
     options.common.sourceName = "notAscii-其れ.musx";
-    const auto result = converter->convert(input,
-                                           [&](std::string_view, std::span<const std::byte> data) {
-                                               xmlText.assign(reinterpret_cast<const char*>(data.data()), data.size());
-                                           },
-                                           denigma::ConversionRequest{ &options });
+    const auto result = converter->convert(
+        input, [&](std::string_view, std::span<const std::byte> data) { xmlText.assign(reinterpret_cast<const char*>(data.data()), data.size()); },
+        denigma::ConversionRequest{&options});
 
     EXPECT_TRUE(result.diagnostics().empty());
     ASSERT_FALSE(xmlText.empty());
@@ -113,12 +110,15 @@ TEST(ConverterApi, MusxToMssXmlInvokesOutputCallbackForParts)
     denigma::formats::mss::Options options;
     options.common.sourceName = "notAscii-其れ.musx";
     options.allPartsAndScore = true;
-    const auto result = converter->convert(input, [&](std::string_view suggestedName, std::span<const std::byte> data) {
-        std::string outputData;
-        outputData.resize(data.size());
-        std::memcpy(outputData.data(), data.data(), data.size());
-        outputs.push_back(Output{ std::string(suggestedName), std::move(outputData) });
-    }, denigma::ConversionRequest{ &options });
+    const auto result = converter->convert(
+        input,
+        [&](std::string_view suggestedName, std::span<const std::byte> data) {
+            std::string outputData;
+            outputData.resize(data.size());
+            std::memcpy(outputData.data(), data.data(), data.size());
+            outputs.push_back(Output{std::string(suggestedName), std::move(outputData)});
+        },
+        denigma::ConversionRequest{&options});
 
     EXPECT_TRUE(result.diagnostics().empty());
     ASSERT_GE(outputs.size(), 2);

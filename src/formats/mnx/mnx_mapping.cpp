@@ -46,8 +46,7 @@ mnxdom::global::Tempo::Required mnxTempoFromPlayback(int beatsPerMinute, Edu bea
             spelledOut += dotValue;
         }
         if (spelledOut == beatUnitEdu) {
-            return mnxdom::global::Tempo::make(
-                beatsPerMinute, mnxdom::NoteValue::make(enumConvert<mnxdom::NoteValueBase>(base), dots));
+            return mnxdom::global::Tempo::make(beatsPerMinute, mnxdom::NoteValue::make(enumConvert<mnxdom::NoteValueBase>(base), dots));
         }
     }
     // A beat unit MNX cannot spell is restated as a count of quarter notes, which loses nothing.
@@ -59,25 +58,22 @@ mnxdom::global::Tempo::Required mnxTempoFromPlayback(int beatsPerMinute, Edu bea
 
 mnxdom::global::Tempo::Required mnxTempoFromMetronomeMark(const classify::expression::MetronomeMark& metronomeMark)
 {
-    return mnxdom::global::Tempo::make(
-        metronomeMark.displayedBeatsPerMinute,
-        mnxdom::NoteValue::make(
-            enumConvert<mnxdom::NoteValueBase>(metronomeMark.noteType),
-            static_cast<unsigned>(metronomeMark.augmentationDots)));
+    return mnxdom::global::Tempo::make(metronomeMark.displayedBeatsPerMinute,
+        mnxdom::NoteValue::make(enumConvert<mnxdom::NoteValueBase>(metronomeMark.noteType), static_cast<unsigned>(metronomeMark.augmentationDots)));
 }
 
 mnxdom::NoteValueQuantity::Required mnxNoteValueQuantityFromFraction(const MnxMusxMappingPtr& context, musx::util::Fraction duration)
 {
     if (duration <= 0 || (duration.denominator() & (duration.denominator() - 1)) != 0) {
         auto newValue = musx::util::Fraction(duration.calcEduDuration(), Edu(musx::dom::NoteType::Whole));
-        context->logMessage(LogMsg() << "Value " << duration << " cannot be exactly converted to a note value quantity. Using closest approximation. ("
-            << newValue << ")", MessageSeverity::Warning);
+        context->logMessage(LogMsg() << "Value " << duration
+                                     << " cannot be exactly converted to a note value quantity. Using closest approximation. (" << newValue << ")",
+            MessageSeverity::Warning);
         duration = newValue;
     }
 
     return mnxdom::NoteValueQuantity::make(
-        static_cast<unsigned>(duration.numerator()),
-        mnxNoteValueFromEdu(musx::util::Fraction(1, duration.denominator()).calcEduDuration()));
+        static_cast<unsigned>(duration.numerator()), mnxNoteValueFromEdu(musx::util::Fraction(1, duration.denominator()).calcEduDuration()));
 }
 
 musx::util::Fraction fractionFromMnxFraction(const mnxdom::FractionValue& mnxFraction)
@@ -101,7 +97,7 @@ mnxdom::FractionValue mnxFractionFromSmartShapeEndPoint(const MusxInstance<smart
     if (auto entryInfo = endPoint->calcAssociatedEntry(/*findExact*/ true)) {
         return mnxFractionFromFraction(entryInfo->elapsedDuration);
     }
-    return mnxFractionFromFraction(endPoint->calcPosition()); 
+    return mnxFractionFromFraction(endPoint->calcPosition());
 }
 
 int mnxStaffPosition(const MusxInstance<others::Staff>& staff, int musxStaffPosition)

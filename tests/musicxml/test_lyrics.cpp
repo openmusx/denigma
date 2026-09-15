@@ -21,16 +21,16 @@
 #include <filesystem>
 #include <map>
 #include <ostream>
-#include <utility>
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
-#include "gtest/gtest.h"
-#include "mx/api/ScoreData.h"
 #include "musicxml_test.h"
+#include "mx/api/ScoreData.h"
 #include "test_utils.h"
+#include "gtest/gtest.h"
 
 using namespace denigma;
 using namespace denigma::test::musicxml;
@@ -41,15 +41,12 @@ namespace {
 // from 1 and so Verse 1 and Chorus 1 share the number. Lyrics do not necessarily iterate in the
 // order Finale's own exporter declared them, so tests look one up by that pair rather than by
 // vector position.
-const mx::api::LyricData& findLyric(
-    const std::vector<mx::api::LyricData>& lyrics, std::string_view verseName, std::string_view verseNumber)
+const mx::api::LyricData& findLyric(const std::vector<mx::api::LyricData>& lyrics, std::string_view verseName, std::string_view verseNumber)
 {
-    const auto it = std::find_if(lyrics.begin(), lyrics.end(), [&](const mx::api::LyricData& lyric) {
-        return lyric.verseName == verseName && lyric.verseNumber == verseNumber;
-    });
+    const auto it = std::find_if(lyrics.begin(), lyrics.end(),
+        [&](const mx::api::LyricData& lyric) { return lyric.verseName == verseName && lyric.verseNumber == verseNumber; });
     if (it == lyrics.end()) {
-        throw std::out_of_range(
-            "No lyric found with name " + std::string(verseName) + " number " + std::string(verseNumber));
+        throw std::out_of_range("No lyric found with name " + std::string(verseName) + " number " + std::string(verseNumber));
     }
     return *it;
 }
@@ -199,7 +196,7 @@ TEST(MusicXmlLyrics, VerseChorusSectionMatchFinaleNameAndNumber)
                     static_cast<void>(voiceIndex);
                     for (const auto& note : voice.notes) {
                         for (const auto& lyric : note.lyrics) {
-                            ++pairs[{ lyric.verseName, lyric.verseNumber }];
+                            ++pairs[{lyric.verseName, lyric.verseNumber}];
                         }
                     }
                 }
@@ -208,15 +205,17 @@ TEST(MusicXmlLyrics, VerseChorusSectionMatchFinaleNameAndNumber)
     }
 
     const auto expected = std::map<std::pair<std::string, std::string>, size_t>{
-        { { "verse", "1" }, 2 },   { { "verse", "2" }, 2 },
-        { { "chorus", "1" }, 3 },  { { "chorus", "2" }, 3 },
-        { { "section", "1" }, 4 }, { { "section", "2" }, 3 },
+        {{"verse", "1"}, 2},
+        {{"verse", "2"}, 2},
+        {{"chorus", "1"}, 3},
+        {{"chorus", "2"}, 3},
+        {{"section", "1"}, 4},
+        {{"section", "2"}, 3},
     };
     EXPECT_EQ(pairs, expected);
 
     // The same counts as Finale's reference export, which is the point of the pair encoding.
-    const auto reference = loadScoreData(
-        std::filesystem::path("inputs") / "musicxml" / "verse_chorus_section-ref.musicxml");
+    const auto reference = loadScoreData(std::filesystem::path("inputs") / "musicxml" / "verse_chorus_section-ref.musicxml");
     ASSERT_TRUE(reference.has_value());
     std::map<std::pair<std::string, std::string>, size_t> referencePairs;
     for (const auto& part : reference->parts) {
@@ -226,7 +225,7 @@ TEST(MusicXmlLyrics, VerseChorusSectionMatchFinaleNameAndNumber)
                     static_cast<void>(voiceIndex);
                     for (const auto& note : voice.notes) {
                         for (const auto& lyric : note.lyrics) {
-                            ++referencePairs[{ lyric.verseName, lyric.verseNumber }];
+                            ++referencePairs[{lyric.verseName, lyric.verseNumber}];
                         }
                     }
                 }
@@ -255,8 +254,7 @@ TEST(MusicXmlLyrics, VerseOnlyDocumentStillNamesTheBlock)
                         for (const auto& lyric : note.lyrics) {
                             ++lyricCount;
                             EXPECT_EQ(lyric.verseName, "verse");
-                            EXPECT_TRUE(lyric.verseNumber == "1" || lyric.verseNumber == "2")
-                                << "verseNumber was " << lyric.verseNumber;
+                            EXPECT_TRUE(lyric.verseNumber == "1" || lyric.verseNumber == "2") << "verseNumber was " << lyric.verseNumber;
                         }
                     }
                 }
@@ -279,8 +277,7 @@ struct ExtendCounts
 
 std::ostream& operator<<(std::ostream& os, const ExtendCounts& counts)
 {
-    return os << "starts=" << counts.starts << " stops=" << counts.stops
-              << " untyped=" << counts.untyped;
+    return os << "starts=" << counts.starts << " stops=" << counts.stops << " untyped=" << counts.untyped;
 }
 
 ExtendCounts countExtends(const mx::api::ScoreData& score)
@@ -329,16 +326,15 @@ TEST(MusicXmlLyrics, WordExtensionsRequireASpanAndMatchFinale)
         const char* reference;
     };
     constexpr Expected fixtures[] = {
-        { "for_health_and_strength.musx", "for_health_and_strength-ref.musicxml" },
-        { "zwei_gesange.musx", "zwei_gesange-ref.musicxml" },
-        { "verse_chorus_section.musx", "verse_chorus_section-ref.musicxml" },
+        {"for_health_and_strength.musx", "for_health_and_strength-ref.musicxml"},
+        {"zwei_gesange.musx", "zwei_gesange-ref.musicxml"},
+        {"verse_chorus_section.musx", "verse_chorus_section-ref.musicxml"},
     };
 
     for (const auto& entry : fixtures) {
         const auto ours = loadScoreData(exportMusicXmlFixture(entry.fixture));
         ASSERT_TRUE(ours.has_value()) << entry.fixture;
-        const auto reference = loadScoreData(
-            std::filesystem::path("inputs") / "musicxml" / entry.reference);
+        const auto reference = loadScoreData(std::filesystem::path("inputs") / "musicxml" / entry.reference);
         ASSERT_TRUE(reference.has_value()) << entry.reference;
 
         const auto oursCounts = countExtends(*ours);

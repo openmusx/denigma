@@ -9,8 +9,8 @@
 
 #include "mx/api/ApiCommon.h"
 #include "mx/api/BarlineData.h"
-#include "mx/api/ClefData.h"
 #include "mx/api/ChordData.h"
+#include "mx/api/ClefData.h"
 #include "mx/api/CurveData.h"
 #include "mx/api/DurationData.h"
 #include "mx/api/KeyData.h"

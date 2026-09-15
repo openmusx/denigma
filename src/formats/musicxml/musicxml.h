@@ -28,10 +28,10 @@
 #include "denigma/classify/entries.h"
 #include "denigma/classify/expressions.h"
 #include "musicxml_mapping.h"
-#include "mx/api/DirectionData.h"
 #include "mx/api/AccordionRegistrationData.h"
-#include "mx/api/MeasureData.h"
+#include "mx/api/DirectionData.h"
 #include "mx/api/MarkData.h"
+#include "mx/api/MeasureData.h"
 #include "mx/api/NoteData.h"
 #include "mx/api/SoundID.h"
 #include "mx/api/StaffData.h"
@@ -82,92 +82,52 @@ mx::api::NoteData* noteDataAt(MusicXmlMusxMapping& context, const MusicXmlNoteLo
 double musicXmlQuarterNotesPerMinute(double beatsPerMinute, musx::dom::Edu beatUnitEdu);
 mx::api::HorizontalAlignment musicXmlHorizontalAlignmentForTextExpression(
     const musx::dom::MusxInstance<musx::dom::others::MeasureExprAssign>& assignment);
-mx::api::HorizontalAlignment musicXmlJustifyForTextExpression(
-    const musx::dom::MusxInstance<musx::dom::others::MeasureExprAssign>& assignment);
-mx::api::TempoData musicXmlMetronomeMark(
-    const MusicXmlMusxMapping& context,
-    const musx::dom::MusxInstance<musx::dom::others::MeasureExprAssign>& assignment,
-    const classify::ExpressionClassification& classification);
+mx::api::HorizontalAlignment musicXmlJustifyForTextExpression(const musx::dom::MusxInstance<musx::dom::others::MeasureExprAssign>& assignment);
+mx::api::TempoData musicXmlMetronomeMark(const MusicXmlMusxMapping& context,
+    const musx::dom::MusxInstance<musx::dom::others::MeasureExprAssign>& assignment, const classify::ExpressionClassification& classification);
 /// Converts a classified Finale harp diagram to ordered MusicXML pedal tunings.
 mx::api::HarpPedalsData musicXmlHarpPedals(const classify::expression::HarpDiagram& diagram);
 /// Converts a classified Finale accordion registration when MusicXML can represent all its dots.
-std::optional<mx::api::AccordionRegistrationData> musicXmlAccordionRegistration(
-    const classify::articulation::AccordionRegistration& registration,
+std::optional<mx::api::AccordionRegistrationData> musicXmlAccordionRegistration(const classify::articulation::AccordionRegistration& registration,
     musx::dom::VerticalPlacement placement = musx::dom::VerticalPlacement::NotApplicable);
-mx::api::ScoreData createMusicXmlDocument(
-    const CommandInputData& inputData,
-    const DenigmaContext& denigmaContext,
+mx::api::ScoreData createMusicXmlDocument(const CommandInputData& inputData, const DenigmaContext& denigmaContext,
     const musx::dom::MusxInstance<musx::dom::others::PartDefinition>& part = nullptr);
 
 void createDefaults(const MusicXmlMusxMapping& context);
 void createMeasures(MusicXmlMusxMapping& context);
 void createMetaData(const MusicXmlMusxMapping& context);
 void createPageTexts(const MusicXmlMusxMapping& context);
-void createNotesForMeasureStaff(
-    MusicXmlMusxMapping& context,
-    mx::api::MeasureData& measure,
-    mx::api::StaffData& staff,
-    const musx::dom::MusxInstance<musx::dom::others::Measure>& musxMeasure,
-    musx::dom::StaffCmper staffId,
-    size_t measureIndex,
-    size_t staffIndex);
+void createNotesForMeasureStaff(MusicXmlMusxMapping& context, mx::api::MeasureData& measure, mx::api::StaffData& staff,
+    const musx::dom::MusxInstance<musx::dom::others::Measure>& musxMeasure, musx::dom::StaffCmper staffId, size_t measureIndex, size_t staffIndex);
 int syntheticRestVoiceNumber(const mx::api::PartData& part, size_t staffIndex);
-void finalizeEmptyMeasureRests(
-    MusicXmlMusxMapping& context,
-    mx::api::PartData& part,
-    const std::vector<musx::dom::StaffCmper>& staffIds);
+void finalizeEmptyMeasureRests(MusicXmlMusxMapping& context, mx::api::PartData& part, const std::vector<musx::dom::StaffCmper>& staffIds);
 void createParts(MusicXmlMusxMapping& context);
 /// True when the expression assignment uses Finale's floating TOP staff, which draws the expression
 /// on the top staff of every system. MusicXML expresses that as `<direction system="only-top">`.
 bool isTopStaffAssignment(const musx::dom::MusxInstance<musx::dom::others::MeasureExprAssign>& assignment);
-std::vector<mx::api::DirectionData> createDynamicExpressionDirections(
-    MusicXmlMusxMapping& context,
-    size_t staffIndex,
-    const musx::dom::MusxInstance<musx::dom::others::MeasureExprAssign>& assignment,
-    const classify::ExpressionClassification& classification,
-    musx::dom::VerticalPlacement placement,
-    bool isStaffValueSpecified = true);
-void processExpressions(
-    MusicXmlMusxMapping& context,
-    mx::api::MeasureData& measure,
-    mx::api::StaffData& staff,
-    const musx::dom::MusxInstance<musx::dom::others::Measure>& musxMeasure,
-    musx::dom::StaffCmper staffId,
-    size_t staffIndex);
-void processJumps(
-    MusicXmlMusxMapping& context,
-    mx::api::StaffData& staff,
-    const musx::dom::MusxInstance<musx::dom::others::Measure>& musxMeasure,
-    musx::dom::StaffCmper staffId,
-    size_t staffIndex);
-void processArticulations(
-    MusicXmlMusxMapping& context,
-    mx::api::StaffData& staff,
-    mx::api::NoteData& note,
-    const musx::dom::EntryInfoPtr& entryInfo,
+std::vector<mx::api::DirectionData> createDynamicExpressionDirections(MusicXmlMusxMapping& context, size_t staffIndex,
+    const musx::dom::MusxInstance<musx::dom::others::MeasureExprAssign>& assignment, const classify::ExpressionClassification& classification,
+    musx::dom::VerticalPlacement placement, bool isStaffValueSpecified = true);
+void processExpressions(MusicXmlMusxMapping& context, mx::api::MeasureData& measure, mx::api::StaffData& staff,
+    const musx::dom::MusxInstance<musx::dom::others::Measure>& musxMeasure, musx::dom::StaffCmper staffId, size_t staffIndex);
+void processJumps(MusicXmlMusxMapping& context, mx::api::StaffData& staff, const musx::dom::MusxInstance<musx::dom::others::Measure>& musxMeasure,
+    musx::dom::StaffCmper staffId, size_t staffIndex);
+void processArticulations(MusicXmlMusxMapping& context, mx::api::StaffData& staff, mx::api::NoteData& note, const musx::dom::EntryInfoPtr& entryInfo,
     bool isStaffValueSpecified);
 void appendArpeggioCandidate(MusicXmlMusxMapping& context, const musx::util::ArpeggioSpanCandidate& candidate);
 void finalizeArpeggioCandidates(MusicXmlMusxMapping& context);
-void applyNoteheadData(
-    mx::api::NoteData& note,
-    const musx::dom::NoteInfoPtr& noteInfo,
-    const classify::EntryNoteheadClassification& entryNoteheads);
+void applyNoteheadData(mx::api::NoteData& note, const musx::dom::NoteInfoPtr& noteInfo, const classify::EntryNoteheadClassification& entryNoteheads);
 void applyPseudoLvTies(MusicXmlMusxMapping& context, const musx::dom::EntryInfoPtr& entryInfo);
 void deferPseudoLvTies(MusicXmlMusxMapping& context, const musx::dom::EntryInfoPtr& entryInfo);
 void finalizePseudoLvTies(MusicXmlMusxMapping& context);
-void processSmartShapes(
-    MusicXmlMusxMapping& context,
-    const musx::dom::MusxInstanceList<musx::dom::others::Measure>& musxMeasures,
+void processSmartShapes(MusicXmlMusxMapping& context, const musx::dom::MusxInstanceList<musx::dom::others::Measure>& musxMeasures,
     const std::vector<musx::dom::StaffCmper>& staves);
 
 /// Converts to MusicXML and invokes outputCallback once per generated document: the score
 /// (when denigmaContext.allPartsAndScore is true or denigmaContext.partName is unset), and/or
 /// one document per matching linked part (when denigmaContext.allPartsAndScore or
 /// denigmaContext.partName is set).
-void convert(
-    const CommandInputData& inputData,
-    const DenigmaContext& denigmaContext,
-    const MultiOutputCallback& outputCallback);
+void convert(const CommandInputData& inputData, const DenigmaContext& denigmaContext, const MultiOutputCallback& outputCallback);
 
 } // namespace detail
 } // namespace musicxml

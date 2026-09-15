@@ -21,15 +21,15 @@
  */
 #pragma once
 
-#include <string>
-#include <string_view>
-#include <ostream>
+#include <algorithm>
+#include <cctype>
+#include <cstdlib>
 #include <exception>
 #include <filesystem>
-#include <algorithm>
 #include <optional>
-#include <cstdlib>
-#include <cctype>
+#include <ostream>
+#include <string>
+#include <string_view>
 #include <type_traits>
 
 #ifdef _WIN32
@@ -38,7 +38,7 @@
 
 #if !defined(CP_UTF8) && !defined(CP_ACP) && !defined(STRINGUTILS_DEFINED_CPS)
 #define CP_UTF8 65001
-#define CP_ACP  0
+#define CP_ACP 0
 #define STRINGUTILS_DEFINED_CPS
 #endif
 
@@ -47,8 +47,7 @@ namespace utils {
 namespace detail {
 
 template <typename T>
-using EnableIfEightBitCharacter = std::enable_if_t<
-    std::is_integral_v<T> && sizeof(T) == 1 && !std::is_same_v<std::remove_cv_t<T>, bool>, int>;
+using EnableIfEightBitCharacter = std::enable_if_t<std::is_integral_v<T> && sizeof(T) == 1 && !std::is_same_v<std::remove_cv_t<T>, bool>, int>;
 
 } // namespace detail
 
@@ -111,12 +110,12 @@ struct Utf8Bytes
 
 inline Utf8Bytes asUtf8Bytes(const std::filesystem::path& path)
 {
-    return Utf8Bytes{ path.u8string() };
+    return Utf8Bytes{path.u8string()};
 }
 
 inline Utf8Bytes asUtf8Bytes(std::u8string value)
 {
-    return Utf8Bytes{ std::move(value) };
+    return Utf8Bytes{std::move(value)};
 }
 
 inline std::ostream& operator<<(std::ostream& os, const Utf8Bytes& utf8)
@@ -128,14 +127,11 @@ inline std::ostream& operator<<(std::ostream& os, const Utf8Bytes& utf8)
 class encoding_error : public std::exception
 {
 public:
-    encoding_error(const std::string& msg, int codepage) :
-        m_msg(msg + " (codepage " + std::to_string(codepage) + ")"),
-        m_codepage(codepage) {}
+    encoding_error(const std::string& msg, int codepage)
+        : m_msg(msg + " (codepage " + std::to_string(codepage) + ")"), m_codepage(codepage)
+    {}
 
-    const char * what() const noexcept override
-    {
-        return m_msg.c_str();
-    }
+    const char* what() const noexcept override { return m_msg.c_str(); }
 
     int codepage() const { return m_codepage; }
 
@@ -144,11 +140,13 @@ private:
     int m_codepage;
 };
 
-inline std::wstring stringToWstring([[maybe_unused]]const std::string& acp, [[maybe_unused]]int codepage = CP_UTF8)
+inline std::wstring stringToWstring([[maybe_unused]] const std::string& acp, [[maybe_unused]] int codepage = CP_UTF8)
 {
 #ifdef _WIN32
     int wlen = MultiByteToWideChar(codepage, 0, acp.c_str(), -1, nullptr, 0);
-    if (wlen == 0) throw encoding_error("string to wstring conversion failed for value: " + acp, codepage);
+    if (wlen == 0) {
+        throw encoding_error("string to wstring conversion failed for value: " + acp, codepage);
+    }
     std::wstring wide(wlen, L'\0');
     MultiByteToWideChar(codepage, 0, acp.c_str(), -1, &wide[0], wlen);
     wide.resize(wlen - 1); // Remove null terminator
@@ -158,7 +156,7 @@ inline std::wstring stringToWstring([[maybe_unused]]const std::string& acp, [[ma
 #endif
 }
 
-inline std::string wstringToString([[maybe_unused]]const std::wstring& wide, [[maybe_unused]]int codepage = CP_UTF8)
+inline std::string wstringToString([[maybe_unused]] const std::wstring& wide, [[maybe_unused]] int codepage = CP_UTF8)
 {
 #ifdef _WIN32
     BOOL usedDefaultChar{};
@@ -219,9 +217,7 @@ inline std::u8string normalizedExtension(std::u8string extension)
     if (!extension.empty() && extension.front() == u8'.') {
         extension.erase(extension.begin());
     }
-    std::transform(extension.begin(), extension.end(), extension.begin(), [](unsigned char c) {
-        return static_cast<char8_t>(toLowerCase(c));
-    });
+    std::transform(extension.begin(), extension.end(), extension.begin(), [](unsigned char c) { return static_cast<char8_t>(toLowerCase(c)); });
     return extension;
 }
 
@@ -238,8 +234,7 @@ inline bool pathExtensionEquals(const std::filesystem::path& path, std::u8string
 inline std::string toLowerCase(const std::string& inp)
 {
     std::string s = inp;
-    std::transform(s.begin(), s.end(), s.begin(),
-                   [](unsigned char c) { return toLowerCase(c); });
+    std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c) { return toLowerCase(c); });
     return s;
 }
 

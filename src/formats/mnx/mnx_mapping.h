@@ -26,8 +26,8 @@
 
 #include "core/denigma.h"
 #include "denigma/classify/expressions.h"
-#include "musx/musx.h"
 #include "mnxdom.h"
+#include "musx/musx.h"
 
  //placeholder function
 

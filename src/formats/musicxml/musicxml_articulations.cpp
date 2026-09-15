@@ -51,12 +51,9 @@ mx::api::MarkType musicXmlArticulationType(const classify::articulation::Articul
     using Placement = classify::GlyphStyle::Placement;
     if (mark.type == classify::articulation::ArticulationMark::Type::StrongAccent) {
         switch (mark.glyphStyle.placement) {
-        case Placement::Above:
-            return mx::api::MarkType::strongAccentUp;
-        case Placement::Below:
-            return mx::api::MarkType::strongAccentDown;
-        case Placement::Automatic:
-            break;
+        case Placement::Above: return mx::api::MarkType::strongAccentUp;
+        case Placement::Below: return mx::api::MarkType::strongAccentDown;
+        case Placement::Automatic: break;
         }
     }
     return enumConvert<mx::api::MarkType>(mark.type);
@@ -79,7 +76,7 @@ mx::api::MarkData fallbackMarkData(
     if (classification.glyphName && !classification.glyphName->empty()) {
         // A recognized glyph identifies the symbol exactly, so it belongs in the other-* `smufl`
         // attribute rather than in the element's display text.
-        markData.choice = mx::api::OtherMarkData{ classification.glyphName };
+        markData.choice = mx::api::OtherMarkData{classification.glyphName};
     } else {
         markData.name = std::string(fallbackName);
     }
@@ -89,10 +86,8 @@ mx::api::MarkData fallbackMarkData(
 mx::api::MarkType musicXmlOtherMarkType(const classify::articulation::OtherMark& mark)
 {
     switch (mark.category) {
-    case classify::articulation::OtherMark::Category::PerformanceTechnique:
-        return mx::api::MarkType::otherTechnical;
-    case classify::articulation::OtherMark::Category::Articulation:
-        return mx::api::MarkType::otherArticulation;
+    case classify::articulation::OtherMark::Category::PerformanceTechnique: return mx::api::MarkType::otherTechnical;
+    case classify::articulation::OtherMark::Category::Articulation: return mx::api::MarkType::otherArticulation;
     }
     return mx::api::MarkType::otherArticulation;
 }
@@ -125,8 +120,7 @@ mx::api::MarkType musicXmlFermataType(const classify::articulation::Fermata& fer
         case classify::articulation::Fermata::Shape::DoubleAngled:
         case classify::articulation::Fermata::Shape::DoubleDot:
         case classify::articulation::Fermata::Shape::DoubleSquare:
-        case classify::articulation::Fermata::Shape::HalfCurve:
-            break;
+        case classify::articulation::Fermata::Shape::HalfCurve: break;
         }
         break;
     case Placement::Below:
@@ -138,12 +132,10 @@ mx::api::MarkType musicXmlFermataType(const classify::articulation::Fermata& fer
         case classify::articulation::Fermata::Shape::DoubleAngled:
         case classify::articulation::Fermata::Shape::DoubleDot:
         case classify::articulation::Fermata::Shape::DoubleSquare:
-        case classify::articulation::Fermata::Shape::HalfCurve:
-            break;
+        case classify::articulation::Fermata::Shape::HalfCurve: break;
         }
         break;
-    case Placement::Automatic:
-        break;
+    case Placement::Automatic: break;
     }
     return enumConvert<mx::api::MarkType>(fermata.shape);
 }
@@ -160,11 +152,7 @@ void appendOrnament(mx::api::NoteData& note, const classify::articulation::Ornam
 } // namespace
 
 void processArticulations(
-    MusicXmlMusxMapping& context,
-    mx::api::StaffData& staff,
-    mx::api::NoteData& note,
-    const EntryInfoPtr& entryInfo,
-    bool isStaffValueSpecified)
+    MusicXmlMusxMapping& context, mx::api::StaffData& staff, mx::api::NoteData& note, const EntryInfoPtr& entryInfo, bool isStaffValueSpecified)
 {
     const auto entry = entryInfo->getEntry();
     const auto appendDirection = [&](VerticalPlacement placement, const auto& appendComponent) {
@@ -185,94 +173,97 @@ void processArticulations(
         if (!classification) {
             continue;
         }
-        std::visit([&](const auto& classified) {
-            using Value = std::decay_t<decltype(classified)>;
-            if constexpr (std::is_same_v<Value, classify::articulation::ArticulationMarks>) {
-                auto hasMark = [&](classify::articulation::ArticulationMark::Type type) {
-                    return std::ranges::any_of(classified.marks, [type](const auto& mark) { return mark.type == type; });
-                };
-                if (classified.marks.size() == 2 && hasMark(classify::articulation::ArticulationMark::Type::Staccato)
+        std::visit(
+            [&](const auto& classified) {
+                using Value = std::decay_t<decltype(classified)>;
+                if constexpr (std::is_same_v<Value, classify::articulation::ArticulationMarks>) {
+                    auto hasMark = [&](classify::articulation::ArticulationMark::Type type) {
+                        return std::ranges::any_of(classified.marks, [type](const auto& mark) { return mark.type == type; });
+                    };
+                    if (classified.marks.size() == 2 && hasMark(classify::articulation::ArticulationMark::Type::Staccato)
                         && hasMark(classify::articulation::ArticulationMark::Type::Tenuto)) {
-                    note.noteAttachmentData.marks.emplace_back(musicXmlMark(mx::api::MarkType::detachedLegato, classification.placement));
-                    return;
-                }
-                for (const auto& mark : classified.marks) {
-                    const auto markType = musicXmlArticulationType(mark);
+                        note.noteAttachmentData.marks.emplace_back(musicXmlMark(mx::api::MarkType::detachedLegato, classification.placement));
+                        return;
+                    }
+                    for (const auto& mark : classified.marks) {
+                        const auto markType = musicXmlArticulationType(mark);
+                        if (markType != mx::api::MarkType::unspecified) {
+                            note.noteAttachmentData.marks.emplace_back(musicXmlMark(markType, classification.placement));
+                        } else {
+                            note.noteAttachmentData.marks.emplace_back(
+                                fallbackMarkData(mx::api::MarkType::otherArticulation, classification, "unmapped articulation"));
+                        }
+                    }
+                } else if constexpr (std::is_same_v<Value, classify::articulation::TechniqueMark>) {
+                    const auto markType = musicXmlTechniqueType(classified);
                     if (markType != mx::api::MarkType::unspecified) {
                         note.noteAttachmentData.marks.emplace_back(musicXmlMark(markType, classification.placement));
                     } else {
                         note.noteAttachmentData.marks.emplace_back(
-                            fallbackMarkData(mx::api::MarkType::otherArticulation, classification, "unmapped articulation"));
+                            fallbackMarkData(mx::api::MarkType::otherTechnical, classification, "unmapped technique"));
                     }
-                }
-            } else if constexpr (std::is_same_v<Value, classify::articulation::TechniqueMark>) {
-                const auto markType = musicXmlTechniqueType(classified);
-                if (markType != mx::api::MarkType::unspecified) {
-                    note.noteAttachmentData.marks.emplace_back(musicXmlMark(markType, classification.placement));
-                } else {
+                } else if constexpr (std::is_same_v<Value, classify::articulation::HarmonMute>) {
+                    note.noteAttachmentData.marks.emplace_back(musicXmlMark(musicXmlHarmonMuteType(classified), classification.placement));
+                } else if constexpr (std::is_same_v<Value, classify::articulation::PluckedDamp>) {
+                    appendDirection(classification.placement, [&](mx::api::DirectionData& direction) {
+                        if (classified.type == classify::articulation::PluckedDamp::Type::DampAll) {
+                            direction.directionTypes.emplace_back(mx::api::DampAllData{});
+                        } else {
+                            direction.directionTypes.emplace_back(mx::api::DampData{});
+                        }
+                    });
+                } else if constexpr (std::is_same_v<Value, classify::articulation::StringMute>) {
+                    appendDirection(classification.placement, [&](mx::api::DirectionData& direction) {
+                        auto stringMute = mx::api::StringMuteData{};
+                        stringMute.type = enumConvert<mx::api::StringMuteType>(classified.type);
+                        direction.directionTypes.emplace_back(std::move(stringMute));
+                    });
+                } else if constexpr (std::is_same_v<Value, classify::articulation::Fermata>) {
+                    note.noteAttachmentData.marks.emplace_back(musicXmlMark(musicXmlFermataType(classified), classification.placement));
+                } else if constexpr (std::is_same_v<Value, classify::articulation::BreathMark>) {
+                    note.noteAttachmentData.marks.emplace_back(musicXmlMark(mx::api::MarkType::breathMark, classification.placement));
+                } else if constexpr (std::is_same_v<Value, classify::articulation::Caesura>) {
                     note.noteAttachmentData.marks.emplace_back(
-                        fallbackMarkData(mx::api::MarkType::otherTechnical, classification, "unmapped technique"));
-                }
-            } else if constexpr (std::is_same_v<Value, classify::articulation::HarmonMute>) {
-                note.noteAttachmentData.marks.emplace_back(musicXmlMark(musicXmlHarmonMuteType(classified), classification.placement));
-            } else if constexpr (std::is_same_v<Value, classify::articulation::PluckedDamp>) {
-                appendDirection(classification.placement, [&](mx::api::DirectionData& direction) {
-                    if (classified.type == classify::articulation::PluckedDamp::Type::DampAll) {
-                        direction.directionTypes.emplace_back(mx::api::DampAllData{});
-                    } else {
-                        direction.directionTypes.emplace_back(mx::api::DampData{});
+                        musicXmlMark(enumConvert<mx::api::MarkType>(classified.type), classification.placement));
+                } else if constexpr (std::is_same_v<Value, classify::articulation::Arpeggio>) {
+                    if (classified.candidate) {
+                        appendArpeggioCandidate(context, classified.candidate.value());
                     }
-                });
-            } else if constexpr (std::is_same_v<Value, classify::articulation::StringMute>) {
-                appendDirection(classification.placement, [&](mx::api::DirectionData& direction) {
-                    auto stringMute = mx::api::StringMuteData{};
-                    stringMute.type = enumConvert<mx::api::StringMuteType>(classified.type);
-                    direction.directionTypes.emplace_back(std::move(stringMute));
-                });
-            } else if constexpr (std::is_same_v<Value, classify::articulation::Fermata>) {
-                note.noteAttachmentData.marks.emplace_back(musicXmlMark(musicXmlFermataType(classified), classification.placement));
-            } else if constexpr (std::is_same_v<Value, classify::articulation::BreathMark>) {
-                note.noteAttachmentData.marks.emplace_back(musicXmlMark(mx::api::MarkType::breathMark, classification.placement));
-            } else if constexpr (std::is_same_v<Value, classify::articulation::Caesura>) {
-                note.noteAttachmentData.marks.emplace_back(musicXmlMark(enumConvert<mx::api::MarkType>(classified.type), classification.placement));
-            } else if constexpr (std::is_same_v<Value, classify::articulation::Arpeggio>) {
-                if (classified.candidate) {
-                    appendArpeggioCandidate(context, classified.candidate.value());
-                }
-            } else if constexpr (std::is_same_v<Value, classify::articulation::VerticalEntryBracket>) {
-                if (const auto candidate = musx::util::calcNonArpeggioSpanForAssignment(entryInfo, asgn)) {
-                    appendArpeggioCandidate(context, candidate.value());
-                }
-            } else if constexpr (std::is_same_v<Value, classify::PseudoTie>) {
-                if (classified.type == classify::PseudoTie::Type::LaissezVibrer) {
-                    deferPseudoLvTies(context, entryInfo);
-                }
-            } else if constexpr (std::is_same_v<Value, classify::articulation::OtherMark>) {
-                note.noteAttachmentData.marks.emplace_back(
-                    fallbackMarkData(musicXmlOtherMarkType(classified), classification, "unmapped mark"));
-            } else if constexpr (std::is_same_v<Value, classify::articulation::Ornament>) {
-                appendOrnament(note, classified, classification.placement);
-            } else if constexpr (std::is_same_v<Value, classify::articulation::Tremolo>) {
-                if (classified.style == classify::articulation::Tremolo::Style::Unmeasured) {
-                    auto markData = musicXmlMark(mx::api::MarkType::tremoloUnmeasured, classification.placement);
-                    if (classification.glyphName && !classification.glyphName->empty()) {
+                } else if constexpr (std::is_same_v<Value, classify::articulation::VerticalEntryBracket>) {
+                    if (const auto candidate = musx::util::calcNonArpeggioSpanForAssignment(entryInfo, asgn)) {
+                        appendArpeggioCandidate(context, candidate.value());
+                    }
+                } else if constexpr (std::is_same_v<Value, classify::PseudoTie>) {
+                    if (classified.type == classify::PseudoTie::Type::LaissezVibrer) {
+                        deferPseudoLvTies(context, entryInfo);
+                    }
+                } else if constexpr (std::is_same_v<Value, classify::articulation::OtherMark>) {
+                    note.noteAttachmentData.marks.emplace_back(fallbackMarkData(musicXmlOtherMarkType(classified), classification, "unmapped mark"));
+                } else if constexpr (std::is_same_v<Value, classify::articulation::Ornament>) {
+                    appendOrnament(note, classified, classification.placement);
+                } else if constexpr (std::is_same_v<Value, classify::articulation::Tremolo>) {
+                    if (classified.style == classify::articulation::Tremolo::Style::Unmeasured) {
+                        auto markData = musicXmlMark(mx::api::MarkType::tremoloUnmeasured, classification.placement);
+                        if (classification.glyphName && !classification.glyphName->empty()) {
                         // The recognized glyph is the only thing that distinguishes a buzz roll from a
                         // Penderecki, Wieniawski, or Stockhausen tremolo, all of which write the same element.
-                        auto tremoloData = mx::api::TremoloMarkData{};
-                        tremoloData.smufl = classification.glyphName;
-                        markData.choice = std::move(tremoloData);
+                            auto tremoloData = mx::api::TremoloMarkData{};
+                            tremoloData.smufl = classification.glyphName;
+                            markData.choice = std::move(tremoloData);
+                        }
+                        note.noteAttachmentData.marks.emplace_back(std::move(markData));
+                        return;
                     }
-                    note.noteAttachmentData.marks.emplace_back(std::move(markData));
-                    return;
+                    const int marks = std::clamp(classified.marks, MIN_SUPPORTED_TREMOLO_MARKS, MAX_SUPPORTED_TREMOLO_MARKS);
+                    if (marks != classified.marks) {
+                        context.logMessage(LogMsg() << "Measured single-note tremolo at entry " << entry->getEntryNumber() << " has "
+                                                    << classified.marks << " marks. Clamping to mx::api's supported 1..5 range.",
+                            MessageSeverity::Info);
+                    }
+                    note.noteAttachmentData.marks.emplace_back(musicXmlMark(musicXmlTremoloType(marks), classification.placement));
                 }
-                const int marks = std::clamp(classified.marks, MIN_SUPPORTED_TREMOLO_MARKS, MAX_SUPPORTED_TREMOLO_MARKS);
-                if (marks != classified.marks) {
-                    context.logMessage(LogMsg() << "Measured single-note tremolo at entry " << entry->getEntryNumber()
-                        << " has " << classified.marks << " marks. Clamping to mx::api's supported 1..5 range.", MessageSeverity::Info);
-                }
-                note.noteAttachmentData.marks.emplace_back(musicXmlMark(musicXmlTremoloType(marks), classification.placement));
-            }
-        }, classification.value);
+            },
+            classification.value);
     }
 }
 

@@ -48,10 +48,7 @@ std::string jumpTargetId(MeasCmper measureId)
 }
 
 bool shouldEmitJumpForStaff(
-    const MusicXmlMusxMapping& context,
-    const MusxInstance<others::TextRepeatAssign>& assignment,
-    StaffCmper staffId,
-    size_t staffIndex)
+    const MusicXmlMusxMapping& context, const MusxInstance<others::TextRepeatAssign>& assignment, StaffCmper staffId, size_t staffIndex)
 {
     if (assignment->hidden) {
         return false;
@@ -75,15 +72,13 @@ bool shouldEmitJumpForStaff(
 }
 
 std::vector<mx::api::WordsData> createJumpWords(
-    const MusicXmlMusxMapping& context,
-    const MusxInstance<others::TextRepeatDef>& repeatDef,
-    const MusxInstance<others::TextRepeatText>& repeatText)
+    const MusicXmlMusxMapping& context, const MusxInstance<others::TextRepeatDef>& repeatDef, const MusxInstance<others::TextRepeatText>& repeatText)
 {
     if (!repeatDef || !repeatText || repeatText->text.empty()) {
         return {};
     }
 
-    EnigmaTextChunk chunk{ repeatText->text, EnigmaStyles(context.document) };
+    EnigmaTextChunk chunk{repeatText->text, EnigmaStyles(context.document)};
     chunk.styles.font = repeatDef->font;
     auto words = musicXmlWordsFromEnigmaTextChunk(context, chunk);
     if (!words) {
@@ -93,15 +88,11 @@ std::vector<mx::api::WordsData> createJumpWords(
     // justification, and its MusicXML export writes both attributes.
     words->positionData.horizontalAlignment = enumConvert<mx::api::HorizontalAlignment>(repeatDef->justification);
     words->justify = words->positionData.horizontalAlignment;
-    return { std::move(*words) };
+    return {std::move(*words)};
 }
 
-void appendVisibleJump(
-    const MusicXmlMusxMapping& context,
-    mx::api::DirectionData& direction,
-    classify::jump::Jump jump,
-    const MusxInstance<others::TextRepeatDef>& repeatDef,
-    const MusxInstance<others::TextRepeatText>& repeatText)
+void appendVisibleJump(const MusicXmlMusxMapping& context, mx::api::DirectionData& direction, classify::jump::Jump jump,
+    const MusxInstance<others::TextRepeatDef>& repeatDef, const MusxInstance<others::TextRepeatText>& repeatText)
 {
     const auto glyphName = (repeatDef && repeatText) ? utils::smuflGlyphNameForFont(repeatDef->font, repeatText->text) : std::nullopt;
     if (glyphName && jump == classify::jump::Jump::Segno) {
@@ -126,27 +117,17 @@ void appendSoundJump(mx::api::DirectionData& direction, classify::jump::Jump pla
 {
     auto& sound = direction.soundData;
     switch (playback) {
-    case classify::jump::Jump::Segno:
-        sound.segno = jumpTargetId(assignment->getCmper());
-        break;
-    case classify::jump::Jump::Coda:
-        sound.coda = jumpTargetId(assignment->getCmper());
-        break;
-    default:
-        break;
+    case classify::jump::Jump::Segno: sound.segno = jumpTargetId(assignment->getCmper()); break;
+    case classify::jump::Jump::Coda: sound.coda = jumpTargetId(assignment->getCmper()); break;
+    default: break;
     }
 
     switch (playback) {
     case classify::jump::Jump::DaCapo:
     case classify::jump::Jump::DCAlFine:
-    case classify::jump::Jump::DCAlCoda:
-        sound.dacapo = mx::api::Bool::yes;
-        break;
-    case classify::jump::Jump::Fine:
-        sound.fine = jumpTargetId(assignment->getCmper());
-        break;
-    default:
-        break;
+    case classify::jump::Jump::DCAlCoda: sound.dacapo = mx::api::Bool::yes; break;
+    case classify::jump::Jump::Fine: sound.fine = jumpTargetId(assignment->getCmper()); break;
+    default: break;
     }
 
     if (const auto targetMeasure = assignment->calcTargetMeasure()) {
@@ -154,14 +135,9 @@ void appendSoundJump(mx::api::DirectionData& direction, classify::jump::Jump pla
         switch (playback) {
         case classify::jump::Jump::DalSegno:
         case classify::jump::Jump::DsAlFine:
-        case classify::jump::Jump::DsAlCoda:
-            sound.dalsegno = targetId;
-            break;
-        case classify::jump::Jump::ToCoda:
-            sound.tocoda = targetId;
-            break;
-        default:
-            break;
+        case classify::jump::Jump::DsAlCoda: sound.dalsegno = targetId; break;
+        case classify::jump::Jump::ToCoda: sound.tocoda = targetId; break;
+        default: break;
         }
     }
 
@@ -171,11 +147,7 @@ void appendSoundJump(mx::api::DirectionData& direction, classify::jump::Jump pla
 } // namespace
 
 void processJumps(
-    MusicXmlMusxMapping& context,
-    mx::api::StaffData& staff,
-    const MusxInstance<others::Measure>& musxMeasure,
-    StaffCmper staffId,
-    size_t staffIndex)
+    MusicXmlMusxMapping& context, mx::api::StaffData& staff, const MusxInstance<others::Measure>& musxMeasure, StaffCmper staffId, size_t staffIndex)
 {
     if (!musxMeasure->hasTextRepeat) {
         return;

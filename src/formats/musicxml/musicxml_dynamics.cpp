@@ -95,11 +95,11 @@ const std::map<std::string, mx::api::StandardDynamic, std::less<>>& standardDyna
     // std::less<> so a string_view looks up without building a string.
     static const auto elements = [] {
         auto result = std::map<std::string, mx::api::StandardDynamic, std::less<>>{};
-        for (auto dynamic = std::optional{ mx::api::StandardDynamic::p }; dynamic;
-                dynamic = nextStandardDynamic(*dynamic)) {
+        for (auto dynamic = std::optional{mx::api::StandardDynamic::p}; dynamic; dynamic = nextStandardDynamic(*dynamic)) {
             // Hoisted out of ASSERT_IF, which evaluates its test twice.
             const bool inserted = result.emplace(mx::api::toString(*dynamic), *dynamic).second;
-            ASSERT_IF(!inserted) {
+            ASSERT_IF(!inserted)
+            {
                 break; // nextStandardDynamic cycled, so the walk would never end
             }
         }
@@ -118,15 +118,11 @@ std::optional<mx::api::StandardDynamic> musicXmlStandardDynamic(std::string_view
 {
     const auto& elements = standardDynamicElements();
     const auto found = elements.find(letters);
-    return found != elements.end() ? std::optional{ found->second } : std::nullopt;
+    return found != elements.end() ? std::optional{found->second} : std::nullopt;
 }
 
-mx::api::DirectionData createDynamicDirection(
-    const MusicXmlMusxMapping& context,
-    size_t staffIndex,
-    const MusxInstance<others::MeasureExprAssign>& assignment,
-    VerticalPlacement placement,
-    bool isStaffValueSpecified)
+mx::api::DirectionData createDynamicDirection(const MusicXmlMusxMapping& context, size_t staffIndex,
+    const MusxInstance<others::MeasureExprAssign>& assignment, VerticalPlacement placement, bool isStaffValueSpecified)
 {
     auto direction = mx::api::DirectionData{};
     direction.tickTimePosition = context.timing.calcNearestMusicXmlDivisions(Fraction::fromEdu(assignment->eduPosition));
@@ -158,14 +154,14 @@ std::optional<mx::api::CompoundDynamicsData> createDynamicsFromGlyphs(const std:
 
     auto result = mx::api::CompoundDynamicsData{};
     for (const auto& glyph : glyphs) {
-        auto letters = classify::dynamicGlyphsToLetters({ glyph });
+        auto letters = classify::dynamicGlyphsToLetters({glyph});
         if (letters.empty()) {
             return std::nullopt; // an unmapped glyph would silently drop part of the spelling
         }
         if (const auto standard = musicXmlStandardDynamic(letters)) {
             result.components.emplace_back(*standard);
         } else {
-            result.components.emplace_back(mx::api::OtherDynamicsData{ std::move(letters), glyph });
+            result.components.emplace_back(mx::api::OtherDynamicsData{std::move(letters), glyph});
         }
     }
     return result;
@@ -176,10 +172,7 @@ std::optional<mx::api::CompoundDynamicsData> createDynamicsFromGlyphs(const std:
 ///
 /// A marking whose letters name a MusicXML dynamic element writes that element. Every other
 /// marking has to be spelled out symbol by symbol as the children of one `<dynamics>`.
-std::optional<mx::api::MarkData> createDynamicMark(
-    const classify::dynamics::Mark& dynamic,
-    std::string_view sourceText,
-    mx::api::Placement placement,
+std::optional<mx::api::MarkData> createDynamicMark(const classify::dynamics::Mark& dynamic, std::string_view sourceText, mx::api::Placement placement,
     mx::api::HorizontalAlignment horizontalAlignment)
 {
     const auto placed = [placement, horizontalAlignment](mx::api::MarkData mark) {
@@ -207,7 +200,7 @@ std::optional<mx::api::MarkData> createDynamicMark(
     if (sourceLetters.empty()) {
         return std::nullopt;
     }
-    auto spelling = mx::api::CompoundDynamicsData{ { mx::api::OtherDynamicsData{ std::move(sourceLetters), std::nullopt } } };
+    auto spelling = mx::api::CompoundDynamicsData{{mx::api::OtherDynamicsData{std::move(sourceLetters), std::nullopt}}};
     return placed(mx::api::MarkData(std::move(spelling)));
 }
 
@@ -224,12 +217,8 @@ size_t musicXmlStandardDynamicCount()
     return standardDynamicElements().size();
 }
 
-std::vector<mx::api::DirectionData> createDynamicExpressionDirections(
-    MusicXmlMusxMapping& context,
-    size_t staffIndex,
-    const MusxInstance<others::MeasureExprAssign>& assignment,
-    const classify::ExpressionClassification& classification,
-    VerticalPlacement placement,
+std::vector<mx::api::DirectionData> createDynamicExpressionDirections(MusicXmlMusxMapping& context, size_t staffIndex,
+    const MusxInstance<others::MeasureExprAssign>& assignment, const classify::ExpressionClassification& classification, VerticalPlacement placement,
     bool isStaffValueSpecified)
 {
     auto direction = createDynamicDirection(context, staffIndex, assignment, placement, isStaffValueSpecified);
@@ -253,8 +242,7 @@ std::vector<mx::api::DirectionData> createDynamicExpressionDirections(
 
     for (const auto& run : classification.runs) {
         if (const auto* dynamic = run.as<classify::dynamics::Mark>()) {
-            auto mark = createDynamicMark(
-                *dynamic, run.chunk.text, enumConvert<mx::api::Placement>(placement), horizontalAlignment);
+            auto mark = createDynamicMark(*dynamic, run.chunk.text, enumConvert<mx::api::Placement>(placement), horizontalAlignment);
             if (!mark) {
                 if (dynamic->glyphs.empty()) {
                     appendWords(run.chunk);
@@ -286,7 +274,7 @@ std::vector<mx::api::DirectionData> createDynamicExpressionDirections(
     if (mx::api::isDirectionDataEmpty(direction)) {
         return {};
     }
-    return { std::move(direction) };
+    return {std::move(direction)};
 }
 
 } // namespace detail

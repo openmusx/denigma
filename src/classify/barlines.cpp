@@ -38,31 +38,21 @@ static bool classifyIsShortBarline(const musx::dom::MusxInstance<musx::dom::othe
     constexpr musx::dom::Evpu minExtension = 12;
     constexpr musx::dom::Evpu maxExtension = 36;
     const auto [topFromCenter, bottomFromCenter] = staff->calcBarlineOffsetsFromCenter();
-    return topFromCenter == -bottomFromCenter
-        && topFromCenter >= minExtension
-        && topFromCenter <= maxExtension;
+    return topFromCenter == -bottomFromCenter && topFromCenter >= minExtension && topFromCenter <= maxExtension;
 }
 
 static Type classifyMeasureBarlineType(MusxBarlineType type)
 {
     switch (type) {
-    case MusxBarlineType::None:
-        return Type::NoBarline;
-    case MusxBarlineType::Normal:
-        return Type::Regular;
-    case MusxBarlineType::Double:
-        return Type::Double;
-    case MusxBarlineType::Final:
-        return Type::Final;
-    case MusxBarlineType::Solid:
-        return Type::Heavy;
-    case MusxBarlineType::Dashed:
-        return Type::Dashed;
-    case MusxBarlineType::Tick:
-        return Type::Tick;
+    case MusxBarlineType::None: return Type::NoBarline;
+    case MusxBarlineType::Normal: return Type::Regular;
+    case MusxBarlineType::Double: return Type::Double;
+    case MusxBarlineType::Final: return Type::Final;
+    case MusxBarlineType::Solid: return Type::Heavy;
+    case MusxBarlineType::Dashed: return Type::Dashed;
+    case MusxBarlineType::Tick: return Type::Tick;
     case MusxBarlineType::OptionsDefault:
-    case MusxBarlineType::Custom:
-        return Type::Unsupported;
+    case MusxBarlineType::Custom: return Type::Unsupported;
     }
 
     return Type::Unsupported;
@@ -70,38 +60,37 @@ static Type classifyMeasureBarlineType(MusxBarlineType type)
 
 } // namespace
 
-BarlineClassification classifyBarline(
-    const musx::dom::MusxInstance<musx::dom::others::Staff>& staff,
-    const musx::dom::MusxInstance<musx::dom::others::Measure>& measure,
-    bool isFinalMeasure,
+BarlineClassification classifyBarline(const musx::dom::MusxInstance<musx::dom::others::Staff>& staff,
+    const musx::dom::MusxInstance<musx::dom::others::Measure>& measure, bool isFinalMeasure,
     const musx::dom::MusxInstance<musx::dom::options::BarlineOptions>& barlineOptions)
 {
-    MUSX_ASSERT_IF(!measure || !barlineOptions || !staff) {
+    MUSX_ASSERT_IF(!measure || !barlineOptions || !staff)
+    {
         return {};
     }
 
     if (!barlineOptions->drawBarlines || staff->hideBarlines) {
-        return { Type::NoBarline, false };
+        return {Type::NoBarline, false};
     }
 
     const bool isShort = classifyIsShortBarline(staff);
     const auto type = measure->barlineType;
     if (type == MusxBarlineType::Normal) {
         if (isFinalMeasure && barlineOptions->drawFinalBarlineOnLastMeas) {
-            return { Type::Final, isShort };
+            return {Type::Final, isShort};
         }
 
         if (!isFinalMeasure && barlineOptions->drawDoubleBarlineBeforeKeyChanges) {
             if (const auto& nextMeasure = measure->getDocument()->getOthers()->get<musx::dom::others::Measure>(
                     musx::dom::SCORE_PARTID, static_cast<musx::dom::Cmper>(measure->getCmper() + 1))) {
                 if (!measure->createKeySignature()->isSame(*nextMeasure->createKeySignature().get())) {
-                    return { Type::Double, isShort };
+                    return {Type::Double, isShort};
                 }
             }
         }
     }
 
-    return { classifyMeasureBarlineType(type), isShort };
+    return {classifyMeasureBarlineType(type), isShort};
 }
 
 } // namespace denigma::classify

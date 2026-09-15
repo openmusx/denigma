@@ -19,16 +19,16 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#include <string>
 #include <filesystem>
-#include <iterator>
 #include <fstream>
+#include <iterator>
 #include <memory>
+#include <string>
 
-#include "gtest/gtest.h"
 #include "core/denigma.h"
 #include "mnxdom.h"
 #include "test_utils.h"
+#include "gtest/gtest.h"
 
 using namespace denigma;
 
@@ -36,10 +36,9 @@ TEST(MnxOttavasTest, OverlappingOttavas)
 {
     std::filesystem::path inputPath;
     copyInputToOutput("ottavas.musx", inputPath);
-    ArgList args = { DENIGMA_NAME, "export", pathString(inputPath), "--mnx" };
-    checkStderr({ "Processing", pathString(inputPath.filename()), "!validation error" }, [&]() {
-        EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath);
-    });
+    ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), "--mnx"};
+    checkStderr({"Processing", pathString(inputPath.filename()), "!validation error"},
+        [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath); });
 
     auto doc = mnx::Document::create(inputPath.parent_path() / "ottavas.mnx");
     auto parts = doc.parts();
@@ -49,10 +48,10 @@ TEST(MnxOttavasTest, OverlappingOttavas)
 
     // measure 1
     {
-        std::vector<mnx::OttavaAmount> expectOttavaType = { mnx::OttavaAmount::TwoOctavesUp, mnx::OttavaAmount::OctaveDown };
-        std::vector<std::string> expectOttavaEndMeasure = { "m2", "m2" };
-        std::vector<musx::util::Fraction> expectOttaveEndPosition = { musx::util::Fraction(1, 4), musx::util::Fraction(1, 4) };
-        std::vector<int> expectedNoteOctaves = { 7, 7, 6, 6 };
+        std::vector<mnx::OttavaAmount> expectOttavaType = {mnx::OttavaAmount::TwoOctavesUp, mnx::OttavaAmount::OctaveDown};
+        std::vector<std::string> expectOttavaEndMeasure = {"m2", "m2"};
+        std::vector<musx::util::Fraction> expectOttaveEndPosition = {musx::util::Fraction(1, 4), musx::util::Fraction(1, 4)};
+        std::vector<int> expectedNoteOctaves = {7, 7, 6, 6};
         auto measure = measures[0];
         size_t ottavaIndex = 0;
         size_t eventIndex = 0;
@@ -81,10 +80,10 @@ TEST(MnxOttavasTest, OverlappingOttavas)
     }
     // measure 2
     {
-        std::vector<mnx::OttavaAmount> expectOttavaType = { };
-        std::vector<int> expectOttavaEndMeasure = { };
-        std::vector<musx::util::Fraction> expectOttaveEndPosition = { };
-        std::vector<int> expectedNoteOctaves = { 6, 6, 5 };
+        std::vector<mnx::OttavaAmount> expectOttavaType = {};
+        std::vector<int> expectOttavaEndMeasure = {};
+        std::vector<musx::util::Fraction> expectOttaveEndPosition = {};
+        std::vector<int> expectedNoteOctaves = {6, 6, 5};
         auto measure = measures[1];
         size_t eventIndex = 0;
         ASSERT_GE(measure.sequences().size(), 1);
@@ -106,10 +105,9 @@ TEST(MnxOttavasTest, EndOfBar)
 {
     std::filesystem::path inputPath;
     copyInputToOutput("ottava_end_of_bar.musx", inputPath);
-    ArgList args = { DENIGMA_NAME, "export", pathString(inputPath), "--mnx" };
-    checkStderr({ "Processing", pathString(inputPath.filename()), "!was not inserted into MNX document" }, [&]() {
-        EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath);
-    });
+    ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), "--mnx"};
+    checkStderr({"Processing", pathString(inputPath.filename()), "!was not inserted into MNX document"},
+        [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath); });
 
     auto doc = mnx::Document::create(inputPath.parent_path() / "ottava_end_of_bar.mnx");
     auto parts = doc.parts();
@@ -132,17 +130,15 @@ TEST(MnxOttavasTest, ClassifiedOttavaCarriers)
 {
     std::filesystem::path inputPath;
     copyInputToOutput("smartshape_lines.musx", inputPath);
-    ArgList args = { DENIGMA_NAME, "export", pathString(inputPath), "--mnx" };
-    checkStderr({ "Processing", pathString(inputPath.filename()), "!validation error" }, [&]() {
-        EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath);
-    });
+    ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), "--mnx"};
+    checkStderr({"Processing", pathString(inputPath.filename()), "!validation error"},
+        [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath); });
 
     auto doc = mnx::Document::create(inputPath.parent_path() / "smartshape_lines.mnx");
     auto parts = doc.parts();
     ASSERT_GE(parts.size(), 3u);
 
-    auto expectSingleOttava = [](auto measure, mnx::OttavaAmount amount,
-                                 const std::string& endMeasure, int endNumerator, int endDenominator) {
+    auto expectSingleOttava = [](auto measure, mnx::OttavaAmount amount, const std::string& endMeasure, int endNumerator, int endDenominator) {
         ASSERT_TRUE(measure.ottavas().has_value());
         ASSERT_EQ(measure.ottavas().value().size(), 1u);
         auto ottava = measure.ottavas().value()[0];
@@ -175,23 +171,23 @@ TEST(MnxOttavasTest, ClassifiedOttavaCarriers)
     expectSingleOttava(measures[13], mnx::OttavaAmount::TwoOctavesUp, "m23", 1, 1);
     EXPECT_FALSE(measures[14].ottavas().has_value());
     EXPECT_FALSE(measures[15].ottavas().has_value());
-    EXPECT_EQ(noteOctaves(measures[13]), (std::vector<int>{ 6, 6, 6, 7 }));
-    EXPECT_EQ(noteOctaves(measures[17]), (std::vector<int>{ 6, 6, 6, 7 }));
+    EXPECT_EQ(noteOctaves(measures[13]), (std::vector<int>{6, 6, 6, 7}));
+    EXPECT_EQ(noteOctaves(measures[17]), (std::vector<int>{6, 6, 6, 7}));
 
     // The unpaired "8vb" line inside the quindicesima is its own carrier; where the
     // two overlap, their displacements sum.
     expectSingleOttava(measures[18], mnx::OttavaAmount::OctaveDown, "m20", 3, 4);
-    EXPECT_EQ(noteOctaves(measures[19]), (std::vector<int>{ 5, 5, 5, 6 }));
+    EXPECT_EQ(noteOctaves(measures[19]), (std::vector<int>{5, 5, 5, 6}));
 
     // The canonical pair: the hidden octaveUp emits (despite hidden); its visible
     // custom line does not.
     expectSingleOttava(measures[25], mnx::OttavaAmount::OctaveUp, "m28", 1, 4);
-    EXPECT_EQ(noteOctaves(measures[26]), (std::vector<int>{ 5, 5, 5, 6 }));
-    EXPECT_EQ(noteOctaves(measures[27]), (std::vector<int>{ 5, 5, 4, 5 })); // ottava ends after beat 1
+    EXPECT_EQ(noteOctaves(measures[26]), (std::vector<int>{5, 5, 5, 6}));
+    EXPECT_EQ(noteOctaves(measures[27]), (std::vector<int>{5, 5, 4, 5})); // ottava ends after beat 1
 
     // The unpaired "8vb" line on staff 3 is a carrier.
     auto staff3Measures = parts[2].measures();
     ASSERT_GE(staff3Measures.size(), 23u);
     expectSingleOttava(staff3Measures[20], mnx::OttavaAmount::OctaveDown, "m23", 1, 4);
-    EXPECT_EQ(noteOctaves(staff3Measures[21]), (std::vector<int>{ 3, 3, 3, 4 }));
+    EXPECT_EQ(noteOctaves(staff3Measures[21]), (std::vector<int>{3, 3, 3, 4}));
 }

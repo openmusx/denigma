@@ -22,8 +22,8 @@
 #pragma once
 
 #include "core/denigma.h"
-#include "musx/musx.h"
 #include "mnxdom.h"
+#include "musx/musx.h"
 
 #include "mnx_fwd.h"
 #include "utils/smufl_support.h"
@@ -39,20 +39,19 @@ namespace articulation {
 struct BreathMark;
 struct Fermata;
 } // namespace articulation
-}
+} // namespace classify
 
 namespace formats {
 namespace mnx {
 namespace detail {
 
 std::optional<mnxdom::Fermata> makeFermata(
-    const classify::articulation::Fermata& fermata,
-    const classify::GlyphStyle& glyphStyle,
-    VerticalPlacement placement);
+    const classify::articulation::Fermata& fermata, const classify::GlyphStyle& glyphStyle, VerticalPlacement placement);
 
 mnxdom::sequence::BreathMark makeBreathMark(const classify::articulation::BreathMark& breathMark, VerticalPlacement placement);
 
-void appendArpeggioCandidate(const MnxMusxMappingPtr& context, mnxdom::part::Measure& mnxPartMeasure, const musx::util::ArpeggioSpanCandidate& candidate);
+void appendArpeggioCandidate(
+    const MnxMusxMappingPtr& context, mnxdom::part::Measure& mnxPartMeasure, const musx::util::ArpeggioSpanCandidate& candidate);
 void finalizeArpeggios(const MnxMusxMappingPtr& context);
 void processArticulations(const MnxMusxMappingPtr& context, mnxdom::sequence::Event& mnxEvent, const EntryInfoPtr& musxEntryInfo);
 void processArticulations(const MnxMusxMappingPtr& context, mnxdom::sequence::FullMeasureRest& mnxFullMeasureRest, const EntryInfoPtr& musxEntryInfo);

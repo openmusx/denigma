@@ -19,22 +19,22 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#include <filesystem>
-#include <fstream>
-#include <iostream>
-#include <string>
 #include <array>
 #include <cstddef>
 #include <cstring>
+#include <filesystem>
+#include <fstream>
+#include <iostream>
+#include <optional>
 #include <span>
 #include <stdexcept>
+#include <string>
 #include <unordered_map>
-#include <optional>
 #include <vector>
 
+#include "denigma/formats/mnx.h"
 #include "denigma/formats/mss.h"
 #include "denigma/formats/musicxml.h"
-#include "denigma/formats/mnx.h"
 #include "denigma/formats/svg.h"
 #include "denigma/gap_report.h"
 #include "export/export.h"
@@ -53,9 +53,8 @@ CommonOptions makeCommonOptions(const DenigmaContext& denigmaContext)
     options.verbose = denigmaContext.verbose;
     options.quiet = denigmaContext.quiet;
     options.allFontsAvailable = denigmaContext.allFontsAvailable;
-    options.logCallback = [&denigmaContext](MessageSeverity severity, std::string_view message) {
-        denigmaContext.logMessage(LogMsg() << message, severity);
-    };
+    options.logCallback = [&denigmaContext](
+                              MessageSeverity severity, std::string_view message) { denigmaContext.logMessage(LogMsg() << message, severity); };
     return options;
 }
 
@@ -97,27 +96,13 @@ formats::svg::Options makeSvgOptions(const DenigmaContext& denigmaContext)
     formats::svg::Options options;
     options.common = makeCommonOptions(denigmaContext);
     switch (denigmaContext.svgUnit) {
-    case musx::util::SvgConvert::SvgUnit::None:
-        options.unit = formats::svg::Unit::None;
-        break;
-    case musx::util::SvgConvert::SvgUnit::Pixels:
-        options.unit = formats::svg::Unit::Pixels;
-        break;
-    case musx::util::SvgConvert::SvgUnit::Points:
-        options.unit = formats::svg::Unit::Points;
-        break;
-    case musx::util::SvgConvert::SvgUnit::Picas:
-        options.unit = formats::svg::Unit::Picas;
-        break;
-    case musx::util::SvgConvert::SvgUnit::Centimeters:
-        options.unit = formats::svg::Unit::Centimeters;
-        break;
-    case musx::util::SvgConvert::SvgUnit::Millimeters:
-        options.unit = formats::svg::Unit::Millimeters;
-        break;
-    case musx::util::SvgConvert::SvgUnit::Inches:
-        options.unit = formats::svg::Unit::Inches;
-        break;
+    case musx::util::SvgConvert::SvgUnit::None: options.unit = formats::svg::Unit::None; break;
+    case musx::util::SvgConvert::SvgUnit::Pixels: options.unit = formats::svg::Unit::Pixels; break;
+    case musx::util::SvgConvert::SvgUnit::Points: options.unit = formats::svg::Unit::Points; break;
+    case musx::util::SvgConvert::SvgUnit::Picas: options.unit = formats::svg::Unit::Picas; break;
+    case musx::util::SvgConvert::SvgUnit::Centimeters: options.unit = formats::svg::Unit::Centimeters; break;
+    case musx::util::SvgConvert::SvgUnit::Millimeters: options.unit = formats::svg::Unit::Millimeters; break;
+    case musx::util::SvgConvert::SvgUnit::Inches: options.unit = formats::svg::Unit::Inches; break;
     }
     options.scale = denigmaContext.svgScale;
     options.usePageScale = denigmaContext.svgUsePageScale;
@@ -133,9 +118,7 @@ std::span<const std::byte> enigmaXmlBytes(const CommandInputData& inputData)
     return std::as_bytes(std::span(inputData.primaryBuffer.data(), inputData.primaryBuffer.size()));
 }
 
-void exportMnxJsonWithAdapter(const std::filesystem::path& outputPath,
-                              const CommandInputData& inputData,
-                              const DenigmaContext& denigmaContext)
+void exportMnxJsonWithAdapter(const std::filesystem::path& outputPath, const CommandInputData& inputData, const DenigmaContext& denigmaContext)
 {
 #ifdef DENIGMA_TEST
     if (denigmaContext.forTestOutput()) {
@@ -143,7 +126,9 @@ void exportMnxJsonWithAdapter(const std::filesystem::path& outputPath,
         return;
     }
 #endif
-    if (!denigmaContext.validatePathsAndOptions(outputPath)) return;
+    if (!denigmaContext.validatePathsAndOptions(outputPath)) {
+        return;
+    }
 
     ConverterRegistry registry;
     formats::mnx::registerConverters(registry);
@@ -161,7 +146,7 @@ void exportMnxJsonWithAdapter(const std::filesystem::path& outputPath,
     if (denigmaContext.writeGapReport) {
         options.common.gapCollector = &gapCollector;
     }
-    converter->convert(enigmaXmlBytes(inputData), output, ConversionRequest{ &options });
+    converter->convert(enigmaXmlBytes(inputData), output, ConversionRequest{&options});
     output.close();
 
     if (denigmaContext.writeGapReport) {
@@ -171,15 +156,12 @@ void exportMnxJsonWithAdapter(const std::filesystem::path& outputPath,
             std::ofstream gapReport;
             gapReport.exceptions(std::ofstream::failbit | std::ofstream::badbit);
             gapReport.open(gapReportPath, std::ios::out | std::ios::binary);
-            gapReport << serializeGapReport(
-                gapCollector, { DENIGMA_NAME, DENIGMA_VERSION, gitCommit() });
+            gapReport << serializeGapReport(gapCollector, {DENIGMA_NAME, DENIGMA_VERSION, gitCommit()});
         }
     }
 }
 
-void exportMusicXmlWithAdapter(const std::filesystem::path& outputPath,
-                               const CommandInputData& inputData,
-                               const DenigmaContext& denigmaContext)
+void exportMusicXmlWithAdapter(const std::filesystem::path& outputPath, const CommandInputData& inputData, const DenigmaContext& denigmaContext)
 {
 #ifdef DENIGMA_TEST
     if (denigmaContext.forTestOutput()) {
@@ -197,31 +179,32 @@ void exportMusicXmlWithAdapter(const std::filesystem::path& outputPath,
 
     size_t generatedCount = 0;
     const auto options = makeMusicXmlOptions(denigmaContext);
-    converter->convert(enigmaXmlBytes(inputData), [&](std::string_view suggestedName, std::span<const std::byte> musicXmlData) {
-        std::filesystem::path qualifiedOutputPath = outputPath;
-        if (!suggestedName.empty()) {
-            auto currExtension = qualifiedOutputPath.extension();
-            qualifiedOutputPath.replace_extension(utils::stringToUtf8(suggestedName) + currExtension.u8string());
-        }
-        if (!denigmaContext.validatePathsAndOptions(qualifiedOutputPath)) {
-            return;
-        }
-        std::ofstream output;
-        output.exceptions(std::ofstream::failbit | std::ofstream::badbit);
-        output.open(qualifiedOutputPath, std::ios::out | std::ios::binary);
-        output.write(reinterpret_cast<const char*>(musicXmlData.data()), static_cast<std::streamsize>(musicXmlData.size()));
-        output.close();
-        ++generatedCount;
-    }, ConversionRequest{ &options });
+    converter->convert(
+        enigmaXmlBytes(inputData),
+        [&](std::string_view suggestedName, std::span<const std::byte> musicXmlData) {
+            std::filesystem::path qualifiedOutputPath = outputPath;
+            if (!suggestedName.empty()) {
+                auto currExtension = qualifiedOutputPath.extension();
+                qualifiedOutputPath.replace_extension(utils::stringToUtf8(suggestedName) + currExtension.u8string());
+            }
+            if (!denigmaContext.validatePathsAndOptions(qualifiedOutputPath)) {
+                return;
+            }
+            std::ofstream output;
+            output.exceptions(std::ofstream::failbit | std::ofstream::badbit);
+            output.open(qualifiedOutputPath, std::ios::out | std::ios::binary);
+            output.write(reinterpret_cast<const char*>(musicXmlData.data()), static_cast<std::streamsize>(musicXmlData.size()));
+            output.close();
+            ++generatedCount;
+        },
+        ConversionRequest{&options});
 
     if (generatedCount == 0) {
         denigmaContext.logMessage(LogMsg() << "No MusicXML files were written.", MessageSeverity::Warning);
     }
 }
 
-void exportMssWithAdapter(const std::filesystem::path& outputPath,
-                          const CommandInputData& inputData,
-                          const DenigmaContext& denigmaContext)
+void exportMssWithAdapter(const std::filesystem::path& outputPath, const CommandInputData& inputData, const DenigmaContext& denigmaContext)
 {
 #ifdef DENIGMA_TEST
     if (denigmaContext.forTestOutput()) {
@@ -239,22 +222,25 @@ void exportMssWithAdapter(const std::filesystem::path& outputPath,
 
     size_t generatedCount = 0;
     const auto options = makeMssOptions(denigmaContext);
-    converter->convert(enigmaXmlBytes(inputData), [&](std::string_view suggestedName, std::span<const std::byte> mssData) {
-        std::filesystem::path qualifiedOutputPath = outputPath;
-        if (!suggestedName.empty()) {
-            auto currExtension = qualifiedOutputPath.extension();
-            qualifiedOutputPath.replace_extension(utils::stringToUtf8(suggestedName) + currExtension.u8string());
-        }
-        if (!denigmaContext.validatePathsAndOptions(qualifiedOutputPath)) {
-            return;
-        }
-        std::ofstream output;
-        output.exceptions(std::ofstream::failbit | std::ofstream::badbit);
-        output.open(qualifiedOutputPath, std::ios::out | std::ios::binary);
-        output.write(reinterpret_cast<const char*>(mssData.data()), static_cast<std::streamsize>(mssData.size()));
-        output.close();
-        ++generatedCount;
-    }, ConversionRequest{ &options });
+    converter->convert(
+        enigmaXmlBytes(inputData),
+        [&](std::string_view suggestedName, std::span<const std::byte> mssData) {
+            std::filesystem::path qualifiedOutputPath = outputPath;
+            if (!suggestedName.empty()) {
+                auto currExtension = qualifiedOutputPath.extension();
+                qualifiedOutputPath.replace_extension(utils::stringToUtf8(suggestedName) + currExtension.u8string());
+            }
+            if (!denigmaContext.validatePathsAndOptions(qualifiedOutputPath)) {
+                return;
+            }
+            std::ofstream output;
+            output.exceptions(std::ofstream::failbit | std::ofstream::badbit);
+            output.open(qualifiedOutputPath, std::ios::out | std::ios::binary);
+            output.write(reinterpret_cast<const char*>(mssData.data()), static_cast<std::streamsize>(mssData.size()));
+            output.close();
+            ++generatedCount;
+        },
+        ConversionRequest{&options});
 
     if (generatedCount == 0) {
         denigmaContext.logMessage(LogMsg() << "No MSS files were written.", MessageSeverity::Warning);
@@ -274,10 +260,7 @@ std::filesystem::path appendSvgShapeSuffix(const std::filesystem::path& outputPa
     return result;
 }
 
-std::filesystem::path resolveSvgOutputPath(const std::filesystem::path& outputPath,
-                                           int shapeCmper,
-                                           bool outputIsFilename,
-                                           bool multipleShapes)
+std::filesystem::path resolveSvgOutputPath(const std::filesystem::path& outputPath, int shapeCmper, bool outputIsFilename, bool multipleShapes)
 {
     if (!outputIsFilename || multipleShapes) {
         return appendSvgShapeSuffix(outputPath, shapeCmper);
@@ -290,17 +273,14 @@ int shapeCmperFromSuggestedSvgName(std::string_view suggestedName)
     const std::string suggestedNameString(suggestedName);
     constexpr std::string_view prefix = "shape-";
     constexpr std::string_view suffix = ".svg";
-    if (suggestedNameString.rfind(prefix, 0) != 0
-        || suggestedNameString.size() <= prefix.size() + suffix.size()
+    if (suggestedNameString.rfind(prefix, 0) != 0 || suggestedNameString.size() <= prefix.size() + suffix.size()
         || !suggestedNameString.ends_with(suffix)) {
         return 0;
     }
     return std::stoi(suggestedNameString.substr(prefix.size(), suggestedNameString.size() - prefix.size() - suffix.size()));
 }
 
-void exportSvgWithAdapter(const std::filesystem::path& outputPath,
-                          const CommandInputData& inputData,
-                          const DenigmaContext& denigmaContext)
+void exportSvgWithAdapter(const std::filesystem::path& outputPath, const CommandInputData& inputData, const DenigmaContext& denigmaContext)
 {
 #ifdef DENIGMA_TEST
     if (denigmaContext.forTestOutput()) {
@@ -324,18 +304,20 @@ void exportSvgWithAdapter(const std::filesystem::path& outputPath,
 
     std::vector<PendingSvg> pendingSvgs;
     const auto options = makeSvgOptions(denigmaContext);
-    converter->convert(enigmaXmlBytes(inputData), [&](std::string_view suggestedName, std::span<const std::byte> svgData) {
-        std::string data;
-        data.resize(svgData.size());
-        std::memcpy(data.data(), svgData.data(), svgData.size());
-        pendingSvgs.push_back(PendingSvg{ shapeCmperFromSuggestedSvgName(suggestedName), std::move(data) });
-    }, ConversionRequest{ &options });
+    converter->convert(
+        enigmaXmlBytes(inputData),
+        [&](std::string_view suggestedName, std::span<const std::byte> svgData) {
+            std::string data;
+            data.resize(svgData.size());
+            std::memcpy(data.data(), svgData.data(), svgData.size());
+            pendingSvgs.push_back(PendingSvg{shapeCmperFromSuggestedSvgName(suggestedName), std::move(data)});
+        },
+        ConversionRequest{&options});
 
     const bool multipleShapes = pendingSvgs.size() > 1;
     size_t generatedCount = 0;
     for (const auto& pendingSvg : pendingSvgs) {
-        const auto resolvedOutputPath = resolveSvgOutputPath(
-            outputPath, pendingSvg.shapeCmper, denigmaContext.outputIsFilename, multipleShapes);
+        const auto resolvedOutputPath = resolveSvgOutputPath(outputPath, pendingSvg.shapeCmper, denigmaContext.outputIsFilename, multipleShapes);
         if (!denigmaContext.validatePathsAndOptions(resolvedOutputPath)) {
             continue;
         }
@@ -359,34 +341,34 @@ constexpr auto inputProcessors = []() {
     struct InputProcessor
     {
         std::u8string_view extension;
-        CommandInputData(*processor)(const std::filesystem::path&, const DenigmaContext&);
+        CommandInputData (*processor)(const std::filesystem::path&, const DenigmaContext&);
     };
 
     return std::to_array<InputProcessor>({
-            { MUSX_EXTENSION, formats::enigmaxml::detail::extractMusxInputData },
-            { ENIGMAXML_EXTENSION, formats::enigmaxml::detail::readEnigmaXmlInputData },
-            { ENIGMAXML_ZIP_EXTENSION, formats::enigmaxml::detail::readZippedEnigmaXmlInputData },
-        });
-    }();
+        {MUSX_EXTENSION, formats::enigmaxml::detail::extractMusxInputData},
+        {ENIGMAXML_EXTENSION, formats::enigmaxml::detail::readEnigmaXmlInputData},
+        {ENIGMAXML_ZIP_EXTENSION, formats::enigmaxml::detail::readZippedEnigmaXmlInputData},
+    });
+}();
 
 // Output format processors
 constexpr auto outputProcessors = []() {
     struct OutputProcessor
     {
         std::u8string_view extension;
-        void(*processor)(const std::filesystem::path&, const CommandInputData&, const DenigmaContext&);
+        void (*processor)(const std::filesystem::path&, const CommandInputData&, const DenigmaContext&);
     };
 
     return std::to_array<OutputProcessor>({
-            { MUSX_EXTENSION, formats::enigmaxml::detail::writeMusxForCli },
-            { ENIGMAXML_EXTENSION, formats::enigmaxml::detail::writeEnigmaXml },
-            { MSS_EXTENSION, exportMssWithAdapter },
-            { SVG_EXTENSION, exportSvgWithAdapter },
-            { MNX_EXTENSION, exportMnxJsonWithAdapter },
-            { JSON_EXTENSION, exportMnxJsonWithAdapter },
-            { MUSICXML_EXTENSION, exportMusicXmlWithAdapter },
-        });
-    }();
+        {MUSX_EXTENSION, formats::enigmaxml::detail::writeMusxForCli},
+        {ENIGMAXML_EXTENSION, formats::enigmaxml::detail::writeEnigmaXml},
+        {MSS_EXTENSION, exportMssWithAdapter},
+        {SVG_EXTENSION, exportSvgWithAdapter},
+        {MNX_EXTENSION, exportMnxJsonWithAdapter},
+        {JSON_EXTENSION, exportMnxJsonWithAdapter},
+        {MUSICXML_EXTENSION, exportMusicXmlWithAdapter},
+    });
+}();
 
 int ExportCommand::showHelpPage(const std::string_view& programName, const std::string& indentSpaces) const
 {
@@ -408,14 +390,18 @@ int ExportCommand::showHelpPage(const std::string_view& programName, const std::
     std::cout << indentSpaces << "Specific options:" << std::endl;
     std::cout << indentSpaces << "  --all-fonts-available          Tells " << DENIGMA_NAME
               << " that every source font will be available when the output is read." << std::endl;
-    std::cout << indentSpaces << "  --smufl-rest-position          Shift non-floating whole rests to the SMuFL glyph-origin position (default)." << std::endl;
+    std::cout << indentSpaces << "  --smufl-rest-position          Shift non-floating whole rests to the SMuFL glyph-origin position (default)."
+              << std::endl;
     std::cout << indentSpaces << "  --finale-rest-position         Preserve Finale's nominal position for non-floating whole rests." << std::endl;
     std::cout << indentSpaces << "  --cue-layer <1..4>              Treat entries in this Finale layer as cue material." << std::endl;
-    std::cout << indentSpaces << "  --mnx-schema [file-path]        Validate against this json schema file rather than the embedded one." << std::endl;
+    std::cout << indentSpaces << "  --mnx-schema [file-path]        Validate against this json schema file rather than the embedded one."
+              << std::endl;
     std::cout << indentSpaces << "  --gap-report                    Write an MNX gap report beside the output as <output>.gaps.json." << std::endl;
     std::cout << indentSpaces << "  --include-tempo-tool            Include tempo changes created with the Tempo Tool." << std::endl;
-    std::cout << indentSpaces << "  --no-include-tempo-tool         Exclude tempo changes created with the Tempo Tool (default: exclude)." << std::endl;
-    std::cout << indentSpaces << "  --pretty-print [indent-spaces]  Print human readable format (default: on, " << JSON_INDENT_SPACES << " indent spaces)." << std::endl;
+    std::cout << indentSpaces << "  --no-include-tempo-tool         Exclude tempo changes created with the Tempo Tool (default: exclude)."
+              << std::endl;
+    std::cout << indentSpaces << "  --pretty-print [indent-spaces]  Print human readable format (default: on, " << JSON_INDENT_SPACES
+              << " indent spaces)." << std::endl;
     std::cout << indentSpaces << "  --no-pretty-print               Print compact json with no indentions or new lines." << std::endl;
     std::cout << indentSpaces << "  --shape-def <id[,id...]>        Export only specific ShapeDef cmper IDs (repeatable)." << std::endl;
     std::cout << indentSpaces << "  --svg-unit <none|px|pt|pc|cm|mm|in>  Unit suffix for SVG width/height (default: pt)." << std::endl;
@@ -473,7 +459,8 @@ CommandInputData ExportCommand::processInput(const std::filesystem::path& inputP
     return inputProcessor(inputPath, denigmaContext);
 }
 
-void ExportCommand::processOutput(const CommandInputData& inputData, const std::filesystem::path& outputPath, const std::filesystem::path&, const DenigmaContext& denigmaContext) const
+void ExportCommand::processOutput(const CommandInputData& inputData, const std::filesystem::path& outputPath, const std::filesystem::path&,
+    const DenigmaContext& denigmaContext) const
 {
     MusxLoggerScope musxLogger(makeMusxLogCallback(denigmaContext));
     auto outputProcessor = findProcessor(outputProcessors, outputPath.extension().u8string());

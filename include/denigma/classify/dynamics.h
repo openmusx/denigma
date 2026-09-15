@@ -35,8 +35,7 @@ namespace dynamics {
 
 /// @enum Dynamic
 /// @brief Dynamic marking classes recognized by the classifier.
-enum class Dynamic
-{
+enum class Dynamic {
     None,
     Other,
     pppppp,
@@ -71,8 +70,7 @@ enum class Dynamic
 
 /// @enum Change
 /// @brief Whether a classified dynamic is absolute or indicates relative motion.
-enum class Change
-{
+enum class Change {
     Absolute,
     RelativeIncrease,
     RelativeDecrease
@@ -80,8 +78,7 @@ enum class Change
 
 /// @enum Reinforcement
 /// @brief Leading syllable that reinforces a dynamic attack.
-enum class Reinforcement
-{
+enum class Reinforcement {
     None,           ///< no leading syllable, as in "fz"
     Sforzando,      ///< "s", as in "sf", "sfz", "sfp"
     Rinforzando     ///< "r", as in "rf", "rfz"
@@ -91,8 +88,7 @@ enum class Reinforcement
 /// @brief An absolute dynamic level, i.e. a dynamic marking carrying none of the affixes in
 /// #Composition. Unlike #Dynamic, this enumerates only levels, so it is a total description of
 /// what #Composition::level and #Composition::subsequent can hold.
-enum class Level
-{
+enum class Level {
     None,           ///< no level is present
     Other,          ///< a level is present but is louder or softer than this enum can name
     pppppp,
@@ -133,14 +129,14 @@ enum class Level
 struct Composition
 {
     /// @brief Leading reinforcement syllable, if any.
-    Reinforcement reinforcement{ Reinforcement::None };
+    Reinforcement reinforcement{Reinforcement::None};
     /// @brief The sounding level, e.g. Level::f for "sfzp".
-    Level level{ Level::None };
+    Level level{Level::None};
     /// @brief Whether the marking carries the forzato "z", as in "fz", "sfz", "sffz", "rfz".
     bool forzato{};
     /// @brief The level after the attack, e.g. Level::p for "sfzp". Level::None if the marking
     /// does not fall back to another level.
-    Level subsequent{ Level::None };
+    Level subsequent{Level::None};
 };
 
 /// @struct Mark

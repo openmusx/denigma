@@ -56,9 +56,7 @@ std::optional<keyboardpedal::Type> classifyNormalizedPedalText(std::string_view 
 {
     std::string normalizedStorage = normalizePedalText(text);
     std::string_view normalized = normalizedStorage;
-    constexpr std::array trailingQualifiers = {
-        std::string_view{ " sempre" }, std::string_view{ " simile" }, std::string_view{ " ad lib" }
-    };
+    constexpr std::array trailingQualifiers = {std::string_view{" sempre"}, std::string_view{" simile"}, std::string_view{" ad lib"}};
     for (bool removed = true; removed;) {
         removed = false;
         for (const auto qualifier : trailingQualifiers) {
@@ -69,7 +67,7 @@ std::optional<keyboardpedal::Type> classifyNormalizedPedalText(std::string_view 
             }
         }
     }
-    constexpr std::array leadingQualifiers = { std::string_view{ "sempre " }, std::string_view{ "con " } };
+    constexpr std::array leadingQualifiers = {std::string_view{"sempre "}, std::string_view{"con "}};
     for (const auto qualifier : leadingQualifiers) {
         if (normalized.starts_with(qualifier)) {
             normalized.remove_prefix(qualifier.size());
@@ -142,13 +140,12 @@ std::optional<keyboardpedal::Type> standaloneGlyphType(std::string_view glyphNam
 std::optional<KeyboardPedalClassification> classifyKeyboardPedal(std::string_view text)
 {
     if (const auto type = classifyNormalizedPedalText(text)) {
-        return KeyboardPedalClassification{ *type, false };
+        return KeyboardPedalClassification{*type, false};
     }
     return std::nullopt;
 }
 
-std::optional<KeyboardPedalClassification> classifyKeyboardPedal(
-    const musx::util::EnigmaParsingContext& textContext)
+std::optional<KeyboardPedalClassification> classifyKeyboardPedal(const musx::util::EnigmaParsingContext& textContext)
 {
     if (!textContext) {
         return std::nullopt;
@@ -157,8 +154,8 @@ std::optional<KeyboardPedalClassification> classifyKeyboardPedal(
     std::string symbolicText;
     std::optional<keyboardpedal::Type> standaloneType;
     bool recognizedGlyph = false;
-    const auto chunks = textContext.collectEnigmaTextChunks(
-        musx::util::EnigmaString::EnigmaParsingOptions(musx::util::EnigmaString::AccidentalStyle::Unicode));
+    const auto chunks =
+        textContext.collectEnigmaTextChunks(musx::util::EnigmaString::EnigmaParsingOptions(musx::util::EnigmaString::AccidentalStyle::Unicode));
     for (const auto& chunk : chunks) {
         if (!chunk.styles.font || chunk.styles.font->hidden || chunk.text.empty()) {
             continue;
@@ -207,8 +204,7 @@ std::optional<KeyboardPedalClassification> classifyKeyboardPedal(
                     recognizedGlyph = true;
                     continue;
                 }
-                if (*glyphName == "keyboardPedalSost" || *glyphName == "keyboardPedalSostNoDot"
-                    || *glyphName == "keyboardPedalS") {
+                if (*glyphName == "keyboardPedalSost" || *glyphName == "keyboardPedalSostNoDot" || *glyphName == "keyboardPedalS") {
                     symbolicText += "sost";
                     recognizedGlyph = true;
                     continue;
@@ -227,10 +223,10 @@ std::optional<KeyboardPedalClassification> classifyKeyboardPedal(
         if (!normalizedRemainder.empty() && normalizedRemainder != "sempre") {
             return std::nullopt;
         }
-        return KeyboardPedalClassification{ *standaloneType, true };
+        return KeyboardPedalClassification{*standaloneType, true};
     }
     if (const auto type = classifyNormalizedPedalText(symbolicText)) {
-        return KeyboardPedalClassification{ *type, recognizedGlyph };
+        return KeyboardPedalClassification{*type, recognizedGlyph};
     }
     return std::nullopt;
 }

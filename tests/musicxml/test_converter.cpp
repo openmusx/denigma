@@ -18,13 +18,13 @@
  */
 #include <cstddef>
 #include <cstring>
-#include <sstream>
 #include <span>
+#include <sstream>
 #include <string>
 #include <vector>
 
-#include "gtest/gtest.h"
 #include "pugixml.hpp"
+#include "gtest/gtest.h"
 
 #include "denigma/formats/musicxml.h"
 #include "denigma/io/random_access_reader.h"
@@ -46,11 +46,10 @@ TEST(ConverterApi, EnigmaXmlToMusicXmlWritesToStream)
     std::string xmlText;
     denigma::formats::musicxml::Options options;
     options.common.sourceName = "notAscii-其れ.enigmaxml";
-    const auto result = converter->convert(std::as_bytes(std::span<const char>(input.data(), input.size())),
-                                           [&](std::string_view, std::span<const std::byte> data) {
-                                               xmlText.assign(reinterpret_cast<const char*>(data.data()), data.size());
-                                           },
-                                           denigma::ConversionRequest{ &options });
+    const auto result = converter->convert(
+        std::as_bytes(std::span<const char>(input.data(), input.size())),
+        [&](std::string_view, std::span<const std::byte> data) { xmlText.assign(reinterpret_cast<const char*>(data.data()), data.size()); },
+        denigma::ConversionRequest{&options});
 
     EXPECT_TRUE(result.diagnostics().empty());
     ASSERT_FALSE(xmlText.empty());
@@ -74,11 +73,9 @@ TEST(ConverterApi, MusxToMusicXmlWritesToStream)
     std::string xmlText;
     denigma::formats::musicxml::Options options;
     options.common.sourceName = "notAscii-其れ.musx";
-    const auto result = converter->convert(input,
-                                           [&](std::string_view, std::span<const std::byte> data) {
-                                               xmlText.assign(reinterpret_cast<const char*>(data.data()), data.size());
-                                           },
-                                           denigma::ConversionRequest{ &options });
+    const auto result = converter->convert(
+        input, [&](std::string_view, std::span<const std::byte> data) { xmlText.assign(reinterpret_cast<const char*>(data.data()), data.size()); },
+        denigma::ConversionRequest{&options});
 
     EXPECT_TRUE(result.diagnostics().empty());
     ASSERT_FALSE(xmlText.empty());
@@ -103,9 +100,9 @@ TEST(ConverterApi, MusxToMusicXmlPreservesTextWhenAllFontsAreAvailable)
     denigma::formats::musicxml::Options options;
     options.common.sourceName = "tempo_varied_staves.musx";
     options.common.allFontsAvailable = true;
-    const auto result = converter->convert(input, [&](std::string_view, std::span<const std::byte> data) {
-        xmlText.assign(reinterpret_cast<const char*>(data.data()), data.size());
-    }, denigma::ConversionRequest{ &options });
+    const auto result = converter->convert(
+        input, [&](std::string_view, std::span<const std::byte> data) { xmlText.assign(reinterpret_cast<const char*>(data.data()), data.size()); },
+        denigma::ConversionRequest{&options});
 
     EXPECT_TRUE(result.diagnostics().empty());
     pugi::xml_document document;
@@ -144,12 +141,15 @@ TEST(ConverterApi, MusxToMusicXmlInvokesOutputCallbackForParts)
     denigma::formats::musicxml::Options options;
     options.common.sourceName = "notAscii-其れ.musx";
     options.allPartsAndScore = true;
-    const auto result = converter->convert(input, [&](std::string_view suggestedName, std::span<const std::byte> data) {
-        std::string outputData;
-        outputData.resize(data.size());
-        std::memcpy(outputData.data(), data.data(), data.size());
-        outputs.push_back(Output{ std::string(suggestedName), std::move(outputData) });
-    }, denigma::ConversionRequest{ &options });
+    const auto result = converter->convert(
+        input,
+        [&](std::string_view suggestedName, std::span<const std::byte> data) {
+            std::string outputData;
+            outputData.resize(data.size());
+            std::memcpy(outputData.data(), data.data(), data.size());
+            outputs.push_back(Output{std::string(suggestedName), std::move(outputData)});
+        },
+        denigma::ConversionRequest{&options});
 
     EXPECT_TRUE(result.diagnostics().empty());
     ASSERT_GE(outputs.size(), 2);
@@ -180,9 +180,10 @@ TEST(ConverterApi, MusxToMusicXmlEmitsCuesOnlyWhereVisible)
     denigma::formats::musicxml::Options options;
     options.common.sourceName = "multimeas_cue.musx";
     options.allPartsAndScore = true;
-    const auto result = converter->convert(input, [&](std::string_view, std::span<const std::byte> data) {
-        outputs.emplace_back(reinterpret_cast<const char*>(data.data()), data.size());
-    }, denigma::ConversionRequest{ &options });
+    const auto result = converter->convert(
+        input,
+        [&](std::string_view, std::span<const std::byte> data) { outputs.emplace_back(reinterpret_cast<const char*>(data.data()), data.size()); },
+        denigma::ConversionRequest{&options});
 
     EXPECT_TRUE(result.diagnostics().empty());
     ASSERT_EQ(outputs.size(), 3u);
@@ -223,9 +224,9 @@ TEST(ConverterApi, MusxToMusicXmlPlumbsForcedCueLayer)
     denigma::formats::musicxml::Options options;
     options.common.sourceName = "forced_bass_clef.musx";
     options.cueLayer = 1;
-    const auto result = converter->convert(input, [&](std::string_view, std::span<const std::byte> data) {
-        xmlText.assign(reinterpret_cast<const char*>(data.data()), data.size());
-    }, denigma::ConversionRequest{ &options });
+    const auto result = converter->convert(
+        input, [&](std::string_view, std::span<const std::byte> data) { xmlText.assign(reinterpret_cast<const char*>(data.data()), data.size()); },
+        denigma::ConversionRequest{&options});
 
     EXPECT_TRUE(result.diagnostics().empty());
     pugi::xml_document document;
@@ -249,9 +250,9 @@ TEST(ConverterApi, MusxToMusicXmlRetainsForcedCueLayerExpressions)
     denigma::formats::musicxml::Options options;
     options.common.sourceName = "techniques.musx";
     options.cueLayer = 1;
-    const auto result = converter->convert(input, [&](std::string_view, std::span<const std::byte> data) {
-        xmlText.assign(reinterpret_cast<const char*>(data.data()), data.size());
-    }, denigma::ConversionRequest{ &options });
+    const auto result = converter->convert(
+        input, [&](std::string_view, std::span<const std::byte> data) { xmlText.assign(reinterpret_cast<const char*>(data.data()), data.size()); },
+        denigma::ConversionRequest{&options});
 
     EXPECT_TRUE(result.diagnostics().empty());
     pugi::xml_document document;
@@ -276,9 +277,9 @@ TEST(ConverterApi, MusxToMusicXmlRetainsForcedCueLayerTiesAsNotationOnly)
     denigma::formats::musicxml::Options options;
     options.common.sourceName = "tie_target_types.musx";
     options.cueLayer = 1;
-    const auto result = converter->convert(input, [&](std::string_view, std::span<const std::byte> data) {
-        xmlText.assign(reinterpret_cast<const char*>(data.data()), data.size());
-    }, denigma::ConversionRequest{ &options });
+    const auto result = converter->convert(
+        input, [&](std::string_view, std::span<const std::byte> data) { xmlText.assign(reinterpret_cast<const char*>(data.data()), data.size()); },
+        denigma::ConversionRequest{&options});
 
     EXPECT_TRUE(result.diagnostics().empty());
     pugi::xml_document document;
@@ -319,11 +320,10 @@ TEST(ConverterApi, EnigmaXmlToMusicXmlRetainsForcedGraceCueTieAsNotationOnly)
     denigma::formats::musicxml::Options options;
     options.common.sourceName = "grace-cue-tie.enigmaxml";
     options.cueLayer = 1;
-    const auto result = converter->convert(std::as_bytes(std::span<const char>(modifiedInputText.data(), modifiedInputText.size())),
-                                           [&](std::string_view, std::span<const std::byte> data) {
-                                               xmlText.assign(reinterpret_cast<const char*>(data.data()), data.size());
-                                           },
-                                           denigma::ConversionRequest{ &options });
+    const auto result = converter->convert(
+        std::as_bytes(std::span<const char>(modifiedInputText.data(), modifiedInputText.size())),
+        [&](std::string_view, std::span<const std::byte> data) { xmlText.assign(reinterpret_cast<const char*>(data.data()), data.size()); },
+        denigma::ConversionRequest{&options});
 
     EXPECT_TRUE(result.diagnostics().empty());
     pugi::xml_document document;

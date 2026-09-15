@@ -32,8 +32,7 @@ namespace octave {
 
 /// @enum Direction
 /// @brief The octave-displacement direction stated by a marking.
-enum class Direction
-{
+enum class Direction {
     Unknown,    ///< The marking does not state a direction (e.g., a bare "8" glyph).
     Up,         ///< Notes sound above written pitch (alta).
     Down        ///< Notes sound below written pitch (bassa).
@@ -47,7 +46,7 @@ enum class Direction
 struct OctaveMarkingClassification
 {
     int magnitude{};                                        ///< Number of octaves displaced (1, 2, or 3).
-    octave::Direction direction{ octave::Direction::Unknown }; ///< The stated direction, when the marking states one.
+    octave::Direction direction{octave::Direction::Unknown}; ///< The stated direction, when the marking states one.
     bool directionIsExplicit{};                             ///< True when the direction is unmistakable (e.g., "8vb", "bassa").
                                                             ///< "va"/"ma" spellings imply alta only weakly: engravers also use
                                                             ///< them below the staff to mean bassa.
@@ -64,7 +63,6 @@ std::optional<OctaveMarkingClassification> classifyOctaveMarking(std::string_vie
 /// @brief Classifies Finale text as an octave-displacement marking, resolving SMuFL
 /// ottava glyphs (including parenthesized and letter-composed forms).
 [[nodiscard]]
-std::optional<OctaveMarkingClassification> classifyOctaveMarking(
-    const musx::util::EnigmaParsingContext& textContext);
+std::optional<OctaveMarkingClassification> classifyOctaveMarking(const musx::util::EnigmaParsingContext& textContext);
 
 } // namespace denigma::classify

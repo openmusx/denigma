@@ -19,15 +19,15 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#include <string>
 #include <filesystem>
-#include <iterator>
 #include <fstream>
+#include <iterator>
+#include <string>
 
-#include "gtest/gtest.h"
 #include "core/denigma.h"
 #include "mnxdom.h"
 #include "test_utils.h"
+#include "gtest/gtest.h"
 
 using namespace denigma;
 
@@ -103,13 +103,12 @@ void checkMeas1MidMeasureClefExport(bool splitInstruments)
     std::filesystem::path inputPath;
     copyInputToOutput("meas1_midmeasureclef.musx", inputPath);
 
-    ArgList args = { DENIGMA_NAME, "export", pathString(inputPath), "--mnx" };
+    ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), "--mnx"};
     if (splitInstruments) {
         args.add("--split-instruments");
     }
-    checkStderr({ "Processing", pathString(inputPath.filename()), "!validation error" }, [&]() {
-        EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath);
-    });
+    checkStderr({"Processing", pathString(inputPath.filename()), "!validation error"},
+        [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath); });
 
     auto doc = mnx::Document::create(inputPath.parent_path() / "meas1_midmeasureclef.mnx");
     auto parts = doc.parts();
@@ -129,16 +128,14 @@ void checkMeas1MidMeasureClefExport(bool splitInstruments)
 
 } // namespace
 
-
 TEST(MnxParts, MultiInstrumentTest)
 {
     setupTestDataPaths();
     std::filesystem::path inputPath;
     copyInputToOutput("piano3staff.musx", inputPath);
-    ArgList args = { DENIGMA_NAME, "export", pathString(inputPath), "--mnx" };
-    checkStderr({ "Processing", pathString(inputPath.filename()), "!validation error" }, [&]() {
-        EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath);
-    });
+    ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), "--mnx"};
+    checkStderr({"Processing", pathString(inputPath.filename()), "!validation error"},
+        [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath); });
 
     auto doc = mnx::Document::create(inputPath.parent_path() / "piano3staff.mnx");
     auto parts = doc.parts();
@@ -155,10 +152,9 @@ TEST(MnxParts, ForcedClef)
     setupTestDataPaths();
     std::filesystem::path inputPath;
     copyInputToOutput("forced_bass_clef_smufl.musx", inputPath);
-    ArgList args = { DENIGMA_NAME, "export", pathString(inputPath), "--mnx" };
-    checkStderr({ "Processing", pathString(inputPath.filename()), "!validation error" }, [&]() {
-        EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath);
-    });
+    ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), "--mnx"};
+    checkStderr({"Processing", pathString(inputPath.filename()), "!validation error"},
+        [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath); });
 
     auto doc = mnx::Document::create(inputPath.parent_path() / "forced_bass_clef_smufl.mnx");
     auto parts = doc.parts();
@@ -197,10 +193,9 @@ TEST(MnxParts, ForcedClefRestatesPrevailingClef)
     setupTestDataPaths();
     std::filesystem::path inputPath;
     copyInputToOutput("clef_forced_after_barline.musx", inputPath);
-    ArgList args = { DENIGMA_NAME, "export", pathString(inputPath), "--mnx" };
-    checkStderr({ "Processing", pathString(inputPath.filename()), "!validation error" }, [&]() {
-        EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath);
-    });
+    ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), "--mnx"};
+    checkStderr({"Processing", pathString(inputPath.filename()), "!validation error"},
+        [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath); });
 
     auto doc = mnx::Document::create(inputPath.parent_path() / "clef_forced_after_barline.mnx");
     auto parts = doc.parts();
@@ -210,7 +205,7 @@ TEST(MnxParts, ForcedClefRestatesPrevailingClef)
     ASSERT_GE(measures.size(), 6);
 
     // Measure 5 is the clef change itself; measure 6 is the forced restatement of that clef.
-    for (size_t measureIndex : { size_t(4), size_t(5) }) {
+    for (size_t measureIndex : {size_t(4), size_t(5)}) {
         SCOPED_TRACE("measure " + std::to_string(measureIndex + 1));
         auto measure = measures[measureIndex];
         ASSERT_TRUE(measure.clefs().has_value()) << measure.dump(4);
@@ -238,10 +233,9 @@ TEST(MnxParts, PartiallyHiddenCue)
     setupTestDataPaths();
     std::filesystem::path inputPath;
     copyInputToOutput("multimeas_cue.musx", inputPath);
-    ArgList args = { DENIGMA_NAME, "export", pathString(inputPath), "--mnx" };
-    checkStderr({ "Processing", pathString(inputPath.filename()), "!validation error", "!Semantic validation errors" }, [&]() {
-        EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath);
-    });
+    ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), "--mnx"};
+    checkStderr({"Processing", pathString(inputPath.filename()), "!validation error", "!Semantic validation errors"},
+        [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath); });
 }
 
 TEST(MnxParts, CueLayer)
@@ -250,13 +244,13 @@ TEST(MnxParts, CueLayer)
     std::filesystem::path inputPath;
     copyInputToOutput("forced_bass_clef.musx", inputPath);
     // The cue notifications are verbose-only, so --verbose is required to observe them.
-    ArgList args = { DENIGMA_NAME, "export", pathString(inputPath), "--mnx", "--cue-layer", "1", "--no-validate", "--verbose" };
-    checkStderr(std::vector<std::string>{
-        "discarded cue material detected by --cue-layer in measure 2, staff 1, layer 1; MNX does not currently support cues.",
-        "discarded 1 cue frames because MNX does not currently support cues.",
-    }, [&]() {
-        EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx with cue layer: " << pathString(inputPath);
-    });
+    ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), "--mnx", "--cue-layer", "1", "--no-validate", "--verbose"};
+    checkStderr(
+        std::vector<std::string>{
+            "discarded cue material detected by --cue-layer in measure 2, staff 1, layer 1; MNX does not currently support cues.",
+            "discarded 1 cue frames because MNX does not currently support cues.",
+        },
+        [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx with cue layer: " << pathString(inputPath); });
 }
 
 TEST(MnxParts, MeasureRepeats)
@@ -264,18 +258,20 @@ TEST(MnxParts, MeasureRepeats)
     setupTestDataPaths();
     std::filesystem::path inputPath;
     copyInputToOutput("measure_repeats.musx", inputPath);
-    ArgList args = { DENIGMA_NAME, "export", pathString(inputPath), "--mnx" };
-    checkStderr({
-        "Processing", pathString(inputPath.filename()), "!validation error",
+    ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), "--mnx"};
+    checkStderr(
+        {
+            "Processing",
+            pathString(inputPath.filename()),
+            "!validation error",
         // A 2-bar repeat in measure 2 would repeat measures 0 and 1, and one in measure 14 would
         // occupy a measure 15 that does not exist. Both are semantic violations in MNX.
-        "has a 2-bar repeat in measure 2 that would reach back before the first measure",
-        "has a 2-bar repeat in measure 14 that would extend past the last measure",
+            "has a 2-bar repeat in measure 2 that would reach back before the first measure",
+            "has a 2-bar repeat in measure 14 that would extend past the last measure",
         // Measure 8 asks for a 1-bar repeat while already covered by the 2-bar repeat in measure 7.
-        "has a 1-bar repeat in measure 8 that falls inside the 2-bar repeat beginning in measure 7",
-    }, [&]() {
-        EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath);
-    });
+            "has a 1-bar repeat in measure 8 that falls inside the 2-bar repeat beginning in measure 7",
+        },
+        [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath); });
 
     auto doc = mnx::Document::create(inputPath.parent_path() / "measure_repeats.mnx");
     auto parts = doc.parts();
@@ -319,10 +315,9 @@ TEST(MnxParts, MeasureRepeats)
     // measure is either emptied entirely or keeps the layers the style leaves alone. Measures 1
     // through 3 hold no entries in the source at all; only measure 1, which has no alternate
     // notation, gets a full-measure rest.
-    const std::array<size_t, 14> expectedSequenceCounts = { 1, 0, 0, 0, 1, 2, 1, 1, 0, 1, 1, 0, 0, 0 };
+    const std::array<size_t, 14> expectedSequenceCounts = {1, 0, 0, 0, 1, 2, 1, 1, 0, 1, 1, 0, 0, 0};
     for (size_t x = 0; x < expectedSequenceCounts.size(); x++) {
-        EXPECT_EQ(measures[x].sequences().size(), expectedSequenceCounts[x])
-            << "measure " << (x + 1) << " sequence count";
+        EXPECT_EQ(measures[x].sequences().size(), expectedSequenceCounts[x]) << "measure " << (x + 1) << " sequence count";
     }
     ASSERT_EQ(measures[0].sequences().size(), 1);
     EXPECT_TRUE(measures[0].sequences()[0].fullMeasure().has_value()) << "measure 1 should be a full-measure rest";
@@ -333,14 +328,16 @@ TEST(MnxParts, MeasureRepeatCounters)
     setupTestDataPaths();
     std::filesystem::path inputPath;
     copyInputToOutput("measure_repeat_counters.musx", inputPath);
-    ArgList args = { DENIGMA_NAME, "export", pathString(inputPath), "--mnx" };
-    checkStderr({
-        "Processing", pathString(inputPath.filename()), "!validation error",
+    ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), "--mnx"};
+    checkStderr(
+        {
+            "Processing",
+            pathString(inputPath.filename()),
+            "!validation error",
         // Every counter in the fixture belongs to a measure that declares a repeat, so none is dropped.
-        "!measure repeat counter",
-    }, [&]() {
-        EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath);
-    });
+            "!measure repeat counter",
+        },
+        [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath); });
 
     auto doc = mnx::Document::create(inputPath.parent_path() / "measure_repeat_counters.mnx");
     auto parts = doc.parts();
@@ -382,10 +379,9 @@ TEST(MnxParts, DynamicAccentAffixes)
     setupTestDataPaths();
     std::filesystem::path inputPath;
     copyInputToOutput("slurs_2voices.musx", inputPath);
-    ArgList args = { DENIGMA_NAME, "export", pathString(inputPath), "--mnx" };
-    checkStderr({ "Processing", pathString(inputPath.filename()), "!validation error" }, [&]() {
-        EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath);
-    });
+    ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), "--mnx"};
+    checkStderr({"Processing", pathString(inputPath.filename()), "!validation error"},
+        [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath); });
 
     auto doc = mnx::Document::create(inputPath.parent_path() / "slurs_2voices.mnx");
     auto parts = doc.parts();
@@ -411,10 +407,9 @@ TEST(MnxParts, DynamicsGraceIndices)
     setupTestDataPaths();
     std::filesystem::path inputPath;
     copyInputToOutput("grace_indices.musx", inputPath);
-    ArgList args = { DENIGMA_NAME, "export", pathString(inputPath), "--mnx" };
-    checkStderr({ "Processing", pathString(inputPath.filename()), "!validation error" }, [&]() {
-        EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath);
-    });
+    ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), "--mnx"};
+    checkStderr({"Processing", pathString(inputPath.filename()), "!validation error"},
+        [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath); });
 
     auto doc = mnx::Document::create(inputPath.parent_path() / "grace_indices.mnx");
     auto parts = doc.parts();

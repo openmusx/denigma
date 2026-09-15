@@ -36,20 +36,13 @@ namespace {
 musx::util::SvgConvert::SvgUnit toMusxSvgUnit(Unit unit)
 {
     switch (unit) {
-    case Unit::None:
-        return musx::util::SvgConvert::SvgUnit::None;
-    case Unit::Pixels:
-        return musx::util::SvgConvert::SvgUnit::Pixels;
-    case Unit::Points:
-        return musx::util::SvgConvert::SvgUnit::Points;
-    case Unit::Picas:
-        return musx::util::SvgConvert::SvgUnit::Picas;
-    case Unit::Centimeters:
-        return musx::util::SvgConvert::SvgUnit::Centimeters;
-    case Unit::Millimeters:
-        return musx::util::SvgConvert::SvgUnit::Millimeters;
-    case Unit::Inches:
-        return musx::util::SvgConvert::SvgUnit::Inches;
+    case Unit::None: return musx::util::SvgConvert::SvgUnit::None;
+    case Unit::Pixels: return musx::util::SvgConvert::SvgUnit::Pixels;
+    case Unit::Points: return musx::util::SvgConvert::SvgUnit::Points;
+    case Unit::Picas: return musx::util::SvgConvert::SvgUnit::Picas;
+    case Unit::Centimeters: return musx::util::SvgConvert::SvgUnit::Centimeters;
+    case Unit::Millimeters: return musx::util::SvgConvert::SvgUnit::Millimeters;
+    case Unit::Inches: return musx::util::SvgConvert::SvgUnit::Inches;
     }
     return musx::util::SvgConvert::SvgUnit::Points;
 }
@@ -70,9 +63,8 @@ void applySvgOptions(DenigmaContext& context, const Options& options)
 
 } // namespace
 
-ConversionResult EnigmaXmlToSvgConverter::convert(std::span<const std::byte> input,
-                                                  const MultiOutputCallback& outputCallback,
-                                                  const Options& options) const
+ConversionResult EnigmaXmlToSvgConverter::convert(
+    std::span<const std::byte> input, const MultiOutputCallback& outputCallback, const Options& options) const
 {
     ConversionResult result;
     Buffer buffer;
@@ -82,34 +74,29 @@ ConversionResult EnigmaXmlToSvgConverter::convert(std::span<const std::byte> inp
     }
 
     DenigmaContext context(DENIGMA_NAME);
-    context.inputFilePath = options.common.sourceName.empty()
-        ? std::filesystem::path("input.enigmaxml")
-        : utils::utf8ToPath(options.common.sourceName);
+    context.inputFilePath =
+        options.common.sourceName.empty() ? std::filesystem::path("input.enigmaxml") : utils::utf8ToPath(options.common.sourceName);
     context.logCallback = options.common.logCallback;
     context.conversionResult = &result;
     applySvgOptions(context, options);
     MusxLoggerScope musxLogger(makeMusxLogCallback(context));
 
-    formats::svg::detail::convert(CommandInputData{ std::move(buffer), std::nullopt, {} }, context, outputCallback);
+    formats::svg::detail::convert(CommandInputData{std::move(buffer), std::nullopt, {}}, context, outputCallback);
     return result;
 }
 
-ConversionResult EnigmaXmlToSvgConverter::convert(std::span<const std::byte> input,
-                                                  const MultiOutputCallback& outputCallback,
-                                                  const ConversionRequest& request) const
+ConversionResult EnigmaXmlToSvgConverter::convert(
+    std::span<const std::byte> input, const MultiOutputCallback& outputCallback, const ConversionRequest& request) const
 {
     return convert(input, outputCallback, optionsFromRequest<Options>(request, "EnigmaXmlToSvgConverter"));
 }
 
-ConversionResult MusxToSvgConverter::convert(const IRandomAccessReader& input,
-                                             const MultiOutputCallback& outputCallback,
-                                             const Options& options) const
+ConversionResult MusxToSvgConverter::convert(
+    const IRandomAccessReader& input, const MultiOutputCallback& outputCallback, const Options& options) const
 {
     ConversionResult result;
     DenigmaContext context(DENIGMA_NAME);
-    context.inputFilePath = options.common.sourceName.empty()
-        ? std::filesystem::path("input.musx")
-        : utils::utf8ToPath(options.common.sourceName);
+    context.inputFilePath = options.common.sourceName.empty() ? std::filesystem::path("input.musx") : utils::utf8ToPath(options.common.sourceName);
     context.logCallback = options.common.logCallback;
     context.conversionResult = &result;
     applySvgOptions(context, options);
@@ -119,9 +106,8 @@ ConversionResult MusxToSvgConverter::convert(const IRandomAccessReader& input,
     return result;
 }
 
-ConversionResult MusxToSvgConverter::convert(const IRandomAccessReader& input,
-                                             const MultiOutputCallback& outputCallback,
-                                             const ConversionRequest& request) const
+ConversionResult MusxToSvgConverter::convert(
+    const IRandomAccessReader& input, const MultiOutputCallback& outputCallback, const ConversionRequest& request) const
 {
     return convert(input, outputCallback, optionsFromRequest<Options>(request, "MusxToSvgConverter"));
 }

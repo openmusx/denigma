@@ -25,9 +25,6 @@
 #include <filesystem>
 #include <string>
 
-bool compareXmlFiles(const std::filesystem::path& path1,
-                     const std::filesystem::path& path2,
-                     std::string& message);
+bool compareXmlFiles(const std::filesystem::path& path1, const std::filesystem::path& path2, std::string& message);
 
 bool shouldUseXmlComparison(const std::filesystem::path& path);
-

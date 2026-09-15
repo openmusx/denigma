@@ -47,14 +47,14 @@ struct TouchIntervalDefinition
     int soundingDiatonicSteps;  ///< Steps from the stopped note up to the theoretical sounding pitch.
 };
 
-constexpr std::array<TouchIntervalDefinition, 3> kTouchIntervals = { {
+constexpr std::array<TouchIntervalDefinition, 3> kTouchIntervals = {{
     // Touching a fourth above excites the 4th partial, which sounds 2 octaves above the stopped note.
-    { ArtificialHarmonic::TouchInterval::Fourth, 3, 2 * music_theory::STANDARD_DIATONIC_STEPS },
+    {ArtificialHarmonic::TouchInterval::Fourth, 3, 2 * music_theory::STANDARD_DIATONIC_STEPS},
     // Touching a major third above excites the 5th partial, which sounds 2 octaves + a major third above.
-    { ArtificialHarmonic::TouchInterval::MajorThird, 2, 2 * music_theory::STANDARD_DIATONIC_STEPS + 2 },
+    {ArtificialHarmonic::TouchInterval::MajorThird, 2, 2 * music_theory::STANDARD_DIATONIC_STEPS + 2},
     // Touching a fifth above excites the 3rd partial, which sounds 1 octave + a fifth above.
-    { ArtificialHarmonic::TouchInterval::Fifth, 4, music_theory::STANDARD_DIATONIC_STEPS + 4 },
-} };
+    {ArtificialHarmonic::TouchInterval::Fifth, 4, music_theory::STANDARD_DIATONIC_STEPS + 4},
+}};
 
 /// @brief Determines whether @p candidate is spelled exactly as @p fromNote transposed up by @p diatonicSteps
 /// (a perfect/major diatonic interval, per music_theory::Transposer::chromaticTranspose's convention of
@@ -90,7 +90,7 @@ EntryNoteheadClassification classifyEntryNoteheads(const musx::dom::EntryInfoPtr
     chordNotes.reserve(noteCount);
     for (size_t index = 0; index < noteCount; ++index) {
         musx::dom::NoteInfoPtr note(entryInfo, index);
-        chordNotes.push_back({ note, classifyNotehead(note) });
+        chordNotes.push_back({note, classifyNotehead(note)});
     }
 
     std::vector<bool> used(noteCount, false);
@@ -101,17 +101,14 @@ EntryNoteheadClassification classifyEntryNoteheads(const musx::dom::EntryInfoPtr
             continue;
         }
         for (size_t stoppedIndex = 0; stoppedIndex < noteCount; ++stoppedIndex) {
-            if (stoppedIndex == touchedIndex || used[stoppedIndex]
-                || chordNotes[stoppedIndex].notehead.shape != Shape::Regular) {
+            if (stoppedIndex == touchedIndex || used[stoppedIndex] || chordNotes[stoppedIndex].notehead.shape != Shape::Regular) {
                 continue;
             }
             const auto& stoppedNote = chordNotes[stoppedIndex].note;
             const auto& touchedNote = chordNotes[touchedIndex].note;
 
             const auto matchedInterval = std::find_if(kTouchIntervals.begin(), kTouchIntervals.end(),
-                [&](const TouchIntervalDefinition& candidate) {
-                    return isSpelledAtInterval(stoppedNote, candidate.diatonicSteps, touchedNote);
-                });
+                [&](const TouchIntervalDefinition& candidate) { return isSpelledAtInterval(stoppedNote, candidate.diatonicSteps, touchedNote); });
             if (matchedInterval == kTouchIntervals.end()) {
                 continue;
             }
@@ -143,7 +140,7 @@ EntryNoteheadClassification classifyEntryNoteheads(const musx::dom::EntryInfoPtr
 
     EntryNoteheadClassification result;
     if (!harmonics.empty()) {
-        result.value = ArtificialHarmonics{ std::move(harmonics) };
+        result.value = ArtificialHarmonics{std::move(harmonics)};
     }
     return result;
 }

@@ -26,11 +26,11 @@
 #include <string>
 #include <vector>
 
-#include "gtest/gtest.h"
-#include "mx/api/ScoreData.h"
 #include "musicxml_test.h"
+#include "mx/api/ScoreData.h"
 #include "pugixml.hpp"
 #include "test_utils.h"
+#include "gtest/gtest.h"
 
 using namespace denigma;
 using namespace denigma::test::musicxml;
@@ -80,7 +80,7 @@ std::vector<TupletNote> tupletNotes(const std::filesystem::path& musicXmlPath)
             ++entry.normalDots;
         }
         for (auto tuplet = notations.child("tuplet"); tuplet; tuplet = tuplet.next_sibling("tuplet")) {
-            entry.marks.push_back({ tuplet.attribute("type").value(), tuplet.attribute("number").value() });
+            entry.marks.push_back({tuplet.attribute("type").value(), tuplet.attribute("number").value()});
         }
         result.push_back(std::move(entry));
     }
@@ -119,9 +119,7 @@ TEST(MusicXmlTuplets, NestedTupletsCarryCumulativeTimeModification)
     std::vector<std::pair<std::string, int>> openCounts;
     for (const auto& note : notes) {
         for (const auto& mark : note.marks) {
-            const auto found = std::ranges::find_if(openCounts, [&mark](const auto& entry) {
-                return entry.first == mark.number;
-            });
+            const auto found = std::ranges::find_if(openCounts, [&mark](const auto& entry) { return entry.first == mark.number; });
             if (found == openCounts.end()) {
                 openCounts.emplace_back(mark.number, mark.type == "start" ? 1 : -1);
             } else {
@@ -166,9 +164,7 @@ TEST(MusicXmlTuplets, NestedSingletonTupletCarriesCumulativeRatio)
     std::vector<std::pair<std::string, int>> openCounts;
     for (const auto& note : notes) {
         for (const auto& mark : note.marks) {
-            const auto found = std::ranges::find_if(openCounts, [&mark](const auto& entry) {
-                return entry.first == mark.number;
-            });
+            const auto found = std::ranges::find_if(openCounts, [&mark](const auto& entry) { return entry.first == mark.number; });
             if (found == openCounts.end()) {
                 openCounts.emplace_back(mark.number, mark.type == "start" ? 1 : -1);
             } else {
@@ -245,8 +241,7 @@ TEST(MusicXmlTuplets, NormalTypeIsWrittenOnlyWhereRequested)
 {
     setupTestDataPaths();
 
-    const auto requested = createScoreDataFromMusxPath(
-        std::filesystem::path("inputs") / "zwei_gesange.musx");
+    const auto requested = createScoreDataFromMusxPath(std::filesystem::path("inputs") / "zwei_gesange.musx");
     ASSERT_TRUE(requested.has_value());
 
     size_t requestedCount = 0;

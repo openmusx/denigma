@@ -18,12 +18,12 @@
  */
 #include <cstddef>
 #include <ostream>
-#include <sstream>
 #include <span>
+#include <sstream>
 #include <vector>
 
-#include "gtest/gtest.h"
 #include "nlohmann/json.hpp"
+#include "gtest/gtest.h"
 
 #include "denigma/formats/mnx.h"
 #include "denigma/formats/mss.h"
@@ -34,11 +34,7 @@ namespace {
 
 template <typename OptionsT>
 concept MnxJsonOptionsForConcreteConverter = requires(const denigma::formats::mnx::EnigmaXmlToMnxJsonConverter& converter,
-                                                      std::span<const std::byte> input,
-                                                      std::ostream& output,
-                                                      const OptionsT& options) {
-    converter.convert(input, output, options);
-};
+    std::span<const std::byte> input, std::ostream& output, const OptionsT& options) { converter.convert(input, output, options); };
 
 static_assert(MnxJsonOptionsForConcreteConverter<denigma::formats::mnx::Options>);
 static_assert(!MnxJsonOptionsForConcreteConverter<denigma::formats::svg::Options>);
@@ -60,9 +56,7 @@ TEST(ConverterApi, ConcreteConverterAcceptsTypedOptions)
     options.indentSpaces = 2;
 
     std::ostringstream output;
-    const auto result = converter.convert(std::as_bytes(std::span<const char>(input.data(), input.size())),
-                                          output,
-                                          options);
+    const auto result = converter.convert(std::as_bytes(std::span<const char>(input.data(), input.size())), output, options);
 
     EXPECT_TRUE(result.diagnostics().empty());
 

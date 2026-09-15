@@ -53,10 +53,7 @@ constexpr std::string_view kSmartShapeOptionsXml = R"xml(
   </options>
 )xml";
 
-GeneralLineContext makeBuiltInLine(
-    std::string_view shapeType,
-    bool withOptions = true,
-    std::string_view extraShapeXml = {})
+GeneralLineContext makeBuiltInLine(std::string_view shapeType, bool withOptions = true, std::string_view extraShapeXml = {})
 {
     std::string xml = R"xml(<?xml version="1.0" encoding="UTF-8"?>
 <finale>
@@ -80,16 +77,11 @@ GeneralLineContext makeBuiltInLine(
 )xml";
     std::vector<char> buffer(xml.begin(), xml.end());
     auto document = musx::factory::DocumentFactory::create<denigma::MusxReader>(buffer);
-    return { document, document->getOthers()->get<others::SmartShape>(SCORE_PARTID, 1) };
+    return {document, document->getOthers()->get<others::SmartShape>(SCORE_PARTID, 1)};
 }
 
-GeneralLineContext makeCustomLine(
-    std::string_view lineXml,
-    std::string_view startText = {},
-    std::string_view continuationText = {},
-    std::string_view endText = {},
-    std::string_view centerFullText = {},
-    std::string_view centerAbbrText = {})
+GeneralLineContext makeCustomLine(std::string_view lineXml, std::string_view startText = {}, std::string_view continuationText = {},
+    std::string_view endText = {}, std::string_view centerFullText = {}, std::string_view centerAbbrText = {})
 {
     std::string xml = R"xml(<?xml version="1.0" encoding="UTF-8"?>
 <finale>
@@ -132,8 +124,7 @@ GeneralLineContext makeCustomLine(
 )xml";
     const auto appendText = [&](int number, std::string_view text) {
         if (!text.empty()) {
-            xml += "    <smartShapeText number=\"" + std::to_string(number) + "\">" + std::string(text)
-                + "</smartShapeText>\n";
+            xml += "    <smartShapeText number=\"" + std::to_string(number) + "\">" + std::string(text) + "</smartShapeText>\n";
         }
     };
     appendText(1, startText);
@@ -145,7 +136,7 @@ GeneralLineContext makeCustomLine(
 
     std::vector<char> buffer(xml.begin(), xml.end());
     auto document = musx::factory::DocumentFactory::create<denigma::MusxReader>(buffer);
-    return { document, document->getOthers()->get<others::SmartShape>(SCORE_PARTID, 1) };
+    return {document, document->getOthers()->get<others::SmartShape>(SCORE_PARTID, 1)};
 }
 
 std::optional<classifiedshape::GeneralLine> classifyAsGeneralLine(const GeneralLineContext& context)
@@ -205,14 +196,13 @@ TEST(GeneralLineClassification, BuiltInMixedHookDirections)
 
 TEST(GeneralLineClassification, CustomLineHooksPreserveSignAndTexts)
 {
-    const auto context = makeCustomLine(
-        "      <lineStyle>solid</lineStyle>\n"
-        "      <solidParams><lineWidth>141</lineWidth></solidParams>\n"
-        "      <lineCapStartType>hook</lineCapStartType>\n"
-        "      <lineCapEndType>hook</lineCapEndType>\n"
-        "      <lineCapStartHookLength>1536</lineCapStartHookLength>\n"
-        "      <lineCapEndHookLength>-1536</lineCapEndHookLength>\n"
-        "      <makeHorz/>\n",
+    const auto context = makeCustomLine("      <lineStyle>solid</lineStyle>\n"
+                                        "      <solidParams><lineWidth>141</lineWidth></solidParams>\n"
+                                        "      <lineCapStartType>hook</lineCapStartType>\n"
+                                        "      <lineCapEndType>hook</lineCapEndType>\n"
+                                        "      <lineCapStartHookLength>1536</lineCapStartHookLength>\n"
+                                        "      <lineCapEndHookLength>-1536</lineCapEndHookLength>\n"
+                                        "      <makeHorz/>\n",
         "^fontid(0)^size(12)^nfx(0)espr.");
     const auto line = classifyAsGeneralLine(context);
     ASSERT_TRUE(line);
@@ -233,11 +223,10 @@ TEST(GeneralLineClassification, CustomLineHooksPreserveSignAndTexts)
 
 TEST(GeneralLineClassification, CustomLinePresetArrowhead)
 {
-    const auto context = makeCustomLine(
-        "      <lineStyle>solid</lineStyle>\n"
-        "      <solidParams><lineWidth>141</lineWidth></solidParams>\n"
-        "      <lineCapEndType>arrowheadPreset</lineCapEndType>\n"
-        "      <lineCapEndArrowID>3</lineCapEndArrowID>\n");
+    const auto context = makeCustomLine("      <lineStyle>solid</lineStyle>\n"
+                                        "      <solidParams><lineWidth>141</lineWidth></solidParams>\n"
+                                        "      <lineCapEndType>arrowheadPreset</lineCapEndType>\n"
+                                        "      <lineCapEndArrowID>3</lineCapEndArrowID>\n");
     const auto line = classifyAsGeneralLine(context);
     ASSERT_TRUE(line);
     EXPECT_EQ(line->endCap.type, classifiedshape::LineCap::Type::ArrowheadPreset);
@@ -247,11 +236,10 @@ TEST(GeneralLineClassification, CustomLinePresetArrowhead)
 
 TEST(GeneralLineClassification, CustomLineInvalidPresetArrowheadIsUnresolved)
 {
-    const auto context = makeCustomLine(
-        "      <lineStyle>solid</lineStyle>\n"
-        "      <solidParams><lineWidth>141</lineWidth></solidParams>\n"
-        "      <lineCapEndType>arrowheadPreset</lineCapEndType>\n"
-        "      <lineCapEndArrowID>99</lineCapEndArrowID>\n");
+    const auto context = makeCustomLine("      <lineStyle>solid</lineStyle>\n"
+                                        "      <solidParams><lineWidth>141</lineWidth></solidParams>\n"
+                                        "      <lineCapEndType>arrowheadPreset</lineCapEndType>\n"
+                                        "      <lineCapEndArrowID>99</lineCapEndArrowID>\n");
     const auto line = classifyAsGeneralLine(context);
     ASSERT_TRUE(line);
     EXPECT_EQ(line->endCap.type, classifiedshape::LineCap::Type::ArrowheadPreset);
@@ -260,11 +248,10 @@ TEST(GeneralLineClassification, CustomLineInvalidPresetArrowheadIsUnresolved)
 
 TEST(GeneralLineClassification, CustomLineMissingCustomArrowheadStaysDescriptive)
 {
-    const auto context = makeCustomLine(
-        "      <lineStyle>solid</lineStyle>\n"
-        "      <solidParams><lineWidth>141</lineWidth></solidParams>\n"
-        "      <lineCapStartType>arrowheadCustom</lineCapStartType>\n"
-        "      <lineCapStartArrowID>77</lineCapStartArrowID>\n");
+    const auto context = makeCustomLine("      <lineStyle>solid</lineStyle>\n"
+                                        "      <solidParams><lineWidth>141</lineWidth></solidParams>\n"
+                                        "      <lineCapStartType>arrowheadCustom</lineCapStartType>\n"
+                                        "      <lineCapStartArrowID>77</lineCapStartArrowID>\n");
     const auto line = classifyAsGeneralLine(context);
     ASSERT_TRUE(line);
     EXPECT_EQ(line->startCap.type, classifiedshape::LineCap::Type::ArrowheadCustom);
@@ -275,9 +262,8 @@ TEST(GeneralLineClassification, CustomLineMissingCustomArrowheadStaysDescriptive
 TEST(GeneralLineClassification, CustomLineCharGlyphResolvesSmuflName)
 {
     // wiggleWavyWide carries no specific line semantics and stays descriptive.
-    const auto context = makeCustomLine(
-        "      <lineStyle>char</lineStyle>\n"
-        "      <charParams><lineChar>60086</lineChar><fontID>0</fontID><fontSize>24</fontSize></charParams>\n");
+    const auto context = makeCustomLine("      <lineStyle>char</lineStyle>\n"
+                                        "      <charParams><lineChar>60086</lineChar><fontID>0</fontID><fontSize>24</fontSize></charParams>\n");
     const auto line = classifyAsGeneralLine(context);
     ASSERT_TRUE(line);
     EXPECT_EQ(line->lineStyle, others::SmartShapeCustomLine::LineStyle::Char);
@@ -289,12 +275,9 @@ TEST(GeneralLineClassification, CustomLineCharGlyphResolvesSmuflName)
 
 TEST(GeneralLineClassification, CustomLineSpaceCharIsInvisible)
 {
-    const auto context = makeCustomLine(
-        "      <lineStyle>char</lineStyle>\n"
-        "      <charParams><lineChar>32</lineChar><fontID>0</fontID><fontSize>24</fontSize></charParams>\n",
-        {}, {}, {},
-        "^fontid(0)^size(12)^nfx(2)Glissando",
-        "^fontid(0)^size(12)^nfx(2)Gliss.");
+    const auto context = makeCustomLine("      <lineStyle>char</lineStyle>\n"
+                                        "      <charParams><lineChar>32</lineChar><fontID>0</fontID><fontSize>24</fontSize></charParams>\n",
+        {}, {}, {}, "^fontid(0)^size(12)^nfx(2)Glissando", "^fontid(0)^size(12)^nfx(2)Gliss.");
     const auto line = classifyAsGeneralLine(context);
     ASSERT_TRUE(line);
     EXPECT_FALSE(line->lineVisible);
@@ -306,9 +289,8 @@ TEST(GeneralLineClassification, CustomLineSpaceCharIsInvisible)
 
 TEST(GeneralLineClassification, ZeroWidthLineIsInvisible)
 {
-    const auto context = makeCustomLine(
-        "      <lineStyle>solid</lineStyle>\n"
-        "      <solidParams><lineWidth>0</lineWidth></solidParams>\n",
+    const auto context = makeCustomLine("      <lineStyle>solid</lineStyle>\n"
+                                        "      <solidParams><lineWidth>0</lineWidth></solidParams>\n",
         "^fontid(0)^size(12)^nfx(0)txt");
     const auto line = classifyAsGeneralLine(context);
     ASSERT_TRUE(line);
@@ -317,11 +299,10 @@ TEST(GeneralLineClassification, ZeroWidthLineIsInvisible)
 
 TEST(GeneralLineClassification, PedalEvidenceStillClassifiesAsKeyboardPedal)
 {
-    const auto context = makeCustomLine(
-        "      <lineStyle>solid</lineStyle>\n"
-        "      <solidParams><lineWidth>141</lineWidth></solidParams>\n"
-        "      <lineCapStartType>hook</lineCapStartType>\n"
-        "      <lineCapEndType>hook</lineCapEndType>\n",
+    const auto context = makeCustomLine("      <lineStyle>solid</lineStyle>\n"
+                                        "      <solidParams><lineWidth>141</lineWidth></solidParams>\n"
+                                        "      <lineCapStartType>hook</lineCapStartType>\n"
+                                        "      <lineCapEndType>hook</lineCapEndType>\n",
         "^fontid(0)^size(12)^nfx(0)Ped.");
     ASSERT_TRUE(context.shape);
     const auto classification = classifySmartShape(context.shape);
@@ -353,9 +334,8 @@ TEST(GeneralLineClassification, MissingLineStyleYieldsMonostate)
 
 TEST(TrillVibratoLineClassification, WiggleTrillBodyClassifiesAsTrillLine)
 {
-    const auto context = makeCustomLine(
-        "      <lineStyle>char</lineStyle>\n"
-        "      <charParams><lineChar>60068</lineChar><fontID>0</fontID><fontSize>24</fontSize></charParams>\n");
+    const auto context = makeCustomLine("      <lineStyle>char</lineStyle>\n"
+                                        "      <charParams><lineChar>60068</lineChar><fontID>0</fontID><fontSize>24</fontSize></charParams>\n");
     ASSERT_TRUE(context.shape);
     const auto classification = classifySmartShape(context.shape);
     const auto* trill = classification.as<classifiedshape::TrillLine>();
@@ -368,9 +348,8 @@ TEST(TrillVibratoLineClassification, WiggleTrillBodyClassifiesAsTrillLine)
 
 TEST(TrillVibratoLineClassification, TrSymbolStartTextClassifiesAsTrillLine)
 {
-    const auto context = makeCustomLine(
-        "      <lineStyle>char</lineStyle>\n"
-        "      <charParams><lineChar>32</lineChar><fontID>0</fontID><fontSize>24</fontSize></charParams>\n",
+    const auto context = makeCustomLine("      <lineStyle>char</lineStyle>\n"
+                                        "      <charParams><lineChar>32</lineChar><fontID>0</fontID><fontSize>24</fontSize></charParams>\n",
         "^fontid(0)^size(24)^nfx(0)&#xE566;");
     ASSERT_TRUE(context.shape);
     const auto classification = classifySmartShape(context.shape);
@@ -381,9 +360,8 @@ TEST(TrillVibratoLineClassification, TrSymbolStartTextClassifiesAsTrillLine)
 
 TEST(TrillVibratoLineClassification, WiggleBodyWithForeignTextStaysGeneralLine)
 {
-    const auto context = makeCustomLine(
-        "      <lineStyle>char</lineStyle>\n"
-        "      <charParams><lineChar>60068</lineChar><fontID>0</fontID><fontSize>24</fontSize></charParams>\n",
+    const auto context = makeCustomLine("      <lineStyle>char</lineStyle>\n"
+                                        "      <charParams><lineChar>60068</lineChar><fontID>0</fontID><fontSize>24</fontSize></charParams>\n",
         "^fontid(0)^size(12)^nfx(0)flutter");
     ASSERT_TRUE(context.shape);
     const auto classification = classifySmartShape(context.shape);
@@ -393,9 +371,8 @@ TEST(TrillVibratoLineClassification, WiggleBodyWithForeignTextStaysGeneralLine)
 
 TEST(TrillVibratoLineClassification, GuitarVibratoBodyClassifiesAsVibratoLine)
 {
-    const auto context = makeCustomLine(
-        "      <lineStyle>char</lineStyle>\n"
-        "      <charParams><lineChar>60082</lineChar><fontID>0</fontID><fontSize>24</fontSize></charParams>\n");
+    const auto context = makeCustomLine("      <lineStyle>char</lineStyle>\n"
+                                        "      <charParams><lineChar>60082</lineChar><fontID>0</fontID><fontSize>24</fontSize></charParams>\n");
     ASSERT_TRUE(context.shape);
     const auto classification = classifySmartShape(context.shape);
     const auto* vibrato = classification.as<classifiedshape::VibratoLine>();
@@ -439,24 +416,21 @@ TEST(GeneralLineClassification, ClassifiesAllFixtureLineStyles)
     }
 
     // Style 3: solid line with a preset arrowhead at the end.
-    const auto presetArrow = classifyGeneralLine(
-        document->getOthers()->get<others::SmartShapeCustomLine>(SCORE_PARTID, 3));
+    const auto presetArrow = classifyGeneralLine(document->getOthers()->get<others::SmartShapeCustomLine>(SCORE_PARTID, 3));
     ASSERT_TRUE(presetArrow);
     EXPECT_EQ(presetArrow->endCap.type, classifiedshape::LineCap::Type::ArrowheadPreset);
     ASSERT_TRUE(presetArrow->endCap.preset);
     EXPECT_EQ(*presetArrow->endCap.preset, ArrowheadPreset::SmallFilled);
 
     // Style 17: custom arrowhead recognized as a pedal pump shape.
-    const auto customArrow = classifyGeneralLine(
-        document->getOthers()->get<others::SmartShapeCustomLine>(SCORE_PARTID, 17));
+    const auto customArrow = classifyGeneralLine(document->getOthers()->get<others::SmartShapeCustomLine>(SCORE_PARTID, 17));
     ASSERT_TRUE(customArrow);
     EXPECT_EQ(customArrow->startCap.type, classifiedshape::LineCap::Type::ArrowheadCustom);
     EXPECT_TRUE(customArrow->startCap.customArrowhead);
     EXPECT_EQ(customArrow->startCap.customArrowheadType, KnownShapeDefType::PedalArrowheadLongUpDownShortUp);
 
     // Style 22: solid line with hooks at both ends.
-    const auto bothHooks = classifyGeneralLine(
-        document->getOthers()->get<others::SmartShapeCustomLine>(SCORE_PARTID, 22));
+    const auto bothHooks = classifyGeneralLine(document->getOthers()->get<others::SmartShapeCustomLine>(SCORE_PARTID, 22));
     ASSERT_TRUE(bothHooks);
     EXPECT_EQ(bothHooks->startCap.type, classifiedshape::LineCap::Type::Hook);
     EXPECT_EQ(bothHooks->startCap.hookLength, 1536);

@@ -34,8 +34,7 @@ namespace notehead {
 
 /// @enum Shape
 /// @brief Notehead shape families recognized by Denigma's classifier.
-enum class Shape
-{
+enum class Shape {
     Unclassified,
     /// A real alternate-notehead glyph was found (the source definitely specifies a non-default
     /// notehead), but it does not belong to one of the specifically recognized shape families below.
@@ -51,8 +50,7 @@ enum class Shape
 
 /// @enum Fill
 /// @brief Distinguishes a filled (solid) notehead glyph from an unfilled (open/outline) one.
-enum class Fill
-{
+enum class Fill {
     /// Fill state is not known or not applicable (e.g. for #Shape::Unclassified or #Shape::Other).
     Unspecified,
     Filled,
@@ -66,17 +64,16 @@ enum class Fill
 struct NoteheadClassification
 {
     /// Classified notehead shape family.
-    notehead::Shape shape{ notehead::Shape::Unclassified };
+    notehead::Shape shape{notehead::Shape::Unclassified};
     /// Filled/unfilled state of the glyph. #notehead::Fill::Unspecified when not known or not applicable.
-    notehead::Fill fill{ notehead::Fill::Unspecified };
+    notehead::Fill fill{notehead::Fill::Unspecified};
     /// SMuFL glyph name associated with the recognized symbol, when available.
     std::optional<std::string> glyphName;
     /// The resolved font, character, size, and offset that produced this classification.
     musx::dom::NoteInfoPtr::NoteheadInfo noteheadInfo;
 
     /// Returns true when the source was recognized as a notehead.
-    explicit operator bool() const noexcept
-    { return shape != notehead::Shape::Unclassified; }
+    explicit operator bool() const noexcept { return shape != notehead::Shape::Unclassified; }
 
     /// Returns true when this classification changes the notehead a target would infer from the note duration.
     /// Always false for #notehead::Shape::Unclassified.
@@ -87,8 +84,7 @@ struct NoteheadClassification
 };
 
 /// Classifies a notehead symbol from a font and character code.
-NoteheadClassification classifyNoteheadSymbol(
-    const musx::dom::MusxInstance<musx::dom::FontInfo>& fontInfo, char32_t symbol);
+NoteheadClassification classifyNoteheadSymbol(const musx::dom::MusxInstance<musx::dom::FontInfo>& fontInfo, char32_t symbol);
 
 /// Classifies the effective notehead for a note, resolving the note's font/character
 /// via #musx::dom::NoteInfoPtr::calcNoteheadInfo.

@@ -27,13 +27,13 @@
 #include "core/musx_reader.h"
 #include "formats/musicxml/musicxml.h"
 #include "formats/musicxml/musicxml_formatted_text.h"
-#include "gtest/gtest.h"
 #include "mnxdom.h"
 #include "musicxml_test.h"
 #include "musx/musx.h"
 #include "pugixml.hpp"
 #include "test_utils.h"
 #include "utils/stringutils.h"
+#include "gtest/gtest.h"
 
 namespace denigma {
 namespace formats {
@@ -70,8 +70,7 @@ struct ComparableWordsDirection
 };
 
 std::vector<ComparableWordsDirection> collectWordsOnlyDirections(
-    const mx::api::ScoreData& score,
-    const std::function<bool(const ComparableWordsDirection&)>& predicate)
+    const mx::api::ScoreData& score, const std::function<bool(const ComparableWordsDirection&)>& predicate)
 {
     std::vector<ComparableWordsDirection> result;
     if (score.parts.empty()) {
@@ -139,9 +138,7 @@ std::string normalizeRehearsalFontFamily(std::string value)
 
     trim(value);
     std::string lowered = value;
-    std::transform(lowered.begin(), lowered.end(), lowered.begin(), [](unsigned char ch) {
-        return static_cast<char>(std::tolower(ch));
-    });
+    std::transform(lowered.begin(), lowered.end(), lowered.begin(), [](unsigned char ch) { return static_cast<char>(std::tolower(ch)); });
     constexpr std::string_view suffix = ", text";
     if (lowered.size() >= suffix.size() && lowered.substr(lowered.size() - suffix.size()) == suffix) {
         value.erase(value.size() - suffix.size());
@@ -153,9 +150,7 @@ std::string normalizeRehearsalFontFamily(std::string value)
 bool isTextFallbackFontFamily(const std::string& value)
 {
     std::string lowered = value;
-    std::transform(lowered.begin(), lowered.end(), lowered.begin(), [](unsigned char ch) {
-        return static_cast<char>(std::tolower(ch));
-    });
+    std::transform(lowered.begin(), lowered.end(), lowered.begin(), [](unsigned char ch) { return static_cast<char>(std::tolower(ch)); });
     return lowered == "text";
 }
 
@@ -183,8 +178,7 @@ std::vector<ComparableRehearsalDirection> collectRehearsalDirections(const mx::a
                         rehearsal.fontData.weight,
                         rehearsal.fontData.sizeType,
                         rehearsal.fontData.sizeCss,
-                        rehearsal.fontData.sizeType == mx::api::FontSizeType::point &&
-                                rehearsal.fontData.sizePoint != mx::api::DOUBLE_UNSPECIFIED
+                        rehearsal.fontData.sizeType == mx::api::FontSizeType::point && rehearsal.fontData.sizePoint != mx::api::DOUBLE_UNSPECIFIED
                             ? std::make_optional(rehearsal.fontData.sizePoint)
                             : std::nullopt,
                         rehearsal.fontData.underline,
@@ -216,8 +210,7 @@ struct ComparableExpressionEnclosure
 };
 
 std::vector<ComparableExpressionEnclosure> collectExpressionEnclosures(
-    const mx::api::ScoreData& score,
-    const std::function<bool(const std::string&)>& predicate)
+    const mx::api::ScoreData& score, const std::function<bool(const std::string&)>& predicate)
 {
     std::vector<ComparableExpressionEnclosure> result;
     if (score.parts.empty()) {
@@ -277,7 +270,7 @@ struct ComparableDynamicsComponent
 std::vector<ComparableDynamicsComponent> dynamicsComponents(const mx::api::MarkData& mark)
 {
     if (mark.choice.isDynamic()) {
-        return { { mark.choice.dynamic(), std::string{}, std::nullopt } };
+        return {{mark.choice.dynamic(), std::string{}, std::nullopt}};
     }
     std::vector<ComparableDynamicsComponent> result;
     for (const auto& component : mark.choice.compoundDynamics().components) {
@@ -343,11 +336,9 @@ TEST(MusicXmlExpressions, MetronomeMarkFixtureExportsSemanticDirectionsAndConfig
         std::optional<double> playbackQuarterNotesPerMinute;
         std::optional<std::string> singleFontFamily;
     };
-    const std::array<ExpectedMetronome, 3> expected{ {
-        { mx::api::DurationName::eighth, 0, "72", 72.0, "Patmm" },
-        { mx::api::DurationName::half, 2, "104", 208.0, "Finale Broadway Text" },
-        { mx::api::DurationName::whole, 0, "120", std::nullopt, std::nullopt }
-    } };
+    const std::array<ExpectedMetronome, 3> expected{
+        {{mx::api::DurationName::eighth, 0, "72", 72.0, "Patmm"}, {mx::api::DurationName::half, 2, "104", 208.0, "Finale Broadway Text"},
+            {mx::api::DurationName::whole, 0, "120", std::nullopt, std::nullopt}}};
 
     for (size_t measureIndex = 0; measureIndex < expected.size(); ++measureIndex) {
         const auto& measure = measures[measureIndex];
@@ -360,28 +351,24 @@ TEST(MusicXmlExpressions, MetronomeMarkFixtureExportsSemanticDirectionsAndConfig
         ASSERT_TRUE(choice.isTempo()) << "measure " << (measureIndex + 1);
         const auto tempo = choice.tempo();
         ASSERT_TRUE(tempo.choice.isBeatsPerMinute()) << "measure " << (measureIndex + 1);
-        EXPECT_EQ(tempo.positionData.horizontalAlignment, mx::api::HorizontalAlignment::left)
-            << "measure " << (measureIndex + 1);
+        EXPECT_EQ(tempo.positionData.horizontalAlignment, mx::api::HorizontalAlignment::left) << "measure " << (measureIndex + 1);
         const auto beatsPerMinute = tempo.choice.beatsPerMinute();
         EXPECT_EQ(beatsPerMinute.durationName, expected[measureIndex].duration) << "measure " << (measureIndex + 1);
         EXPECT_EQ(beatsPerMinute.dots, expected[measureIndex].dots) << "measure " << (measureIndex + 1);
         EXPECT_EQ(beatsPerMinute.beatsPerMinute, expected[measureIndex].beatsPerMinute) << "measure " << (measureIndex + 1);
         if (expected[measureIndex].singleFontFamily) {
             ASSERT_EQ(tempo.fontData.fontFamily.size(), 1u) << "measure " << (measureIndex + 1);
-            EXPECT_EQ(tempo.fontData.fontFamily.front(), *expected[measureIndex].singleFontFamily)
-                << "measure " << (measureIndex + 1);
+            EXPECT_EQ(tempo.fontData.fontFamily.front(), *expected[measureIndex].singleFontFamily) << "measure " << (measureIndex + 1);
             EXPECT_EQ(tempo.fontData.sizeType, mx::api::FontSizeType::point) << "measure " << (measureIndex + 1);
             EXPECT_GT(tempo.fontData.sizePoint, 0.0) << "measure " << (measureIndex + 1);
         } else {
             EXPECT_TRUE(tempo.fontData.fontFamily.empty()) << "split-font measure " << (measureIndex + 1);
-            EXPECT_EQ(tempo.fontData.sizeType, mx::api::FontSizeType::unspecified)
-                << "split-font measure " << (measureIndex + 1);
+            EXPECT_EQ(tempo.fontData.sizeType, mx::api::FontSizeType::unspecified) << "split-font measure " << (measureIndex + 1);
         }
 
         if (expected[measureIndex].playbackQuarterNotesPerMinute) {
             ASSERT_TRUE(direction.isSoundDataSpecified) << "measure " << (measureIndex + 1);
-            EXPECT_DOUBLE_EQ(direction.soundData.tempo, *expected[measureIndex].playbackQuarterNotesPerMinute)
-                << "measure " << (measureIndex + 1);
+            EXPECT_DOUBLE_EQ(direction.soundData.tempo, *expected[measureIndex].playbackQuarterNotesPerMinute) << "measure " << (measureIndex + 1);
         } else {
             EXPECT_FALSE(direction.isSoundDataSpecified) << "visual-only measure " << (measureIndex + 1);
         }
@@ -393,27 +380,25 @@ TEST(MusicXmlExpressions, MetronomeMarkReferenceCapturesFinaleFontAndAlignmentBe
     setupTestDataPaths();
 
     pugi::xml_document reference;
-    const auto loadResult = reference.load_file(
-        pathString(getInputPath() / "musicxml/metronome_marks-ref.musicxml").c_str());
+    const auto loadResult = reference.load_file(pathString(getInputPath() / "musicxml/metronome_marks-ref.musicxml").c_str());
     ASSERT_TRUE(loadResult);
     const auto part = reference.child("score-partwise").child("part");
 
-    const auto firstDirectionType = part.find_child_by_attribute("measure", "number", "1")
-        .child("direction").child("direction-type");
+    const auto firstDirectionType = part.find_child_by_attribute("measure", "number", "1").child("direction").child("direction-type");
     const auto legacyWords = firstDirectionType.child("words");
     ASSERT_TRUE(legacyWords);
     EXPECT_STREQ(legacyWords.attribute("font-family").value(), "Patmm");
     EXPECT_FALSE(firstDirectionType.child("metronome"));
 
-    const auto singleFontMetronome = part.find_child_by_attribute("measure", "number", "2")
-        .child("direction").child("direction-type").child("metronome");
+    const auto singleFontMetronome =
+        part.find_child_by_attribute("measure", "number", "2").child("direction").child("direction-type").child("metronome");
     ASSERT_TRUE(singleFontMetronome);
     EXPECT_STREQ(singleFontMetronome.attribute("font-family").value(), "Finale Broadway Text");
     EXPECT_STREQ(singleFontMetronome.attribute("halign").value(), "left");
     EXPECT_FALSE(singleFontMetronome.child("per-minute").attribute("font-family"));
 
-    const auto splitFontMetronome = part.find_child_by_attribute("measure", "number", "3")
-        .child("direction").child("direction-type").child("metronome");
+    const auto splitFontMetronome =
+        part.find_child_by_attribute("measure", "number", "3").child("direction").child("direction-type").child("metronome");
     ASSERT_TRUE(splitFontMetronome);
     EXPECT_STREQ(splitFontMetronome.attribute("font-family").value(), "Finale Maestro Text");
     EXPECT_STREQ(splitFontMetronome.attribute("halign").value(), "left");
@@ -506,7 +491,7 @@ TEST(MusicXmlExpressions, ConvertedSymbolsCarrySizeOnlyFromEngravingFonts)
         auto document = musx::factory::DocumentFactory::create<denigma::MusxReader>(buffer);
         auto font = std::make_shared<musx::dom::FontInfo>(document);
         font->fontId = 1;
-        return std::pair{ std::move(document), std::move(font) };
+        return std::pair{std::move(document), std::move(font)};
     };
 
     mx::api::WordsData sourceWords;
@@ -514,20 +499,17 @@ TEST(MusicXmlExpressions, ConvertedSymbolsCarrySizeOnlyFromEngravingFonts)
     sourceWords.fontData.sizePoint = 18.0;
 
     const auto engravingContext = makeFont("Maestro");
-    const auto engravingSymbol = formats::musicxml::detail::musicXmlSymbolFromWords(
-        sourceWords, engravingContext.second, "metNoteQuarterUp");
+    const auto engravingSymbol = formats::musicxml::detail::musicXmlSymbolFromWords(sourceWords, engravingContext.second, "metNoteQuarterUp");
     EXPECT_EQ(engravingSymbol.fontData.sizeType, mx::api::FontSizeType::point);
     EXPECT_DOUBLE_EQ(engravingSymbol.fontData.sizePoint, 18.0);
 
     // This is the spelling stored by Windows Finale; registry matching also accepts spaces.
     const auto legacyTextContext = makeFont("EngraverTextT");
-    const auto legacyTextSymbol = formats::musicxml::detail::musicXmlSymbolFromWords(
-        sourceWords, legacyTextContext.second, "metNoteQuarterUp");
+    const auto legacyTextSymbol = formats::musicxml::detail::musicXmlSymbolFromWords(sourceWords, legacyTextContext.second, "metNoteQuarterUp");
     EXPECT_EQ(legacyTextSymbol.fontData.sizeType, mx::api::FontSizeType::unspecified);
 
     const auto smuflTextContext = makeFont("Finale Maestro Text");
-    const auto smuflTextSymbol = formats::musicxml::detail::musicXmlSymbolFromWords(
-        sourceWords, smuflTextContext.second, "metNoteQuarterUp");
+    const auto smuflTextSymbol = formats::musicxml::detail::musicXmlSymbolFromWords(sourceWords, smuflTextContext.second, "metNoteQuarterUp");
     EXPECT_EQ(smuflTextSymbol.fontData.sizeType, mx::api::FontSizeType::unspecified);
 }
 
@@ -549,13 +531,13 @@ TEST(MusicXmlExpressions, HarpPedalDiagramMapsToOrderedPedalTunings)
     constexpr int NATURAL_ALTERATION = 0;
     constexpr int SHARP_ALTERATION = 1;
     const std::vector<mx::api::HarpPedalTuning> expected = {
-        { mx::api::Step::d, FLAT_ALTERATION },
-        { mx::api::Step::c, NATURAL_ALTERATION },
-        { mx::api::Step::b, SHARP_ALTERATION },
-        { mx::api::Step::e, SHARP_ALTERATION },
-        { mx::api::Step::f, NATURAL_ALTERATION },
-        { mx::api::Step::g, FLAT_ALTERATION },
-        { mx::api::Step::a, SHARP_ALTERATION },
+        {mx::api::Step::d, FLAT_ALTERATION},
+        {mx::api::Step::c, NATURAL_ALTERATION},
+        {mx::api::Step::b, SHARP_ALTERATION},
+        {mx::api::Step::e, SHARP_ALTERATION},
+        {mx::api::Step::f, NATURAL_ALTERATION},
+        {mx::api::Step::g, FLAT_ALTERATION},
+        {mx::api::Step::a, SHARP_ALTERATION},
     };
     EXPECT_EQ(harpPedals.pedalTunings, expected);
 }
@@ -568,14 +550,13 @@ TEST(MusicXmlExpressions, AccordionRegistrationMapsToMusicXmlStops)
 
     Registration registration;
     registration.dots = {
-        Dot{ DotPosition::Top },
-        Dot{ DotPosition::UpperMiddle },
-        Dot{ DotPosition::Middle },
-        Dot{ DotPosition::Bottom },
+        Dot{DotPosition::Top},
+        Dot{DotPosition::UpperMiddle},
+        Dot{DotPosition::Middle},
+        Dot{DotPosition::Bottom},
     };
 
-    const auto accordion = formats::musicxml::detail::musicXmlAccordionRegistration(
-        registration, musx::dom::VerticalPlacement::Above);
+    const auto accordion = formats::musicxml::detail::musicXmlAccordionRegistration(registration, musx::dom::VerticalPlacement::Above);
     ASSERT_TRUE(accordion.has_value());
     EXPECT_TRUE(accordion->high);
     ASSERT_TRUE(accordion->middle.has_value());
@@ -590,7 +571,7 @@ TEST(MusicXmlExpressions, UnresolvedAccordionRegistrationFallsBackFromMusicXmlMa
     using DotPosition = Registration::DotPosition;
 
     Registration registration;
-    registration.dots.push_back({ DotPosition::Other });
+    registration.dots.push_back({DotPosition::Other});
 
     EXPECT_FALSE(formats::musicxml::detail::musicXmlAccordionRegistration(registration).has_value());
 }
@@ -612,8 +593,8 @@ TEST(MusicXmlExpressions, GenericTextDirectionsMatchReference)
     EXPECT_EQ(actualDirections.front().measureIndex, 2u);
     EXPECT_EQ(actualDirections.front().staffIndex, 0u);
     EXPECT_EQ(actualDirections.front().placement, mx::api::Placement::below);
-    EXPECT_EQ(actualDirections.front().words, std::vector<std::string>{ "warm" });
-    EXPECT_EQ(actualDirections.front().enclosures, std::vector<mx::api::Enclosure>{ mx::api::Enclosure::unspecified });
+    EXPECT_EQ(actualDirections.front().words, std::vector<std::string>{"warm"});
+    EXPECT_EQ(actualDirections.front().enclosures, std::vector<mx::api::Enclosure>{mx::api::Enclosure::unspecified});
 }
 
 TEST(MusicXmlExpressions, MultimeasureRestNumbersDoNotExportAsDirections)
@@ -626,10 +607,10 @@ TEST(MusicXmlExpressions, MultimeasureRestNumbersDoNotExportAsDirections)
     // second time on top of the measure style. denigma folds it into the measure style instead, so
     // no direction may survive.
     constexpr size_t numberMeasureIndex = 30;
-    const std::array<std::pair<std::string, std::string>, 2> fixtures{ {
-        { "multimeas_rests.musx", "musicxml/multimeas_rests-ref.musicxml" },
-        { "multimeas_rests_musfont.musx", "musicxml/multimeas_rests_musfont-ref.musicxml" },
-    } };
+    const std::array<std::pair<std::string, std::string>, 2> fixtures{{
+        {"multimeas_rests.musx", "musicxml/multimeas_rests-ref.musicxml"},
+        {"multimeas_rests_musfont.musx", "musicxml/multimeas_rests_musfont-ref.musicxml"},
+    }};
 
     for (const auto& [musxFile, referenceFile] : fixtures) {
         SCOPED_TRACE(musxFile);
@@ -660,9 +641,7 @@ TEST(MusicXmlExpressions, TempoVariedStavesSmoke)
     ASSERT_TRUE(actualScore);
 
     auto findPart = [&](const std::string& partName) -> const mx::api::PartData* {
-        const auto it = std::find_if(actualScore->parts.begin(), actualScore->parts.end(), [&](const auto& part) {
-            return part.name == partName;
-        });
+        const auto it = std::find_if(actualScore->parts.begin(), actualScore->parts.end(), [&](const auto& part) { return part.name == partName; });
         return it != actualScore->parts.end() ? &*it : nullptr;
     };
 
@@ -701,8 +680,7 @@ TEST(MusicXmlExpressions, TempoVariedStavesSmoke)
         for (size_t i = 0; i < expected.size(); ++i) {
             EXPECT_EQ(actual[i].hasWords ? actual[i].words : std::string{}, expected[i].first)
                 << part.name << " measure " << (measureIndex + 1) << " event " << i;
-            EXPECT_DOUBLE_EQ(actual[i].tempo, expected[i].second)
-                << part.name << " measure " << (measureIndex + 1) << " event " << i;
+            EXPECT_DOUBLE_EQ(actual[i].tempo, expected[i].second) << part.name << " measure " << (measureIndex + 1) << " event " << i;
         }
     };
 
@@ -714,16 +692,16 @@ TEST(MusicXmlExpressions, TempoVariedStavesSmoke)
     ASSERT_TRUE(violin);
 
     const std::vector<std::pair<std::string, double>> piccoloExpected = {
-        { "Tempo ({metNoteQuarterUp}=120)", 120.0 },
-        { "accel.", 132.0 },
-        { "", 144.0 },
+        {"Tempo ({metNoteQuarterUp}=120)", 120.0},
+        {"accel.", 132.0},
+        {"", 144.0},
     };
     const std::vector<std::pair<std::string, double>> hornExpected = {
-        { "Tempo ({metNoteQuarterUp}=120)", 120.0 },
+        {"Tempo ({metNoteQuarterUp}=120)", 120.0},
     };
     const std::vector<std::pair<std::string, double>> violinExpected = {
-        { "Tempo ({metNoteQuarterUp}=120)", 120.0 },
-        { "accel.", 132.0 },
+        {"Tempo ({metNoteQuarterUp}=120)", 120.0},
+        {"accel.", 132.0},
     };
 
     expectMeasureTempos(*piccolo, 0, piccoloExpected);
@@ -740,10 +718,8 @@ TEST(MusicXmlExpressions, AllFontsAvailableCliPreservesSourceTextRuns)
 
     std::filesystem::path inputPath;
     copyInputToOutput("tempo_varied_staves.musx", inputPath);
-    ArgList args = { DENIGMA_NAME, "export", pathString(inputPath), "--musicxml", "--all-fonts-available" };
-    checkStderr({ "Processing", pathString(inputPath.filename()) }, [&]() {
-        EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0);
-    });
+    ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), "--musicxml", "--all-fonts-available"};
+    checkStderr({"Processing", pathString(inputPath.filename())}, [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0); });
 
     auto outputPath = inputPath;
     outputPath.replace_extension(".musicxml");
@@ -891,8 +867,7 @@ TEST(MusicXmlExpressions, MeasureTextSmoke)
         EXPECT_EQ(actual.fontData.weight, mx::api::FontWeight::normal) << actual.smufl;
         ASSERT_EQ(actual.fontData.sizeType, mx::api::FontSizeType::point) << actual.smufl;
         ASSERT_EQ(reference.fontData.sizeType, mx::api::FontSizeType::point) << actual.smufl;
-        EXPECT_NEAR(actual.fontData.sizePoint, reference.fontData.sizePoint, kFinaleRoundingTolerance)
-            << actual.smufl;
+        EXPECT_NEAR(actual.fontData.sizePoint, reference.fontData.sizePoint, kFinaleRoundingTolerance) << actual.smufl;
     }
 }
 
@@ -992,16 +967,16 @@ TEST(MusicXmlExpressions, TechniquesMatchReference)
     const auto actualDirections = collectTechniqueDirections(*actualScore);
 
     const std::vector<ComparableTechniqueDirection> expected = {
-        { "pizz.", mx::api::Bool::yes },
-        { "arco", mx::api::Bool::no },
-        { "mute", std::nullopt },
-        { "arco", mx::api::Bool::no },
-        { "senza sord.", std::nullopt },
-        { "mute", std::nullopt },
-        { "open", std::nullopt },
-        { "harmon mute", std::nullopt },
-        { "stopped", std::nullopt },
-        { "open", std::nullopt },
+        {"pizz.", mx::api::Bool::yes},
+        {"arco", mx::api::Bool::no},
+        {"mute", std::nullopt},
+        {"arco", mx::api::Bool::no},
+        {"senza sord.", std::nullopt},
+        {"mute", std::nullopt},
+        {"open", std::nullopt},
+        {"harmon mute", std::nullopt},
+        {"stopped", std::nullopt},
+        {"open", std::nullopt},
     };
 
     ASSERT_EQ(actualDirections.size(), expected.size());
@@ -1020,15 +995,14 @@ TEST(MusicXmlExpressions, ExpressionEnclosuresExportExpectedShapes)
     const auto actualScore = loadScoreData(outputPath);
     ASSERT_TRUE(actualScore);
 
-    const auto actualEnclosures = collectExpressionEnclosures(*actualScore, [](const std::string& text) {
-        return text == "Tempo" || text == "expressive" || text == "pizz." || text == "Reh. 1";
-    });
+    const auto actualEnclosures = collectExpressionEnclosures(
+        *actualScore, [](const std::string& text) { return text == "Tempo" || text == "expressive" || text == "pizz." || text == "Reh. 1"; });
 
     const std::vector<ComparableExpressionEnclosure> expected = {
-        { 0u, 0, mx::api::Placement::above, "Tempo", mx::api::Enclosure::hexagon },
-        { 0u, 16, mx::api::Placement::below, "expressive", mx::api::Enclosure::unspecified },
-        { 1u, 8, mx::api::Placement::above, "pizz.", mx::api::Enclosure::rectangle },
-        { 2u, 0, mx::api::Placement::above, "Reh. 1", mx::api::Enclosure::oval },
+        {0u, 0, mx::api::Placement::above, "Tempo", mx::api::Enclosure::hexagon},
+        {0u, 16, mx::api::Placement::below, "expressive", mx::api::Enclosure::unspecified},
+        {1u, 8, mx::api::Placement::above, "pizz.", mx::api::Enclosure::rectangle},
+        {2u, 0, mx::api::Placement::above, "Reh. 1", mx::api::Enclosure::oval},
     };
 
     ASSERT_EQ(actualEnclosures.size(), expected.size());
@@ -1050,13 +1024,12 @@ TEST(MusicXmlExpressions, MeasureTextEnclosuresUseStandardFrameRule)
     const auto actualScore = loadScoreData(outputPath);
     ASSERT_TRUE(actualScore);
 
-    const auto actualEnclosures = collectExpressionEnclosures(*actualScore, [](const std::string& text) {
-        return text == "no enclosure" || text == "has enclosure";
-    });
+    const auto actualEnclosures =
+        collectExpressionEnclosures(*actualScore, [](const std::string& text) { return text == "no enclosure" || text == "has enclosure"; });
 
     const std::vector<ComparableExpressionEnclosure> expected = {
-        { 2u, 16, mx::api::Placement::below, "no enclosure", mx::api::Enclosure::unspecified },
-        { 3u, 3, mx::api::Placement::above, "has enclosure", mx::api::Enclosure::rectangle },
+        {2u, 16, mx::api::Placement::below, "no enclosure", mx::api::Enclosure::unspecified},
+        {3u, 3, mx::api::Placement::above, "has enclosure", mx::api::Enclosure::rectangle},
     };
 
     ASSERT_EQ(actualEnclosures.size(), expected.size());
@@ -1090,17 +1063,16 @@ TEST(MusicXmlExpressions, TextExpressionsExportSourceAlignmentAndJustification)
         for (const auto& staff : measure.staves) {
             for (const auto& direction : staff.directions) {
                 for (const auto& word : directionWords(direction)) {
-                    alignmentByText.emplace(word.text, Alignment{ word.positionData.horizontalAlignment, word.justify });
+                    alignmentByText.emplace(word.text, Alignment{word.positionData.horizontalAlignment, word.justify});
                 }
                 for (const auto& rehearsal : directionRehearsals(direction)) {
-                    alignmentByText.emplace(
-                        rehearsal.text, Alignment{ rehearsal.positionData.horizontalAlignment, rehearsal.justify });
+                    alignmentByText.emplace(rehearsal.text, Alignment{rehearsal.positionData.horizontalAlignment, rehearsal.justify});
                 }
             }
         }
     }
 
-    for (const auto& text : { "Tempo", "expressive", "pizz.", "Reh. 1" }) {
+    for (const auto& text : {"Tempo", "expressive", "pizz.", "Reh. 1"}) {
         const auto found = alignmentByText.find(text);
         ASSERT_NE(found, alignmentByText.end()) << text;
         EXPECT_EQ(found->second.horizontal, mx::api::HorizontalAlignment::left) << text;
@@ -1154,8 +1126,7 @@ TEST(MusicXmlExpressions, TopStaffExpressionsExportOnlyTopSystemRelation)
                     continue;
                 }
                 ++rehearsalCount;
-                EXPECT_EQ(direction.systemRelation, mx::api::SystemRelation::onlyTop)
-                    << "rehearsal " << rehearsalCount;
+                EXPECT_EQ(direction.systemRelation, mx::api::SystemRelation::onlyTop) << "rehearsal " << rehearsalCount;
                 EXPECT_FALSE(direction.isStaffValueSpecified) << "rehearsal " << rehearsalCount;
             }
         }
@@ -1169,20 +1140,17 @@ TEST(MusicXmlExpressions, TempoToolChanges)
     std::filesystem::path inputPath;
     copyInputToOutput("tempo_changes.musx", inputPath);
 
-    ArgList enigmaxmlArgs = { DENIGMA_NAME, "export", pathString(inputPath), "--enigmaxml" };
-    checkStderr({ "Processing", pathString(inputPath.filename()) }, [&]() {
-        EXPECT_EQ(denigmaTestMain(enigmaxmlArgs.argc(), enigmaxmlArgs.argv()), 0) << "export to enigmaxml: " << pathString(inputPath);
-    });
+    ArgList enigmaxmlArgs = {DENIGMA_NAME, "export", pathString(inputPath), "--enigmaxml"};
+    checkStderr({"Processing", pathString(inputPath.filename())},
+        [&]() { EXPECT_EQ(denigmaTestMain(enigmaxmlArgs.argc(), enigmaxmlArgs.argv()), 0) << "export to enigmaxml: " << pathString(inputPath); });
 
-    ArgList mnxArgs = { DENIGMA_NAME, "export", pathString(inputPath), "--mnx", "--include-tempo-tool" };
-    checkStderr({ "Processing", pathString(inputPath.filename()) }, [&]() {
-        EXPECT_EQ(denigmaTestMain(mnxArgs.argc(), mnxArgs.argv()), 0) << "export to mnx: " << pathString(inputPath);
-    });
+    ArgList mnxArgs = {DENIGMA_NAME, "export", pathString(inputPath), "--mnx", "--include-tempo-tool"};
+    checkStderr({"Processing", pathString(inputPath.filename())},
+        [&]() { EXPECT_EQ(denigmaTestMain(mnxArgs.argc(), mnxArgs.argv()), 0) << "export to mnx: " << pathString(inputPath); });
 
-    ArgList args = { DENIGMA_NAME, "export", pathString(inputPath), "--musicxml", "--include-tempo-tool" };
-    checkStderr({ "Processing", pathString(inputPath.filename()) }, [&]() {
-        EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to musicxml: " << pathString(inputPath);
-    });
+    ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), "--musicxml", "--include-tempo-tool"};
+    checkStderr({"Processing", pathString(inputPath.filename())},
+        [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to musicxml: " << pathString(inputPath); });
 
     auto outputPath = inputPath;
     outputPath.replace_extension(".musicxml");
@@ -1205,7 +1173,7 @@ TEST(MusicXmlExpressions, TempoToolChanges)
             measureDivisions.emplace(measureIndex++, currentDivisions);
         }
     }
-    
+
     std::vector<char> xmlBuf;
     readFile(inputPath.parent_path() / "tempo_changes.enigmaxml", xmlBuf);
     auto musxDoc = musx::factory::DocumentFactory::create<MusxReader>(xmlBuf);
@@ -1249,8 +1217,8 @@ TEST(MusicXmlExpressions, TempoToolChanges)
     }
 
     for (size_t measureIndex = 0; measureIndex < 4; ++measureIndex) {
-        const auto musxTempoChanges = musxDoc->getOthers()->getArray<musx::dom::others::TempoChange>(
-            musx::dom::SCORE_PARTID, static_cast<musx::dom::Cmper>(measureIndex + 1));
+        const auto musxTempoChanges =
+            musxDoc->getOthers()->getArray<musx::dom::others::TempoChange>(musx::dom::SCORE_PARTID, static_cast<musx::dom::Cmper>(measureIndex + 1));
         ASSERT_GT(musxTempoChanges.size(), 0u);
 
         ASSERT_LT(measureIndex, xmlSoundPositions.size());
@@ -1283,10 +1251,10 @@ TEST(MusicXmlExpressions, DynamicsKeepTheWordsAroundThem)
         mx::api::HorizontalAlignment horizontalAlignment;
     };
     const std::vector<ExpectedDynamic> expected = {
-        { "più", mx::api::StandardDynamic::f, mx::api::HorizontalAlignment::right },
-        { "sub.", mx::api::StandardDynamic::p, mx::api::HorizontalAlignment::right },
-        { "sempre", mx::api::StandardDynamic::ff, mx::api::HorizontalAlignment::left },
-        { "menos", mx::api::StandardDynamic::f, mx::api::HorizontalAlignment::center },
+        {"più", mx::api::StandardDynamic::f, mx::api::HorizontalAlignment::right},
+        {"sub.", mx::api::StandardDynamic::p, mx::api::HorizontalAlignment::right},
+        {"sempre", mx::api::StandardDynamic::ff, mx::api::HorizontalAlignment::left},
+        {"menos", mx::api::StandardDynamic::f, mx::api::HorizontalAlignment::center},
     };
 
     const auto& measures = actualScore->parts.front().measures;
@@ -1302,8 +1270,8 @@ TEST(MusicXmlExpressions, DynamicsKeepTheWordsAroundThem)
                 ASSERT_TRUE(marks.front().choice.isDynamic()) << "measure " << (measureIndex + 1);
                 EXPECT_EQ(words.front().positionData.horizontalAlignment, marks.front().positionData.horizontalAlignment)
                     << "measure " << (measureIndex + 1);
-                actual.push_back({ utils::trimAscii(words.front().text), marks.front().choice.dynamic(),
-                    marks.front().positionData.horizontalAlignment });
+                actual.push_back(
+                    {utils::trimAscii(words.front().text), marks.front().choice.dynamic(), marks.front().positionData.horizontalAlignment});
             }
         }
     }
@@ -1339,14 +1307,9 @@ TEST(MusicXmlExpressions, CompoundDynamicsSpellOutTheirComponents)
     // spell it out, instead of being flattened into one text-valued <other-dynamics>.
     const std::vector<std::vector<ComparableDynamicsComponent>> expected = {
         { // "sffffz", drawn as the glyphs s, ffff, z
-            { std::nullopt, "s", "dynamicSforzando" },
-            { mx::api::StandardDynamic::ffff, "", std::nullopt },
-            { std::nullopt, "z", "dynamicZ" }
-        },
+            {std::nullopt, "s", "dynamicSforzando"}, {mx::api::StandardDynamic::ffff, "", std::nullopt}, {std::nullopt, "z", "dynamicZ"}},
         { // "ffz", drawn as the glyphs ff, z
-            { mx::api::StandardDynamic::ff, "", std::nullopt },
-            { std::nullopt, "z", "dynamicZ" }
-        },
+            {mx::api::StandardDynamic::ff, "", std::nullopt}, {std::nullopt, "z", "dynamicZ"}},
     };
 
     EXPECT_EQ(collectCompoundDynamics(*actualScore), expected);
@@ -1367,23 +1330,15 @@ TEST(MusicXmlExpressions, CompoundDynamicsFollowTheSourceGlyphSequence)
     // glyph's letters name one.
     const std::vector<std::vector<ComparableDynamicsComponent>> expected = {
         { // "sfmp" as two composite glyphs
-            { mx::api::StandardDynamic::sf, "", std::nullopt },
-            { mx::api::StandardDynamic::mp, "", std::nullopt }
-        },
+            {mx::api::StandardDynamic::sf, "", std::nullopt}, {mx::api::StandardDynamic::mp, "", std::nullopt}},
         { // "sfmp" as four letter glyphs; "s" and "m" have no element of their own
-            { std::nullopt, "s", "dynamicSforzando" },
-            { mx::api::StandardDynamic::f, "", std::nullopt },
-            { std::nullopt, "m", "dynamicMezzo" },
-            { mx::api::StandardDynamic::p, "", std::nullopt }
-        },
+            {std::nullopt, "s", "dynamicSforzando"}, {mx::api::StandardDynamic::f, "", std::nullopt}, {std::nullopt, "m", "dynamicMezzo"},
+            {mx::api::StandardDynamic::p, "", std::nullopt}},
         { // "ffz" as the glyphs ff, z
-            { mx::api::StandardDynamic::ff, "", std::nullopt },
-            { std::nullopt, "z", "dynamicZ" }
-        },
+            {mx::api::StandardDynamic::ff, "", std::nullopt}, {std::nullopt, "z", "dynamicZ"}},
         { // "sfmp" typed as ASCII letters, which resolve to no glyphs at all
           // (see GlyphlessDynamicsFallBackToTheirLetters)
-            { std::nullopt, "sfmp", std::nullopt }
-        },
+            {std::nullopt, "sfmp", std::nullopt}},
     };
 
     EXPECT_EQ(collectCompoundDynamics(*actualScore), expected);
@@ -1420,9 +1375,9 @@ TEST(MusicXmlExpressions, GlyphlessDynamicsFallBackToTheirLetters)
 
     const std::vector<std::pair<std::string, std::vector<ComparableDynamicsComponent>>> expected = {
         // "ffz", drawn as the glyphs ff and z, keeps its glyph sequence.
-        { "ffz", { { mx::api::StandardDynamic::ff, "", std::nullopt }, { std::nullopt, "z", "dynamicZ" } } },
+        {"ffz", {{mx::api::StandardDynamic::ff, "", std::nullopt}, {std::nullopt, "z", "dynamicZ"}}},
         // "sfmp", typed as ASCII letters, carries its letters and no glyph name.
-        { "sfmp", { { std::nullopt, "sfmp", std::nullopt } } },
+        {"sfmp", {{std::nullopt, "sfmp", std::nullopt}}},
     };
     EXPECT_EQ(marks, expected);
     EXPECT_EQ(wordsCount, 0u);

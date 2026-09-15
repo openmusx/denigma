@@ -84,16 +84,15 @@ static TextExpressionContext makeTextExpressionContext(const std::string& text)
 
     std::vector<char> buffer(xml.begin(), xml.end());
     auto document = musx::factory::DocumentFactory::create<denigma::MusxReader>(buffer);
-    return { document, document->getOthers()->get<others::TextExpressionDef>(SCORE_PARTID, 1) };
+    return {document, document->getOthers()->get<others::TextExpressionDef>(SCORE_PARTID, 1)};
 }
 
 static std::vector<musx::util::EnigmaTextChunk> collectChunks(const TextExpressionContext& context)
 {
-    auto chunks = context.def->getRawTextCtx(SCORE_PARTID).collectEnigmaTextChunks(
-        musx::util::EnigmaString::EnigmaParsingOptions(musx::util::EnigmaString::AccidentalStyle::Unicode));
-    std::erase_if(chunks, [](const musx::util::EnigmaTextChunk& chunk) {
-        return chunk.text.empty() || !chunk.styles.font || chunk.styles.font->hidden;
-    });
+    auto chunks = context.def->getRawTextCtx(SCORE_PARTID)
+                      .collectEnigmaTextChunks(musx::util::EnigmaString::EnigmaParsingOptions(musx::util::EnigmaString::AccidentalStyle::Unicode));
+    std::erase_if(
+        chunks, [](const musx::util::EnigmaTextChunk& chunk) { return chunk.text.empty() || !chunk.styles.font || chunk.styles.font->hidden; });
     return chunks;
 }
 
@@ -112,37 +111,69 @@ static std::string smuflGlyphText(const std::vector<std::string>& glyphs)
 {
     std::string text = "^fontid(0)^size(24)^nfx(0)";
     for (const auto& glyph : glyphs) {
-        if (glyph == "dynamicPiano") text += "&#xE520;";
-        else if (glyph == "dynamicMezzo") text += "&#xE521;";
-        else if (glyph == "dynamicForte") text += "&#xE522;";
-        else if (glyph == "dynamicRinforzando") text += "&#xE523;";
-        else if (glyph == "dynamicSforzando") text += "&#xE524;";
-        else if (glyph == "dynamicZ") text += "&#xE525;";
-        else if (glyph == "dynamicNiente") text += "&#xE526;";
-        else if (glyph == "dynamicPPPPPP") text += "&#xE527;";
-        else if (glyph == "dynamicPPPPP") text += "&#xE528;";
-        else if (glyph == "dynamicPPPP") text += "&#xE529;";
-        else if (glyph == "dynamicPPP") text += "&#xE52A;";
-        else if (glyph == "dynamicPP") text += "&#xE52B;";
-        else if (glyph == "dynamicMP") text += "&#xE52C;";
-        else if (glyph == "dynamicMF") text += "&#xE52D;";
-        else if (glyph == "dynamicPF") text += "&#xE52E;";
-        else if (glyph == "dynamicFF") text += "&#xE52F;";
-        else if (glyph == "dynamicFFF") text += "&#xE530;";
-        else if (glyph == "dynamicFFFF") text += "&#xE531;";
-        else if (glyph == "dynamicFFFFF") text += "&#xE532;";
-        else if (glyph == "dynamicFFFFFF") text += "&#xE533;";
-        else if (glyph == "dynamicFortePiano") text += "&#xE534;";
-        else if (glyph == "dynamicForzando") text += "&#xE535;";
-        else if (glyph == "dynamicSforzando1") text += "&#xE536;";
-        else if (glyph == "dynamicSforzandoPiano") text += "&#xE537;";
-        else if (glyph == "dynamicSforzandoPianissimo") text += "&#xE538;";
-        else if (glyph == "dynamicSforzato") text += "&#xE539;";
-        else if (glyph == "dynamicSforzatoPiano") text += "&#xE53A;";
-        else if (glyph == "dynamicSforzatoFF") text += "&#xE53B;";
-        else if (glyph == "dynamicRinforzando1") text += "&#xE53C;";
-        else if (glyph == "dynamicRinforzando2") text += "&#xE53D;";
-        else ADD_FAILURE() << "Unhandled SMuFL glyph in test: " << glyph;
+        if (glyph == "dynamicPiano") {
+            text += "&#xE520;";
+        } else if (glyph == "dynamicMezzo") {
+            text += "&#xE521;";
+        } else if (glyph == "dynamicForte") {
+            text += "&#xE522;";
+        } else if (glyph == "dynamicRinforzando") {
+            text += "&#xE523;";
+        } else if (glyph == "dynamicSforzando") {
+            text += "&#xE524;";
+        } else if (glyph == "dynamicZ") {
+            text += "&#xE525;";
+        } else if (glyph == "dynamicNiente") {
+            text += "&#xE526;";
+        } else if (glyph == "dynamicPPPPPP") {
+            text += "&#xE527;";
+        } else if (glyph == "dynamicPPPPP") {
+            text += "&#xE528;";
+        } else if (glyph == "dynamicPPPP") {
+            text += "&#xE529;";
+        } else if (glyph == "dynamicPPP") {
+            text += "&#xE52A;";
+        } else if (glyph == "dynamicPP") {
+            text += "&#xE52B;";
+        } else if (glyph == "dynamicMP") {
+            text += "&#xE52C;";
+        } else if (glyph == "dynamicMF") {
+            text += "&#xE52D;";
+        } else if (glyph == "dynamicPF") {
+            text += "&#xE52E;";
+        } else if (glyph == "dynamicFF") {
+            text += "&#xE52F;";
+        } else if (glyph == "dynamicFFF") {
+            text += "&#xE530;";
+        } else if (glyph == "dynamicFFFF") {
+            text += "&#xE531;";
+        } else if (glyph == "dynamicFFFFF") {
+            text += "&#xE532;";
+        } else if (glyph == "dynamicFFFFFF") {
+            text += "&#xE533;";
+        } else if (glyph == "dynamicFortePiano") {
+            text += "&#xE534;";
+        } else if (glyph == "dynamicForzando") {
+            text += "&#xE535;";
+        } else if (glyph == "dynamicSforzando1") {
+            text += "&#xE536;";
+        } else if (glyph == "dynamicSforzandoPiano") {
+            text += "&#xE537;";
+        } else if (glyph == "dynamicSforzandoPianissimo") {
+            text += "&#xE538;";
+        } else if (glyph == "dynamicSforzato") {
+            text += "&#xE539;";
+        } else if (glyph == "dynamicSforzatoPiano") {
+            text += "&#xE53A;";
+        } else if (glyph == "dynamicSforzatoFF") {
+            text += "&#xE53B;";
+        } else if (glyph == "dynamicRinforzando1") {
+            text += "&#xE53C;";
+        } else if (glyph == "dynamicRinforzando2") {
+            text += "&#xE53D;";
+        } else {
+            ADD_FAILURE() << "Unhandled SMuFL glyph in test: " << glyph;
+        }
     }
     return text;
 }
@@ -245,17 +276,17 @@ TEST(DynamicRunClassification, ReturnsMatchedGlyphNamesWhenAllMatchedCharactersR
     const auto smuflSingle = classifyTestDynamic("^fontid(0)^size(24)^nfx(0)&#xE52D;");
     ASSERT_TRUE(smuflSingle);
     EXPECT_EQ(smuflSingle->dynamic, dynamics::Dynamic::mf);
-    EXPECT_EQ(smuflSingle->glyphs, (std::vector<std::string>{ "dynamicMF" }));
+    EXPECT_EQ(smuflSingle->glyphs, (std::vector<std::string>{"dynamicMF"}));
 
     const auto smuflCompound = classifyTestDynamic("^fontid(0)^size(24)^nfx(0)&#xE52F;&#xE520;");
     ASSERT_TRUE(smuflCompound);
     EXPECT_EQ(smuflCompound->dynamic, dynamics::Dynamic::ffp);
-    EXPECT_EQ(smuflCompound->glyphs, (std::vector<std::string>{ "dynamicFF", "dynamicPiano" }));
+    EXPECT_EQ(smuflCompound->glyphs, (std::vector<std::string>{"dynamicFF", "dynamicPiano"}));
 
     const auto smuflAlias = classifyTestDynamic("^fontid(0)^size(24)^nfx(0)&#xE524;&#xE522;");
     ASSERT_TRUE(smuflAlias);
     EXPECT_EQ(smuflAlias->dynamic, dynamics::Dynamic::sf);
-    EXPECT_EQ(smuflAlias->glyphs, (std::vector<std::string>{ "dynamicSforzando", "dynamicForte" }));
+    EXPECT_EQ(smuflAlias->glyphs, (std::vector<std::string>{"dynamicSforzando", "dynamicForte"}));
 
     const auto ascii = classifyTestDynamic("^fontid(1)^size(12)^nfx(0)mf");
     ASSERT_TRUE(ascii);
@@ -265,7 +296,7 @@ TEST(DynamicRunClassification, ReturnsMatchedGlyphNamesWhenAllMatchedCharactersR
     const auto legacy = classifyTestDynamic("^fontid(2)^size(24)^nfx(0)F");
     ASSERT_TRUE(legacy);
     EXPECT_EQ(legacy->dynamic, dynamics::Dynamic::mf);
-    EXPECT_EQ(legacy->glyphs, (std::vector<std::string>{ "dynamicMF" }));
+    EXPECT_EQ(legacy->glyphs, (std::vector<std::string>{"dynamicMF"}));
 }
 
 TEST(DynamicRunClassification, DistinguishesOtherAndNone)
@@ -283,7 +314,7 @@ TEST(DynamicRunClassification, PreservesGlyphsForOtherDynamics)
     const auto glyphOther = classifyTestDynamic("^fontid(0)^size(24)^nfx(0)&#xE52F;&#xE52F;&#xE52F;&#xE522;");
     ASSERT_TRUE(glyphOther);
     EXPECT_EQ(glyphOther->dynamic, dynamics::Dynamic::Other);
-    EXPECT_EQ(glyphOther->glyphs, (std::vector<std::string>{ "dynamicFF", "dynamicFF", "dynamicFF", "dynamicForte" }));
+    EXPECT_EQ(glyphOther->glyphs, (std::vector<std::string>{"dynamicFF", "dynamicFF", "dynamicFF", "dynamicForte"}));
 
     const auto letterOther = classifyTestDynamic("^fontid(1)^size(12)^nfx(0)fffffff");
     ASSERT_TRUE(letterOther);
@@ -309,20 +340,17 @@ TEST(DynamicRunClassification, ProvidesCanonicalText)
 
 TEST(DynamicRunClassification, ProvidesCanonicalGlyphs)
 {
-    const std::vector<dynamics::Dynamic> dynamics = {
-        dynamics::Dynamic::pppppp, dynamics::Dynamic::ppppp, dynamics::Dynamic::pppp, dynamics::Dynamic::ppp, dynamics::Dynamic::pp, dynamics::Dynamic::p,
-        dynamics::Dynamic::mp, dynamics::Dynamic::mf,
-        dynamics::Dynamic::f, dynamics::Dynamic::ff, dynamics::Dynamic::fff, dynamics::Dynamic::ffff, dynamics::Dynamic::fffff, dynamics::Dynamic::ffffff,
-        dynamics::Dynamic::fp, dynamics::Dynamic::ffp, dynamics::Dynamic::fz, dynamics::Dynamic::ffz, dynamics::Dynamic::pf,
-        dynamics::Dynamic::sf, dynamics::Dynamic::sfp, dynamics::Dynamic::sfpp, dynamics::Dynamic::sfz, dynamics::Dynamic::sffz, dynamics::Dynamic::sfzp,
-        dynamics::Dynamic::rf, dynamics::Dynamic::rfz, dynamics::Dynamic::n
-    };
+    const std::vector<dynamics::Dynamic> dynamics = {dynamics::Dynamic::pppppp, dynamics::Dynamic::ppppp, dynamics::Dynamic::pppp,
+        dynamics::Dynamic::ppp, dynamics::Dynamic::pp, dynamics::Dynamic::p, dynamics::Dynamic::mp, dynamics::Dynamic::mf, dynamics::Dynamic::f,
+        dynamics::Dynamic::ff, dynamics::Dynamic::fff, dynamics::Dynamic::ffff, dynamics::Dynamic::fffff, dynamics::Dynamic::ffffff,
+        dynamics::Dynamic::fp, dynamics::Dynamic::ffp, dynamics::Dynamic::fz, dynamics::Dynamic::ffz, dynamics::Dynamic::pf, dynamics::Dynamic::sf,
+        dynamics::Dynamic::sfp, dynamics::Dynamic::sfpp, dynamics::Dynamic::sfz, dynamics::Dynamic::sffz, dynamics::Dynamic::sfzp,
+        dynamics::Dynamic::rf, dynamics::Dynamic::rfz, dynamics::Dynamic::n};
 
     for (const auto dynamic : dynamics) {
         const auto glyphs = dynamicCanonicalGlyphs(dynamic);
         EXPECT_FALSE(glyphs.empty()) << dynamicCanonicalText(dynamic);
-        EXPECT_EQ(classifyTestDynamic(smuflGlyphText(glyphs))->dynamic, dynamic)
-            << dynamicCanonicalText(dynamic);
+        EXPECT_EQ(classifyTestDynamic(smuflGlyphText(glyphs))->dynamic, dynamic) << dynamicCanonicalText(dynamic);
     }
 
     EXPECT_TRUE(dynamicCanonicalGlyphs(dynamics::Dynamic::Other).empty());
@@ -331,39 +359,31 @@ TEST(DynamicRunClassification, ProvidesCanonicalGlyphs)
 
 TEST(DynamicRunClassification, ProvidesCanonicalLetterGlyphs)
 {
-    EXPECT_EQ(dynamicCanonicalLetterGlyphs(dynamics::Dynamic::mf), (std::vector<std::string>{ "dynamicMezzo", "dynamicForte" }));
-    EXPECT_EQ(dynamicCanonicalLetterGlyphs(dynamics::Dynamic::fffff), (std::vector<std::string>{
-        "dynamicForte", "dynamicForte", "dynamicForte", "dynamicForte", "dynamicForte"
-    }));
-    EXPECT_EQ(dynamicCanonicalLetterGlyphs(dynamics::Dynamic::sfpp), (std::vector<std::string>{
-        "dynamicSforzando", "dynamicForte", "dynamicPiano", "dynamicPiano"
-    }));
-    EXPECT_EQ(dynamicCanonicalLetterGlyphs(dynamics::Dynamic::rfz), (std::vector<std::string>{
-        "dynamicRinforzando", "dynamicForte", "dynamicZ"
-    }));
+    EXPECT_EQ(dynamicCanonicalLetterGlyphs(dynamics::Dynamic::mf), (std::vector<std::string>{"dynamicMezzo", "dynamicForte"}));
+    EXPECT_EQ(dynamicCanonicalLetterGlyphs(dynamics::Dynamic::fffff),
+        (std::vector<std::string>{"dynamicForte", "dynamicForte", "dynamicForte", "dynamicForte", "dynamicForte"}));
+    EXPECT_EQ(dynamicCanonicalLetterGlyphs(dynamics::Dynamic::sfpp),
+        (std::vector<std::string>{"dynamicSforzando", "dynamicForte", "dynamicPiano", "dynamicPiano"}));
+    EXPECT_EQ(dynamicCanonicalLetterGlyphs(dynamics::Dynamic::rfz), (std::vector<std::string>{"dynamicRinforzando", "dynamicForte", "dynamicZ"}));
     EXPECT_TRUE(dynamicCanonicalLetterGlyphs(dynamics::Dynamic::Other).empty());
     EXPECT_TRUE(dynamicCanonicalLetterGlyphs(dynamics::Dynamic::None).empty());
 }
 
 TEST(DynamicRunClassification, ConvertsDynamicGlyphsToLetters)
 {
-    EXPECT_EQ(dynamicGlyphsToLetters({ "dynamicFF" }), "ff");
-    EXPECT_EQ(dynamicGlyphsToLetters({ "dynamicMF" }), "mf");
-    EXPECT_EQ(dynamicGlyphsToLetters({ "dynamicSforzatoPiano" }), "sfzp");
-    EXPECT_EQ(dynamicGlyphsToLetters({ "dynamicPPPP", "dynamicFortePiano" }), "ppppfp");
-    EXPECT_EQ(dynamicGlyphsToLetters({ "dynamicForteSmall" }), "f");
-    EXPECT_TRUE(dynamicGlyphsToLetters({ "unknownGlyph", "dynamicForte" }).empty());
+    EXPECT_EQ(dynamicGlyphsToLetters({"dynamicFF"}), "ff");
+    EXPECT_EQ(dynamicGlyphsToLetters({"dynamicMF"}), "mf");
+    EXPECT_EQ(dynamicGlyphsToLetters({"dynamicSforzatoPiano"}), "sfzp");
+    EXPECT_EQ(dynamicGlyphsToLetters({"dynamicPPPP", "dynamicFortePiano"}), "ppppfp");
+    EXPECT_EQ(dynamicGlyphsToLetters({"dynamicForteSmall"}), "f");
+    EXPECT_TRUE(dynamicGlyphsToLetters({"unknownGlyph", "dynamicForte"}).empty());
 }
 
 TEST(DynamicRunClassification, ConvertsDynamicLettersToLetterGlyphs)
 {
-    EXPECT_EQ(dynamicLettersToLetterGlyphs("mfsrzn"), (std::vector<std::string>{
-        "dynamicMezzo", "dynamicForte", "dynamicSforzando",
-        "dynamicRinforzando", "dynamicZ", "dynamicNiente"
-    }));
-    EXPECT_EQ(dynamicLettersToLetterGlyphs("PPx F!"), (std::vector<std::string>{
-        "dynamicPiano", "dynamicPiano", "dynamicForte"
-    }));
+    EXPECT_EQ(dynamicLettersToLetterGlyphs("mfsrzn"),
+        (std::vector<std::string>{"dynamicMezzo", "dynamicForte", "dynamicSforzando", "dynamicRinforzando", "dynamicZ", "dynamicNiente"}));
+    EXPECT_EQ(dynamicLettersToLetterGlyphs("PPx F!"), (std::vector<std::string>{"dynamicPiano", "dynamicPiano", "dynamicForte"}));
     EXPECT_TRUE(dynamicLettersToLetterGlyphs("abc").empty());
 }
 
@@ -390,8 +410,7 @@ static std::string spellComposition(const dynamics::Composition& composition)
     return result;
 }
 
-static void expectComposition(std::string_view letters, Reinforcement reinforcement, Level level,
-    bool forzato, Level subsequent)
+static void expectComposition(std::string_view letters, Reinforcement reinforcement, Level level, bool forzato, Level subsequent)
 {
     const auto composition = dynamicCompositionFromLetters(letters);
     EXPECT_EQ(composition.reinforcement, reinforcement) << letters << ": reinforcement";

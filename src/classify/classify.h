@@ -46,8 +46,7 @@ inline ExpressionCategoryType categoryTypeFromId(musx::dom::Cmper categoryId)
     case ExpressionCategoryType::ExpressiveText:
     case ExpressionCategoryType::TechniqueText:
     case ExpressionCategoryType::RehearsalMarks:
-    case ExpressionCategoryType::Misc:
-        return static_cast<ExpressionCategoryType>(categoryId);
+    case ExpressionCategoryType::Misc: return static_cast<ExpressionCategoryType>(categoryId);
     }
     return ExpressionCategoryType::Misc;
 }
@@ -65,8 +64,7 @@ std::vector<DynamicSpan> findDynamicSpans(const musx::util::EnigmaTextChunk& chu
 /// Returns the SMuFL glyph name for a codepoint in the given font, when resolvable.
 /// SMuFL fonts resolve through the SMuFL glyph tables; legacy fonts resolve through
 /// their font-specific mappings.
-std::optional<std::string> glyphNameForFont(
-    const std::shared_ptr<musx::dom::FontInfo>& font, char32_t codepoint);
+std::optional<std::string> glyphNameForFont(const std::shared_ptr<musx::dom::FontInfo>& font, char32_t codepoint);
 
 } // namespace detail
 

@@ -28,15 +28,15 @@
 #include <utility>
 #include <vector>
 
-#include "gtest/gtest.h"
 #include "denigma/classify/articulations.h"
 #include "formats/musicxml/musicxml.h"
-#include "musx/util/Fraction.h"
-#include "mx/api/ScoreData.h"
-#include "mx/api/MarkDataChoice.h"
-#include "pugixml.hpp"
 #include "musicxml_test.h"
+#include "musx/util/Fraction.h"
+#include "mx/api/MarkDataChoice.h"
+#include "mx/api/ScoreData.h"
+#include "pugixml.hpp"
 #include "test_utils.h"
+#include "gtest/gtest.h"
 
 using namespace denigma;
 using namespace denigma::test::musicxml;
@@ -159,13 +159,27 @@ struct ComparableLaissezVibrerTie
 
 mx::api::Step parseStep(const std::string& step)
 {
-    if (step == "A") return mx::api::Step::a;
-    if (step == "B") return mx::api::Step::b;
-    if (step == "C") return mx::api::Step::c;
-    if (step == "D") return mx::api::Step::d;
-    if (step == "E") return mx::api::Step::e;
-    if (step == "F") return mx::api::Step::f;
-    if (step == "G") return mx::api::Step::g;
+    if (step == "A") {
+        return mx::api::Step::a;
+    }
+    if (step == "B") {
+        return mx::api::Step::b;
+    }
+    if (step == "C") {
+        return mx::api::Step::c;
+    }
+    if (step == "D") {
+        return mx::api::Step::d;
+    }
+    if (step == "E") {
+        return mx::api::Step::e;
+    }
+    if (step == "F") {
+        return mx::api::Step::f;
+    }
+    if (step == "G") {
+        return mx::api::Step::g;
+    }
     throw std::logic_error("Unexpected MNX pitch step.");
 }
 
@@ -174,10 +188,9 @@ std::filesystem::path exportMnxFixture(const std::string& musxFile)
     std::filesystem::path inputPath;
     copyInputToOutput(musxFile, inputPath);
 
-    ArgList args = { DENIGMA_NAME, "export", pathString(inputPath), "--mnx" };
-    checkStderr({ "Processing", pathString(inputPath.filename()) }, [&]() {
-        EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath);
-    });
+    ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), "--mnx"};
+    checkStderr({"Processing", pathString(inputPath.filename())},
+        [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath); });
 
     auto outputPath = inputPath;
     outputPath.replace_extension(".mnx");
@@ -185,8 +198,7 @@ std::filesystem::path exportMnxFixture(const std::string& musxFile)
     return outputPath;
 }
 
-std::filesystem::path exportMusxTestDataFixture(
-    const std::string& fileName, const std::string& converterOption, const std::string& outputExtension)
+std::filesystem::path exportMusxTestDataFixture(const std::string& fileName, const std::string& converterOption, const std::string& outputExtension)
 {
     const auto sourcePath = std::filesystem::path(MUSX_TEST_DATA_PATH) / fileName;
     const auto inputPath = getOutputPath() / fileName;
@@ -201,10 +213,9 @@ std::filesystem::path exportMusxTestDataFixture(
         return {};
     }
 
-    ArgList args = { DENIGMA_NAME, "export", pathString(inputPath), converterOption, "--force" };
-    checkStderr({ "Processing", pathString(inputPath.filename()) }, [&]() {
-        EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export " << fileName << " to " << converterOption;
-    });
+    ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), converterOption, "--force"};
+    checkStderr({"Processing", pathString(inputPath.filename())},
+        [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export " << fileName << " to " << converterOption; });
 
     auto outputPath = inputPath;
     outputPath.replace_extension(outputExtension);
@@ -240,9 +251,9 @@ std::vector<ComparableLaissezVibrerTie> createComparableMnxLaissezVibrerTies(con
                                 parseStep(pitch.at("step").get<std::string>()),
                                 pitch.value("alter", 0),
                                 pitch.at("octave").get<int>(),
-                                side == "up" ? mx::api::CurveOrientation::overhand
-                                    : side == "down" ? mx::api::CurveOrientation::underhand
-                                    : mx::api::CurveOrientation::unspecified,
+                                side == "up"     ? mx::api::CurveOrientation::overhand
+                                : side == "down" ? mx::api::CurveOrientation::underhand
+                                                 : mx::api::CurveOrientation::unspecified,
                             });
                         }
                     }
@@ -469,11 +480,21 @@ std::vector<ComparableMnxCrossStaffEvent> createComparableMnxCrossStaffEvents(co
         }
     }
     std::sort(result.begin(), result.end(), [](const ComparableMnxCrossStaffEvent& lhs, const ComparableMnxCrossStaffEvent& rhs) {
-        if (lhs.measureIndex != rhs.measureIndex) return lhs.measureIndex < rhs.measureIndex;
-        if (lhs.sequenceStaff != rhs.sequenceStaff) return lhs.sequenceStaff < rhs.sequenceStaff;
-        if (lhs.noteStaff != rhs.noteStaff) return lhs.noteStaff < rhs.noteStaff;
-        if (lhs.step != rhs.step) return lhs.step < rhs.step;
-        if (lhs.alter != rhs.alter) return lhs.alter < rhs.alter;
+        if (lhs.measureIndex != rhs.measureIndex) {
+            return lhs.measureIndex < rhs.measureIndex;
+        }
+        if (lhs.sequenceStaff != rhs.sequenceStaff) {
+            return lhs.sequenceStaff < rhs.sequenceStaff;
+        }
+        if (lhs.noteStaff != rhs.noteStaff) {
+            return lhs.noteStaff < rhs.noteStaff;
+        }
+        if (lhs.step != rhs.step) {
+            return lhs.step < rhs.step;
+        }
+        if (lhs.alter != rhs.alter) {
+            return lhs.alter < rhs.alter;
+        }
         return lhs.octave < rhs.octave;
     });
     return result;
@@ -503,9 +524,8 @@ std::vector<ComparableMnxCrossStaffEvent> createComparableMusicXmlCrossStaffEven
                     continue;
                 }
                 const int staffNumber = note.child("staff").text().as_int();
-                const auto countIt = std::find_if(noteStaffCounts.begin(), noteStaffCounts.end(), [staffNumber](const auto& pair) {
-                    return pair.first == staffNumber;
-                });
+                const auto countIt = std::find_if(
+                    noteStaffCounts.begin(), noteStaffCounts.end(), [staffNumber](const auto& pair) { return pair.first == staffNumber; });
                 if (countIt == noteStaffCounts.end()) {
                     noteStaffCounts.emplace_back(staffNumber, 1);
                 } else {
@@ -517,7 +537,9 @@ std::vector<ComparableMnxCrossStaffEvent> createComparableMusicXmlCrossStaffEven
                 return;
             }
             const auto homeStaffIt = std::max_element(noteStaffCounts.begin(), noteStaffCounts.end(), [](const auto& lhs, const auto& rhs) {
-                if (lhs.second != rhs.second) return lhs.second < rhs.second;
+                if (lhs.second != rhs.second) {
+                    return lhs.second < rhs.second;
+                }
                 return lhs.first > rhs.first;
             });
             const int homeStaff = homeStaffIt->first;
@@ -555,11 +577,21 @@ std::vector<ComparableMnxCrossStaffEvent> createComparableMusicXmlCrossStaffEven
         flushEvent();
     }
     std::sort(result.begin(), result.end(), [](const ComparableMnxCrossStaffEvent& lhs, const ComparableMnxCrossStaffEvent& rhs) {
-        if (lhs.measureIndex != rhs.measureIndex) return lhs.measureIndex < rhs.measureIndex;
-        if (lhs.sequenceStaff != rhs.sequenceStaff) return lhs.sequenceStaff < rhs.sequenceStaff;
-        if (lhs.noteStaff != rhs.noteStaff) return lhs.noteStaff < rhs.noteStaff;
-        if (lhs.step != rhs.step) return lhs.step < rhs.step;
-        if (lhs.alter != rhs.alter) return lhs.alter < rhs.alter;
+        if (lhs.measureIndex != rhs.measureIndex) {
+            return lhs.measureIndex < rhs.measureIndex;
+        }
+        if (lhs.sequenceStaff != rhs.sequenceStaff) {
+            return lhs.sequenceStaff < rhs.sequenceStaff;
+        }
+        if (lhs.noteStaff != rhs.noteStaff) {
+            return lhs.noteStaff < rhs.noteStaff;
+        }
+        if (lhs.step != rhs.step) {
+            return lhs.step < rhs.step;
+        }
+        if (lhs.alter != rhs.alter) {
+            return lhs.alter < rhs.alter;
+        }
         return lhs.octave < rhs.octave;
     });
     return result;
@@ -587,7 +619,7 @@ std::vector<ComparableGraceGroup> createComparableMnxGraceGroups(const nlohmann:
                 if (item.value("type", "") != "grace") {
                     continue;
                 }
-                auto group = ComparableGraceGroup{ 0, measureIndex, staffIndex, voiceIndex, !item.contains("slash"), {} };
+                auto group = ComparableGraceGroup{0, measureIndex, staffIndex, voiceIndex, !item.contains("slash"), {}};
                 for (const auto& event : item["content"]) {
                     if (!event.contains("notes")) {
                         continue;
@@ -632,12 +664,10 @@ std::vector<ComparableGraceGroup> createComparableMusicXmlGraceGroups(const std:
             if (!previousSlashed || *previousSlashed != slashed) {
                 const auto staffNode = note.child("staff");
                 const int staffNumber = staffNode ? staffNode.text().as_int() : 1;
-                result.push_back({ 0, measureIndex, static_cast<size_t>(staffNumber - 1), 0, slashed, {} });
+                result.push_back({0, measureIndex, static_cast<size_t>(staffNumber - 1), 0, slashed, {}});
             }
             result.back().pitches.emplace_back(
-                parseStep(pitch.child_value("step")),
-                pitch.child("alter").text().as_int(),
-                pitch.child("octave").text().as_int());
+                parseStep(pitch.child_value("step")), pitch.child("alter").text().as_int(), pitch.child("octave").text().as_int());
             previousSlashed = slashed;
         }
     }
@@ -661,15 +691,11 @@ void compareStemEventsSetByExporter(const mx::api::ScoreData& actual, const mx::
     ASSERT_FALSE(actualEvents.empty()) << "expected Denigma to export at least one explicit stem";
     for (const auto& actualEvent : actualEvents) {
         const auto expectedIt = std::find_if(expectedEvents.begin(), expectedEvents.end(), [&actualEvent](const ComparableStemEvent& expectedEvent) {
-            return actualEvent.partIndex == expectedEvent.partIndex
-                && actualEvent.measureIndex == expectedEvent.measureIndex
-                && actualEvent.staffIndex == expectedEvent.staffIndex
-                && actualEvent.tickTimePosition == expectedEvent.tickTimePosition
-                && actualEvent.durationTime == expectedEvent.durationTime
-                && actualEvent.isChord == expectedEvent.isChord
-                && actualEvent.step == expectedEvent.step
-                && actualEvent.alter == expectedEvent.alter
-                && actualEvent.octave == expectedEvent.octave;
+            return actualEvent.partIndex == expectedEvent.partIndex && actualEvent.measureIndex == expectedEvent.measureIndex
+                   && actualEvent.staffIndex == expectedEvent.staffIndex && actualEvent.tickTimePosition == expectedEvent.tickTimePosition
+                   && actualEvent.durationTime == expectedEvent.durationTime && actualEvent.isChord == expectedEvent.isChord
+                   && actualEvent.step == expectedEvent.step && actualEvent.alter == expectedEvent.alter
+                   && actualEvent.octave == expectedEvent.octave;
         });
         ASSERT_NE(expectedIt, expectedEvents.end()) << "missing reference note for exported stem";
         EXPECT_EQ(actualEvent.stem, expectedIt->stem);
@@ -700,9 +726,8 @@ void compareGraceGroupsToMnx(const std::filesystem::path& musicXmlPath, const nl
 std::vector<ComparableNoteEvent> createComparableTieEvents(const mx::api::ScoreData& score)
 {
     auto events = createComparableNoteEvents(score);
-    events.erase(std::remove_if(events.begin(), events.end(), [](const ComparableNoteEvent& event) {
-        return !event.isTieStart && !event.isTieStop;
-    }), events.end());
+    events.erase(std::remove_if(events.begin(), events.end(), [](const ComparableNoteEvent& event) { return !event.isTieStart && !event.isTieStop; }),
+        events.end());
     return events;
 }
 
@@ -730,9 +755,8 @@ std::vector<ComparableNoteEvent> createComparablePairedTieEvents(const mx::api::
     for (const auto& event : allTieEvents) {
         if (event.isTieStop) {
             const auto key = makeKey(event);
-            const auto startIt = std::find_if(pendingStarts.begin(), pendingStarts.end(), [&key](const auto& pendingStart) {
-                return pendingStart.first == key;
-            });
+            const auto startIt =
+                std::find_if(pendingStarts.begin(), pendingStarts.end(), [&key](const auto& pendingStart) { return pendingStart.first == key; });
             if (startIt != pendingStarts.end()) {
                 result.push_back(startIt->second);
                 result.push_back(event);
@@ -770,8 +794,7 @@ void expectNotesUseStaffQualifiedVoiceNumbers(const mx::api::ScoreData& score)
                 for (const auto& [voiceIndex, voice] : staff.voices) {
                     for (const auto& note : voice.notes) {
                         (void)note;
-                        EXPECT_GE(voiceIndex, firstVoiceIndex)
-                            << "part " << partIndex << " measure " << measureIndex << " staff " << staffIndex;
+                        EXPECT_GE(voiceIndex, firstVoiceIndex) << "part " << partIndex << " measure " << measureIndex << " staff " << staffIndex;
                         EXPECT_LT(voiceIndex, nextStaffFirstVoiceIndex)
                             << "part " << partIndex << " measure " << measureIndex << " staff " << staffIndex;
                     }
@@ -880,7 +903,7 @@ void expectArtificialHarmonicNotes(const mx::api::ScoreData& score, const std::v
         ASSERT_EQ(std::count_if(marks.begin(), marks.end(), isHarmonicMark), 1) << "note " << noteIndex;
         const auto harmonicMark = std::find_if(marks.begin(), marks.end(), isHarmonicMark);
         ASSERT_TRUE(harmonicMark->choice.isHarmonic()) << "note " << noteIndex;
-        const auto expectedHarmonic = mx::api::HarmonicMarkData{ mx::api::HarmonicKind::artificial, expected.harmonicPitch };
+        const auto expectedHarmonic = mx::api::HarmonicMarkData{mx::api::HarmonicKind::artificial, expected.harmonicPitch};
         EXPECT_EQ(harmonicMark->choice.harmonic(), expectedHarmonic) << "note " << noteIndex;
     }
 }
@@ -911,13 +934,13 @@ TEST(MusicXmlNotes, WholeRestPositionsMatchFinale)
     ASSERT_TRUE(expectedScore);
 
     const std::vector<std::pair<mx::api::Step, int>> expectedPositions{
-        { mx::api::Step::f, 5 },
-        { mx::api::Step::d, 5 },
-        { mx::api::Step::b, 4 },
-        { mx::api::Step::g, 4 },
-        { mx::api::Step::e, 4 },
-        { mx::api::Step::c, 4 },
-        { mx::api::Step::g, 4 },
+        {mx::api::Step::f, 5},
+        {mx::api::Step::d, 5},
+        {mx::api::Step::b, 4},
+        {mx::api::Step::g, 4},
+        {mx::api::Step::e, 4},
+        {mx::api::Step::c, 4},
+        {mx::api::Step::g, 4},
     };
     EXPECT_EQ(positionedRestDisplayPitches(*expectedScore), expectedPositions);
     EXPECT_EQ(positionedRestDisplayPitches(*actualScore), expectedPositions);
@@ -932,13 +955,13 @@ TEST(MusicXmlNotes, WholeRestPositionsUseSmuflConventionByDefault)
     ASSERT_TRUE(actualScore);
 
     const std::vector<std::pair<mx::api::Step, int>> expectedPositions{
-        { mx::api::Step::a, 5 },
-        { mx::api::Step::f, 5 },
-        { mx::api::Step::d, 5 },
-        { mx::api::Step::b, 4 },
-        { mx::api::Step::g, 4 },
-        { mx::api::Step::e, 4 },
-        { mx::api::Step::b, 4 },
+        {mx::api::Step::a, 5},
+        {mx::api::Step::f, 5},
+        {mx::api::Step::d, 5},
+        {mx::api::Step::b, 4},
+        {mx::api::Step::g, 4},
+        {mx::api::Step::e, 4},
+        {mx::api::Step::b, 4},
     };
     EXPECT_EQ(positionedRestDisplayPitches(*actualScore), expectedPositions);
 }
@@ -957,7 +980,7 @@ TEST(MusicXmlNotes, LegacyZeroNoteFixedRestExportsDisplayPosition)
     const auto fixedRestPath = getOutputPath() / "zero_tuplet-fixed-rest.enigmaxml";
     ASSERT_TRUE(document.save_file(fixedRestPath.c_str()));
 
-    ArgList args = { DENIGMA_NAME, "export", pathString(fixedRestPath), "--force" };
+    ArgList args = {DENIGMA_NAME, "export", pathString(fixedRestPath), "--force"};
     EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0);
     auto fixedRestMusxPath = fixedRestPath;
     fixedRestMusxPath.replace_extension(".musx");
@@ -970,7 +993,7 @@ TEST(MusicXmlNotes, LegacyZeroNoteFixedRestExportsDisplayPosition)
 
     EXPECT_TRUE(positionedRestDisplayPitches(*floatingScore).empty());
     const std::vector<std::pair<mx::api::Step, int>> expectedPositions{
-        { mx::api::Step::b, 4 },
+        {mx::api::Step::b, 4},
     };
     EXPECT_EQ(positionedRestDisplayPitches(*fixedScore), expectedPositions);
 }
@@ -1000,12 +1023,12 @@ TEST(MusicXmlNotes, ArtificialHarmonicsExportSmoke)
     using mx::api::Notehead;
     using mx::api::Step;
     const std::vector<ExpectedHarmonicNote> expectedNotes = {
-        { Step::e, -1, 3, Notehead::normal, Bool::unspecified, HarmonicPitch::basePitch },      // stopped (major third touch)
-        { Step::g, 0, 3, Notehead::diamond, Bool::no, HarmonicPitch::touchingPitch },           // touched
-        { Step::b, 0, 3, Notehead::normal, Bool::unspecified, HarmonicPitch::basePitch },       // stopped (fourth touch)
-        { Step::e, 0, 4, Notehead::diamond, Bool::no, HarmonicPitch::touchingPitch },           // touched
-        { Step::f, 0, 3, Notehead::normal, Bool::unspecified, HarmonicPitch::basePitch },       // stopped (fifth touch)
-        { Step::c, 0, 4, Notehead::diamond, Bool::no, HarmonicPitch::touchingPitch },           // touched
+        {Step::e, -1, 3, Notehead::normal, Bool::unspecified, HarmonicPitch::basePitch},      // stopped (major third touch)
+        {Step::g, 0, 3, Notehead::diamond, Bool::no, HarmonicPitch::touchingPitch},           // touched
+        {Step::b, 0, 3, Notehead::normal, Bool::unspecified, HarmonicPitch::basePitch},       // stopped (fourth touch)
+        {Step::e, 0, 4, Notehead::diamond, Bool::no, HarmonicPitch::touchingPitch},           // touched
+        {Step::f, 0, 3, Notehead::normal, Bool::unspecified, HarmonicPitch::basePitch},       // stopped (fifth touch)
+        {Step::c, 0, 4, Notehead::diamond, Bool::no, HarmonicPitch::touchingPitch},           // touched
     };
 
     expectArtificialHarmonicNotes(*actualScore, expectedNotes);
@@ -1034,12 +1057,12 @@ TEST(MusicXmlNotes, ArtificialHarmonicsWithWrittenSoundingPitch)
     using mx::api::Notehead;
     using mx::api::Step;
     const std::vector<ExpectedHarmonicNote> expectedNotes = {
-        { Step::g, 0, 4, Notehead::normal, Bool::unspecified, HarmonicPitch::basePitch },       // stopped (fourth touch)
-        { Step::c, 0, 5, Notehead::diamond, Bool::no, HarmonicPitch::touchingPitch },           // touched
-        { Step::g, 0, 6, Notehead::normal, Bool::unspecified, HarmonicPitch::soundingPitch },   // written sounding pitch
-        { Step::g, 0, 4, Notehead::normal, Bool::unspecified, HarmonicPitch::basePitch },       // stopped (fifth touch)
-        { Step::d, 0, 5, Notehead::diamond, Bool::no, HarmonicPitch::touchingPitch },           // touched
-        { Step::d, 0, 6, Notehead::normal, Bool::unspecified, HarmonicPitch::soundingPitch },   // written sounding pitch
+        {Step::g, 0, 4, Notehead::normal, Bool::unspecified, HarmonicPitch::basePitch},       // stopped (fourth touch)
+        {Step::c, 0, 5, Notehead::diamond, Bool::no, HarmonicPitch::touchingPitch},           // touched
+        {Step::g, 0, 6, Notehead::normal, Bool::unspecified, HarmonicPitch::soundingPitch},   // written sounding pitch
+        {Step::g, 0, 4, Notehead::normal, Bool::unspecified, HarmonicPitch::basePitch},       // stopped (fifth touch)
+        {Step::d, 0, 5, Notehead::diamond, Bool::no, HarmonicPitch::touchingPitch},           // touched
+        {Step::d, 0, 6, Notehead::normal, Bool::unspecified, HarmonicPitch::soundingPitch},   // written sounding pitch
     };
 
     expectArtificialHarmonicNotes(*actualScore, expectedNotes);
@@ -1088,14 +1111,14 @@ TEST(MusicXmlNotes, TieTargetTypesExportSmoke)
     EXPECT_EQ(firstEndingMeasure.barlines.at(*firstEndingStartIndex).barlineType, mx::api::BarlineType::unspecified);
     ASSERT_TRUE(firstEndingMeasure.barlines.at(*firstEndingStartIndex).ending);
     EXPECT_EQ(firstEndingMeasure.barlines.at(*firstEndingStartIndex).ending->type, mx::api::EndingType::start);
-    EXPECT_EQ(firstEndingMeasure.barlines.at(*firstEndingStartIndex).ending->numbers, (std::vector<int>{ 1 }));
+    EXPECT_EQ(firstEndingMeasure.barlines.at(*firstEndingStartIndex).ending->numbers, (std::vector<int>{1}));
     // The document has no custom ending text, but its "Add Period" repeat option makes Finale draw
     // the label as "1.", which differs from the number and therefore travels as the ending's text.
     EXPECT_EQ(firstEndingMeasure.barlines.at(*firstEndingStartIndex).ending->text, "1.");
     EXPECT_EQ(firstEndingMeasure.barlines.at(*firstEndingStopIndex).barlineType, mx::api::BarlineType::lightHeavy);
     ASSERT_TRUE(firstEndingMeasure.barlines.at(*firstEndingStopIndex).ending);
     EXPECT_EQ(firstEndingMeasure.barlines.at(*firstEndingStopIndex).ending->type, mx::api::EndingType::stop);
-    EXPECT_EQ(firstEndingMeasure.barlines.at(*firstEndingStopIndex).ending->numbers, (std::vector<int>{ 1 }));
+    EXPECT_EQ(firstEndingMeasure.barlines.at(*firstEndingStopIndex).ending->numbers, (std::vector<int>{1}));
 
     const auto& secondEndingMeasure = measures.at(3);
     const auto secondEndingStartIndex = findBarlineIndex(secondEndingMeasure, mx::api::HorizontalAlignment::left);
@@ -1106,11 +1129,11 @@ TEST(MusicXmlNotes, TieTargetTypesExportSmoke)
     EXPECT_EQ(secondEndingMeasure.barlines.at(*secondEndingStartIndex).barlineType, mx::api::BarlineType::unspecified);
     ASSERT_TRUE(secondEndingMeasure.barlines.at(*secondEndingStartIndex).ending);
     EXPECT_EQ(secondEndingMeasure.barlines.at(*secondEndingStartIndex).ending->type, mx::api::EndingType::start);
-    EXPECT_EQ(secondEndingMeasure.barlines.at(*secondEndingStartIndex).ending->numbers, (std::vector<int>{ 2 }));
+    EXPECT_EQ(secondEndingMeasure.barlines.at(*secondEndingStartIndex).ending->numbers, (std::vector<int>{2}));
     EXPECT_EQ(secondEndingMeasure.barlines.at(*secondEndingStopIndex).barlineType, mx::api::BarlineType::unspecified);
     ASSERT_TRUE(secondEndingMeasure.barlines.at(*secondEndingStopIndex).ending);
     EXPECT_EQ(secondEndingMeasure.barlines.at(*secondEndingStopIndex).ending->type, mx::api::EndingType::discontinue);
-    EXPECT_EQ(secondEndingMeasure.barlines.at(*secondEndingStopIndex).ending->numbers, (std::vector<int>{ 2 }));
+    EXPECT_EQ(secondEndingMeasure.barlines.at(*secondEndingStopIndex).ending->numbers, (std::vector<int>{2}));
 }
 
 TEST(MusicXmlNotes, TieTargetTypesArpeggiatedTiesExportSmoke)
@@ -1124,8 +1147,8 @@ TEST(MusicXmlNotes, TieTargetTypesArpeggiatedTiesExportSmoke)
     const auto tieEvents = createComparableTieEvents(*actualScore);
     const auto findTieEvent = [&](size_t measureIndex, mx::api::Step step, int octave, bool isTieStart) -> const ComparableNoteEvent* {
         for (const auto& event : tieEvents) {
-            if (event.measureIndex == measureIndex && event.step == step && event.octave == octave
-                && event.isTieStart == isTieStart && event.isTieStop == !isTieStart) {
+            if (event.measureIndex == measureIndex && event.step == step && event.octave == octave && event.isTieStart == isTieStart
+                && event.isTieStop == !isTieStart) {
                 return &event;
             }
         }
@@ -1139,10 +1162,8 @@ TEST(MusicXmlNotes, TieTargetTypesArpeggiatedTiesExportSmoke)
     constexpr size_t arpeggiatedTieStartMeasureIndex = 1;
     constexpr size_t firstEndingMeasureIndex = 2;
 
-    EXPECT_TRUE(findTieEvent(arpeggiatedTieStartMeasureIndex, mx::api::Step::e, 4, true))
-        << "expected an E4 arpeggiated tie start in measure 2";
-    EXPECT_TRUE(findTieEvent(arpeggiatedTieStartMeasureIndex, mx::api::Step::g, 4, true))
-        << "expected a G4 arpeggiated tie start in measure 2";
+    EXPECT_TRUE(findTieEvent(arpeggiatedTieStartMeasureIndex, mx::api::Step::e, 4, true)) << "expected an E4 arpeggiated tie start in measure 2";
+    EXPECT_TRUE(findTieEvent(arpeggiatedTieStartMeasureIndex, mx::api::Step::g, 4, true)) << "expected a G4 arpeggiated tie start in measure 2";
     EXPECT_TRUE(findTieEvent(firstEndingMeasureIndex, mx::api::Step::e, 4, false))
         << "expected an E4 arpeggiated tie stop in measure 3 (first ending)";
     EXPECT_TRUE(findTieEvent(firstEndingMeasureIndex, mx::api::Step::g, 4, false))
@@ -1204,8 +1225,7 @@ TEST(MusicXmlNotes, ArpeggioMarksCoverEveryNoteOfTheRolledChord)
                             ASSERT_TRUE(mark.choice.isArpeggiate());
                             const auto arpeggiateData = mark.choice.arpeggiate();
                             if (arpeggiateData.unbroken == mx::api::Bool::yes) {
-                                EXPECT_TRUE(arpeggiateData.number.has_value())
-                                    << "an unbroken arpeggio needs a number to identify its other end";
+                                EXPECT_TRUE(arpeggiateData.number.has_value()) << "an unbroken arpeggio needs a number to identify its other end";
                                 ++crossEntryMarkCount;
                             } else {
                                 EXPECT_FALSE(arpeggiateData.number.has_value());
@@ -1216,8 +1236,7 @@ TEST(MusicXmlNotes, ArpeggioMarksCoverEveryNoteOfTheRolledChord)
                     }
                     for (const auto& [tickTimePosition, counts] : chordNoteAndMarkCounts) {
                         if (counts.second != 0) {
-                            EXPECT_EQ(counts.second, counts.first)
-                                << "every note of the chord at tick " << tickTimePosition << " should be rolled";
+                            EXPECT_EQ(counts.second, counts.first) << "every note of the chord at tick " << tickTimePosition << " should be rolled";
                         }
                     }
                 }
@@ -1232,9 +1251,7 @@ TEST(MusicXmlNotes, ArpeggioMarksCoverEveryNoteOfTheRolledChord)
 TEST(MusicXmlNotes, CaesuraVariantsMapToMusicXml)
 {
     using CaesuraType = classify::articulation::Caesura::Type;
-    const auto convert = [](CaesuraType type) {
-        return formats::musicxml::detail::enumConvert<mx::api::MarkType>(type);
-    };
+    const auto convert = [](CaesuraType type) { return formats::musicxml::detail::enumConvert<mx::api::MarkType>(type); };
 
     EXPECT_EQ(convert(CaesuraType::Normal), mx::api::MarkType::caesura);
     EXPECT_EQ(convert(CaesuraType::Curved), mx::api::MarkType::caesuraCurved);
@@ -1259,8 +1276,7 @@ TEST(MusicXmlNotes, UnmappedTechniquesCarryTheirSmuflGlyph)
                 for (const auto& voice : staff.voices) {
                     for (const auto& note : voice.second.notes) {
                         for (const auto& mark : note.noteAttachmentData.marks) {
-                            if (mark.markType == mx::api::MarkType::otherArticulation
-                                    || mark.markType == mx::api::MarkType::otherTechnical) {
+                            if (mark.markType == mx::api::MarkType::otherArticulation || mark.markType == mx::api::MarkType::otherTechnical) {
                                 otherMarks.emplace_back(mark.name, mark.choice.otherMark().smufl);
                             }
                         }
@@ -1273,7 +1289,7 @@ TEST(MusicXmlNotes, UnmappedTechniquesCarryTheirSmuflGlyph)
     // A technique with no MusicXML element of its own keeps its identity in the `smufl` attribute
     // and leaves the element text empty, rather than displaying the glyph name.
     const std::vector<std::pair<std::string, std::optional<std::string>>> expected = {
-        { "", std::optional<std::string>{ "brassMuteClosed" } },
+        {"", std::optional<std::string>{"brassMuteClosed"}},
     };
     EXPECT_EQ(otherMarks, expected);
 }
@@ -1282,7 +1298,7 @@ TEST(MusicXmlNotes, PseudoLaissezVibrerTiesMatchMnxAfterMusicXmlRoundTrip)
 {
     setupTestDataPaths();
 
-    for (const std::string fixture : { "lvslurs.musx", "lvshapes.musx" }) {
+    for (const std::string fixture : {"lvslurs.musx", "lvshapes.musx"}) {
         const auto musicXmlPath = exportMusxTestDataFixture(fixture, "--musicxml", ".musicxml");
         const auto mnxPath = exportMusxTestDataFixture(fixture, "--mnx", ".mnx");
         const auto musicXmlScore = loadScoreData(musicXmlPath);
@@ -1290,8 +1306,7 @@ TEST(MusicXmlNotes, PseudoLaissezVibrerTiesMatchMnxAfterMusicXmlRoundTrip)
 
         nlohmann::json mnx;
         openJson(mnxPath, mnx);
-        EXPECT_EQ(createComparableMusicXmlLaissezVibrerTies(*musicXmlScore), createComparableMnxLaissezVibrerTies(mnx))
-            << fixture;
+        EXPECT_EQ(createComparableMusicXmlLaissezVibrerTies(*musicXmlScore), createComparableMnxLaissezVibrerTies(mnx)) << fixture;
     }
 }
 
@@ -1447,11 +1462,8 @@ TEST(MusicXmlNotes, MeasuredTremolosExportStartStopMarks)
         }
     }
 
-    EXPECT_EQ(tremoloMarks, (std::vector<std::pair<mx::api::MarkType, int>>{
-                                { mx::api::MarkType::tremoloStart, 3 },
-                                { mx::api::MarkType::tremoloStop, 3 },
-                                { mx::api::MarkType::tremoloStart, 2 },
-                                { mx::api::MarkType::tremoloStop, 2 } }));
+    EXPECT_EQ(tremoloMarks, (std::vector<std::pair<mx::api::MarkType, int>>{{mx::api::MarkType::tremoloStart, 3}, {mx::api::MarkType::tremoloStop, 3},
+                                {mx::api::MarkType::tremoloStart, 2}, {mx::api::MarkType::tremoloStop, 2}}));
 }
 
 TEST(MusicXmlNotes, TwoNoteTremolosMatchFinaleReference)
@@ -1486,8 +1498,7 @@ TEST(MusicXmlNotes, UnmeasuredTremolosCarryTheirSmuflGlyph)
                             if (!mx::api::isMarkTremolo(mark.markType)) {
                                 continue;
                             }
-                            tremolos.emplace_back(mark.markType,
-                                mark.choice.isTremolo() ? mark.choice.tremolo().smufl : std::nullopt);
+                            tremolos.emplace_back(mark.markType, mark.choice.isTremolo() ? mark.choice.tremolo().smufl : std::nullopt);
                         }
                     }
                 }
@@ -1497,14 +1508,11 @@ TEST(MusicXmlNotes, UnmeasuredTremolosCarryTheirSmuflGlyph)
 
     // The measured control keeps its slash count in the mark type and carries no glyph name. The
     // custom-stem measures contribute nothing: see the stem entry in roadmap.md.
-    EXPECT_EQ(tremolos, (std::vector<std::pair<mx::api::MarkType, std::optional<std::string>>>{
-                            { mx::api::MarkType::tremoloUnmeasured, "buzzRoll" },
-                            { mx::api::MarkType::tremoloUnmeasured, "pendereckiTremolo" },
-                            { mx::api::MarkType::tremoloUnmeasured, "stemPendereckiTremolo" },
-                            { mx::api::MarkType::tremoloUnmeasured, "unmeasuredTremolo" },
-                            { mx::api::MarkType::tremoloUnmeasured, "unmeasuredTremoloSimple" },
-                            { mx::api::MarkType::tremoloUnmeasured, "stockhausenTremolo" },
-                            { mx::api::MarkType::tremoloSingleThree, std::nullopt } }));
+    EXPECT_EQ(
+        tremolos, (std::vector<std::pair<mx::api::MarkType, std::optional<std::string>>>{{mx::api::MarkType::tremoloUnmeasured, "buzzRoll"},
+                      {mx::api::MarkType::tremoloUnmeasured, "pendereckiTremolo"}, {mx::api::MarkType::tremoloUnmeasured, "stemPendereckiTremolo"},
+                      {mx::api::MarkType::tremoloUnmeasured, "unmeasuredTremolo"}, {mx::api::MarkType::tremoloUnmeasured, "unmeasuredTremoloSimple"},
+                      {mx::api::MarkType::tremoloUnmeasured, "stockhausenTremolo"}, {mx::api::MarkType::tremoloSingleThree, std::nullopt}}));
 }
 
 TEST(MusicXmlNotes, HiddenCustomStemsExportAsStemNone)
@@ -1536,10 +1544,7 @@ TEST(MusicXmlNotes, HiddenCustomStemsExportAsStemNone)
     // empty shape, and the zero shape id that plugins write. The shape-replaced stem keeps its
     // ordinary direction, which is unspecified here because nothing forces it. Finale's own export
     // in musicxml/tremolo_unmeasured-ref.musicxml agrees on all three.
-    EXPECT_EQ(halfNoteStems, (std::vector<mx::api::Stem>{
-                                 mx::api::Stem::unspecified,
-                                 mx::api::Stem::none,
-                                 mx::api::Stem::none }));
+    EXPECT_EQ(halfNoteStems, (std::vector<mx::api::Stem>{mx::api::Stem::unspecified, mx::api::Stem::none, mx::api::Stem::none}));
 }
 
 TEST(MusicXmlNotes, NoteAndMeasureIdsUseMnxScheme)

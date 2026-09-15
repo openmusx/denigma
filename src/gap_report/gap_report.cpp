@@ -31,8 +31,8 @@ using json = nlohmann::ordered_json;
 json pitchJson(const classify::chord::Pitch& pitch)
 {
     return {
-        { "step", classify::chordPitchStepName(pitch.step) },
-        { "alteration", pitch.alteration },
+        {"step", classify::chordPitchStepName(pitch.step)},
+        {"alteration", pitch.alteration},
     };
 }
 
@@ -41,27 +41,27 @@ json suffixJson(const classify::ChordSuffixClassification& suffix)
     auto strings = json::array();
     for (const auto& string : suffix.strings) {
         strings.push_back({
-            { "text", string.text },
-            { "position", classify::chordSuffixStringPositionName(string.position) },
+            {"text", string.text},
+            {"position", classify::chordSuffixStringPositionName(string.position)},
         });
     }
     auto degrees = json::array();
     for (const auto& degree : suffix.degrees) {
         degrees.push_back({
-            { "value", degree.value },
-            { "alteration", degree.alteration },
-            { "type", classify::chordDegreeTypeName(degree.type) },
-            { "impliedByText", degree.impliedByText },
+            {"value", degree.value},
+            {"alteration", degree.alteration},
+            {"type", classify::chordDegreeTypeName(degree.type)},
+            {"impliedByText", degree.impliedByText},
         });
     }
     json result{
-        { "strings", std::move(strings) },
-        { "suffixText", suffix.calcText() },
-        { "degrees", std::move(degrees) },
-        { "parenthesizeDegrees", suffix.parenthesizeDegrees },
-        { "stackDegrees", suffix.stackDegrees },
-        { "hasOuterParentheses", suffix.hasOuterParentheses },
-        { "hasUnrecognizedGlyphs", suffix.hasUnrecognizedGlyphs },
+        {"strings", std::move(strings)},
+        {"suffixText", suffix.calcText()},
+        {"degrees", std::move(degrees)},
+        {"parenthesizeDegrees", suffix.parenthesizeDegrees},
+        {"stackDegrees", suffix.stackDegrees},
+        {"hasOuterParentheses", suffix.hasOuterParentheses},
+        {"hasUnrecognizedGlyphs", suffix.hasUnrecognizedGlyphs},
     };
     if (suffix.quality) {
         result["quality"] = classify::chordQualityName(*suffix.quality);
@@ -72,11 +72,11 @@ json suffixJson(const classify::ChordSuffixClassification& suffix)
 json chordJson(const classify::ChordSymbolClassification& chord)
 {
     json result{
-        { "root", pitchJson(chord.root) },
-        { "rootLowerCase", chord.rootLowerCase },
-        { "showRoot", chord.showRoot },
-        { "showSuffix", chord.showSuffix },
-        { "suffix", suffixJson(chord.suffix) },
+        {"root", pitchJson(chord.root)},
+        {"rootLowerCase", chord.rootLowerCase},
+        {"showRoot", chord.showRoot},
+        {"showSuffix", chord.showSuffix},
+        {"suffix", suffixJson(chord.suffix)},
     };
     if (chord.bass) {
         result["bass"] = pitchJson(*chord.bass);
@@ -91,8 +91,8 @@ json chordJson(const classify::ChordSymbolClassification& chord)
 json noteheadJson(const classify::NoteheadClassification& notehead)
 {
     json result{
-        { "shape", classify::noteheadShapeName(notehead.shape) },
-        { "fill", classify::noteheadFillName(notehead.fill) },
+        {"shape", classify::noteheadShapeName(notehead.shape)},
+        {"fill", classify::noteheadFillName(notehead.fill)},
     };
     if (notehead.glyphName) {
         result["glyph"] = *notehead.glyphName;
@@ -103,27 +103,29 @@ json noteheadJson(const classify::NoteheadClassification& notehead)
 json gapJson(const Gap& gap)
 {
     json result{
-        { "anchor", gap.anchor.id },
+        {"anchor", gap.anchor.id},
     };
     if (gap.anchor.staff) {
         result["staff"] = *gap.anchor.staff;
     }
     if (gap.anchor.position) {
         result["position"] = {
-            { "numerator", gap.anchor.position->numerator },
-            { "denominator", gap.anchor.position->denominator },
+            {"numerator", gap.anchor.position->numerator},
+            {"denominator", gap.anchor.position->denominator},
         };
     }
-    std::visit([&](const auto& payload) {
-        using Payload = std::decay_t<decltype(payload)>;
-        if constexpr (std::is_same_v<Payload, classify::ChordSymbolClassification>) {
-            result["type"] = "chord-symbol";
-            result["chord"] = chordJson(payload);
-        } else if constexpr (std::is_same_v<Payload, classify::NoteheadClassification>) {
-            result["type"] = "notehead";
-            result["notehead"] = noteheadJson(payload);
-        }
-    }, gap.payload);
+    std::visit(
+        [&](const auto& payload) {
+            using Payload = std::decay_t<decltype(payload)>;
+            if constexpr (std::is_same_v<Payload, classify::ChordSymbolClassification>) {
+                result["type"] = "chord-symbol";
+                result["chord"] = chordJson(payload);
+            } else if constexpr (std::is_same_v<Payload, classify::NoteheadClassification>) {
+                result["type"] = "notehead";
+                result["notehead"] = noteheadJson(payload);
+            }
+        },
+        gap.payload);
     return result;
 }
 
@@ -136,14 +138,11 @@ std::string serializeGapReport(const GapCollector& collector, const GapReportPro
         gaps.push_back(gapJson(gap));
     }
     return json{
-        { "schemaVersion", 1 },
-        { "producer", {
-            { "name", producer.name },
-            { "version", producer.version },
-            { "commit", producer.commit }
-        } },
-        { "gaps", std::move(gaps) },
-    }.dump(2);
+        {"schemaVersion", 1},
+        {"producer", {{"name", producer.name}, {"version", producer.version}, {"commit", producer.commit}}},
+        {"gaps", std::move(gaps)},
+    }
+        .dump(2);
 }
 
 } // namespace denigma

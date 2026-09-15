@@ -42,41 +42,34 @@ KeyboardPedal::CapType pedalCapSemantic(const LineCap& cap)
 {
     using KnownType = musx::dom::KnownShapeDefType;
     switch (cap.type) {
-    case LineCap::Type::Hook:
-        return KeyboardPedal::CapType::Hook;
+    case LineCap::Type::Hook: return KeyboardPedal::CapType::Hook;
     case LineCap::Type::ArrowheadCustom:
         switch (cap.customArrowheadType) {
-        case KnownType::PedalArrowheadDown:
-            return KeyboardPedal::CapType::PedalDown;
-        case KnownType::PedalArrowheadUp:
-            return KeyboardPedal::CapType::PedalUp;
+        case KnownType::PedalArrowheadDown: return KeyboardPedal::CapType::PedalDown;
+        case KnownType::PedalArrowheadUp: return KeyboardPedal::CapType::PedalUp;
         case KnownType::PedalArrowheadShortUpDownLongUp:
-        case KnownType::PedalArrowheadLongUpDownShortUp:
-            return KeyboardPedal::CapType::PedalChange;
-        default:
-            return KeyboardPedal::CapType::None;
+        case KnownType::PedalArrowheadLongUpDownShortUp: return KeyboardPedal::CapType::PedalChange;
+        default: return KeyboardPedal::CapType::None;
         }
-    default:
-        return KeyboardPedal::CapType::None;
+    default: return KeyboardPedal::CapType::None;
     }
 }
 
 bool isPedalCap(KeyboardPedal::CapType capType)
 {
-    return capType == KeyboardPedal::CapType::PedalDown
-        || capType == KeyboardPedal::CapType::PedalUp
-        || capType == KeyboardPedal::CapType::PedalChange;
+    return capType == KeyboardPedal::CapType::PedalDown || capType == KeyboardPedal::CapType::PedalUp
+           || capType == KeyboardPedal::CapType::PedalChange;
 }
 
 std::optional<int> builtInOttavaShift(musx::dom::others::SmartShape::ShapeType shapeType)
 {
     using ShapeType = musx::dom::others::SmartShape::ShapeType;
     switch (shapeType) {
-    case ShapeType::OctaveDown:     return -1;
-    case ShapeType::OctaveUp:       return 1;
-    case ShapeType::TwoOctaveDown:  return -2;
-    case ShapeType::TwoOctaveUp:    return 2;
-    default:                        return std::nullopt;
+    case ShapeType::OctaveDown: return -1;
+    case ShapeType::OctaveUp: return 1;
+    case ShapeType::TwoOctaveDown: return -2;
+    case ShapeType::TwoOctaveUp: return 2;
+    default: return std::nullopt;
     }
 }
 
@@ -87,15 +80,12 @@ bool musicRangesIntersect(const musx::dom::MusicRange& lhs, const musx::dom::Mus
 
 /// Returns true when every entry governed by @p shape is covered by at least one of
 /// @p candidates. @p sawEntry reports whether any entry was iterable at all.
-bool entriesCoveredByCandidates(
-    const musx::dom::MusxInstance<musx::dom::others::SmartShape>& shape,
-    const std::vector<musx::dom::MusxInstance<musx::dom::others::SmartShape>>& candidates,
-    bool& sawEntry)
+bool entriesCoveredByCandidates(const musx::dom::MusxInstance<musx::dom::others::SmartShape>& shape,
+    const std::vector<musx::dom::MusxInstance<musx::dom::others::SmartShape>>& candidates, bool& sawEntry)
 {
     sawEntry = false;
     const auto staffList = shape->getDocument()->getScrollViewStaves(shape->getRequestedPartId());
-    if (!staffList.getIndexForStaff(shape->startTermSeg->endPoint->staffId)
-        || !staffList.getIndexForStaff(shape->endTermSeg->endPoint->staffId)) {
+    if (!staffList.getIndexForStaff(shape->startTermSeg->endPoint->staffId) || !staffList.getIndexForStaff(shape->endTermSeg->endPoint->staffId)) {
         // Entries cannot be iterated (e.g., the staff is not in the scroll view);
         // callers fall back to range intersection.
         return true;
@@ -150,13 +140,10 @@ musx::dom::MusxInstance<musx::dom::others::SmartShape> findHiddenOttavaCounterpa
 /// Collects the hidden built-in ottavas that could carry the semantics of a visual
 /// line on @p staffId with the given octave shift.
 std::vector<musx::dom::MusxInstance<musx::dom::others::SmartShape>> collectHiddenOttavas(
-    const musx::dom::MusxInstance<musx::dom::others::SmartShape>& shape,
-    musx::dom::StaffCmper staffId,
-    int octaveShift)
+    const musx::dom::MusxInstance<musx::dom::others::SmartShape>& shape, musx::dom::StaffCmper staffId, int octaveShift)
 {
     std::vector<musx::dom::MusxInstance<musx::dom::others::SmartShape>> result;
-    const auto allShapes = shape->getDocument()->getOthers()->getArray<musx::dom::others::SmartShape>(
-        shape->getRequestedPartId());
+    const auto allShapes = shape->getDocument()->getOthers()->getArray<musx::dom::others::SmartShape>(shape->getRequestedPartId());
     for (const auto& candidate : allShapes) {
         if (!candidate->hidden || candidate->getCmper() == shape->getCmper()) {
             continue;
@@ -165,8 +152,7 @@ std::vector<musx::dom::MusxInstance<musx::dom::others::SmartShape>> collectHidde
         if (!shift || *shift != octaveShift) {
             continue;
         }
-        if (candidate->startTermSeg->endPoint->staffId != staffId
-            || candidate->endTermSeg->endPoint->staffId != staffId) {
+        if (candidate->startTermSeg->endPoint->staffId != staffId || candidate->endTermSeg->endPoint->staffId != staffId) {
             continue;
         }
         if (!candidate->calcIsValid()) {
@@ -181,9 +167,7 @@ std::vector<musx::dom::MusxInstance<musx::dom::others::SmartShape>> collectHidde
 /// resolved by pairing with a hidden built-in ottava, then by vertical placement
 /// (engravers place alta lines above the staff and bassa lines below); when neither
 /// resolves the direction, the line is not classified as an ottava at all.
-std::optional<Ottava> classifyOttavaLine(
-    const musx::dom::MusxInstance<musx::dom::others::SmartShape>& shape,
-    const GeneralLine& line)
+std::optional<Ottava> classifyOttavaLine(const musx::dom::MusxInstance<musx::dom::others::SmartShape>& shape, const GeneralLine& line)
 {
     using Direction = octave::Direction;
 
@@ -199,8 +183,7 @@ std::optional<Ottava> classifyOttavaLine(
         if (marking->direction == Direction::Unknown) {
             marking->direction = contMarking->direction;
             marking->directionIsExplicit = contMarking->directionIsExplicit;
-        } else if (contMarking->direction != Direction::Unknown
-            && contMarking->direction != marking->direction) {
+        } else if (contMarking->direction != Direction::Unknown && contMarking->direction != marking->direction) {
             return std::nullopt;
         }
     }
@@ -210,8 +193,7 @@ std::optional<Ottava> classifyOttavaLine(
     // "8va"-style markings state alta, but engravers sometimes use them below the
     // staff to mean bassa. Demote non-explicit alta there and let the pairing or
     // the placement fallback decide.
-    if (direction == Direction::Up && !marking->directionIsExplicit
-        && placement == musx::dom::VerticalPlacement::Below) {
+    if (direction == Direction::Up && !marking->directionIsExplicit && placement == musx::dom::VerticalPlacement::Below) {
         direction = Direction::Unknown;
     }
 
@@ -222,12 +204,10 @@ std::optional<Ottava> classifyOttavaLine(
     musx::dom::MusxInstance<musx::dom::others::SmartShape> counterpartDown;
     if (singleStaff) {
         if (direction != Direction::Down) {
-            counterpartUp = findHiddenOttavaCounterpart(
-                shape, collectHiddenOttavas(shape, startStaffId, marking->magnitude));
+            counterpartUp = findHiddenOttavaCounterpart(shape, collectHiddenOttavas(shape, startStaffId, marking->magnitude));
         }
         if (direction != Direction::Up) {
-            counterpartDown = findHiddenOttavaCounterpart(
-                shape, collectHiddenOttavas(shape, startStaffId, -marking->magnitude));
+            counterpartDown = findHiddenOttavaCounterpart(shape, collectHiddenOttavas(shape, startStaffId, -marking->magnitude));
         }
     }
 
@@ -242,12 +222,8 @@ std::optional<Ottava> classifyOttavaLine(
             direction = Direction::Down;
         } else {
             switch (placement) {
-            case musx::dom::VerticalPlacement::Above:
-                direction = Direction::Up;
-                break;
-            case musx::dom::VerticalPlacement::Below:
-                direction = Direction::Down;
-                break;
+            case musx::dom::VerticalPlacement::Above: direction = Direction::Up; break;
+            case musx::dom::VerticalPlacement::Below: direction = Direction::Down; break;
             default:
                 // Floating placement cannot resolve the direction.
                 return std::nullopt;
@@ -264,21 +240,17 @@ std::optional<Ottava> classifyOttavaLine(
 
 /// Returns true when a hidden built-in ottava is rendered by a visible ottava custom
 /// line overlapping its range on the same staff.
-bool calcHasVisualOttavaProxy(
-    const musx::dom::MusxInstance<musx::dom::others::SmartShape>& shape,
-    int octaveShift)
+bool calcHasVisualOttavaProxy(const musx::dom::MusxInstance<musx::dom::others::SmartShape>& shape, int octaveShift)
 {
     using Direction = octave::Direction;
     const auto staffId = shape->startTermSeg->endPoint->staffId;
     const auto range = shape->createGlobalMusicRange();
-    const auto allShapes = shape->getDocument()->getOthers()->getArray<musx::dom::others::SmartShape>(
-        shape->getRequestedPartId());
+    const auto allShapes = shape->getDocument()->getOthers()->getArray<musx::dom::others::SmartShape>(shape->getRequestedPartId());
     for (const auto& candidate : allShapes) {
         if (candidate->hidden || candidate->entryBased) {
             continue;
         }
-        if (candidate->shapeType != musx::dom::others::SmartShape::ShapeType::CustomLine
-            || candidate->lineStyleId == 0) {
+        if (candidate->shapeType != musx::dom::others::SmartShape::ShapeType::CustomLine || candidate->lineStyleId == 0) {
             continue;
         }
         if (candidate->startTermSeg->endPoint->staffId != staffId || !candidate->calcIsValid()) {
@@ -289,13 +261,11 @@ bool calcHasVisualOttavaProxy(
         if (!customLine) {
             continue;
         }
-        const auto marking = classifyOctaveMarking(
-            customLine->getLeftStartRawTextCtx(candidate->getRequestedPartId()));
+        const auto marking = classifyOctaveMarking(customLine->getLeftStartRawTextCtx(candidate->getRequestedPartId()));
         if (!marking || marking->magnitude != std::abs(octaveShift)) {
             continue;
         }
-        if ((marking->direction == Direction::Up && octaveShift < 0)
-            || (marking->direction == Direction::Down && octaveShift > 0)) {
+        if ((marking->direction == Direction::Up && octaveShift < 0) || (marking->direction == Direction::Down && octaveShift > 0)) {
             continue;
         }
         if (musicRangesIntersect(range, candidate->createGlobalMusicRange())) {
@@ -305,9 +275,7 @@ bool calcHasVisualOttavaProxy(
     return false;
 }
 
-Ottava makeBuiltInOttava(
-    const musx::dom::MusxInstance<musx::dom::others::SmartShape>& shape,
-    int octaveShift)
+Ottava makeBuiltInOttava(const musx::dom::MusxInstance<musx::dom::others::SmartShape>& shape, int octaveShift)
 {
     Ottava result;
     result.octaveShift = octaveShift;
@@ -319,17 +287,13 @@ Ottava makeBuiltInOttava(
 
 bool isTrillWiggleGlyph(std::string_view glyphName)
 {
-    return glyphName.rfind("wiggleTrill", 0) == 0
-        || glyphName == "ornamentZigZagLineNoRightEnd"
-        || glyphName == "ornamentZigZagLineWithRightEnd";
+    return glyphName.rfind("wiggleTrill", 0) == 0 || glyphName == "ornamentZigZagLineNoRightEnd" || glyphName == "ornamentZigZagLineWithRightEnd";
 }
 
 bool isVibratoWiggleGlyph(std::string_view glyphName)
 {
-    return glyphName.rfind("wiggleVibrato", 0) == 0
-        || glyphName.rfind("wiggleSawtooth", 0) == 0
-        || glyphName == "guitarVibratoStroke"
-        || glyphName == "guitarWideVibratoStroke";
+    return glyphName.rfind("wiggleVibrato", 0) == 0 || glyphName.rfind("wiggleSawtooth", 0) == 0 || glyphName == "guitarVibratoStroke"
+           || glyphName == "guitarWideVibratoStroke";
 }
 
 /// Returns true when the text consists of exactly one trill symbol.
@@ -339,8 +303,8 @@ bool isBareTrillSymbolText(const musx::util::EnigmaParsingContext& textContext)
         return false;
     }
     bool sawTrill = false;
-    const auto chunks = textContext.collectEnigmaTextChunks(
-        musx::util::EnigmaString::EnigmaParsingOptions(musx::util::EnigmaString::AccidentalStyle::Unicode));
+    const auto chunks =
+        textContext.collectEnigmaTextChunks(musx::util::EnigmaString::EnigmaParsingOptions(musx::util::EnigmaString::AccidentalStyle::Unicode));
     for (const auto& chunk : chunks) {
         if (!chunk.styles.font || chunk.styles.font->hidden || chunk.text.empty()) {
             continue;
@@ -368,8 +332,8 @@ bool isBareTrillSymbolText(const musx::util::EnigmaParsingContext& textContext)
 
 std::optional<TrillLine> classifyTrillLine(const GeneralLine& line)
 {
-    const bool wiggleBody = line.lineStyle == musx::dom::others::SmartShapeCustomLine::LineStyle::Char
-        && line.lineCharGlyphName && isTrillWiggleGlyph(*line.lineCharGlyphName);
+    const bool wiggleBody = line.lineStyle == musx::dom::others::SmartShapeCustomLine::LineStyle::Char && line.lineCharGlyphName
+                            && isTrillWiggleGlyph(*line.lineCharGlyphName);
     const bool trSymbolStart = isBareTrillSymbolText(line.startText);
     if (!wiggleBody && !trSymbolStart) {
         return std::nullopt;
@@ -385,24 +349,22 @@ std::optional<TrillLine> classifyTrillLine(const GeneralLine& line)
     if (line.endText || line.centerFullText || line.centerAbbrText) {
         return std::nullopt;
     }
-    return TrillLine{ trSymbolStart, line };
+    return TrillLine{trSymbolStart, line};
 }
 
 std::optional<VibratoLine> classifyVibratoLine(const GeneralLine& line)
 {
-    if (line.lineStyle != musx::dom::others::SmartShapeCustomLine::LineStyle::Char
-        || !line.lineCharGlyphName || !isVibratoWiggleGlyph(*line.lineCharGlyphName)) {
+    if (line.lineStyle != musx::dom::others::SmartShapeCustomLine::LineStyle::Char || !line.lineCharGlyphName
+        || !isVibratoWiggleGlyph(*line.lineCharGlyphName)) {
         return std::nullopt;
     }
-    if (line.startText || line.continuationText || line.endText
-        || line.centerFullText || line.centerAbbrText) {
+    if (line.startText || line.continuationText || line.endText || line.centerFullText || line.centerAbbrText) {
         return std::nullopt;
     }
-    return VibratoLine{ line };
+    return VibratoLine{line};
 }
 
-std::optional<Glissando> classifyGlissando(
-    const musx::dom::MusxInstance<musx::dom::others::SmartShape>& shape)
+std::optional<Glissando> classifyGlissando(const musx::dom::MusxInstance<musx::dom::others::SmartShape>& shape)
 {
     auto line = classifyGeneralLineAppearance(shape);
     if (!line) {
@@ -415,7 +377,7 @@ std::optional<Glissando> classifyGlissando(
         // one, whatever it was drawn with.
         return std::nullopt;
     }
-    return Glissando{ startNote, endNote, std::move(*line) };
+    return Glissando{startNote, endNote, std::move(*line)};
 }
 
 } // namespace
@@ -444,8 +406,7 @@ bool smartshape::KeyboardPedal::isSustainPedal() const noexcept
     return matches(startText) || matches(continuationText) || matches(endText);
 }
 
-std::optional<KeyboardPedal> classifyKeyboardPedalCustomLine(
-    const musx::dom::MusxInstance<musx::dom::others::SmartShapeCustomLine>& customLine)
+std::optional<KeyboardPedal> classifyKeyboardPedalCustomLine(const musx::dom::MusxInstance<musx::dom::others::SmartShapeCustomLine>& customLine)
 {
     auto line = classifyGeneralLine(customLine);
     if (!line) {
@@ -467,8 +428,7 @@ std::optional<KeyboardPedal> classifyKeyboardPedalCustomLine(
     return result;
 }
 
-SmartShapeClassification classifySmartShape(
-    const musx::dom::MusxInstance<musx::dom::others::SmartShape>& shape)
+SmartShapeClassification classifySmartShape(const musx::dom::MusxInstance<musx::dom::others::SmartShape>& shape)
 {
     SmartShapeClassification result;
     if (!shape || !shape->calcIsValid()) {
@@ -481,13 +441,11 @@ SmartShapeClassification classifySmartShape(
     case ShapeType::OctaveDown:
     case ShapeType::OctaveUp:
     case ShapeType::TwoOctaveDown:
-    case ShapeType::TwoOctaveUp:
-        result.value = makeBuiltInOttava(shape, *builtInOttavaShift(shape->shapeType));
-        return result;
+    case ShapeType::TwoOctaveUp: result.value = makeBuiltInOttava(shape, *builtInOttavaShift(shape->shapeType)); return result;
     case ShapeType::Trill:
     case ShapeType::TrillExtension:
         if (!shape->entryBased) {
-            result.value = TrillLine{ shape->shapeType == ShapeType::Trill, std::nullopt };
+            result.value = TrillLine{shape->shapeType == ShapeType::Trill, std::nullopt};
         }
         return result;
     case ShapeType::Glissando:
@@ -500,18 +458,14 @@ SmartShapeClassification classifySmartShape(
             result.value = std::move(*glissando);
         }
         return result;
-    case ShapeType::Crescendo:
-        result.value = Crescendo{};
-        return result;
-    case ShapeType::Decrescendo:
-        result.value = Decrescendo{};
-        return result;
+    case ShapeType::Crescendo: result.value = Crescendo{}; return result;
+    case ShapeType::Decrescendo: result.value = Decrescendo{}; return result;
     case ShapeType::CustomLine:
         if (const auto candidate = musx::util::calcNonArpeggioSpanForSmartShape(shape)) {
-            result.value = NonArpeggio{ *candidate };
+            result.value = NonArpeggio{*candidate};
         } else if (shape->lineStyleId != 0 && !shape->entryBased) {
-            const auto customLine = shape->getDocument()->getOthers()->get<musx::dom::others::SmartShapeCustomLine>(
-                shape->getRequestedPartId(), shape->lineStyleId);
+            const auto customLine =
+                shape->getDocument()->getOthers()->get<musx::dom::others::SmartShapeCustomLine>(shape->getRequestedPartId(), shape->lineStyleId);
             if (auto keyboardPedal = classifyKeyboardPedalCustomLine(customLine)) {
                 result.value = std::move(*keyboardPedal);
             } else if (auto generalLine = classifyGeneralLine(customLine)) {
@@ -549,8 +503,7 @@ SmartShapeClassification classifySmartShape(
             result.value = std::move(*generalLine);
         }
         return result;
-    default:
-        break;
+    default: break;
     }
 
     if (!shape->calcIsSlur()) {
@@ -565,14 +518,14 @@ SmartShapeClassification classifySmartShape(
     const auto endEntry = shape->endTermSeg->endPoint->calcAssociatedEntry();
 
     const auto contour = shape->calcContourDirection();
-    result.value = Slur{ startEntry, endEntry, contour };
+    result.value = Slur{startEntry, endEntry, contour};
     if (startEntry) {
         if (shape->calcIsPseudoTie(musx::utils::PseudoTieMode::LaissezVibrer, startEntry)) {
-            result.value = PseudoTie{ PseudoTie::Type::LaissezVibrer, contour };
+            result.value = PseudoTie{PseudoTie::Type::LaissezVibrer, contour};
             return result;
         }
         if (shape->calcIsPseudoTie(musx::utils::PseudoTieMode::TieEnd, startEntry)) {
-            result.value = PseudoTie{ PseudoTie::Type::TieEnd, contour };
+            result.value = PseudoTie{PseudoTie::Type::TieEnd, contour};
             return result;
         }
     }
@@ -583,15 +536,16 @@ SmartShapeClassification classifySmartShape(
 
     if (startEntry) {
         if (const auto tiedTo = shape->calcArpeggiatedTieToNote(startEntry)) {
-            MUSX_ASSERT_IF(startEntry->getEntry()->notes.size() != 1) {
+            MUSX_ASSERT_IF(startEntry->getEntry()->notes.size() != 1)
+            {
                 throw std::logic_error("musxdom classified an arpeggiated tie on an entry with note count other than 1.");
             }
-            result.value = ArpeggiatedTie{ musx::dom::NoteInfoPtr(startEntry, 0), tiedTo, contour };
+            result.value = ArpeggiatedTie{musx::dom::NoteInfoPtr(startEntry, 0), tiedTo, contour};
             return result;
         }
     }
 
-    result.value = Slur{ startEntry, endEntry, contour };
+    result.value = Slur{startEntry, endEntry, contour};
     return result;
 }
 

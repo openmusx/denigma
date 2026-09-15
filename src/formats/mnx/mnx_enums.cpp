@@ -19,17 +19,17 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#include <iostream>
 #include <filesystem>
 #include <fstream>
+#include <iostream>
 #include <unordered_map>
 
-#include "mnx.h"
-#include "denigma/classify/barlines.h"
 #include "denigma/classify/articulations.h"
+#include "denigma/classify/barlines.h"
 #include "denigma/classify/classifier_common.h"
 #include "denigma/classify/dynamics.h"
 #include "formats/enum_conversion_macros.h"
+#include "mnx.h"
 
 namespace denigma {
 namespace formats {

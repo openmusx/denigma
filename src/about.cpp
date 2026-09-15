@@ -68,19 +68,14 @@ constexpr std::span<const unsigned char> pugixmlLicense(pugixml::LICENSE_md, siz
 constexpr std::span<const unsigned char> freetypeLicense(freetype::FTL_TXT, sizeof(freetype::FTL_TXT));
 #endif
 
-constexpr auto licenses = std::to_array<std::pair<std::string_view, std::span<const unsigned char>>>({
-    { DENIGMA_NAME, denigmaLicense },
-    { "musx object model", musxLicense },
-    { "mnx object model", mnxLicense },
-    { "mx MusicXML library", mxLicense },
-    { "SMuFL mapping", smuflLicense },
-    { "zlib", zlibLicense },
-    { "pugixml", pugixmlLicense }
+constexpr auto licenses = std::to_array<std::pair<std::string_view, std::span<const unsigned char>>>(
+    {{DENIGMA_NAME, denigmaLicense}, {"musx object model", musxLicense}, {"mnx object model", mnxLicense}, {"mx MusicXML library", mxLicense},
+        {"SMuFL mapping", smuflLicense}, {"zlib", zlibLicense}, {"pugixml", pugixmlLicense}
 #ifdef DENIGMA_HAS_FREETYPE_LICENSE
-    ,
-    { "FreeType (FTL)", freetypeLicense }
+        ,
+        {"FreeType (FTL)", freetypeLicense}
 #endif
-});
+    });
 
 namespace denigma {
 

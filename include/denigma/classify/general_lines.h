@@ -38,8 +38,7 @@ struct LineCap
 {
     /// @enum Type
     /// @brief The kind of cap at this end of the line.
-    enum class Type
-    {
+    enum class Type {
         None,               ///< No cap.
         Hook,               ///< A perpendicular hook. (See #hookLength.)
         ArrowheadPreset,    ///< One of Finale's preset arrowheads. (See #preset.)
@@ -53,7 +52,8 @@ struct LineCap
                                                     ///< normalized into this value.
     std::optional<musx::dom::ArrowheadPreset> preset; ///< The preset arrowhead, when the preset id is valid. (Only for Type::ArrowheadPreset.)
     musx::dom::MusxInstance<musx::dom::others::ShapeDef> customArrowhead; ///< The arrowhead shape, when resolvable. (Only for Type::ArrowheadCustom.)
-    musx::dom::KnownShapeDefType customArrowheadType{ musx::dom::KnownShapeDefType::Unrecognized }; ///< Recognized type of #customArrowhead. (Only for Type::ArrowheadCustom.)
+    musx::dom::KnownShapeDefType customArrowheadType{
+        musx::dom::KnownShapeDefType::Unrecognized}; ///< Recognized type of #customArrowhead. (Only for Type::ArrowheadCustom.)
 };
 
 /// @struct GeneralLine
@@ -67,24 +67,24 @@ struct GeneralLine
     /// The line body style. (Custom lines and built-ins share the musxdom custom-line enum.)
     using LineStyle = musx::dom::others::SmartShapeCustomLine::LineStyle;
 
-    LineStyle lineStyle{};                          ///< Line body style.
-    bool lineVisible{};                             ///< False when the line body draws nothing (zero width or a blank character).
-    musx::dom::Efix lineWidth{};                    ///< Line width. (Solid and dashed styles.)
-    musx::dom::Efix dashOn{};                       ///< Dash length. (Dashed style only.)
-    musx::dom::Efix dashOff{};                      ///< Length of gap between dashes. (Dashed style only.)
-    char32_t lineChar{};                            ///< The repeated line character. (Char style only.)
+    LineStyle lineStyle{}; ///< Line body style.
+    bool lineVisible{}; ///< False when the line body draws nothing (zero width or a blank character).
+    musx::dom::Efix lineWidth{}; ///< Line width. (Solid and dashed styles.)
+    musx::dom::Efix dashOn{}; ///< Dash length. (Dashed style only.)
+    musx::dom::Efix dashOff{}; ///< Length of gap between dashes. (Dashed style only.)
+    char32_t lineChar{}; ///< The repeated line character. (Char style only.)
     std::shared_ptr<musx::dom::FontInfo> lineCharFont; ///< The font of #lineChar. (Char style only.)
-    std::optional<std::string> lineCharGlyphName;   ///< SMuFL glyph name of #lineChar, when resolvable. (Char style only.)
-    bool horizontal{};                              ///< True when the line is forced horizontal ("Horizontal" in the custom line
-                                                    ///< dialog). Built-in line shape types follow their endpoints and report false.
-    LineCap startCap;                               ///< Cap at the left/start end.
-    LineCap endCap;                                 ///< Cap at the right/end end.
+    std::optional<std::string> lineCharGlyphName; ///< SMuFL glyph name of #lineChar, when resolvable. (Char style only.)
+    bool horizontal{}; ///< True when the line is forced horizontal ("Horizontal" in the custom line
+        ///< dialog). Built-in line shape types follow their endpoints and report false.
+    LineCap startCap; ///< Cap at the left/start end.
+    LineCap endCap; ///< Cap at the right/end end.
 
-    musx::util::EnigmaParsingContext startText;         ///< Left-start text, if any. (Custom lines only.)
-    musx::util::EnigmaParsingContext continuationText;  ///< Left-continuation text, if any. (Custom lines only.)
-    musx::util::EnigmaParsingContext endText;           ///< Right-end text, if any. (Custom lines only.)
-    musx::util::EnigmaParsingContext centerFullText;    ///< Center full text, if any. (Custom lines only.)
-    musx::util::EnigmaParsingContext centerAbbrText;    ///< Center abbreviated text, if any. (Custom lines only.)
+    musx::util::EnigmaParsingContext startText; ///< Left-start text, if any. (Custom lines only.)
+    musx::util::EnigmaParsingContext continuationText; ///< Left-continuation text, if any. (Custom lines only.)
+    musx::util::EnigmaParsingContext endText; ///< Right-end text, if any. (Custom lines only.)
+    musx::util::EnigmaParsingContext centerFullText; ///< Center full text, if any. (Custom lines only.)
+    musx::util::EnigmaParsingContext centerAbbrText; ///< Center abbreviated text, if any. (Custom lines only.)
 
     /// The custom line style, or null when the shape is a built-in line type. Positioning
     /// minutiae (text offsets, line adjustments) remain available here.
@@ -96,8 +96,7 @@ struct GeneralLine
 /// @brief Describes a custom line style as a @ref smartshape::GeneralLine.
 /// @return std::nullopt when @p customLine is null.
 [[nodiscard]]
-std::optional<smartshape::GeneralLine> classifyGeneralLine(
-    const musx::dom::MusxInstance<musx::dom::others::SmartShapeCustomLine>& customLine);
+std::optional<smartshape::GeneralLine> classifyGeneralLine(const musx::dom::MusxInstance<musx::dom::others::SmartShapeCustomLine>& customLine);
 
 /// @brief Describes a line-type smart shape (built-in or custom) as a @ref smartshape::GeneralLine.
 ///
@@ -106,8 +105,7 @@ std::optional<smartshape::GeneralLine> classifyGeneralLine(
 /// @return std::nullopt when the shape is entry-attached, is not a line type, or its
 /// custom line style cannot be resolved.
 [[nodiscard]]
-std::optional<smartshape::GeneralLine> classifyGeneralLine(
-    const musx::dom::MusxInstance<musx::dom::others::SmartShape>& shape);
+std::optional<smartshape::GeneralLine> classifyGeneralLine(const musx::dom::MusxInstance<musx::dom::others::SmartShape>& shape);
 
 /// @brief Describes a line-type smart shape's appearance, ignoring how it is attached.
 ///
@@ -118,8 +116,7 @@ std::optional<smartshape::GeneralLine> classifyGeneralLine(
 /// @return std::nullopt when the shape is null, is not a line type, or its line style cannot be
 /// resolved.
 [[nodiscard]]
-std::optional<smartshape::GeneralLine> classifyGeneralLineAppearance(
-    const musx::dom::MusxInstance<musx::dom::others::SmartShape>& shape);
+std::optional<smartshape::GeneralLine> classifyGeneralLineAppearance(const musx::dom::MusxInstance<musx::dom::others::SmartShape>& shape);
 
 } // namespace classify
 } // namespace denigma

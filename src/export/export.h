@@ -30,14 +30,15 @@ struct ExportCommand : public ICommand
     using ICommand::ICommand;
 
     int showHelpPage(const std::string_view& programName, const std::string& indentSpaces = {}) const override;
-    
+
     bool canProcess(const std::filesystem::path& inputPath) const override;
     CommandInputData processInput(const std::filesystem::path& inputPath, const DenigmaContext& denigmaContext) const override;
-    void processOutput(const CommandInputData& inputData, const std::filesystem::path& outputPath, const std::filesystem::path&, const DenigmaContext& denigmaContext) const override;
+    void processOutput(const CommandInputData& inputData, const std::filesystem::path& outputPath, const std::filesystem::path&,
+        const DenigmaContext& denigmaContext) const override;
 
     std::span<const std::u8string_view> defaultInputFormats() const override
     {
-        static constexpr std::u8string_view formats[] = { MUSX_EXTENSION, ENIGMAXML_EXTENSION, ENIGMAXML_ZIP_EXTENSION };
+        static constexpr std::u8string_view formats[] = {MUSX_EXTENSION, ENIGMAXML_EXTENSION, ENIGMAXML_ZIP_EXTENSION};
         return formats;
     };
     std::optional<std::u8string> defaultOutputFormat(const std::filesystem::path& inputPath) const override

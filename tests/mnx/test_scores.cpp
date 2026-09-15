@@ -19,15 +19,15 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#include <string>
 #include <filesystem>
-#include <iterator>
 #include <fstream>
+#include <iterator>
 #include <set>
+#include <string>
 
-#include "gtest/gtest.h"
 #include "core/denigma.h"
 #include "test_utils.h"
+#include "gtest/gtest.h"
 
 using namespace denigma;
 
@@ -36,10 +36,9 @@ TEST(MnxScores, MultiInstrumentTest)
     setupTestDataPaths();
     std::filesystem::path inputPath;
     copyInputToOutput("multistaff_inst.musx", inputPath);
-    ArgList args = { DENIGMA_NAME, "export", pathString(inputPath), "--mnx" };
-    checkStderr({ "Processing", pathString(inputPath.filename()), "!validation error" }, [&]() {
-        EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath);
-    });
+    ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), "--mnx"};
+    checkStderr({"Processing", pathString(inputPath.filename()), "!validation error"},
+        [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath); });
 
     nlohmann::json mnx;
     openJson(inputPath.parent_path() / "multistaff_inst.mnx", mnx);
@@ -91,7 +90,6 @@ TEST(MnxScores, MultiInstrumentTest)
     EXPECT_EQ(scores[2]["pages"][0]["systems"][0]["measure"], "m1");
     EXPECT_EQ(scores[2]["pages"][0]["systems"][0]["layout"], "S2-Sys1");
 
-
     EXPECT_EQ(scores[3]["layout"], "S3-ScrVw");
     EXPECT_EQ(scores[3]["name"], "H1LH");
     ASSERT_TRUE(scores[3]["multimeasureRests"].is_array());
@@ -115,10 +113,9 @@ TEST(MnxScores, UncalculatedPartLayoutOmitsPagesAndSystemLayouts)
     setupTestDataPaths();
     std::filesystem::path inputPath;
     copyInputToOutput("zwei_gesange.musx", inputPath);
-    ArgList args = { DENIGMA_NAME, "export", pathString(inputPath), "--mnx" };
-    checkStderr({ "Processing", pathString(inputPath.filename()), "!validation error" }, [&]() {
-        EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath);
-    });
+    ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), "--mnx"};
+    checkStderr({"Processing", pathString(inputPath.filename()), "!validation error"},
+        [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath); });
 
     nlohmann::json mnx;
     openJson(inputPath.parent_path() / "zwei_gesange.mnx", mnx);
@@ -140,8 +137,7 @@ TEST(MnxScores, UncalculatedPartLayoutOmitsPagesAndSystemLayouts)
         layoutIds.insert(layout["id"].get<std::string>());
     }
     for (size_t scoreIndex = 0; scoreIndex < scores.size(); ++scoreIndex) {
-        EXPECT_TRUE(layoutIds.count(scores[scoreIndex]["layout"].get<std::string>()) > 0)
-            << "score " << scoreIndex << " references a missing layout";
+        EXPECT_TRUE(layoutIds.count(scores[scoreIndex]["layout"].get<std::string>()) > 0) << "score " << scoreIndex << " references a missing layout";
     }
 
     for (size_t scoreIndex = 1; scoreIndex < scores.size(); ++scoreIndex) {

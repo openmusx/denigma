@@ -44,8 +44,7 @@ struct ArticulationMark
 {
     /// @enum Type
     /// @brief Articulation mark type recognized by the classifier.
-    enum class Type
-    {
+    enum class Type {
         Accent,
         BrassDoit,
         BrassFalloff,
@@ -81,8 +80,7 @@ struct TechniqueMark
 {
     /// @enum Type
     /// @brief Technique mark type recognized by the classifier.
-    enum class Type
-    {
+    enum class Type {
         BrassBend,
         BrassFlip,
         BrassHalfMuted,
@@ -112,8 +110,7 @@ struct HarmonMute
 {
     /// @enum Qualifier
     /// @brief Distinguishes the displayed stem / closed state of the Harmon mute symbol.
-    enum class Qualifier
-    {
+    enum class Qualifier {
         Closed,
         HalfLeft,
         HalfRight,
@@ -132,8 +129,7 @@ struct PluckedDamp
 {
     /// @enum Type
     /// @brief Distinguishes damping selected strings from damping all strings.
-    enum class Type
-    {
+    enum class Type {
         Damp,
         DampAll
     };
@@ -150,8 +146,7 @@ struct StringMute
 {
     /// @enum Type
     /// @brief Whether the source symbol applies or removes the string mute.
-    enum class Type
-    {
+    enum class Type {
         On,
         Off
     };
@@ -173,8 +168,7 @@ struct AccordionRegistration
 {
     /// @enum Hand
     /// @brief Hand designation encoded by the registration diagram.
-    enum class Hand
-    {
+    enum class Hand {
         Other,
         Right,
         Left
@@ -182,8 +176,7 @@ struct AccordionRegistration
 
     /// @enum RankCount
     /// @brief Number of reed ranks in the registration diagram.
-    enum class RankCount
-    {
+    enum class RankCount {
         Other,
         Two,
         Three,
@@ -192,8 +185,7 @@ struct AccordionRegistration
 
     /// @enum InstrumentType
     /// @brief Named accordion instrument or reed preset encoded by a glyph.
-    enum class InstrumentType
-    {
+    enum class InstrumentType {
         Other,
         Piccolo,
         Clarinet,
@@ -210,8 +202,7 @@ struct AccordionRegistration
 
     /// @enum DotPosition
     /// @brief Logical vertical position of a registration dot, from top to bottom.
-    enum class DotPosition
-    {
+    enum class DotPosition {
         Other,
         Top,
         UpperMiddle,
@@ -246,8 +237,7 @@ struct Tremolo
 {
     /// @enum Style
     /// @brief Distinguishes measured from unmeasured tremolo marks.
-    enum class Style
-    {
+    enum class Style {
         Measured,
         Unmeasured
     };
@@ -266,8 +256,7 @@ struct Fermata
 {
     /// @enum Shape
     /// @brief Visual fermata shape.
-    enum class Shape
-    {
+    enum class Shape {
         Normal,
         Angled,
         DoubleAngled,
@@ -280,8 +269,7 @@ struct Fermata
 
     /// @enum Duration
     /// @brief Finale playback-duration class associated with the fermata.
-    enum class Duration
-    {
+    enum class Duration {
         Auto,
         VeryShort,
         Short,
@@ -303,8 +291,7 @@ struct BreathMark
 {
     /// @enum Type
     /// @brief Breath mark type.
-    enum class Type
-    {
+    enum class Type {
         Unspecified,
         Comma,
         Tick,
@@ -324,8 +311,7 @@ struct Caesura
 {
     /// @enum Type
     /// @brief Caesura type.
-    enum class Type
-    {
+    enum class Type {
         Normal,
         Curved,
         Short,
@@ -346,8 +332,7 @@ struct Arpeggio
 {
     /// @enum Type
     /// @brief Arpeggio type.
-    enum class Type
-    {
+    enum class Type {
         VerticalSegment,
         Normal,
         Up,
@@ -369,8 +354,7 @@ struct Ornament
 {
     /// @enum Accidental
     /// @brief Accidentals attached to an ornament sign.
-    enum class Accidental
-    {
+    enum class Accidental {
         Unspecified,
         Flat,
         Natural,
@@ -379,8 +363,7 @@ struct Ornament
 
     /// @enum Type
     /// @brief Ornament types recognized by the classifier.
-    enum class Type
-    {
+    enum class Type {
         InvertedMordent,
         InvertedTurn,
         Mordent,
@@ -421,8 +404,7 @@ struct Parenthesis
 {
     /// @enum Side
     /// @brief Which side of the note the parenthesis mark appears on.
-    enum class Side
-    {
+    enum class Side {
         Left,
         Right
     };
@@ -441,8 +423,7 @@ struct OtherMark
 {
     /// @enum Category
     /// @brief Broad notation category for preserving a known but unclassified mark.
-    enum class Category
-    {
+    enum class Category {
         Articulation,
         PerformanceTechnique
     };
@@ -456,12 +437,10 @@ struct OtherMark
 } // namespace articulation
 
 /// Variant payload for articulation classification.
-using ArticulationValue = std::variant<
-    std::monostate, articulation::ArticulationMarks, articulation::TechniqueMark, articulation::HarmonMute,
-    articulation::PluckedDamp, articulation::StringMute, articulation::Tremolo, articulation::Fermata,
-    articulation::BreathMark, articulation::Caesura, articulation::Arpeggio, articulation::Ornament,
-    articulation::AccordionRegistration, articulation::VerticalEntryBracket, articulation::Parenthesis, PseudoTie,
-    articulation::OtherMark>;
+using ArticulationValue = std::variant<std::monostate, articulation::ArticulationMarks, articulation::TechniqueMark, articulation::HarmonMute,
+    articulation::PluckedDamp, articulation::StringMute, articulation::Tremolo, articulation::Fermata, articulation::BreathMark,
+    articulation::Caesura, articulation::Arpeggio, articulation::Ornament, articulation::AccordionRegistration, articulation::VerticalEntryBracket,
+    articulation::Parenthesis, PseudoTie, articulation::OtherMark>;
 
 /// @struct ArticulationClassification
 /// @brief Result returned by articulation classification.
@@ -470,32 +449,33 @@ struct ArticulationClassification
     /// Classified articulation payload, or std::monostate when no articulation was recognized.
     ArticulationValue value{};
     /// Resolved placement of the assigned articulation, when classified from an assignment.
-    musx::dom::VerticalPlacement placement{ musx::dom::VerticalPlacement::NotApplicable };
+    musx::dom::VerticalPlacement placement{musx::dom::VerticalPlacement::NotApplicable};
     /// SMuFL glyph name associated with the recognized symbol, when available.
     std::optional<std::string> glyphName;
 
     /// Returns true when the source was recognized as an articulation.
-    explicit operator bool() const noexcept
-    { return !std::holds_alternative<std::monostate>(value); }
+    explicit operator bool() const noexcept { return !std::holds_alternative<std::monostate>(value); }
 
     /// Returns the classified payload as T, or nullptr when it has another type.
     template <typename T>
     const T* as() const noexcept
-    { return std::get_if<T>(&value); }
+    {
+        return std::get_if<T>(&value);
+    }
 
     /// Returns true when the classified payload has type T.
     template <typename T>
     bool is() const noexcept
-    { return std::holds_alternative<T>(value); }
+    {
+        return std::holds_alternative<T>(value);
+    }
 };
 
 /// Classifies an articulation assignment for an entry.
 ArticulationClassification classifyArticulation(
-    const musx::dom::MusxInstance<musx::dom::details::ArticulationAssign>& assignment,
-    const musx::dom::EntryInfoPtr& entryInfo);
+    const musx::dom::MusxInstance<musx::dom::details::ArticulationAssign>& assignment, const musx::dom::EntryInfoPtr& entryInfo);
 /// Classifies an articulation symbol from a font and character code.
-ArticulationClassification classifyArticulationSymbol(
-    const musx::dom::MusxInstance<musx::dom::FontInfo>& fontInfo, char32_t symbol);
+ArticulationClassification classifyArticulationSymbol(const musx::dom::MusxInstance<musx::dom::FontInfo>& fontInfo, char32_t symbol);
 
 } // namespace classify
 } // namespace denigma

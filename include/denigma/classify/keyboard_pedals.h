@@ -32,8 +32,7 @@ namespace keyboardpedal {
 
 /// @enum Type
 /// @brief Keyboard-pedal markings recognized in Finale text and custom lines.
-enum class Type
-{
+enum class Type {
     PedalOne,       ///< Sustain pedal, normally the rightmost pedal.
     PedalTwo,       ///< Sostenuto pedal, normally the middle pedal.
     PedalThree,     ///< Una corda or soft pedal, normally the leftmost pedal.
@@ -74,7 +73,6 @@ std::optional<KeyboardPedalClassification> classifyKeyboardPedal(std::string_vie
 /// Hidden text chunks are ignored.
 /// @return std::nullopt when @p textContext is empty or is not a recognized marking.
 [[nodiscard]]
-std::optional<KeyboardPedalClassification> classifyKeyboardPedal(
-    const musx::util::EnigmaParsingContext& textContext);
+std::optional<KeyboardPedalClassification> classifyKeyboardPedal(const musx::util::EnigmaParsingContext& textContext);
 
 } // namespace denigma::classify

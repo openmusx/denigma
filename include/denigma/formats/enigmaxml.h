@@ -47,14 +47,10 @@ public:
     [[nodiscard]] FormatId targetFormat() const override { return FormatId::EnigmaXml; }
 
     /// Extracts Enigma XML from a MUSX random-access reader and writes it to the provided stream.
-    ConversionResult convert(const IRandomAccessReader& input,
-                             std::ostream& output,
-                             const Options& options = {}) const;
+    ConversionResult convert(const IRandomAccessReader& input, std::ostream& output, const Options& options = {}) const;
 
     /// Extracts Enigma XML using type-erased registry options.
-    ConversionResult convert(const IRandomAccessReader& input,
-                             std::ostream& output,
-                             const ConversionRequest& request = {}) const override;
+    ConversionResult convert(const IRandomAccessReader& input, std::ostream& output, const ConversionRequest& request = {}) const override;
 };
 
 /// Registers all Enigma XML format converters with the supplied registry.

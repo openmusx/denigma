@@ -22,8 +22,8 @@
 #pragma once
 
 #include "core/denigma.h"
-#include "musx/musx.h"
 #include "mnxdom.h"
+#include "musx/musx.h"
 
 #include "mnx_fwd.h"
 
@@ -35,8 +35,8 @@ namespace formats {
 namespace mnx {
 namespace detail {
 
-void processExpressions(const MnxMusxMappingPtr& context, const MusxInstance<others::Measure>& musxMeasure,
-    mnxdom::part::Measure& mnxMeasure, std::optional<int> mnxStaffNumber);
+void processExpressions(const MnxMusxMappingPtr& context, const MusxInstance<others::Measure>& musxMeasure, mnxdom::part::Measure& mnxMeasure,
+    std::optional<int> mnxStaffNumber);
 
 } // namespace detail
 } // namespace mnx

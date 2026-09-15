@@ -19,13 +19,13 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#include <string>
 #include <filesystem>
 #include <iterator>
+#include <string>
 
-#include "gtest/gtest.h"
 #include "core/denigma.h"
 #include "test_utils.h"
+#include "gtest/gtest.h"
 
 using namespace denigma;
 
@@ -38,17 +38,14 @@ TEST(Massage, InPlace)
     copyInputToOutput("musicxml/" + inputFile + ".musicxml", inputPath); // inputPath now points to musicxml file
     // musicxml -> musicxml
     {
-        ArgList args = { DENIGMA_NAME, "massage", pathString(inputPath) };
-        checkStderr({ "Processing", pathString(inputPath.filename()) }, [&]() {
-            EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create " << pathString(inputPath);
-        });
-        checkStderr(inputFile + ".massaged.musicxml exists. Use --force to overwrite it.", [&]() {
-            EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "no force options when creating " << pathString(inputPath);
-        });
+        ArgList args = {DENIGMA_NAME, "massage", pathString(inputPath)};
+        checkStderr({"Processing", pathString(inputPath.filename())},
+            [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create " << pathString(inputPath); });
+        checkStderr(inputFile + ".massaged.musicxml exists. Use --force to overwrite it.",
+            [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "no force options when creating " << pathString(inputPath); });
         args.add(_ARG("--force"));
-        checkStderr({ "Overwriting", inputFile + ".massaged.musicxml" }, [&]() {
-            EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "force create " << pathString(inputPath);
-        });
+        checkStderr({"Overwriting", inputFile + ".massaged.musicxml"},
+            [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "force create " << pathString(inputPath); });
         std::filesystem::path musicXmlFilename = utils::utf8ToPath(inputFile + ".massaged.musicxml");
         std::filesystem::path referencePath = getInputPath() / "reference" / "musicxml" / musicXmlFilename;
         EXPECT_TRUE(std::filesystem::exists(getOutputPath() / "musicxml" / musicXmlFilename));
@@ -56,25 +53,21 @@ TEST(Massage, InPlace)
     }
     // musicxml -> mxl
     {
-        ArgList args = { DENIGMA_NAME, "massage", pathString(inputPath), "--mxl" };
-        checkStderr({ pathString(inputPath.filename()) + " is not a .mxl file.", pathString(inputPath.filename()) }, [&]() {
-            EXPECT_NE(denigmaTestMain(args.argc(), args.argv()), 0) << "create mxl from " << pathString(inputPath) << "this should fail";
-        });
+        ArgList args = {DENIGMA_NAME, "massage", pathString(inputPath), "--mxl"};
+        checkStderr({pathString(inputPath.filename()) + " is not a .mxl file.", pathString(inputPath.filename())},
+            [&]() { EXPECT_NE(denigmaTestMain(args.argc(), args.argv()), 0) << "create mxl from " << pathString(inputPath) << "this should fail"; });
     }
     copyInputToOutput(inputFile + ".mxl", inputPath); // inputPath now points to mxl file
     // mxl -> musicxml
     {
-        ArgList args = { DENIGMA_NAME, "massage", pathString(inputPath), "--musicxml" };
-        checkStderr({ "Processing", pathString(inputPath.filename()) }, [&]() {
-            EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create from " << pathString(inputPath);
-        });
-        checkStderr(inputFile + ".massaged.musicxml exists. Use --force to overwrite it.", [&]() {
-            EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "no force options when creating " << pathString(inputPath);
-        });
+        ArgList args = {DENIGMA_NAME, "massage", pathString(inputPath), "--musicxml"};
+        checkStderr({"Processing", pathString(inputPath.filename())},
+            [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create from " << pathString(inputPath); });
+        checkStderr(inputFile + ".massaged.musicxml exists. Use --force to overwrite it.",
+            [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "no force options when creating " << pathString(inputPath); });
         args.add(_ARG("--force"));
-        checkStderr({ "Overwriting", inputFile + ".massaged.musicxml" }, [&]() {
-            EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "force create from " << pathString(inputPath);
-        });
+        checkStderr({"Overwriting", inputFile + ".massaged.musicxml"},
+            [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "force create from " << pathString(inputPath); });
         std::filesystem::path musicXmlFilename = utils::utf8ToPath(inputFile + ".massaged.musicxml");
         std::filesystem::path referencePath = getInputPath() / "reference" / musicXmlFilename;
         EXPECT_TRUE(std::filesystem::exists(getOutputPath() / musicXmlFilename));
@@ -82,17 +75,14 @@ TEST(Massage, InPlace)
     }
     // mxl -> mxl
     {
-        ArgList args = { DENIGMA_NAME, "massage", pathString(inputPath) };
-        checkStderr({ "Processing", pathString(inputPath.filename()) }, [&]() {
-            EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create from " << pathString(inputPath);
-        });
-        checkStderr(inputFile + ".massaged.mxl exists. Use --force to overwrite it.", [&]() {
-            EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "no force options when creating " << pathString(inputPath);
-        });
+        ArgList args = {DENIGMA_NAME, "massage", pathString(inputPath)};
+        checkStderr({"Processing", pathString(inputPath.filename())},
+            [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create from " << pathString(inputPath); });
+        checkStderr(inputFile + ".massaged.mxl exists. Use --force to overwrite it.",
+            [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "no force options when creating " << pathString(inputPath); });
         args.add(_ARG("--force"));
-        checkStderr({ "Overwriting", inputFile + ".massaged.mxl" }, [&]() {
-            EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "force create from " << pathString(inputPath);
-        });
+        checkStderr({"Overwriting", inputFile + ".massaged.mxl"},
+            [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "force create from " << pathString(inputPath); });
         std::filesystem::path mxlFilename = utils::utf8ToPath(inputFile + ".massaged.mxl");
         EXPECT_TRUE(std::filesystem::exists(getOutputPath() / mxlFilename));
     }
@@ -107,10 +97,9 @@ TEST(Massage, Subdirectory)
     copyInputToOutput("musicxml/" + inputFile + ".musicxml", inputPath); // inputPath now points to musicxml file
     // musicxml -> musicxml
     {
-        ArgList args = { DENIGMA_NAME, "massage", pathString(inputPath), "--musicxml", "-exports" };
-        checkStderr({ "Processing", pathString(inputPath.filename()) }, [&]() {
-            EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create from " << pathString(inputPath);
-        });
+        ArgList args = {DENIGMA_NAME, "massage", pathString(inputPath), "--musicxml", "-exports"};
+        checkStderr({"Processing", pathString(inputPath.filename())},
+            [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create from " << pathString(inputPath); });
         std::filesystem::path musicXmlFilename = utils::utf8ToPath(inputFile + ".massaged.musicxml");
         std::filesystem::path referencePath = getInputPath() / "reference" / "musicxml" / musicXmlFilename;
         EXPECT_TRUE(std::filesystem::exists(std::filesystem::current_path() / "-exports" / musicXmlFilename));
@@ -119,10 +108,9 @@ TEST(Massage, Subdirectory)
     copyInputToOutput(inputFile + ".mxl", inputPath); // inputPath now points to mxl file
     // mxl -> mxl
     {
-        ArgList args = { DENIGMA_NAME, "massage", pathString(inputPath), "--mxl", "-exports" };
-        checkStderr({ "Processing", pathString(inputPath.filename()) }, [&]() {
-            EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create " << pathString(inputPath);
-        });
+        ArgList args = {DENIGMA_NAME, "massage", pathString(inputPath), "--mxl", "-exports"};
+        checkStderr({"Processing", pathString(inputPath.filename())},
+            [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create " << pathString(inputPath); });
         std::filesystem::path mxlFilename = utils::utf8ToPath(inputFile + ".massaged.mxl");
         EXPECT_TRUE(std::filesystem::exists(std::filesystem::current_path() / "-exports" / mxlFilename));
     }
@@ -137,17 +125,16 @@ TEST(Massage, OutputFilename)
     copyInputToOutput("musicxml/" + inputFile + ".musicxml", inputPath); // inputPath now points to musicxml file
     // musicxml -> musicxml (no overwrite self)
     {
-        ArgList args = { DENIGMA_NAME, "massage", pathString(inputPath), "--musicxml", pathString(inputPath) };
-        checkStderr({ "Input and output are the same. No action taken.", pathString(inputPath.filename()) }, [&]() {
-            EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "no self-overwrite " << pathString(inputPath);
-        });
+        ArgList args = {DENIGMA_NAME, "massage", pathString(inputPath), "--musicxml", pathString(inputPath)};
+        checkStderr({"Input and output are the same. No action taken.", pathString(inputPath.filename())},
+            [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "no self-overwrite " << pathString(inputPath); });
     }
     // musicxml -> musicxml (no ottava-left)
     {
-        ArgList args = { DENIGMA_NAME, "massage", pathString(inputPath), "--musicxml", "-exports/" + inputFile + ".no-ottavas-left.musicxml", "--no-extend-ottavas-left" };
-        checkStderr({ "Processing", pathString(inputPath.filename()) }, [&]() {
-            EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create from " << pathString(inputPath);
-        });
+        ArgList args = {DENIGMA_NAME, "massage", pathString(inputPath), "--musicxml", "-exports/" + inputFile + ".no-ottavas-left.musicxml",
+            "--no-extend-ottavas-left"};
+        checkStderr({"Processing", pathString(inputPath.filename())},
+            [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create from " << pathString(inputPath); });
         std::filesystem::path musicXmlFilename = utils::utf8ToPath(inputFile + ".no-ottavas-left.musicxml");
         std::filesystem::path referencePath = getInputPath() / "reference" / "musicxml" / utils::utf8ToPath(inputFile + ".no-ottavas-left.musicxml");
         EXPECT_TRUE(std::filesystem::exists(std::filesystem::current_path() / "-exports" / musicXmlFilename));
@@ -155,10 +142,10 @@ TEST(Massage, OutputFilename)
     }
     // musicxml -> musicxml (no ottava-right)
     {
-        ArgList args = { DENIGMA_NAME, "massage", pathString(inputPath), "--musicxml", "-exports/" + inputFile + ".no-ottavas-right.musicxml", "--no-extend-ottavas-right" };
-        checkStderr({ "Processing", pathString(inputPath.filename()) }, [&]() {
-            EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create from " << pathString(inputPath);
-        });
+        ArgList args = {DENIGMA_NAME, "massage", pathString(inputPath), "--musicxml", "-exports/" + inputFile + ".no-ottavas-right.musicxml",
+            "--no-extend-ottavas-right"};
+        checkStderr({"Processing", pathString(inputPath.filename())},
+            [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create from " << pathString(inputPath); });
         std::filesystem::path musicXmlFilename = utils::utf8ToPath(inputFile + ".no-ottavas-right.musicxml");
         std::filesystem::path referencePath = getInputPath() / "reference" / "musicxml" / utils::utf8ToPath(inputFile + ".no-ottavas-right.musicxml");
         EXPECT_TRUE(std::filesystem::exists(std::filesystem::current_path() / "-exports" / musicXmlFilename));
@@ -166,10 +153,10 @@ TEST(Massage, OutputFilename)
     }
     // musicxml -> musicxml (no ottava-left)
     {
-        ArgList args = { DENIGMA_NAME, "massage", pathString(inputPath), "--musicxml", "-exports/" + inputFile + ".no-ottavas-left.musicxml", "--no-extend-ottavas-left" };
-        checkStderr({ "Processing", pathString(inputPath.filename()) }, [&]() {
-            EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create from " << pathString(inputPath);
-        });
+        ArgList args = {DENIGMA_NAME, "massage", pathString(inputPath), "--musicxml", "-exports/" + inputFile + ".no-ottavas-left.musicxml",
+            "--no-extend-ottavas-left"};
+        checkStderr({"Processing", pathString(inputPath.filename())},
+            [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create from " << pathString(inputPath); });
         std::filesystem::path musicXmlFilename = utils::utf8ToPath(inputFile + ".no-ottavas-left.musicxml");
         std::filesystem::path referencePath = getInputPath() / "reference" / "musicxml" / utils::utf8ToPath(inputFile + ".no-ottavas-left.musicxml");
         EXPECT_TRUE(std::filesystem::exists(std::filesystem::current_path() / "-exports" / musicXmlFilename));
@@ -178,10 +165,10 @@ TEST(Massage, OutputFilename)
     copyInputToOutput(inputFile + ".mxl", inputPath); // inputPath now points to mxl file
     // mxl -> musicxml (no fermata-whole-rests)
     {
-        ArgList args = { DENIGMA_NAME, "massage", pathString(inputPath), "--musicxml", "-exports/" + inputFile + ".no-fermata-whole-rests.musicxml", "--no-fermata-whole-rests" };
-        checkStderr({ "Processing", pathString(inputPath.filename()) }, [&]() {
-            EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create from " << pathString(inputPath);
-        });
+        ArgList args = {DENIGMA_NAME, "massage", pathString(inputPath), "--musicxml", "-exports/" + inputFile + ".no-fermata-whole-rests.musicxml",
+            "--no-fermata-whole-rests"};
+        checkStderr({"Processing", pathString(inputPath.filename())},
+            [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create from " << pathString(inputPath); });
         std::filesystem::path musicXmlFilename = utils::utf8ToPath(inputFile + ".no-fermata-whole-rests.musicxml");
         std::filesystem::path referencePath = getInputPath() / "reference" / utils::utf8ToPath(inputFile + ".no-fermata-whole-rests.musicxml");
         EXPECT_TRUE(std::filesystem::exists(std::filesystem::current_path() / "-exports" / musicXmlFilename));
@@ -189,10 +176,10 @@ TEST(Massage, OutputFilename)
     }
     // mxl -> musicxml (no refloat-rests)
     {
-        ArgList args = { DENIGMA_NAME, "massage", pathString(inputPath), "--musicxml", "-exports/" + inputFile + ".no-refloat-rests.musicxml", "--no-refloat-rests" };
-        checkStderr({ "Processing", pathString(inputPath.filename()) }, [&]() {
-            EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create from " << pathString(inputPath);
-        });
+        ArgList args = {DENIGMA_NAME, "massage", pathString(inputPath), "--musicxml", "-exports/" + inputFile + ".no-refloat-rests.musicxml",
+            "--no-refloat-rests"};
+        checkStderr({"Processing", pathString(inputPath.filename())},
+            [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create from " << pathString(inputPath); });
         std::filesystem::path musicXmlFilename = utils::utf8ToPath(inputFile + ".no-refloat-rests.musicxml");
         std::filesystem::path referencePath = getInputPath() / "reference" / utils::utf8ToPath(inputFile + ".no-refloat-rests.musicxml");
         EXPECT_TRUE(std::filesystem::exists(std::filesystem::current_path() / "-exports" / musicXmlFilename));
@@ -206,19 +193,16 @@ TEST(Massage, Parts)
     std::filesystem::path inputPath;
     copyInputToOutput(inputFile + ".musx", inputPath); // inputPath points to musx file
     copyInputToOutput(inputFile + ".mxl", inputPath); // inputPath now points to mxl file
-    // inplace 
+    // inplace
     {
-        ArgList args = { DENIGMA_NAME, "massage", pathString(inputPath), "--musicxml", "--part" };
-        checkStderr({ "Processing", pathString(inputPath.filename()) }, [&]() {
-            EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create from " << pathString(inputPath);
-        });
-        checkStderr(inputFile + ".オボえ.massaged.musicxml exists. Use --force to overwrite it.", [&]() {
-            EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "no force options when creating from " << pathString(inputPath);
-        });
+        ArgList args = {DENIGMA_NAME, "massage", pathString(inputPath), "--musicxml", "--part"};
+        checkStderr({"Processing", pathString(inputPath.filename())},
+            [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create from " << pathString(inputPath); });
+        checkStderr(inputFile + ".オボえ.massaged.musicxml exists. Use --force to overwrite it.",
+            [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "no force options when creating from " << pathString(inputPath); });
         args.add(_ARG("--force"));
-        checkStderr({ "Overwriting", inputFile + ".オボえ.massaged.musicxml" }, [&]() {
-            EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "force create from " << pathString(inputPath);
-        });
+        checkStderr({"Overwriting", inputFile + ".オボえ.massaged.musicxml"},
+            [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "force create from " << pathString(inputPath); });
         std::filesystem::path musicXmlFilename = utils::utf8ToPath(inputFile + ".オボえ.massaged.musicxml");
         std::filesystem::path referencePath = getInputPath() / "reference" / musicXmlFilename;
         EXPECT_TRUE(std::filesystem::exists(getOutputPath() / musicXmlFilename));
@@ -226,10 +210,9 @@ TEST(Massage, Parts)
     }
     // explicit to subdir
     {
-        ArgList args = { DENIGMA_NAME, "massage", pathString(inputPath), "--musicxml", "-exports", "--part", "オボえ" };
-        checkStderr({ "Processing", pathString(inputPath.filename()) }, [&]() {
-            EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create from " << pathString(inputPath);
-        });
+        ArgList args = {DENIGMA_NAME, "massage", pathString(inputPath), "--musicxml", "-exports", "--part", "オボえ"};
+        checkStderr({"Processing", pathString(inputPath.filename())},
+            [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create from " << pathString(inputPath); });
         std::filesystem::path musicXmlFilename = utils::utf8ToPath(inputFile + ".オボえ.massaged.musicxml");
         std::filesystem::path referencePath = getInputPath() / "reference" / musicXmlFilename;
         EXPECT_TRUE(std::filesystem::exists(std::filesystem::current_path() / "-exports" / musicXmlFilename));
@@ -237,17 +220,15 @@ TEST(Massage, Parts)
     }
     // non-existent part
     {
-        ArgList args = { DENIGMA_NAME, "massage", pathString(inputPath), "--musicxml", "-exports", "--part", "Doesn't Exist" };
-        checkStderr({ "No part name starting with \"Doesn't Exist\" was found", pathString(inputPath.filename()) }, [&]() {
-            EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create from " << pathString(inputPath);
-        });
+        ArgList args = {DENIGMA_NAME, "massage", pathString(inputPath), "--musicxml", "-exports", "--part", "Doesn't Exist"};
+        checkStderr({"No part name starting with \"Doesn't Exist\" was found", pathString(inputPath.filename())},
+            [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create from " << pathString(inputPath); });
     }
     // all parts and score
     {
-        ArgList args = { DENIGMA_NAME, "massage", pathString(inputPath), "--musicxml", "-exports", "--all-parts", "--force" };
-        checkStderr({ "Overwriting", inputFile + ".mxl" }, [&]() {
-            EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create from " << pathString(inputPath);
-        });
+        ArgList args = {DENIGMA_NAME, "massage", pathString(inputPath), "--musicxml", "-exports", "--all-parts", "--force"};
+        checkStderr({"Overwriting", inputFile + ".mxl"},
+            [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create from " << pathString(inputPath); });
         std::filesystem::path musicXmlFilename = utils::utf8ToPath(inputFile + ".massaged.musicxml");
         std::filesystem::path referencePath = getInputPath() / "reference" / musicXmlFilename;
         EXPECT_TRUE(std::filesystem::exists(std::filesystem::current_path() / "-exports" / musicXmlFilename));
@@ -265,10 +246,9 @@ TEST(Massage, NoFinaleFile)
     std::string inputFile = "notAscii-其れ";
     std::filesystem::path inputPath;
     copyInputToOutput("musicxml/" + inputFile + ".musicxml", inputPath); // inputPath now points to musicxml file
-    ArgList args = { DENIGMA_NAME, "massage", pathString(inputPath), "--finale-file", "." };
-    checkStderr({ "Corresponding Finale document not found", inputFile + ".musicxml" }, [&]() {
-        EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create from " << pathString(inputPath);
-    });
+    ArgList args = {DENIGMA_NAME, "massage", pathString(inputPath), "--finale-file", "."};
+    checkStderr({"Corresponding Finale document not found", inputFile + ".musicxml"},
+        [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create from " << pathString(inputPath); });
 }
 
 TEST(Massage, EighthTremolo)
@@ -278,10 +258,9 @@ TEST(Massage, EighthTremolo)
     std::filesystem::path inputPath;
     copyInputToOutput(inputFile + ".musx", inputPath); // inputPath points to musx file
     copyInputToOutput(inputFile + ".musicxml", inputPath); // inputPath now points to musicxml file
-    ArgList args = { DENIGMA_NAME, "massage", pathString(inputPath), "--finale-file", "." };
-    checkStderr("!xml durations do not match", [&]() {
-        EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create from " << pathString(inputPath);
-    });
+    ArgList args = {DENIGMA_NAME, "massage", pathString(inputPath), "--finale-file", "."};
+    checkStderr(
+        "!xml durations do not match", [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "create from " << pathString(inputPath); });
     std::filesystem::path musicXmlFilename = utils::utf8ToPath(inputFile + ".massaged.musicxml");
     std::filesystem::path referencePath = getInputPath() / "reference" / musicXmlFilename;
     EXPECT_TRUE(std::filesystem::exists(getOutputPath() / musicXmlFilename));

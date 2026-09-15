@@ -19,23 +19,23 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#include <string>
-#include <filesystem>
 #include <array>
-#include <vector>
-#include <iostream>
-#include <sstream>
+#include <filesystem>
 #include <functional>
+#include <iostream>
 #include <regex>
+#include <sstream>
+#include <string>
+#include <vector>
 
-#include "musx/musx.h"
 #include "core/musx_reader.h"
+#include "musx/musx.h"
 #include "pugixml.hpp"
 
 #include "core/denigma.h"
+#include "formats/enigmaxml/enigmaxml.h"
 #include "massage/massage.h"
 #include "massage/musicxml.h"
-#include "formats/enigmaxml/enigmaxml.h"
 #include "utils/ziputils.h"
 
 constexpr double EDU_PER_QUARTER = 1024.0;
@@ -49,7 +49,8 @@ using namespace musx::dom;
 struct MassageMusicXmlContext
 {
     MassageMusicXmlContext(const DenigmaContext& context)
-        : denigmaContext(&context) {}
+        : denigmaContext(&context)
+    {}
 
     const DenigmaContext* denigmaContext;
     musx::dom::DocumentPtr musxDocument;
@@ -62,10 +63,7 @@ struct MassageMusicXmlContext
     int currentStaffOffset{};
     int errorCount{};
 
-    void initCounts()
-    {
-        currentMusicXmlPart = currentXmlMeasure = currentMeasure = currentStaff = currentStaffOffset = errorCount = 0;
-    }
+    void initCounts() { currentMusicXmlPart = currentXmlMeasure = currentMeasure = currentStaff = currentStaffOffset = errorCount = 0; }
 
     void logMessage(LogMsg&& msg, MessageSeverity severity = MessageSeverity::Info);
     void logXmlNode(pugi::xml_node node);
@@ -108,8 +106,11 @@ void MassageMusicXmlContext::logXmlNode(pugi::xml_node node)
     }
 }
 
-static int staffNumberFromNote(pugi::xml_node xmlNote) {
-    if (!xmlNote) return 1;
+static int staffNumberFromNote(pugi::xml_node xmlNote)
+{
+    if (!xmlNote) {
+        return 1;
+    }
     auto xmlStaff = xmlNote.child("staff");
     if (xmlStaff && xmlStaff.text().get()) {
         try {
@@ -149,14 +150,20 @@ void feedDirectionsOfType(pugi::xml_node node, const std::string& nodeName, cons
 static void fixDirectionBrackets(pugi::xml_node xmlMeasure, const std::string& directionType, const std::shared_ptr<MassageMusicXmlContext>& context)
 {
     const DenigmaContext& denigmaContext = *context->denigmaContext;
-    if (!(denigmaContext.extendOttavasLeft || denigmaContext.extendOttavasRight)) return;
+    if (!(denigmaContext.extendOttavasLeft || denigmaContext.extendOttavasRight)) {
+        return;
+    }
 
     feedDirectionsOfType(xmlMeasure, directionType, [&](pugi::xml_node currentDirection) {
         auto xmlDirectionType = currentDirection.child("direction-type");
-        if (!xmlDirectionType) return;
+        if (!xmlDirectionType) {
+            return;
+        }
 
         auto nodeForType = xmlDirectionType.child(directionType.c_str());
-        if (!nodeForType) return;
+        if (!nodeForType) {
+            return;
+        }
 
         auto directionCopy = currentDirection; // Shallow copy
         std::string shiftType = nodeForType.attribute("type").value();
@@ -177,7 +184,8 @@ static void fixDirectionBrackets(pugi::xml_node xmlMeasure, const std::string& d
                     xmlMeasure.insert_copy_after(directionCopy, nextNote);
                     context->currentStaffOffset = staffNumberFromNote(nextNote) - 1;
                     if (directionType == "octave-shift") {
-                        context->logMessage(LogMsg() << "Extended octave-shift element of size " << std::to_string(nodeForType.attribute("size").as_int(8)) << " by one note/chord.");
+                        context->logMessage(LogMsg() << "Extended octave-shift element of size "
+                                                     << std::to_string(nodeForType.attribute("size").as_int(8)) << " by one note/chord.");
                     } else {
                         context->logMessage(LogMsg() << "Extended " << directionType << " element by one note/chord.");
                     }
@@ -215,8 +223,7 @@ static void fixDirectionBrackets(pugi::xml_node xmlMeasure, const std::string& d
                     }
                     context->currentStaffOffset = staffNumberFromNote(prevGraceNote) - 1;
                     context->logMessage(LogMsg() << "Adjusted octave-shift element of size "
-                                                 << std::to_string(nodeForType.attribute("size").as_int(8))
-                                                 << " to include preceding grace notes.");
+                                                 << std::to_string(nodeForType.attribute("size").as_int(8)) << " to include preceding grace notes.");
                 }
             }
         }
@@ -228,16 +235,20 @@ static void fixFermataWholeRests(pugi::xml_node xmlMeasure, const std::shared_pt
     assert(xmlMeasure);
 
     auto noteNode = xmlMeasure.child("note");
-    if (!noteNode) return;
+    if (!noteNode) {
+        return;
+    }
     auto restNode = noteNode.child("rest");
-    if (!restNode) return;
+    if (!restNode) {
+        return;
+    }
     auto typeNode = noteNode.child("type");
-    if (!typeNode || std::string_view{typeNode.text().get()} != "whole") return;
+    if (!typeNode || std::string_view{typeNode.text().get()} != "whole") {
+        return;
+    }
 
     // Process <notations> nodes
-    for (auto notationsNode = noteNode.child("notations");
-         notationsNode;
-         notationsNode = notationsNode.next_sibling("notations")) {
+    for (auto notationsNode = noteNode.child("notations"); notationsNode; notationsNode = notationsNode.next_sibling("notations")) {
         if (notationsNode.child("fermata")) {
             auto measureAttr = restNode.attribute("measure");
             if (measureAttr) {
@@ -255,20 +266,20 @@ static void fixFermataWholeRests(pugi::xml_node xmlMeasure, const std::shared_pt
 
 // this table maps musicxml note types to enigma note types
 constexpr auto durationTypeMap = std::to_array<std::pair<std::string_view, NoteType>>({
-    { "maxima", NoteType::Maxima },
-    { "long", NoteType::Longa },
-    { "breve", NoteType::Breve },
-    { "whole", NoteType::Whole },
-    { "half", NoteType::Half },
-    { "quarter", NoteType::Quarter },
-    { "eighth", NoteType::Eighth },
-    { "16th", NoteType::Note16th },
-    { "32nd", NoteType::Note32nd },
-    { "64th", NoteType::Note64th },
-    { "128th", NoteType::Note128th },
-    { "256th", NoteType::Note256th },
-    { "512th", NoteType::Note512th },
-    { "1024th", NoteType::Note1024th },
+    {"maxima", NoteType::Maxima},
+    {"long", NoteType::Longa},
+    {"breve", NoteType::Breve},
+    {"whole", NoteType::Whole},
+    {"half", NoteType::Half},
+    {"quarter", NoteType::Quarter},
+    {"eighth", NoteType::Eighth},
+    {"16th", NoteType::Note16th},
+    {"32nd", NoteType::Note32nd},
+    {"64th", NoteType::Note64th},
+    {"128th", NoteType::Note128th},
+    {"256th", NoteType::Note256th},
+    {"512th", NoteType::Note512th},
+    {"1024th", NoteType::Note1024th},
 });
 
 static const std::pair<std::string_view, NoteType>* findDurationType(std::string_view typeName)
@@ -290,8 +301,7 @@ static int log2_exact(uint32_t value)
     return log;
 }
 
-static void massageXmlWithFinaleDocument(pugi::xml_node xmlMeasure,
-    int staffSlot, MeasCmper measure, double /*durationUnit*/, StaffCmper staffNum,
+static void massageXmlWithFinaleDocument(pugi::xml_node xmlMeasure, int staffSlot, MeasCmper measure, double /*durationUnit*/, StaffCmper staffNum,
     const std::shared_ptr<MassageMusicXmlContext>& context)
 {
     // This call to getScrollViewStaves may need to take account of Special Part Extraction, but this is how it has
@@ -349,11 +359,14 @@ static void massageXmlWithFinaleDocument(pugi::xml_node xmlMeasure,
                     // but Dolet apparently detects them and reports them as written value tremolos in musicxml
                     // We compensate by shifting the note type in enigma back by the number of beams and the written note type
                     // Then subtract out quarter note log (if it's >= quaerter), because that's the first non-beamed value.
-                    musxNoteType <<= tremolo.text().as_int() + log2_exact(xmlNoteType) - std::min(10, log2_exact(xmlNoteType)); // 10 is log2(NoteType::Quarter)
+                    musxNoteType <<=
+                        tremolo.text().as_int() + log2_exact(xmlNoteType) - std::min(10, log2_exact(xmlNoteType)); // 10 is log2(NoteType::Quarter)
                 }
             }
             if (xmlNoteType != musxNoteType) {
-                context->logMessage(LogMsg() << "xml durations do not match Finale file: [" << Edu(entryNoteType) << ", " << durationType->first << "]", MessageSeverity::Warning);
+                context->logMessage(
+                    LogMsg() << "xml durations do not match Finale file: [" << Edu(entryNoteType) << ", " << durationType->first << "]",
+                    MessageSeverity::Warning);
                 context->logXmlNode(nextNote);
                 return false;
             }
@@ -363,11 +376,12 @@ static void massageXmlWithFinaleDocument(pugi::xml_node xmlMeasure,
                 ++numDots;
             }
             if (numDots != entryNumDots) {
-                context->logMessage(LogMsg() << "xml number of dots does not match Finale file: [" << entryNumDots << ", " << numDots << "]", MessageSeverity::Warning);
+                context->logMessage(LogMsg() << "xml number of dots does not match Finale file: [" << entryNumDots << ", " << numDots << "]",
+                    MessageSeverity::Warning);
                 context->logXmlNode(nextNote);
                 return false;
             }
-            
+
             // Handle floating rests
             if (!entry->isNote) {
                 pugi::xml_node restElement = nextNote.child("rest");
@@ -388,9 +402,7 @@ static void massageXmlWithFinaleDocument(pugi::xml_node xmlMeasure,
                     bool deletedPitch = deleteElement("display-step");
                     bool deletedOctave = deleteElement("display-octave");
                     if (deletedPitch || deletedOctave) {
-                        context->logMessage(LogMsg() << "Refloated rest of duration "
-                                                     << entry->duration / EDU_PER_QUARTER
-                                                     << " quarter notes.");
+                        context->logMessage(LogMsg() << "Refloated rest of duration " << entry->duration / EDU_PER_QUARTER << " quarter notes.");
                     }
                 }
             }
@@ -445,14 +457,8 @@ void massageXml(pugi::xml_node scorePartWiseNode, const std::shared_ptr<MassageM
             if (context->musxDocument && context->denigmaContext->refloatRests) {
                 for (StaffCmper staffNum = 1; staffNum <= stavesUsed; ++staffNum) {
                     context->currentStaffOffset = staffNum - 1;
-                    massageXmlWithFinaleDocument(
-                        xmlMeasure,
-                        context->currentStaff + context->currentStaffOffset,
-                        MeasCmper(context->currentMeasure),
-                        durationUnit,
-                        staffNum,
-                        context
-                    );
+                    massageXmlWithFinaleDocument(xmlMeasure, context->currentStaff + context->currentStaffOffset, MeasCmper(context->currentMeasure),
+                        durationUnit, staffNum, context);
                 }
             }
 
@@ -488,7 +494,9 @@ static void processXml(pugi::xml_document& xmlDocument, const std::shared_ptr<Ma
     }
 
     std::string creatorSoftware = softwareElement.text().get();
-    if (creatorSoftware.empty()) creatorSoftware = "Unspecified";
+    if (creatorSoftware.empty()) {
+        creatorSoftware = "Unspecified";
+    }
     if (creatorSoftware.substr(0, 6) != "Finale") {
         throw std::invalid_argument("skipping file exported by " + creatorSoftware);
     }
@@ -503,11 +511,11 @@ static void processXml(pugi::xml_document& xmlDocument, const std::shared_ptr<Ma
     if (!miscellaneousElement) {
         miscellaneousElement = identificationElement.append_child("miscellaneous");
     }
-    
+
     auto insertMiscellaneousField = [&](const std::string& name, const auto& value) {
         pugi::xml_node element = miscellaneousElement.append_child("miscellaneous-field");
         element.append_attribute("name").set_value(name.c_str());
-        
+
         if constexpr (std::is_same_v<std::decay_t<decltype(value)>, std::string>) {
             element.text().set(value.c_str());
         } else {
@@ -536,7 +544,8 @@ static std::filesystem::path calcQualifiedOutputPath(const std::filesystem::path
     return qualifiedOutputPath;
 }
 
-static void processFile(pugi::xml_document&& xmlDocument, const std::filesystem::path& outputPath, const std::shared_ptr<MassageMusicXmlContext>& context)
+static void processFile(
+    pugi::xml_document&& xmlDocument, const std::filesystem::path& outputPath, const std::shared_ptr<MassageMusicXmlContext>& context)
 {
     std::filesystem::path qualifiedOutputPath = calcQualifiedOutputPath(outputPath, *context->denigmaContext);
     if (!context->denigmaContext->validatePathsAndOptions(qualifiedOutputPath)) {
@@ -556,10 +565,7 @@ static void processFile(pugi::xml_document&& xmlDocument, const std::filesystem:
 
 std::optional<std::string> findPartFileNameByPartName(const pugi::xml_document& scoreXml, const std::string& utf8PartName)
 {
-    auto nextScorePart = scoreXml
-        .child("score-partwise")
-        .child("part-list")
-        .child("score-part");
+    auto nextScorePart = scoreXml.child("score-partwise").child("part-list").child("score-part");
     while (nextScorePart) {
         for (auto partLink = nextScorePart.child("part-link"); partLink; partLink = partLink.next_sibling("part-link")) {
             if (partLink.attribute("xlink:title").value() == utf8PartName) {
@@ -573,10 +579,7 @@ std::optional<std::string> findPartFileNameByPartName(const pugi::xml_document& 
 
 std::filesystem::path findPartNameByPartFileName(const pugi::xml_document& scoreXml, const std::filesystem::path& partFileName)
 {
-    auto nextScorePart = scoreXml
-        .child("score-partwise")
-        .child("part-list")
-        .child("score-part");
+    auto nextScorePart = scoreXml.child("score-partwise").child("part-list").child("score-part");
     while (nextScorePart) {
         for (auto partLink = nextScorePart.child("part-link"); partLink; partLink = partLink.next_sibling("part-link")) {
             if (partLink.attribute("xlink:href").value() == utils::utf8ToString(partFileName.u8string())) {
@@ -595,7 +598,7 @@ Cmper getMusxPartIdFromPartFileName(const std::string& partFileName, const std::
     if (!context->musxDocument) {
         return 0;
     }
-    
+
     std::regex pattern(R"(p(\d+)\.musicxml)");
     std::smatch match;
 
@@ -603,7 +606,8 @@ Cmper getMusxPartIdFromPartFileName(const std::string& partFileName, const std::
     if (std::regex_search(partFileName, match, pattern)) {
         partNumber = Cmper(std::stoi(match[1].str()));
     } else {
-        context->denigmaContext->logMessage(LogMsg() << "Unable to get part number from " << partFileName << ". Using score instead.", MessageSeverity::Warning);
+        context->denigmaContext->logMessage(
+            LogMsg() << "Unable to get part number from " << partFileName << ". Using score instead.", MessageSeverity::Warning);
     }
     return partNumber;
 }
@@ -623,7 +627,8 @@ std::optional<std::filesystem::path> findFinaleFile(const std::filesystem::path&
     };
 
     // Helper function to search for a specific extension in a directory
-    auto findWithExtension = [&](const std::filesystem::path& dir, const std::filesystem::path& baseName, std::u8string_view ext) -> std::filesystem::path {
+    auto findWithExtension = [&](const std::filesystem::path& dir, const std::filesystem::path& baseName,
+                                 std::u8string_view ext) -> std::filesystem::path {
         auto candidate = constructPath(dir / baseName, ext);
         if (fileExists(candidate)) {
             return candidate;
@@ -632,16 +637,21 @@ std::optional<std::filesystem::path> findFinaleFile(const std::filesystem::path&
     };
 
     // Search a list of directories for `.musx` files first, then `.enigmaxml` files
-    auto searchDirectories = [&](const std::vector<std::filesystem::path>& directories, const std::filesystem::path& baseName) -> std::filesystem::path {
+    auto searchDirectories = [&](const std::vector<std::filesystem::path>& directories,
+                                 const std::filesystem::path& baseName) -> std::filesystem::path {
         // Search for `.musx`
         for (const auto& dir : directories) {
             auto result = findWithExtension(dir, baseName, MUSX_EXTENSION);
-            if (!result.empty()) return result;
+            if (!result.empty()) {
+                return result;
+            }
         }
         // Search for `.enigmaxml`
         for (const auto& dir : directories) {
             auto result = findWithExtension(dir, baseName, ENIGMAXML_EXTENSION);
-            if (!result.empty()) return result;
+            if (!result.empty()) {
+                return result;
+            }
         }
         return {};
     };
@@ -716,7 +726,8 @@ pugi::xml_document openXmlDocument(const T& xmlData)
     return xmlDocument;
 };
 
-void massage(const std::filesystem::path& inputPath, const std::filesystem::path& outputPath, const Buffer& xmlBuffer, const DenigmaContext& denigmaContext)
+void massage(
+    const std::filesystem::path& inputPath, const std::filesystem::path& outputPath, const Buffer& xmlBuffer, const DenigmaContext& denigmaContext)
 {
     MusxLoggerScope musxLogger(makeMusxLogCallback(denigmaContext));
 #ifdef DENIGMA_TEST
@@ -735,8 +746,8 @@ void massage(const std::filesystem::path& inputPath, const std::filesystem::path
 
     auto xmlScore = openXmlDocument(utils::getMusicXmlScoreFile(inputPath, denigmaContext));
     auto partFileName = !denigmaContext.allPartsAndScore && denigmaContext.partName.has_value() && !denigmaContext.partName.value().empty()
-                      ? findPartFileNameByPartName(xmlScore, denigmaContext.partName.value())
-                      : std::nullopt;
+                            ? findPartFileNameByPartName(xmlScore, denigmaContext.partName.value())
+                            : std::nullopt;
 
     bool processedAFile = false;
     auto processPartOrScore = [&](const std::filesystem::path& fileName, const std::string& xmlData) -> bool {
@@ -775,12 +786,14 @@ void massage(const std::filesystem::path& inputPath, const std::filesystem::path
         if (denigmaContext.partName->empty()) {
             denigmaContext.logMessage(LogMsg() << "No parts were found in document", MessageSeverity::Warning);
         } else {
-            denigmaContext.logMessage(LogMsg() << "No part name starting with \"" << denigmaContext.partName.value() << "\" was found", MessageSeverity::Warning);
+            denigmaContext.logMessage(
+                LogMsg() << "No part name starting with \"" << denigmaContext.partName.value() << "\" was found", MessageSeverity::Warning);
         }
     }
 }
 
-void massageMxl(const std::filesystem::path& inputPath, const std::filesystem::path& outputPath, const Buffer& musicXml, const DenigmaContext& denigmaContext)
+void massageMxl(
+    const std::filesystem::path& inputPath, const std::filesystem::path& outputPath, const Buffer& musicXml, const DenigmaContext& denigmaContext)
 {
     MusxLoggerScope musxLogger(makeMusxLogCallback(denigmaContext));
     if (!utils::pathExtensionEquals(inputPath, MXL_EXTENSION)) {
@@ -794,7 +807,7 @@ void massageMxl(const std::filesystem::path& inputPath, const std::filesystem::p
         return;
     }
 #endif
-    
+
     std::filesystem::path qualifiedOutputPath = calcQualifiedOutputPath(outputPath, denigmaContext);
     if (!denigmaContext.validatePathsAndOptions(qualifiedOutputPath)) {
         return;
@@ -804,32 +817,34 @@ void massageMxl(const std::filesystem::path& inputPath, const std::filesystem::p
     }
 
     auto context = createContext(inputPath, denigmaContext);
-    utils::iterateModifyFilesInPlace(inputPath, qualifiedOutputPath, denigmaContext, [&](const std::filesystem::path& fileName, std::string& fileContents, bool isScore) {
-        if (utils::pathExtensionEquals(fileName, MUSICXML_EXTENSION)) {
-            context->musxPartId = !isScore ? getMusxPartIdFromPartFileName(utils::utf8ToString(fileName.u8string()), context) : 0;
-            auto partName = [&]() -> std::string {
-                if (context->musxDocument) {
-                    const auto part = context->musxDocument->getOthers()->get<others::PartDefinition>(SCORE_PARTID, context->musxPartId);
-                    if (auto name = calcLinkedPartDisplayName(part); !name.empty()) {
-                        return name;
+    utils::iterateModifyFilesInPlace(
+        inputPath, qualifiedOutputPath, denigmaContext, [&](const std::filesystem::path& fileName, std::string& fileContents, bool isScore) {
+            if (utils::pathExtensionEquals(fileName, MUSICXML_EXTENSION)) {
+                context->musxPartId = !isScore ? getMusxPartIdFromPartFileName(utils::utf8ToString(fileName.u8string()), context) : 0;
+                auto partName = [&]() -> std::string {
+                    if (context->musxDocument) {
+                        const auto part = context->musxDocument->getOthers()->get<others::PartDefinition>(SCORE_PARTID, context->musxPartId);
+                        if (auto name = calcLinkedPartDisplayName(part); !name.empty()) {
+                            return name;
+                        }
                     }
-                }
                 // Without a source document there is no part to name, so trust the file itself.
-                return isScore ? "Score" : std::string("Part " + std::to_string(context->musxPartId));
-            }();
-            denigmaContext.logMessage(LogMsg() << ">>>>>>>>>> Processing zipped file " << utils::asUtf8Bytes(fileName) << " (" << partName << ") <<<<<<<<<<");
+                    return isScore ? "Score" : std::string("Part " + std::to_string(context->musxPartId));
+                }();
+                denigmaContext.logMessage(
+                    LogMsg() << ">>>>>>>>>> Processing zipped file " << utils::asUtf8Bytes(fileName) << " (" << partName << ") <<<<<<<<<<");
 
-            auto xmlDocument = openXmlDocument(fileContents);
-            processXml(xmlDocument, context);
-            std::stringstream ss;
-            pugi::xml_writer_stream writer(ss);
-            xmlDocument.save(writer, INDENT_SPACES);
-            fileContents = ss.str();
-        } else {
-            denigmaContext.logMessage(LogMsg() << ">>>>>>>>>> Processing zipped file " << utils::asUtf8Bytes(fileName) << " <<<<<<<<<<");
-        }
-        return true; // always save the file back, even if we didn't modify it
-    });
+                auto xmlDocument = openXmlDocument(fileContents);
+                processXml(xmlDocument, context);
+                std::stringstream ss;
+                pugi::xml_writer_stream writer(ss);
+                xmlDocument.save(writer, INDENT_SPACES);
+                fileContents = ss.str();
+            } else {
+                denigmaContext.logMessage(LogMsg() << ">>>>>>>>>> Processing zipped file " << utils::asUtf8Bytes(fileName) << " <<<<<<<<<<");
+            }
+            return true; // always save the file back, even if we didn't modify it
+        });
 }
 
 } // namespace musicxml

@@ -25,8 +25,8 @@
 
 #include "gtest/gtest.h"
 
-#include "core/ottavas.h"
 #include "core/musx_reader.h"
+#include "core/ottavas.h"
 #include "denigma/classify/octaves.h"
 #include "denigma/classify/smartshapes.h"
 
@@ -47,14 +47,8 @@ struct OttavaScenario
 /// built-in ottava. The document has no scroll-view staves, so pairing exercises the
 /// range-intersection fallback. When endpoint adjustments are given, they apply to the
 /// visual line's endpoints (vertical Evpu relative to the top staff line).
-OttavaScenario makeOttavaScenario(
-    std::string_view startText,
-    std::string_view continuationText = {},
-    std::string_view hiddenShapeType = {},
-    int hiddenStartMeas = 1,
-    int hiddenEndMeas = 1,
-    std::optional<int> startAdjY = std::nullopt,
-    std::optional<int> endAdjY = std::nullopt)
+OttavaScenario makeOttavaScenario(std::string_view startText, std::string_view continuationText = {}, std::string_view hiddenShapeType = {},
+    int hiddenStartMeas = 1, int hiddenEndMeas = 1, std::optional<int> startAdjY = std::nullopt, std::optional<int> endAdjY = std::nullopt)
 {
     std::string xml = R"xml(<?xml version="1.0" encoding="UTF-8"?>
 <finale>
@@ -94,12 +88,10 @@ OttavaScenario makeOttavaScenario(
     </smartShape>
 )xml";
     if (!hiddenShapeType.empty()) {
-        xml += "    <smartShape cmper=\"2\">\n      <shapeType>" + std::string(hiddenShapeType) + "</shapeType>\n"
-            + "      <hidden/>\n"
-            + "      <startTermSeg><endPt><inst>1</inst><meas>" + std::to_string(hiddenStartMeas)
-            + "</meas></endPt></startTermSeg>\n"
-            + "      <endTermSeg><endPt><inst>1</inst><meas>" + std::to_string(hiddenEndMeas)
-            + "</meas><edu>2048</edu></endPt></endTermSeg>\n    </smartShape>\n";
+        xml += "    <smartShape cmper=\"2\">\n      <shapeType>" + std::string(hiddenShapeType) + "</shapeType>\n" + "      <hidden/>\n"
+               + "      <startTermSeg><endPt><inst>1</inst><meas>" + std::to_string(hiddenStartMeas) + "</meas></endPt></startTermSeg>\n"
+               + "      <endTermSeg><endPt><inst>1</inst><meas>" + std::to_string(hiddenEndMeas)
+               + "</meas><edu>2048</edu></endPt></endTermSeg>\n    </smartShape>\n";
     }
     xml += "  </others>\n  <texts>\n";
     xml += "    <smartShapeText number=\"1\">" + std::string(startText) + "</smartShapeText>\n";
@@ -165,9 +157,7 @@ TEST(OctaveMarkingClassification, RejectsWeakOrForeignText)
 
 TEST(OctaveLineClassification, GlyphOttavaLineIsUnpairedCarrier)
 {
-    const auto scenario = makeOttavaScenario(
-        "^fontid(0)^size(24)^nfx(0)&#xE511;",
-        "^fontid(0)^size(24)^nfx(0)&#xE51A;&#xE511;&#xE51B;");
+    const auto scenario = makeOttavaScenario("^fontid(0)^size(24)^nfx(0)&#xE511;", "^fontid(0)^size(24)^nfx(0)&#xE51A;&#xE511;&#xE51B;");
     ASSERT_TRUE(scenario.visualShape);
     const auto classification = classifySmartShape(scenario.visualShape);
     const auto* ottava = classification.as<classifiedshape::Ottava>();
@@ -203,8 +193,7 @@ TEST(OctaveLineClassification, BareGlyphUnpairedResolvesFromAbovePlacement)
 
 TEST(OctaveLineClassification, BareGlyphUnpairedResolvesFromBelowPlacement)
 {
-    const auto scenario = makeOttavaScenario(
-        "^fontid(0)^size(24)^nfx(0)&#xE510;", {}, {}, 1, 1, -200, -200);
+    const auto scenario = makeOttavaScenario("^fontid(0)^size(24)^nfx(0)&#xE510;", {}, {}, 1, 1, -200, -200);
     const auto classification = classifySmartShape(scenario.visualShape);
     const auto* ottava = classification.as<classifiedshape::Ottava>();
     ASSERT_NE(ottava, nullptr);
@@ -216,8 +205,7 @@ TEST(OctaveLineClassification, BareGlyphFloatingPlacementIsNotOttava)
 {
     // One endpoint below the staff and one at the top line is Float placement,
     // which cannot resolve the direction.
-    const auto scenario = makeOttavaScenario(
-        "^fontid(0)^size(24)^nfx(0)&#xE510;", {}, {}, 1, 1, -200, std::nullopt);
+    const auto scenario = makeOttavaScenario("^fontid(0)^size(24)^nfx(0)&#xE510;", {}, {}, 1, 1, -200, std::nullopt);
     const auto classification = classifySmartShape(scenario.visualShape);
     EXPECT_EQ(classification.as<classifiedshape::Ottava>(), nullptr);
     EXPECT_NE(classification.as<classifiedshape::GeneralLine>(), nullptr);
@@ -226,8 +214,7 @@ TEST(OctaveLineClassification, BareGlyphFloatingPlacementIsNotOttava)
 TEST(OctaveLineClassification, WeakAltaBelowStaffUnpairedClassifiesDown)
 {
     // An "8va" line drawn below the staff means bassa when nothing contradicts it.
-    const auto scenario = makeOttavaScenario(
-        "^fontid(0)^size(12)^nfx(0)8va", {}, {}, 1, 1, -200, -200);
+    const auto scenario = makeOttavaScenario("^fontid(0)^size(12)^nfx(0)8va", {}, {}, 1, 1, -200, -200);
     const auto classification = classifySmartShape(scenario.visualShape);
     const auto* ottava = classification.as<classifiedshape::Ottava>();
     ASSERT_NE(ottava, nullptr);
@@ -237,8 +224,7 @@ TEST(OctaveLineClassification, WeakAltaBelowStaffUnpairedClassifiesDown)
 
 TEST(OctaveLineClassification, ExplicitBassaBelowStaffStaysDown)
 {
-    const auto scenario = makeOttavaScenario(
-        "^fontid(0)^size(12)^nfx(0)8vb", {}, {}, 1, 1, -200, -200);
+    const auto scenario = makeOttavaScenario("^fontid(0)^size(12)^nfx(0)8vb", {}, {}, 1, 1, -200, -200);
     const auto classification = classifySmartShape(scenario.visualShape);
     const auto* ottava = classification.as<classifiedshape::Ottava>();
     ASSERT_NE(ottava, nullptr);
@@ -247,8 +233,7 @@ TEST(OctaveLineClassification, ExplicitBassaBelowStaffStaysDown)
 
 TEST(OctaveLineClassification, BareGlyphResolvesDirectionFromHiddenCounterpart)
 {
-    const auto scenario = makeOttavaScenario(
-        "^fontid(0)^size(24)^nfx(0)&#xE510;", {}, "octaveDown");
+    const auto scenario = makeOttavaScenario("^fontid(0)^size(24)^nfx(0)&#xE510;", {}, "octaveDown");
     const auto classification = classifySmartShape(scenario.visualShape);
     const auto* ottava = classification.as<classifiedshape::Ottava>();
     ASSERT_NE(ottava, nullptr);
@@ -260,8 +245,7 @@ TEST(OctaveLineClassification, BareGlyphResolvesDirectionFromHiddenCounterpart)
 
 TEST(OctaveLineClassification, PairedAltaLineIsAppearanceOnly)
 {
-    const auto scenario = makeOttavaScenario(
-        "^fontid(0)^size(24)^nfx(0)&#xE511;", {}, "octaveUp");
+    const auto scenario = makeOttavaScenario("^fontid(0)^size(24)^nfx(0)&#xE511;", {}, "octaveUp");
     const auto classification = classifySmartShape(scenario.visualShape);
     const auto* ottava = classification.as<classifiedshape::Ottava>();
     ASSERT_NE(ottava, nullptr);
@@ -278,8 +262,7 @@ TEST(OctaveLineClassification, PairedAltaLineIsAppearanceOnly)
 
 TEST(OctaveLineClassification, NonOverlappingHiddenOttavaDoesNotPair)
 {
-    const auto scenario = makeOttavaScenario(
-        "^fontid(0)^size(12)^nfx(0)8va", {}, "octaveUp", 3, 3);
+    const auto scenario = makeOttavaScenario("^fontid(0)^size(12)^nfx(0)8va", {}, "octaveUp", 3, 3);
     const auto classification = classifySmartShape(scenario.visualShape);
     const auto* ottava = classification.as<classifiedshape::Ottava>();
     ASSERT_NE(ottava, nullptr);
@@ -294,8 +277,7 @@ TEST(OctaveLineClassification, NonOverlappingHiddenOttavaDoesNotPair)
 
 TEST(OctaveLineClassification, MagnitudeMismatchDoesNotPair)
 {
-    const auto scenario = makeOttavaScenario(
-        "^fontid(0)^size(12)^nfx(0)15ma", {}, "octaveUp");
+    const auto scenario = makeOttavaScenario("^fontid(0)^size(12)^nfx(0)15ma", {}, "octaveUp");
     const auto classification = classifySmartShape(scenario.visualShape);
     const auto* ottava = classification.as<classifiedshape::Ottava>();
     ASSERT_NE(ottava, nullptr);
@@ -305,9 +287,7 @@ TEST(OctaveLineClassification, MagnitudeMismatchDoesNotPair)
 
 TEST(OctaveLineClassification, ConflictingContinuationTextIsNotOttava)
 {
-    const auto scenario = makeOttavaScenario(
-        "^fontid(0)^size(12)^nfx(0)8va",
-        "^fontid(0)^size(12)^nfx(0)15ma");
+    const auto scenario = makeOttavaScenario("^fontid(0)^size(12)^nfx(0)8va", "^fontid(0)^size(12)^nfx(0)15ma");
     const auto classification = classifySmartShape(scenario.visualShape);
     EXPECT_EQ(classification.as<classifiedshape::Ottava>(), nullptr);
     EXPECT_NE(classification.as<classifiedshape::GeneralLine>(), nullptr);

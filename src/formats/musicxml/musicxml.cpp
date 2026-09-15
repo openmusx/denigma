@@ -26,8 +26,8 @@
 #include <string>
 #include <string_view>
 
-#include "musicxml.h"
 #include "core/musx_reader.h"
+#include "musicxml.h"
 #include "utils/mathutils.h"
 
 #include "mx/api/DocumentManager.h"
@@ -42,8 +42,7 @@ namespace detail {
 
 std::string mxResultMessage(std::string_view operation, const mx::api::ApiError& error)
 {
-    std::string result = "mx " + std::string(operation) + " failed with result code "
-        + std::to_string(static_cast<int>(error.code));
+    std::string result = "mx " + std::string(operation) + " failed with result code " + std::to_string(static_cast<int>(error.code));
     if (!error.message.empty()) {
         result += ": " + error.message;
     }
@@ -72,9 +71,7 @@ void createTiming(const MusicXmlMusxMapping& context, MusicXmlTimingPlan& timing
 namespace {
 
 mx::api::ScoreData createMusicXmlDocumentFromDocument(
-    const musx::dom::DocumentPtr& document,
-    const DenigmaContext& denigmaContext,
-    const MusxInstance<others::PartDefinition>& part)
+    const musx::dom::DocumentPtr& document, const DenigmaContext& denigmaContext, const MusxInstance<others::PartDefinition>& part)
 {
     auto context = MusicXmlMusxMapping(denigmaContext, document, part ? part->getCmper() : SCORE_PARTID);
     context.musicXmlScore = std::make_unique<mx::api::ScoreData>();
@@ -88,8 +85,8 @@ mx::api::ScoreData createMusicXmlDocumentFromDocument(
 
     if (context.fontFretboardChordCount > 0) {
         denigmaContext.logMessage(LogMsg() << "skipped " << context.fontFretboardChordCount
-            << " fretboard(s) that Finale draws with the fretboard font: the font stores only a character,"
-            << " so there is no string, fret, or barre data to export as a MusicXML frame.",
+                                           << " fretboard(s) that Finale draws with the fretboard font: the font stores only a character,"
+                                           << " so there is no string, fret, or barre data to export as a MusicXML frame.",
             MessageSeverity::Info);
     }
 
@@ -97,10 +94,7 @@ mx::api::ScoreData createMusicXmlDocumentFromDocument(
     return *context.musicXmlScore;
 }
 
-void writeMusicXmlToCallback(
-    const mx::api::ScoreData& score,
-    const std::string& suggestedName,
-    const MultiOutputCallback& outputCallback)
+void writeMusicXmlToCallback(const mx::api::ScoreData& score, const std::string& suggestedName, const MultiOutputCallback& outputCallback)
 {
     auto& documentManager = mx::api::DocumentManager::getInstance();
 
@@ -124,18 +118,13 @@ void writeMusicXmlToCallback(
 } // namespace
 
 mx::api::ScoreData createMusicXmlDocument(
-    const CommandInputData& inputData,
-    const DenigmaContext& denigmaContext,
-    const MusxInstance<others::PartDefinition>& part)
+    const CommandInputData& inputData, const DenigmaContext& denigmaContext, const MusxInstance<others::PartDefinition>& part)
 {
     auto document = denigma::createMusxDocument<MusxReader>(inputData, denigmaContext, musx::dom::PartVoicingPolicy::Apply);
     return createMusicXmlDocumentFromDocument(document, denigmaContext, part);
 }
 
-void convert(
-    const CommandInputData& inputData,
-    const DenigmaContext& denigmaContext,
-    const MultiOutputCallback& outputCallback)
+void convert(const CommandInputData& inputData, const DenigmaContext& denigmaContext, const MultiOutputCallback& outputCallback)
 {
     MusxLoggerScope musxLogger(makeMusxLogCallback(denigmaContext));
     auto document = denigma::createMusxDocument<MusxReader>(inputData, denigmaContext, musx::dom::PartVoicingPolicy::Apply);
@@ -166,7 +155,8 @@ void convert(
         if (denigmaContext.partName->empty()) {
             denigmaContext.logMessage(LogMsg() << "No parts were found in document", MessageSeverity::Warning);
         } else {
-            denigmaContext.logMessage(LogMsg() << "No part name starting with \"" << denigmaContext.partName.value() << "\" was found", MessageSeverity::Warning);
+            denigmaContext.logMessage(
+                LogMsg() << "No part name starting with \"" << denigmaContext.partName.value() << "\" was found", MessageSeverity::Warning);
         }
     }
 }

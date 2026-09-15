@@ -103,10 +103,7 @@ Jump classifyVisualJump(const musx::dom::MusxInstance<musx::dom::others::TextRep
     if (def->font) {
         if (const auto codepoint = utils::utf8ToCodepoint(repeatText->text)) {
             if (const auto* glyphName = smufl_mapping::getGlyphNameForFont(
-                    def->font->getName(),
-                    codepoint.value(),
-                    def->font->calcIsSMuFL(),
-                    smufl_mapping::SmuflGlyphSource::Finale)) {
+                    def->font->getName(), codepoint.value(), def->font->calcIsSMuFL(), smufl_mapping::SmuflGlyphSource::Finale)) {
                 glyphNameView = *glyphName;
             }
         }
@@ -123,13 +120,11 @@ bool isJumpCommand(Jump jump)
     case Jump::DCAlCoda:
     case Jump::DalSegno:
     case Jump::DsAlFine:
-    case Jump::DsAlCoda:
-        return true;
+    case Jump::DsAlCoda: return true;
     case Jump::None:
     case Jump::Segno:
     case Jump::Coda:
-    case Jump::Fine:
-        return false;
+    case Jump::Fine: return false;
     }
     return false;
 }
@@ -137,10 +132,8 @@ bool isJumpCommand(Jump jump)
 Jump playbackJumpToMarker(Jump marker)
 {
     switch (marker) {
-    case Jump::Segno:
-        return Jump::DalSegno;
-    case Jump::Coda:
-        return Jump::ToCoda;
+    case Jump::Segno: return Jump::DalSegno;
+    case Jump::Coda: return Jump::ToCoda;
     case Jump::None:
     case Jump::ToCoda:
     case Jump::Fine:
@@ -149,8 +142,7 @@ Jump playbackJumpToMarker(Jump marker)
     case Jump::DCAlCoda:
     case Jump::DalSegno:
     case Jump::DsAlFine:
-    case Jump::DsAlCoda:
-        return marker;
+    case Jump::DsAlCoda: return marker;
     }
     return marker;
 }
@@ -164,8 +156,8 @@ Jump classifyVisualJumpForTextRepeatId(const musx::dom::MusxInstance<musx::dom::
 Jump classifyTargetMarker(const musx::dom::MusxInstance<musx::dom::others::TextRepeatAssign>& assignment)
 {
     if (const auto targetMeasure = assignment->calcTargetMeasure()) {
-        const auto targetAssigns = assignment->getDocument()->getOthers()->getArray<musx::dom::others::TextRepeatAssign>(
-            assignment->getRequestedPartId(), *targetMeasure);
+        const auto targetAssigns =
+            assignment->getDocument()->getOthers()->getArray<musx::dom::others::TextRepeatAssign>(assignment->getRequestedPartId(), *targetMeasure);
         for (const auto& targetAssign : targetAssigns) {
             if (targetAssign && targetAssign->jumpAction == musx::dom::others::RepeatActionType::NoJump) {
                 const auto targetVisual = classifyVisualJumpForTextRepeatId(assignment, targetAssign->textRepeatId);
@@ -186,10 +178,8 @@ Jump classifyPlaybackJump(const musx::dom::MusxInstance<musx::dom::others::TextR
 
     using RepeatActionType = musx::dom::others::RepeatActionType;
     switch (assignment->jumpAction) {
-    case RepeatActionType::NoJump:
-        return (visual == Jump::Segno || visual == Jump::Coda) ? visual : Jump::None;
-    case RepeatActionType::Stop:
-        return Jump::Fine;
+    case RepeatActionType::NoJump: return (visual == Jump::Segno || visual == Jump::Coda) ? visual : Jump::None;
+    case RepeatActionType::Stop: return Jump::Fine;
     case RepeatActionType::JumpToMark:
         if (isJumpCommand(visual)) {
             return visual;
@@ -204,8 +194,7 @@ Jump classifyPlaybackJump(const musx::dom::MusxInstance<musx::dom::others::TextR
             return playbackJumpToMarker(targetMarker);
         }
         return playbackJumpToMarker(visual);
-    case RepeatActionType::JumpAuto:
-        return visual;
+    case RepeatActionType::JumpAuto: return visual;
     }
     return Jump::None;
 }
@@ -222,7 +211,7 @@ Jump classifyPlaybackJump(const musx::dom::MusxInstance<musx::dom::others::TextR
 JumpClassification classifyJump(const musx::dom::MusxInstance<musx::dom::others::TextRepeatDef>& def)
 {
     const auto visual = classifyVisualJump(def);
-    return JumpClassification{ visual, visual };
+    return JumpClassification{visual, visual};
 }
 
 JumpClassification classifyJump(const musx::dom::MusxInstance<musx::dom::others::TextRepeatAssign>& assignment)
@@ -231,7 +220,7 @@ JumpClassification classifyJump(const musx::dom::MusxInstance<musx::dom::others:
         return {};
     }
     const auto visual = classifyVisualJumpForTextRepeatId(assignment, assignment->textRepeatId);
-    return JumpClassification{ visual, classifyPlaybackJump(assignment, visual) };
+    return JumpClassification{visual, classifyPlaybackJump(assignment, visual)};
 }
 
 } // namespace denigma::classify

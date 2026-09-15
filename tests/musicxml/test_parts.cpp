@@ -28,16 +28,16 @@
 #include <utility>
 #include <vector>
 
-#include "gtest/gtest.h"
 #include "core/denigma.h"
 #include "core/musx_reader.h"
 #include "formats/musicxml/musicxml.h"
+#include "musicxml_test.h"
+#include "musx/dom/InstrumentUuids.h"
 #include "mx/api/DocumentManager.h"
 #include "mx/api/ScoreData.h"
-#include "musx/dom/InstrumentUuids.h"
-#include "musicxml_test.h"
 #include "pugixml.hpp"
 #include "test_utils.h"
+#include "gtest/gtest.h"
 
 using namespace denigma;
 using namespace denigma::test::musicxml;
@@ -63,7 +63,7 @@ struct ComparablePartGroup
 const std::vector<PartGroupFixture>& partGroupFixtures()
 {
     static const std::vector<PartGroupFixture> fixtures{
-        { "large_orchestra.musx", "musicxml/large_orchestra-ref.musicxml" },
+        {"large_orchestra.musx", "musicxml/large_orchestra-ref.musicxml"},
     };
     return fixtures;
 }
@@ -178,8 +178,7 @@ ComparableTimeSignature createComparableTimeSignature(const mx::api::TimeChoice&
 }
 
 ComparableTimeSignature simpleTime(std::string beats, std::string beatType,
-    mx::api::ComplexTimeSymbol symbol = mx::api::ComplexTimeSymbol::unspecified,
-    mx::api::Bool display = mx::api::Bool::unspecified)
+    mx::api::ComplexTimeSymbol symbol = mx::api::ComplexTimeSymbol::unspecified, mx::api::Bool display = mx::api::Bool::unspecified)
 {
     ComparableTimeSignature result;
     result.fractions.emplace_back(std::move(beats), std::move(beatType));
@@ -197,8 +196,8 @@ struct ExpectedTimeSignatureMeasure
     PerStaff perStaff;
 };
 
-void checkTimeSignatureExpectations(const std::vector<mx::api::MeasureData>& measures,
-    const std::map<size_t, ExpectedTimeSignatureMeasure>& expectedByMeasure, const char* partLabel)
+void checkTimeSignatureExpectations(
+    const std::vector<mx::api::MeasureData>& measures, const std::map<size_t, ExpectedTimeSignatureMeasure>& expectedByMeasure, const char* partLabel)
 {
     SCOPED_TRACE(partLabel);
     for (size_t measureIndex = 0; measureIndex < measures.size(); ++measureIndex) {
@@ -300,17 +299,15 @@ void compareTimeSignatures(const mx::api::ScoreData& actual, const mx::api::Scor
             SCOPED_TRACE("measure " + std::to_string(measureIndex + 1));
             const auto& actualMeasure = actualMeasures.at(measureIndex);
             const auto& expectedMeasure = expectedMeasures.at(measureIndex);
-            EXPECT_EQ(createComparableTimeSignature(actualMeasure.timeSignature),
-                createComparableTimeSignature(expectedMeasure.timeSignature)) << "part-wide time signature";
+            EXPECT_EQ(createComparableTimeSignature(actualMeasure.timeSignature), createComparableTimeSignature(expectedMeasure.timeSignature))
+                << "part-wide time signature";
 
-            ASSERT_EQ(actualMeasure.staffTimeSignatures.size(), expectedMeasure.staffTimeSignatures.size())
-                << "per-staff time signature count";
+            ASSERT_EQ(actualMeasure.staffTimeSignatures.size(), expectedMeasure.staffTimeSignatures.size()) << "per-staff time signature count";
             for (const auto& [staffIndex, expectedStaffTime] : expectedMeasure.staffTimeSignatures) {
                 const auto actualStaffTimeIt = actualMeasure.staffTimeSignatures.find(staffIndex);
-                ASSERT_NE(actualStaffTimeIt, actualMeasure.staffTimeSignatures.end())
-                    << "missing time signature for staff index " << staffIndex;
-                EXPECT_EQ(createComparableTimeSignature(actualStaffTimeIt->second),
-                    createComparableTimeSignature(expectedStaffTime)) << "staff index " << staffIndex;
+                ASSERT_NE(actualStaffTimeIt, actualMeasure.staffTimeSignatures.end()) << "missing time signature for staff index " << staffIndex;
+                EXPECT_EQ(createComparableTimeSignature(actualStaffTimeIt->second), createComparableTimeSignature(expectedStaffTime))
+                    << "staff index " << staffIndex;
             }
         }
     }
@@ -325,8 +322,7 @@ void compareKeySignatures(const mx::api::ScoreData& actual, const mx::api::Score
         SCOPED_TRACE("key-signature staff track " + std::to_string(trackIndex + 1));
         ASSERT_EQ(actualTracks[trackIndex].size(), expectedTracks[trackIndex].size()) << "measure count";
         for (size_t measureIndex = 0; measureIndex < expectedTracks[trackIndex].size(); ++measureIndex) {
-            EXPECT_EQ(actualTracks[trackIndex][measureIndex], expectedTracks[trackIndex][measureIndex])
-                << "measure " << (measureIndex + 1);
+            EXPECT_EQ(actualTracks[trackIndex][measureIndex], expectedTracks[trackIndex][measureIndex]) << "measure " << (measureIndex + 1);
         }
     }
 }
@@ -414,8 +410,8 @@ TEST(MusicXmlParts, LinkedPartUsesPartTranspositionView)
     const std::string staffNeedle = "<staffSpec cmper=\"1\">";
     const auto staffPos = xml.find(staffNeedle);
     ASSERT_NE(staffPos, std::string::npos);
-    xml.insert(staffPos + staffNeedle.size(),
-        "<transposition><setToClef/><keysig><interval>3</interval><adjust>-1</adjust></keysig></transposition>");
+    xml.insert(
+        staffPos + staffNeedle.size(), "<transposition><setToClef/><keysig><interval>3</interval><adjust>-1</adjust></keysig></transposition>");
 
     CommandInputData inputData;
     inputData.primaryBuffer.assign(xml.begin(), xml.end());
@@ -523,9 +519,7 @@ TEST(MusicXmlParts, RepeatsExportSmoke)
 /// measure style, while denigma classifies it and exports a single-measure rest instead. Symbol
 /// style keeps the measure's whole rest rather than turning it into an H-bar.
 static void expectMultimeasureRestsMatchFinale(
-    const std::string& musxFile,
-    const std::string& referenceFile,
-    size_t singleMeasureRestFromExpressionIndex)
+    const std::string& musxFile, const std::string& referenceFile, size_t singleMeasureRestFromExpressionIndex)
 {
     setupTestDataPaths();
 
@@ -549,16 +543,14 @@ static void expectMultimeasureRestsMatchFinale(
                 continue;
             }
             EXPECT_EQ(actualMeasures[measureIndex].multiMeasureRest, expectedMeasures[measureIndex].multiMeasureRest);
-            EXPECT_EQ(actualMeasures[measureIndex].multiMeasureRestUseSymbols,
-                expectedMeasures[measureIndex].multiMeasureRestUseSymbols);
+            EXPECT_EQ(actualMeasures[measureIndex].multiMeasureRestUseSymbols, expectedMeasures[measureIndex].multiMeasureRestUseSymbols);
         }
     }
 }
 
 TEST(MusicXmlParts, MultimeasureRestsMatchFinale)
 {
-    expectMultimeasureRestsMatchFinale(
-        "multimeas_rests.musx", "musicxml/multimeas_rests-ref.musicxml", 30);
+    expectMultimeasureRestsMatchFinale("multimeas_rests.musx", "musicxml/multimeas_rests-ref.musicxml", 30);
 }
 
 TEST(MusicXmlParts, MultimeasureRestsInMusicFontMatchFinale)
@@ -566,8 +558,7 @@ TEST(MusicXmlParts, MultimeasureRestsInMusicFontMatchFinale)
     // Same score with the rest numbers set in the default music font. The number is a SMuFL
     // timeSig glyph rather than an ASCII digit, and the multimeasure rest font option is stored as
     // the default music font id rather than a concrete id.
-    expectMultimeasureRestsMatchFinale(
-        "multimeas_rests_musfont.musx", "musicxml/multimeas_rests_musfont-ref.musicxml", 30);
+    expectMultimeasureRestsMatchFinale("multimeas_rests_musfont.musx", "musicxml/multimeas_rests_musfont-ref.musicxml", 30);
 }
 
 TEST(MusicXmlParts, RepeatsExportJumpSound)
@@ -585,9 +576,8 @@ TEST(MusicXmlParts, RepeatsExportJumpSound)
     ASSERT_FALSE(measures.at(jumpMeasureIndex).staves.empty());
 
     const auto& directions = measures.at(jumpMeasureIndex).staves.front().directions;
-    const auto jumpDirectionIt = std::find_if(directions.begin(), directions.end(), [](const auto& direction) {
-        return direction.isSoundDataSpecified && direction.soundData.dalsegno == "12";
-    });
+    const auto jumpDirectionIt = std::find_if(directions.begin(), directions.end(),
+        [](const auto& direction) { return direction.isSoundDataSpecified && direction.soundData.dalsegno == "12"; });
     ASSERT_NE(jumpDirectionIt, directions.end());
     EXPECT_EQ(jumpDirectionIt->tickTimePosition, 0);
     const auto words = directionWords(*jumpDirectionIt);
@@ -639,28 +629,28 @@ TEST(MusicXmlParts, RepeatsExportEndingBrackets)
     ASSERT_NE(firstEndingStart, nullptr);
     ASSERT_TRUE(firstEndingStart->ending);
     EXPECT_EQ(firstEndingStart->ending->type, mx::api::EndingType::start);
-    EXPECT_EQ(firstEndingStart->ending->numbers, (std::vector<int>{ 1, 2, 3 }));
+    EXPECT_EQ(firstEndingStart->ending->numbers, (std::vector<int>{1, 2, 3}));
     EXPECT_EQ(firstEndingStart->ending->text, "1. 2. 3.");
 
     const auto* firstEndingStop = findBarline(measures.at(5), mx::api::HorizontalAlignment::right);
     ASSERT_NE(firstEndingStop, nullptr);
     ASSERT_TRUE(firstEndingStop->ending);
     EXPECT_EQ(firstEndingStop->ending->type, mx::api::EndingType::stop);
-    EXPECT_EQ(firstEndingStop->ending->numbers, (std::vector<int>{ 1, 2, 3 }));
+    EXPECT_EQ(firstEndingStop->ending->numbers, (std::vector<int>{1, 2, 3}));
     EXPECT_TRUE(firstEndingStop->ending->text.empty()) << "the label belongs to the opening bracket only";
 
     const auto* fourthEndingStart = findBarline(measures.at(6), mx::api::HorizontalAlignment::left);
     ASSERT_NE(fourthEndingStart, nullptr);
     ASSERT_TRUE(fourthEndingStart->ending);
     EXPECT_EQ(fourthEndingStart->ending->type, mx::api::EndingType::start);
-    EXPECT_EQ(fourthEndingStart->ending->numbers, (std::vector<int>{ 4 }));
+    EXPECT_EQ(fourthEndingStart->ending->numbers, (std::vector<int>{4}));
     EXPECT_EQ(fourthEndingStart->ending->text, "to continue");
 
     const auto* fourthEndingStop = findBarline(measures.at(10), mx::api::HorizontalAlignment::right);
     ASSERT_NE(fourthEndingStop, nullptr);
     ASSERT_TRUE(fourthEndingStop->ending);
     EXPECT_EQ(fourthEndingStop->ending->type, mx::api::EndingType::stop);
-    EXPECT_EQ(fourthEndingStop->ending->numbers, (std::vector<int>{ 4 }));
+    EXPECT_EQ(fourthEndingStop->ending->numbers, (std::vector<int>{4}));
     EXPECT_TRUE(fourthEndingStop->ending->text.empty()) << "the label belongs to the opening bracket only";
 }
 
@@ -707,13 +697,13 @@ TEST(MusicXmlParts, SoloOrEnsembleMatchesFinale)
     setupTestDataPaths();
 
     static constexpr auto fixtures = std::to_array<std::pair<std::string_view, std::string_view>>({
-        { "harmonics_artificial.musx", "musicxml/harmonics_artificial-ref.musicxml" },
-        { "harmonics_sounding.musx", "musicxml/harmonics_sounding-ref.musicxml" },
-        { "large_orchestra.musx", "musicxml/large_orchestra-ref.musicxml" },
-        { "measnums_topbottom.musx", "musicxml/measnums_topbottom-ref.musicxml" },
-        { "techniques.musx", "musicxml/techniques-ref.musicxml" },
-        { "tempo_varied_staves.musx", "musicxml/tempo_varied_staves-ref.musicxml" },
-        { "zwei_gesange.musx", "musicxml/zwei_gesange-ref.musicxml" },
+        {"harmonics_artificial.musx", "musicxml/harmonics_artificial-ref.musicxml"},
+        {"harmonics_sounding.musx", "musicxml/harmonics_sounding-ref.musicxml"},
+        {"large_orchestra.musx", "musicxml/large_orchestra-ref.musicxml"},
+        {"measnums_topbottom.musx", "musicxml/measnums_topbottom-ref.musicxml"},
+        {"techniques.musx", "musicxml/techniques-ref.musicxml"},
+        {"tempo_varied_staves.musx", "musicxml/tempo_varied_staves-ref.musicxml"},
+        {"zwei_gesange.musx", "musicxml/zwei_gesange-ref.musicxml"},
     });
 
     for (const auto& [musxFile, referenceFile] : fixtures) {
@@ -724,9 +714,7 @@ TEST(MusicXmlParts, SoloOrEnsembleMatchesFinale)
         ASSERT_EQ(actualScore->parts.size(), expectedScore->parts.size());
         for (size_t index = 0; index < expectedScore->parts.size(); ++index) {
             SCOPED_TRACE(std::string(musxFile) + " part " + std::to_string(index + 1));
-            EXPECT_EQ(
-                actualScore->parts[index].instrumentData.soloOrEnsemble,
-                expectedScore->parts[index].instrumentData.soloOrEnsemble);
+            EXPECT_EQ(actualScore->parts[index].instrumentData.soloOrEnsemble, expectedScore->parts[index].instrumentData.soloOrEnsemble);
         }
     }
 }
@@ -734,17 +722,17 @@ TEST(MusicXmlParts, SoloOrEnsembleMatchesFinale)
 TEST(MusicXmlParts, FinaleMusicXmlUuidsMapToSoundIds)
 {
     static constexpr auto mappings = std::to_array<std::pair<std::string_view, mx::api::SoundID>>({
-        { musx::dom::uuid::MusicXmlDrumGroup, mx::api::SoundID::drumGroup },
-        { musx::dom::uuid::MusicXmlDrumGroupSet, mx::api::SoundID::drumGroupSet },
-        { musx::dom::uuid::MusicXmlTabor, mx::api::SoundID::drumTabor },
-        { musx::dom::uuid::MusicXmlAccordion, mx::api::SoundID::keyboardAccordion },
-        { musx::dom::uuid::MusicXmlSuspendedCymbal, mx::api::SoundID::metalCymbalSuspended },
-        { musx::dom::uuid::MusicXmlHandchimes, mx::api::SoundID::pitchedPercussionHandchimes },
-        { musx::dom::uuid::MusicXmlMusicBox, mx::api::SoundID::pitchedPercussionMusicBox },
-        { musx::dom::uuid::MusicXmlCavaquinho, mx::api::SoundID::pluckCavaquinho },
-        { musx::dom::uuid::MusicXmlVocals, mx::api::SoundID::voiceVocals },
-        { musx::dom::uuid::MusicXmlCalliope, mx::api::SoundID::windFlutesCalliope },
-        { musx::dom::uuid::MusicXmlAlbogue, mx::api::SoundID::windReedAlbogue },
+        {musx::dom::uuid::MusicXmlDrumGroup, mx::api::SoundID::drumGroup},
+        {musx::dom::uuid::MusicXmlDrumGroupSet, mx::api::SoundID::drumGroupSet},
+        {musx::dom::uuid::MusicXmlTabor, mx::api::SoundID::drumTabor},
+        {musx::dom::uuid::MusicXmlAccordion, mx::api::SoundID::keyboardAccordion},
+        {musx::dom::uuid::MusicXmlSuspendedCymbal, mx::api::SoundID::metalCymbalSuspended},
+        {musx::dom::uuid::MusicXmlHandchimes, mx::api::SoundID::pitchedPercussionHandchimes},
+        {musx::dom::uuid::MusicXmlMusicBox, mx::api::SoundID::pitchedPercussionMusicBox},
+        {musx::dom::uuid::MusicXmlCavaquinho, mx::api::SoundID::pluckCavaquinho},
+        {musx::dom::uuid::MusicXmlVocals, mx::api::SoundID::voiceVocals},
+        {musx::dom::uuid::MusicXmlCalliope, mx::api::SoundID::windFlutesCalliope},
+        {musx::dom::uuid::MusicXmlAlbogue, mx::api::SoundID::windReedAlbogue},
     });
 
     for (const auto& [uuid, expectedSoundId] : mappings) {
@@ -759,13 +747,13 @@ TEST(MusicXmlParts, SoloOrEnsembleOnlyDisambiguatesSharedSoundIds)
     using musx::dom::SoloOrEnsemble;
 
     static constexpr auto mappings = std::to_array<std::pair<std::string_view, SoloOrEnsemble>>({
-        { musx::dom::uuid::Violin, SoloOrEnsemble::Solo },
-        { musx::dom::uuid::ViolinSection, SoloOrEnsemble::Ensemble },
-        { musx::dom::uuid::Voice, SoloOrEnsemble::Solo },
-        { musx::dom::uuid::Vocals, SoloOrEnsemble::Ensemble },
-        { musx::dom::uuid::Piano, SoloOrEnsemble::Unspecified },
-        { musx::dom::uuid::PianoNoName, SoloOrEnsemble::Unspecified },
-        { musx::dom::uuid::Flute, SoloOrEnsemble::Unspecified },
+        {musx::dom::uuid::Violin, SoloOrEnsemble::Solo},
+        {musx::dom::uuid::ViolinSection, SoloOrEnsemble::Ensemble},
+        {musx::dom::uuid::Voice, SoloOrEnsemble::Solo},
+        {musx::dom::uuid::Vocals, SoloOrEnsemble::Ensemble},
+        {musx::dom::uuid::Piano, SoloOrEnsemble::Unspecified},
+        {musx::dom::uuid::PianoNoName, SoloOrEnsemble::Unspecified},
+        {musx::dom::uuid::Flute, SoloOrEnsemble::Unspecified},
     });
 
     for (const auto& [uuid, expected] : mappings) {
@@ -778,13 +766,13 @@ TEST(MusicXmlParts, SoloOrEnsembleOnlyDisambiguatesSharedSoundIds)
 TEST(MusicXmlParts, StandardDiatonicModesUseMusicXmlModes)
 {
     const std::array expected{
-        std::pair{ music_theory::DiatonicMode::Ionian, mx::api::KeyMode::ionian },
-        std::pair{ music_theory::DiatonicMode::Dorian, mx::api::KeyMode::dorian },
-        std::pair{ music_theory::DiatonicMode::Phrygian, mx::api::KeyMode::phrygian },
-        std::pair{ music_theory::DiatonicMode::Lydian, mx::api::KeyMode::lydian },
-        std::pair{ music_theory::DiatonicMode::Mixolydian, mx::api::KeyMode::mixolydian },
-        std::pair{ music_theory::DiatonicMode::Aeolian, mx::api::KeyMode::aeolian },
-        std::pair{ music_theory::DiatonicMode::Locrian, mx::api::KeyMode::locrian },
+        std::pair{music_theory::DiatonicMode::Ionian, mx::api::KeyMode::ionian},
+        std::pair{music_theory::DiatonicMode::Dorian, mx::api::KeyMode::dorian},
+        std::pair{music_theory::DiatonicMode::Phrygian, mx::api::KeyMode::phrygian},
+        std::pair{music_theory::DiatonicMode::Lydian, mx::api::KeyMode::lydian},
+        std::pair{music_theory::DiatonicMode::Mixolydian, mx::api::KeyMode::mixolydian},
+        std::pair{music_theory::DiatonicMode::Aeolian, mx::api::KeyMode::aeolian},
+        std::pair{music_theory::DiatonicMode::Locrian, mx::api::KeyMode::locrian},
     };
     for (const auto& [musxMode, musicXmlMode] : expected) {
         EXPECT_EQ(formats::musicxml::detail::enumConvert<mx::api::KeyMode>(musxMode), musicXmlMode);
@@ -828,9 +816,9 @@ TEST(MusicXmlParts, NonTraditional12EdoKeySignaturesPreserveAccidentalOrder)
     ASSERT_EQ(measures[nonTraditionalKeyMeasureIndex].keys.size(), 1);
     const auto& components = measures[nonTraditionalKeyMeasureIndex].keys.front().nonTraditional;
     const std::vector expected{
-        mx::api::KeyComponent{ mx::api::Step::b, -1, 0.0, mx::api::Accidental::flat },
-        mx::api::KeyComponent{ mx::api::Step::e, -1, 0.0, mx::api::Accidental::flat },
-        mx::api::KeyComponent{ mx::api::Step::f, 1, 0.0, mx::api::Accidental::sharp },
+        mx::api::KeyComponent{mx::api::Step::b, -1, 0.0, mx::api::Accidental::flat},
+        mx::api::KeyComponent{mx::api::Step::e, -1, 0.0, mx::api::Accidental::flat},
+        mx::api::KeyComponent{mx::api::Step::f, 1, 0.0, mx::api::Accidental::sharp},
     };
     EXPECT_EQ(components, expected);
 
@@ -851,9 +839,9 @@ TEST(MusicXmlParts, NonTraditional12EdoKeySignaturesPreserveAccidentalOrder)
     ASSERT_EQ(keySteps.size(), expected.size());
     ASSERT_EQ(keyAlters.size(), expected.size());
     ASSERT_EQ(keyAccidentals.size(), expected.size());
-    const std::array expectedSteps{ "B", "E", "F" };
-    const std::array expectedAlters{ "-1", "-1", "1" };
-    const std::array expectedAccidentals{ "flat", "flat", "sharp" };
+    const std::array expectedSteps{"B", "E", "F"};
+    const std::array expectedAlters{"-1", "-1", "1"};
+    const std::array expectedAccidentals{"flat", "flat", "sharp"};
     for (size_t index = 0; index < expected.size(); ++index) {
         EXPECT_STREQ(keySteps[index].node().child_value(), expectedSteps[index]);
         EXPECT_STREQ(keyAlters[index].node().child_value(), expectedAlters[index]);
@@ -957,12 +945,11 @@ TEST(MusicXmlParts, MeasureNumberStaffOverrideUsesScrollViewPositions)
         mx::api::Bool multipleRestAlways;
         mx::api::Bool multipleRestRange;
     };
-    const std::array<Expectation, 4> expected = {{
-        { mx::api::MeasureNumbering::none, mx::api::SystemRelation::unspecified, mx::api::Bool::unspecified, mx::api::Bool::unspecified },
-        { mx::api::MeasureNumbering::measure, mx::api::SystemRelation::alsoBottom, mx::api::Bool::yes, mx::api::Bool::yes },
-        { mx::api::MeasureNumbering::none, mx::api::SystemRelation::unspecified, mx::api::Bool::unspecified, mx::api::Bool::unspecified },
-        { mx::api::MeasureNumbering::measure, mx::api::SystemRelation::alsoBottom, mx::api::Bool::yes, mx::api::Bool::yes }
-    }};
+    const std::array<Expectation, 4> expected = {
+        {{mx::api::MeasureNumbering::none, mx::api::SystemRelation::unspecified, mx::api::Bool::unspecified, mx::api::Bool::unspecified},
+            {mx::api::MeasureNumbering::measure, mx::api::SystemRelation::alsoBottom, mx::api::Bool::yes, mx::api::Bool::yes},
+            {mx::api::MeasureNumbering::none, mx::api::SystemRelation::unspecified, mx::api::Bool::unspecified, mx::api::Bool::unspecified},
+            {mx::api::MeasureNumbering::measure, mx::api::SystemRelation::alsoBottom, mx::api::Bool::yes, mx::api::Bool::yes}}};
     for (size_t partIndex = 0; partIndex < expected.size(); ++partIndex) {
         const auto& measure = actualScore->parts[partIndex].measures.front();
         EXPECT_EQ(measure.measureNumbering, expected[partIndex].numbering) << "part " << partIndex + 1;
@@ -1028,8 +1015,7 @@ TEST(MusicXmlParts, MeasureNumberingStaffPointsAtLowerStaffThatShowsNumbers)
     EXPECT_FALSE(referenceScore->parts.back().measures.front().measureNumberingStaffIndex.has_value());
 
     for (size_t partIndex = 0; partIndex + 1 < actualScore->parts.size(); ++partIndex) {
-        EXPECT_FALSE(actualScore->parts[partIndex].measures.front().measureNumberingStaffIndex.has_value())
-            << "part " << partIndex + 1;
+        EXPECT_FALSE(actualScore->parts[partIndex].measures.front().measureNumberingStaffIndex.has_value()) << "part " << partIndex + 1;
     }
 }
 
@@ -1091,13 +1077,13 @@ TEST(MusicXmlParts, PerStaffTimeSignaturesAndVisibility)
     // Flute: staff-level "Display Time Signatures in Score" is off, so every emitted time
     // signature is print-object="no", and the measure-13 "always show" does not override it.
     const std::map<size_t, ExpectedTimeSignatureMeasure> expectedFlute = {
-        { 0, { simpleTime("4", "4", {}, hidden), {} } },
-        { 2, { simpleTime("3", "4", {}, hidden), {} } },
-        { 5, { simpleTime("4", "4", common, hidden), {} } },
-        { 6, { simpleTime("2", "2", cut, hidden), {} } },
-        { 7, { simpleTime("2", "4", {}, hidden), {} } },
-        { 8, { simpleTime("5", "8", {}, hidden), {} } },
-        { 10, { simpleTime("3", "4", {}, hidden), {} } },
+        {0, {simpleTime("4", "4", {}, hidden), {}}},
+        {2, {simpleTime("3", "4", {}, hidden), {}}},
+        {5, {simpleTime("4", "4", common, hidden), {}}},
+        {6, {simpleTime("2", "2", cut, hidden), {}}},
+        {7, {simpleTime("2", "4", {}, hidden), {}}},
+        {8, {simpleTime("5", "8", {}, hidden), {}}},
+        {10, {simpleTime("3", "4", {}, hidden), {}}},
     };
     checkTimeSignatureExpectations(fluteMeasures, expectedFlute, "flute");
 
@@ -1106,18 +1092,16 @@ TEST(MusicXmlParts, PerStaffTimeSignaturesAndVisibility)
     // is set to never show, measure 10 changes only the independent staff while a staff style
     // hides it, and measure 13 forces a restatement of the unchanged meter.
     const std::map<size_t, ExpectedTimeSignatureMeasure> expectedPiano = {
-        { 0, { simpleTime("4", "4"), {} } },
-        { 2, { std::nullopt, PerStaff{
-            { 0, simpleTime("3", "4") },
-            { 1, simpleTime("6", "8") } } } },
-        { 4, { simpleTime("3", "4"), {} } },
-        { 5, { simpleTime("4", "4", common), {} } },
-        { 6, { simpleTime("2", "2", cut), {} } },
-        { 7, { simpleTime("2", "4"), {} } },
-        { 8, { simpleTime("5", "8", {}, hidden), {} } },
-        { 9, { std::nullopt, PerStaff{ { 1, simpleTime("7", "8", {}, hidden) } } } },
-        { 10, { simpleTime("3", "4"), {} } },
-        { 12, { simpleTime("3", "4", {}, forcedShown), {} } },
+        {0, {simpleTime("4", "4"), {}}},
+        {2, {std::nullopt, PerStaff{{0, simpleTime("3", "4")}, {1, simpleTime("6", "8")}}}},
+        {4, {simpleTime("3", "4"), {}}},
+        {5, {simpleTime("4", "4", common), {}}},
+        {6, {simpleTime("2", "2", cut), {}}},
+        {7, {simpleTime("2", "4"), {}}},
+        {8, {simpleTime("5", "8", {}, hidden), {}}},
+        {9, {std::nullopt, PerStaff{{1, simpleTime("7", "8", {}, hidden)}}}},
+        {10, {simpleTime("3", "4"), {}}},
+        {12, {simpleTime("3", "4", {}, forcedShown), {}}},
     };
     checkTimeSignatureExpectations(pianoMeasures, expectedPiano, "piano");
 }
@@ -1131,30 +1115,29 @@ TEST(MusicXmlParts, TimeSignaturesVisibleInLinkedPart)
     // now restates, because staff-level hiding no longer suppresses it in the part.
     std::filesystem::path inputPath;
     copyInputToOutput("timesigs_independent.musx", inputPath);
-    ArgList args = { DENIGMA_NAME, "export", pathString(inputPath), "--musicxml", "--part", "Flute", "--force" };
-    checkStderr({ "Processing", pathString(inputPath.filename()) }, [&]() {
-        EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export flute part: " << pathString(inputPath);
-    });
+    ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), "--musicxml", "--part", "Flute", "--force"};
+    checkStderr({"Processing", pathString(inputPath.filename())},
+        [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export flute part: " << pathString(inputPath); });
 
     const auto outputPath = inputPath.parent_path() / "timesigs_independent.Flute.musicxml";
     ASSERT_TRUE(std::filesystem::exists(outputPath)) << "Missing MusicXML output " << pathString(outputPath);
     const auto actualScore = loadScoreData(outputPath);
     ASSERT_TRUE(actualScore);
     ASSERT_EQ(actualScore->parts.size(), 1u);
-    EXPECT_EQ(actualScore->parts.front().groups, std::vector<std::string>{ "part" });
+    EXPECT_EQ(actualScore->parts.front().groups, std::vector<std::string>{"part"});
 
     const auto& fluteMeasures = actualScore->parts.at(0).measures;
     ASSERT_GE(fluteMeasures.size(), 13u);
 
     const std::map<size_t, ExpectedTimeSignatureMeasure> expectedFlute = {
-        { 0, { simpleTime("4", "4"), {} } },
-        { 2, { simpleTime("3", "4"), {} } },
-        { 5, { simpleTime("4", "4", mx::api::ComplexTimeSymbol::common), {} } },
-        { 6, { simpleTime("2", "2", mx::api::ComplexTimeSymbol::cut), {} } },
-        { 7, { simpleTime("2", "4"), {} } },
-        { 8, { simpleTime("5", "8", {}, mx::api::Bool::no), {} } },
-        { 10, { simpleTime("3", "4"), {} } },
-        { 12, { simpleTime("3", "4", {}, mx::api::Bool::yes), {} } },
+        {0, {simpleTime("4", "4"), {}}},
+        {2, {simpleTime("3", "4"), {}}},
+        {5, {simpleTime("4", "4", mx::api::ComplexTimeSymbol::common), {}}},
+        {6, {simpleTime("2", "2", mx::api::ComplexTimeSymbol::cut), {}}},
+        {7, {simpleTime("2", "4"), {}}},
+        {8, {simpleTime("5", "8", {}, mx::api::Bool::no), {}}},
+        {10, {simpleTime("3", "4"), {}}},
+        {12, {simpleTime("3", "4", {}, mx::api::Bool::yes), {}}},
     };
     checkTimeSignatureExpectations(fluteMeasures, expectedFlute, "flute part");
 }
@@ -1175,14 +1158,14 @@ TEST(MusicXmlParts, VoicedPartsApplyVoicingToLinkedParts)
         std::vector<std::vector<std::vector<std::string>>> measures;
     };
     const std::vector<VoicedPartExpectation> expectations = {
-        { "Layer 1", { {{"C5"}}, {{"C5"}}, {{"C5"}}, {{"A4", "C5"}}, {{"A4"}, {"C5"}} } },
-        { "Layer 2", { {{"F4"}}, {{"F4"}}, {{"F4"}}, {{"F4"}}, {{"A4"}} } },
-        { "Layer 3", { {{"A4"}}, {{"A4"}}, {{"A4"}}, {}, {{"A4"}, {"A4"}} } },
-        { "Layer 2 Only", { {{"F4"}}, {{"F4", "A4", "C5"}}, {}, {{"F4"}}, {} } },
+        {"Layer 1", {{{"C5"}}, {{"C5"}}, {{"C5"}}, {{"A4", "C5"}}, {{"A4"}, {"C5"}}}},
+        {"Layer 2", {{{"F4"}}, {{"F4"}}, {{"F4"}}, {{"F4"}}, {{"A4"}}}},
+        {"Layer 3", {{{"A4"}}, {{"A4"}}, {{"A4"}}, {}, {{"A4"}, {"A4"}}}},
+        {"Layer 2 Only", {{{"F4"}}, {{"F4", "A4", "C5"}}, {}, {{"F4"}}, {}}},
     };
 
     const auto pitchName = [](const mx::api::PitchData& pitch) {
-        constexpr std::array<char, 7> stepLetters = { 'C', 'D', 'E', 'F', 'G', 'A', 'B' };
+        constexpr std::array<char, 7> stepLetters = {'C', 'D', 'E', 'F', 'G', 'A', 'B'};
         std::string result(1, stepLetters.at(static_cast<size_t>(pitch.step)));
         if (pitch.alter > 0) {
             result += std::string(static_cast<size_t>(pitch.alter), '#');
@@ -1195,10 +1178,9 @@ TEST(MusicXmlParts, VoicedPartsApplyVoicingToLinkedParts)
 
     for (const auto& expectation : expectations) {
         SCOPED_TRACE(expectation.partName);
-        ArgList args = { DENIGMA_NAME, "export", pathString(inputPath), "--musicxml", "--part", expectation.partName, "--force" };
-        checkStderr({ "Processing", pathString(inputPath.filename()) }, [&]() {
-            EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export part " << expectation.partName;
-        });
+        ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), "--musicxml", "--part", expectation.partName, "--force"};
+        checkStderr({"Processing", pathString(inputPath.filename())},
+            [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export part " << expectation.partName; });
 
         const auto outputPath = inputPath.parent_path() / ("voiced_parts." + expectation.partName + ".musicxml");
         ASSERT_TRUE(std::filesystem::exists(outputPath)) << "Missing MusicXML output " << pathString(outputPath);
@@ -1222,7 +1204,7 @@ TEST(MusicXmlParts, VoicedPartsApplyVoicingToLinkedParts)
                         if (note.isChord && lastGroupTick == note.tickTimePosition && !actualGroups.empty()) {
                             actualGroups.back().emplace_back(pitchName(note.pitchData));
                         } else {
-                            actualGroups.emplace_back(std::vector<std::string>{ pitchName(note.pitchData) });
+                            actualGroups.emplace_back(std::vector<std::string>{pitchName(note.pitchData)});
                             lastGroupTick = note.tickTimePosition;
                         }
                     }

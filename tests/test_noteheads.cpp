@@ -64,7 +64,7 @@ static FontContext makeFontContext(const std::string& fontName = "Maestro", int 
     auto fontInfo = std::make_shared<FontInfo>(document);
     fontInfo->fontId = 1;
     fontInfo->fontSize = 24;
-    return { document, fontInfo };
+    return {document, fontInfo};
 }
 
 } // namespace

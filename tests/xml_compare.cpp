@@ -23,8 +23,8 @@
 #include "xml_compare.h"
 
 #include <algorithm>
-#include <cerrno>
 #include <cctype>
+#include <cerrno>
 #include <cmath>
 #include <cstring>
 #include <map>
@@ -33,7 +33,6 @@
 #include <vector>
 
 #include "pugixml.hpp"
-#include "utils/stringutils.h"
 #include "utils/stringutils.h"
 
 namespace {
@@ -57,13 +56,10 @@ bool parseDoubleValue(const std::string& text, double& value)
     return true;
 }
 
-double numericToleranceForComparison(bool isMssComparison,
-                                     std::string_view currentPath,
-                                     std::string_view attributeName)
+double numericToleranceForComparison(bool isMssComparison, std::string_view currentPath, std::string_view attributeName)
 {
     if (isMssComparison
-        && (currentPath == "/museScore/Style/measureNumberPosBelow"
-            || currentPath == "/museScore/Style/measureNumberAlternatePosBelow"
+        && (currentPath == "/museScore/Style/measureNumberPosBelow" || currentPath == "/museScore/Style/measureNumberAlternatePosBelow"
             || currentPath == "/museScore/Style/mmRestRangePosBelow")
         && attributeName == "y") {
         return MSS_MEASURE_NUMBER_POS_BELOW_Y_TOLERANCE;
@@ -110,14 +106,11 @@ bool isWhitespaceOnly(const char* text)
 bool isIgnorableNode(const pugi::xml_node& node)
 {
     switch (node.type()) {
-        case pugi::node_comment:
-        case pugi::node_declaration:
-            return true;
-        case pugi::node_pcdata:
-        case pugi::node_cdata:
-            return isWhitespaceOnly(node.value());
-        default:
-            break;
+    case pugi::node_comment:
+    case pugi::node_declaration: return true;
+    case pugi::node_pcdata:
+    case pugi::node_cdata: return isWhitespaceOnly(node.value());
+    default: break;
     }
     return false;
 }
@@ -125,23 +118,16 @@ bool isIgnorableNode(const pugi::xml_node& node)
 std::string describeNode(const pugi::xml_node& node)
 {
     switch (node.type()) {
-        case pugi::node_element:
-            return node.name();
-        case pugi::node_pcdata:
-        case pugi::node_cdata:
-            return std::string("text()");
-        default:
-            break;
+    case pugi::node_element: return node.name();
+    case pugi::node_pcdata:
+    case pugi::node_cdata: return std::string("text()");
+    default: break;
     }
     return std::string("node");
 }
 
-void compareXmlNodes(const pugi::xml_node& lhs,
-                     const pugi::xml_node& rhs,
-                     const std::string& currentPath,
-                     bool isMssComparison,
-                     std::vector<std::string>& mismatches,
-                     bool& truncated)
+void compareXmlNodes(const pugi::xml_node& lhs, const pugi::xml_node& rhs, const std::string& currentPath, bool isMssComparison,
+    std::vector<std::string>& mismatches, bool& truncated)
 {
     if (truncated) {
         return;
@@ -184,8 +170,8 @@ void compareXmlNodes(const pugi::xml_node& lhs,
             const double tolerance = numericToleranceForComparison(isMssComparison, currentPath, name);
             if (!valuesNearlyEqual(value, it->second, tolerance)) {
                 if (!addMismatch(mismatches, truncated,
-                                 currentPath + ": attribute '" + name + "' differs: " + value + " vs." + it->second
-                                 + " (tolerance " + std::to_string(tolerance) + ")")) {
+                        currentPath + ": attribute '" + name + "' differs: " + value + " vs." + it->second + " (tolerance "
+                            + std::to_string(tolerance) + ")")) {
                     return;
                 }
             }
@@ -218,15 +204,13 @@ void compareXmlNodes(const pugi::xml_node& lhs,
             rhsChild = nextChild(rhsChild.next_sibling());
         }
         while (lhsChild) {
-            if (!addMismatch(mismatches, truncated,
-                             currentPath + ": extra child in left: " + describeNode(lhsChild))) {
+            if (!addMismatch(mismatches, truncated, currentPath + ": extra child in left: " + describeNode(lhsChild))) {
                 return;
             }
             lhsChild = nextChild(lhsChild.next_sibling());
         }
         while (rhsChild) {
-            if (!addMismatch(mismatches, truncated,
-                             currentPath + ": extra child in right: " + describeNode(rhsChild))) {
+            if (!addMismatch(mismatches, truncated, currentPath + ": extra child in right: " + describeNode(rhsChild))) {
                 return;
             }
             rhsChild = nextChild(rhsChild.next_sibling());
@@ -238,8 +222,7 @@ void compareXmlNodes(const pugi::xml_node& lhs,
         const double tolerance = numericToleranceForComparison(isMssComparison, currentPath, "");
         if (!valuesNearlyEqual(lhs.value(), rhs.value(), tolerance)) {
             addMismatch(mismatches, truncated,
-                        currentPath + ": text differs: " + lhs.value() + " vs." + rhs.value()
-                        + " (tolerance " + std::to_string(tolerance) + ")");
+                currentPath + ": text differs: " + lhs.value() + " vs." + rhs.value() + " (tolerance " + std::to_string(tolerance) + ")");
         }
         return;
     }
@@ -261,15 +244,11 @@ pugi::xml_node documentElement(const pugi::xml_document& document)
 
 } // namespace
 
-bool compareXmlFiles(const std::filesystem::path& path1,
-                     const std::filesystem::path& path2,
-                     std::string& message)
+bool compareXmlFiles(const std::filesystem::path& path1, const std::filesystem::path& path2, std::string& message)
 {
     auto lowerExtension = [](const std::filesystem::path& path) {
         std::string extension = utils::pathToString(path.extension());
-        std::transform(extension.begin(), extension.end(), extension.begin(), [](unsigned char c) {
-            return utils::toLowerCase(c);
-        });
+        std::transform(extension.begin(), extension.end(), extension.begin(), [](unsigned char c) { return utils::toLowerCase(c); });
         return extension;
     };
     const bool isMssComparison = (lowerExtension(path1) == ".mss" && lowerExtension(path2) == ".mss");
@@ -311,8 +290,7 @@ bool compareXmlFiles(const std::filesystem::path& path1,
         out << "\n" << (i + 1) << ". " << mismatches[i];
     }
     if (truncated) {
-        out << "\nAdditional mismatches were omitted after "
-            << XML_MAX_MISMATCHES << " entries.";
+        out << "\nAdditional mismatches were omitted after " << XML_MAX_MISMATCHES << " entries.";
     }
     message = out.str();
     return false;
@@ -321,8 +299,6 @@ bool compareXmlFiles(const std::filesystem::path& path1,
 bool shouldUseXmlComparison(const std::filesystem::path& path)
 {
     std::string extension = utils::pathToString(path.extension());
-    std::transform(extension.begin(), extension.end(), extension.begin(), [](unsigned char c) {
-        return utils::toLowerCase(c);
-    });
+    std::transform(extension.begin(), extension.end(), extension.begin(), [](unsigned char c) { return utils::toLowerCase(c); });
     return extension == ".mss" || extension == ".xml";
 }

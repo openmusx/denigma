@@ -28,18 +28,21 @@
 #include <string>
 #include <vector>
 
-#include "gtest/gtest.h"
 #include "test_utils.h"
 #include "xml_compare.h"
+#include "gtest/gtest.h"
 
 // Optional setup/teardown for test suite
-class TestEnvironment : public ::testing::Environment {
+class TestEnvironment : public ::testing::Environment
+{
 public:
-    void SetUp() override {
+    void SetUp() override
+    {
         // Code to run before all tests
     }
 
-    void TearDown() override {
+    void TearDown() override
+    {
         // Code to run after all tests
     }
 };
@@ -67,7 +70,8 @@ void checkStderr(const std::vector<std::string>& expectedMessages, std::function
             EXPECT_TRUE(capturedErrors.empty()) << "No message expected but got " << capturedErrors;
         } else if (expectedMessage[0] == '!') {
             EXPECT_EQ(capturedErrors.find(expectedMessage.substr(1)), std::string::npos)
-                << "Message \"" << expectedMessage.substr(1) << "\" found but not expected" << capturedErrors;;
+                << "Message \"" << expectedMessage.substr(1) << "\" found but not expected" << capturedErrors;
+            ;
         } else {
             EXPECT_NE(capturedErrors.find(expectedMessage), std::string::npos)
                 << "Message \"" << expectedMessage << "\" not found. Actual: " << capturedErrors;
@@ -183,10 +187,10 @@ void assertStringsInFile(const std::vector<std::string>& targets, const std::fil
         actualFilePath = filePath;
     } else if (std::filesystem::is_directory(filePath)) {
         auto it = std::filesystem::directory_iterator(filePath);
-        auto matchingFile = std::find_if(begin(it), end(it), [&extension](const std::filesystem::directory_entry& entry) {
-            return entry.is_regular_file() && entry.path().extension() == extension;
-        });
-        ASSERT_NE(matchingFile, std::filesystem::end(it)) << "No file with extension " << pathString(extension) << " found in directory: " << pathString(filePath);
+        auto matchingFile = std::find_if(begin(it), end(it),
+            [&extension](const std::filesystem::directory_entry& entry) { return entry.is_regular_file() && entry.path().extension() == extension; });
+        ASSERT_NE(matchingFile, std::filesystem::end(it))
+            << "No file with extension " << pathString(extension) << " found in directory: " << pathString(filePath);
         actualFilePath = matchingFile->path();
     } else {
         FAIL() << "Path is neither a regular file nor a directory: " << pathString(filePath);
@@ -195,8 +199,7 @@ void assertStringsInFile(const std::vector<std::string>& targets, const std::fil
     ASSERT_TRUE(file.is_open()) << "failed to open file: " << pathString(actualFilePath);
     std::string fileContents((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
     for (const auto& target : targets) {
-        EXPECT_NE(fileContents.find(target), std::string::npos)
-            << "String \"" << target << "\" not found in file: " << pathString(actualFilePath);
+        EXPECT_NE(fileContents.find(target), std::string::npos) << "String \"" << target << "\" not found in file: " << pathString(actualFilePath);
     }
 }
 

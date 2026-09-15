@@ -23,9 +23,7 @@
 
 namespace denigma {
 
-CueStaffMeasurePlan createCueStaffMeasurePlan(
-    const musx::dom::details::GFrameHoldContext& staffMeasureContext,
-    std::optional<int> forcedCueLayer)
+CueStaffMeasurePlan createCueStaffMeasurePlan(const musx::dom::details::GFrameHoldContext& staffMeasureContext, std::optional<int> forcedCueLayer)
 {
     CueStaffMeasurePlan result;
     const auto analysis = musx::util::Cue::calcStaffMeasureAnalysis(staffMeasureContext);

@@ -21,12 +21,12 @@
  */
 #pragma once
 
+#include <optional>
 #include <string>
 #include <vector>
-#include <optional>
 
-#include "denigma/io/random_access_reader.h"
 #include "core/denigma.h"
+#include "denigma/io/random_access_reader.h"
 
 namespace denigma {
 namespace formats {

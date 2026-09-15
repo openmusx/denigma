@@ -22,17 +22,18 @@
 #pragma once
 
 #include <cmath>
-#include <optional>
-#include <vector>
-#include <string>
 #include <functional>
+#include <optional>
+#include <string>
+#include <vector>
 
-#include "gtest/gtest.h"
 #include "nlohmann/json.hpp"
+#include "gtest/gtest.h"
 
 #include "core/denigma.h"
 
-class ArgList {
+class ArgList
+{
 public:
     // Constructor to allow initialization with { "arg1", "arg2", ... }
     ArgList(std::initializer_list<denigma::arg_string> init)
@@ -47,22 +48,17 @@ public:
     ArgList() = default;
 
     // Add a single argument
-    void add(const denigma::arg_string& arg) {
-        args_.emplace_back(arg);
-    }
+    void add(const denigma::arg_string& arg) { args_.emplace_back(arg); }
 
     // Add multiple arguments
-    void add(const std::vector<denigma::arg_string>& args) {
-        args_.insert(args_.end(), args.begin(), args.end());
-    }
+    void add(const std::vector<denigma::arg_string>& args) { args_.insert(args_.end(), args.begin(), args.end()); }
 
     // Get argc (number of arguments)
-    int argc() const {
-        return static_cast<int>(args_.size());
-    }
+    int argc() const { return static_cast<int>(args_.size()); }
 
     // Get argv (C-style denigma::arg_char** array)
-    denigma::arg_char** argv() {
+    denigma::arg_char** argv()
+    {
         argv_.clear();
         for (const auto& arg : args_) {
             argv_.push_back(const_cast<denigma::arg_char*>(arg.c_str()));
@@ -78,11 +74,15 @@ private:
 
 void checkStderr(const std::vector<std::string>& expectedMessages, std::function<void()> callback);
 inline void checkStderr(const std::string& expectedMessage, std::function<void()> callback)
-{ checkStderr(std::vector<std::string>({ expectedMessage }), callback); }
+{
+    checkStderr(std::vector<std::string>({expectedMessage}), callback);
+}
 
 void checkStdout(const std::vector<std::string>& expectedMessages, std::function<void()> callback);
 inline void checkStdout(const std::string& expectedMessage, std::function<void()> callback)
-{ checkStdout(std::vector<std::string>({ expectedMessage }), callback); }
+{
+    checkStdout(std::vector<std::string>({expectedMessage}), callback);
+}
 
 #ifdef _WIN32
 constexpr char DIRECTORY_SEP = '\\';
@@ -91,10 +91,14 @@ constexpr char DIRECTORY_SEP = '/';
 #endif
 
 inline std::filesystem::path getInputPath()
-{ return std::filesystem::current_path() / "inputs"; }
+{
+    return std::filesystem::current_path() / "inputs";
+}
 
 inline std::filesystem::path getOutputPath()
-{ return std::filesystem::current_path() / "outputs"; }
+{
+    return std::filesystem::current_path() / "outputs";
+}
 
 void setupTestDataPaths();
 void copyInputToOutput(const std::string& fileName, std::filesystem::path& outputPath);
@@ -103,11 +107,16 @@ void readFile(const std::filesystem::path& filePath, std::vector<char>& contents
 
 void assertStringsInFile(const std::vector<std::string>& targets, const std::filesystem::path& filePath, const std::filesystem::path& extension = {});
 inline void assertStringInFile(const std::string& target, const std::filesystem::path& filePath, const std::filesystem::path& extension = {})
-{ assertStringsInFile(std::vector<std::string>({ target }), filePath, extension); }
+{
+    assertStringsInFile(std::vector<std::string>({target}), filePath, extension);
+}
 
 void openJson(const std::filesystem::path& path, nlohmann::json& result);
 
-inline std::string pathString(const std::filesystem::path& path) { return utils::pathToString(path); }
+inline std::string pathString(const std::filesystem::path& path)
+{
+    return utils::pathToString(path);
+}
 
 template <typename T>
 long roundedValue(const T& value)

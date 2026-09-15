@@ -26,8 +26,8 @@
 #include <string>
 #include <vector>
 
-#include "mnxdom.h"
 #include "FormattedText.h"
+#include "mnxdom.h"
 
 #include "musx/musx.h"
 
@@ -38,7 +38,6 @@ namespace denigma {
 namespace formats {
 namespace mnx {
 namespace detail {
-
 
 using MnxFormattedTextChunkCallback = std::function<void(const std::string&, const std::vector<std::string>&)>;
 
@@ -51,14 +50,9 @@ struct MnxFormattedTextOptions
     MnxFormattedTextChunkCallback onChunk;
 };
 
-void setFormattedText(
-    mnxdom::FormattedText dst,
-    const musx::util::EnigmaParsingContext& src,
-    const MnxFormattedTextOptions& options = {});
+void setFormattedText(mnxdom::FormattedText dst, const musx::util::EnigmaParsingContext& src, const MnxFormattedTextOptions& options = {});
 
-mnxdom::FormattedText makeFormattedText(
-    const musx::util::EnigmaParsingContext& src,
-    const MnxFormattedTextOptions& options = {});
+mnxdom::FormattedText makeFormattedText(const musx::util::EnigmaParsingContext& src, const MnxFormattedTextOptions& options = {});
 
 } // namespace detail
 } // namespace mnx

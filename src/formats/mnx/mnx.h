@@ -30,17 +30,17 @@
 #include <unordered_set>
 #include <vector>
 
-#include "core/denigma.h"
 #include "core/cue_plan.h"
+#include "core/denigma.h"
 #include "core/finale_options.h"
 #include "core/ottavas.h"
-#include "musx/musx.h"
 #include "mnxdom.h"
+#include "musx/musx.h"
 
+#include "denigma/classify/jumps.h"
+#include "mnx_articulations.h"
 #include "mnx_fwd.h"
 #include "mnx_mapping.h"
-#include "mnx_articulations.h"
-#include "denigma/classify/jumps.h"
 
 using namespace musx::dom;
 using namespace musx::util;
@@ -50,8 +50,7 @@ namespace formats {
 namespace mnx {
 namespace detail {
 
-enum class EntryTargetKind
-{
+enum class EntryTargetKind {
     Event,
     FullMeasureRest
 };
@@ -63,8 +62,10 @@ struct EntryTarget
 };
 
 // stoopid c++17 standard does not include a hash for tuple
-struct SequenceHash {
-    std::size_t operator()(const std::tuple<StaffCmper, LayerIndex, int>& t) const {
+struct SequenceHash
+{
+    std::size_t operator()(const std::tuple<StaffCmper, LayerIndex, int>& t) const
+    {
         auto [x, y, z] = t;
         std::size_t h1 = std::hash<int>{}(x);
         std::size_t h2 = std::hash<int>{}(y);
@@ -79,7 +80,8 @@ using json = nlohmann::ordered_json;
 struct MnxMusxMapping
 {
     MnxMusxMapping(const DenigmaContext& context, const DocumentPtr& doc)
-        : denigmaContext(&context), document(doc), finaleOptions(loadFinaleOptions(doc, SCORE_PARTID)), mnxDocument(), musxParts(doc, SCORE_PARTID) {}
+        : denigmaContext(&context), document(doc), finaleOptions(loadFinaleOptions(doc, SCORE_PARTID)), mnxDocument(), musxParts(doc, SCORE_PARTID)
+    {}
 
     const DenigmaContext* denigmaContext;
     musx::dom::DocumentPtr document;
@@ -96,7 +98,8 @@ struct MnxMusxMapping
     std::unordered_map<std::string, mnxdom::json_pointer> noteJsonById;
     std::unordered_map<EntryNumber, EntryTarget> entryTargetByNumber;
 
-    struct DeferredJumpTie {
+    struct DeferredJumpTie
+    {
         std::string startNoteId;
         std::string endNoteId;
         std::optional<mnxdom::SlurTieSide> side;
@@ -118,7 +121,8 @@ struct MnxMusxMapping
     /// known, because MNX attaches a counter to the repeat rather than to the measure.
     std::map<MeasCmper, int> measureRepeatCounts;
 
-    struct CurrentMeasureStaff {
+    struct CurrentMeasureStaff
+    {
         MeasCmper meas{};
         StaffCmper staff{};
         std::string voice;
@@ -203,9 +207,7 @@ inline std::string calcPercussionSoundId(const MusxInstance<others::PercussionNo
 void createLayouts(const MnxMusxMappingPtr& context);
 void createGlobal(const MnxMusxMappingPtr& context);
 void createParts(const MnxMusxMappingPtr& context);
-void createSequences(const MnxMusxMappingPtr& context,
-    mnxdom::part::Measure& mnxMeasure,
-    std::optional<int> mnxStaffNumber,
+void createSequences(const MnxMusxMappingPtr& context, mnxdom::part::Measure& mnxMeasure, std::optional<int> mnxStaffNumber,
     const MusxInstance<others::Measure>& musxMeasure);
 void finalizeJumpTies(const MnxMusxMappingPtr& context);
 

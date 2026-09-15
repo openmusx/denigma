@@ -36,39 +36,31 @@ static bool isPlainGClef(char32_t symbol, std::optional<std::string_view> glyphN
 
 static bool isPlainCClef(char32_t symbol, std::optional<std::string_view> glyphName)
 {
-    return symbol == 0x1D121 || glyphName == "cClef" || glyphName == "cClefSquare"
-        || glyphName == "cClefFrench" || glyphName == "cClefFrench20C";
+    return symbol == 0x1D121 || glyphName == "cClef" || glyphName == "cClefSquare" || glyphName == "cClefFrench" || glyphName == "cClefFrench20C";
 }
 
 static bool isPlainFClef(char32_t symbol, std::optional<std::string_view> glyphName)
 {
-    return symbol == 0x1D122 || glyphName == "fClef" || glyphName == "fClefFrench"
-        || glyphName == "fClef19thCentury";
+    return symbol == 0x1D122 || glyphName == "fClef" || glyphName == "fClefFrench" || glyphName == "fClef19thCentury";
 }
 
-static bool shouldShowOctave(
-    music_theory::ClefType type, int octave, char32_t symbol, std::optional<std::string_view> glyphName)
+static bool shouldShowOctave(music_theory::ClefType type, int octave, char32_t symbol, std::optional<std::string_view> glyphName)
 {
     if (octave == 0) {
         return true;
     }
     switch (type) {
-    case music_theory::ClefType::G:
-        return !isPlainGClef(symbol, glyphName);
-    case music_theory::ClefType::C:
-        return !isPlainCClef(symbol, glyphName);
-    case music_theory::ClefType::F:
-        return !isPlainFClef(symbol, glyphName);
-    default:
-        return true;
+    case music_theory::ClefType::G: return !isPlainGClef(symbol, glyphName);
+    case music_theory::ClefType::C: return !isPlainCClef(symbol, glyphName);
+    case music_theory::ClefType::F: return !isPlainFClef(symbol, glyphName);
+    default: return true;
     }
 }
 
 } // namespace
 
 ClefClassification classifyClef(
-    const musx::dom::MusxInstance<musx::dom::options::ClefOptions::ClefDef>& clefDef,
-    const musx::dom::MusxInstance<musx::dom::others::Staff>& staff)
+    const musx::dom::MusxInstance<musx::dom::options::ClefOptions::ClefDef>& clefDef, const musx::dom::MusxInstance<musx::dom::others::Staff>& staff)
 {
     if (!clefDef) {
         return {};
@@ -80,10 +72,7 @@ ClefClassification classifyClef(
         auto clefFont = clefDef->calcFont();
         if (clefFont) {
             if (const auto* name = smufl_mapping::getGlyphNameForFont(
-                    clefFont->getName(),
-                    clefDef->clefChar,
-                    clefFont->calcIsSMuFL(),
-                    smufl_mapping::SmuflGlyphSource::Finale)) {
+                    clefFont->getName(), clefDef->clefChar, clefFont->calcIsSMuFL(), smufl_mapping::SmuflGlyphSource::Finale)) {
                 glyphName = std::string(*name);
             }
         }
@@ -94,7 +83,7 @@ ClefClassification classifyClef(
     }
 
     auto [type, octave] = clefDef->calcInfo(staff);
-    return { type, octave, isBlank, shouldShowOctave(type, octave, clefDef->clefChar, glyphNameView), std::move(glyphName) };
+    return {type, octave, isBlank, shouldShowOctave(type, octave, clefDef->clefChar, glyphNameView), std::move(glyphName)};
 }
 
 } // namespace denigma::classify

@@ -80,17 +80,15 @@ int MusicXmlTimingPlan::calcNearestMusicXmlDivisions(const musx::util::Fraction&
     }
 
     const auto rounded = std::llround(static_cast<double>(result.numerator()) / static_cast<double>(result.denominator()));
-    ASSERT_IF(rounded < (std::numeric_limits<int>::min)() || rounded > (std::numeric_limits<int>::max)()) {
+    ASSERT_IF(rounded < (std::numeric_limits<int>::min)() || rounded > (std::numeric_limits<int>::max)())
+    {
         throw std::overflow_error("MusicXML position is outside the supported integer range.");
     }
     return static_cast<int>(rounded);
 }
 
 void MusicXmlLayoutState::setStaffSize(
-    mx::api::StaffData& staffData,
-    musx::dom::StaffCmper staffId,
-    const musx::util::Fraction& staffSize,
-    const musx::util::Fraction& staffScaling)
+    mx::api::StaffData& staffData, musx::dom::StaffCmper staffId, const musx::util::Fraction& staffSize, const musx::util::Fraction& staffScaling)
 {
     auto& current = staffLayout[staffId];
     if (current.staffSize != staffSize) {

@@ -63,20 +63,19 @@ mx::api::HarpPedalsData musicXmlHarpPedals(const classify::expression::HarpDiagr
 
     mx::api::HarpPedalsData result;
     result.pedalTunings = {
-        { mx::api::Step::d, alteration(diagram.d) },
-        { mx::api::Step::c, alteration(diagram.c) },
-        { mx::api::Step::b, alteration(diagram.b) },
-        { mx::api::Step::e, alteration(diagram.e) },
-        { mx::api::Step::f, alteration(diagram.f) },
-        { mx::api::Step::g, alteration(diagram.g) },
-        { mx::api::Step::a, alteration(diagram.a) },
+        {mx::api::Step::d, alteration(diagram.d)},
+        {mx::api::Step::c, alteration(diagram.c)},
+        {mx::api::Step::b, alteration(diagram.b)},
+        {mx::api::Step::e, alteration(diagram.e)},
+        {mx::api::Step::f, alteration(diagram.f)},
+        {mx::api::Step::g, alteration(diagram.g)},
+        {mx::api::Step::a, alteration(diagram.a)},
     };
     return result;
 }
 
 std::optional<mx::api::AccordionRegistrationData> musicXmlAccordionRegistration(
-    const classify::articulation::AccordionRegistration& registration,
-    VerticalPlacement placement)
+    const classify::articulation::AccordionRegistration& registration, VerticalPlacement placement)
 {
     using DotPosition = classify::articulation::AccordionRegistration::DotPosition;
 
@@ -84,19 +83,12 @@ std::optional<mx::api::AccordionRegistrationData> musicXmlAccordionRegistration(
     int middleDots = 0;
     for (const auto& dot : registration.dots) {
         switch (dot.position) {
-        case DotPosition::Top:
-            result.high = true;
-            break;
+        case DotPosition::Top: result.high = true; break;
         case DotPosition::UpperMiddle:
         case DotPosition::Middle:
-        case DotPosition::LowerMiddle:
-            ++middleDots;
-            break;
-        case DotPosition::Bottom:
-            result.low = true;
-            break;
-        case DotPosition::Other:
-            return std::nullopt;
+        case DotPosition::LowerMiddle: ++middleDots; break;
+        case DotPosition::Bottom: result.low = true; break;
+        case DotPosition::Other: return std::nullopt;
         }
     }
     if (middleDots > 3) {
@@ -114,8 +106,7 @@ bool isTopStaffAssignment(const MusxInstance<others::MeasureExprAssign>& assignm
     return assignment->staffAssign == static_cast<StaffCmper>(others::StaffList::FloatingValues::TopStaff);
 }
 
-mx::api::HorizontalAlignment musicXmlHorizontalAlignmentForTextExpression(
-    const MusxInstance<others::MeasureExprAssign>& assignment)
+mx::api::HorizontalAlignment musicXmlHorizontalAlignmentForTextExpression(const MusxInstance<others::MeasureExprAssign>& assignment)
 {
     const auto textExpression = assignment ? assignment->getTextExpression() : nullptr;
     // horzMeasExprAlign chooses the musical landmark used as the anchor. The separate
@@ -124,14 +115,12 @@ mx::api::HorizontalAlignment musicXmlHorizontalAlignmentForTextExpression(
                           : mx::api::HorizontalAlignment::unspecified;
 }
 
-mx::api::HorizontalAlignment musicXmlJustifyForTextExpression(
-    const MusxInstance<others::MeasureExprAssign>& assignment)
+mx::api::HorizontalAlignment musicXmlJustifyForTextExpression(const MusxInstance<others::MeasureExprAssign>& assignment)
 {
     const auto textExpression = assignment ? assignment->getTextExpression() : nullptr;
     const auto textBlock = textExpression ? textExpression->getTextBlock() : nullptr;
     // TextBlock::justify controls the alignment of lines inside the text, which is MusicXML justify.
-    return textBlock ? enumConvert<mx::api::HorizontalAlignment>(textBlock->justify)
-                     : mx::api::HorizontalAlignment::unspecified;
+    return textBlock ? enumConvert<mx::api::HorizontalAlignment>(textBlock->justify) : mx::api::HorizontalAlignment::unspecified;
 }
 
 namespace {
@@ -151,9 +140,7 @@ mx::api::Bool musicXmlDirectiveForExpression(const MusxInstance<others::MeasureE
     } else if (const auto shapeExpression = assignment->getShapeExpression()) {
         align = shapeExpression->horzMeasExprAlign;
     }
-    return align == others::HorizontalMeasExprAlign::StartTimeSig
-        ? mx::api::Bool::yes
-        : mx::api::Bool::unspecified;
+    return align == others::HorizontalMeasExprAlign::StartTimeSig ? mx::api::Bool::yes : mx::api::Bool::unspecified;
 }
 
 void appendTechniquePlayback(mx::api::DirectionData& direction, const classify::expression::TechniqueText& technique)
@@ -168,17 +155,12 @@ void appendTechniquePlayback(mx::api::DirectionData& direction, const classify::
         direction.soundData.pizzicato = mx::api::Bool::no;
         direction.isSoundDataSpecified = direction.soundData.isSpecified();
         break;
-    default:
-        break;
+    default: break;
     }
 }
 
-mx::api::DirectionData createExpressionDirection(
-    const MusicXmlMusxMapping& context,
-    size_t staffIndex,
-    const MusxInstance<others::MeasureExprAssign>& assignment,
-    VerticalPlacement placement,
-    bool isStaffValueSpecified = true)
+mx::api::DirectionData createExpressionDirection(const MusicXmlMusxMapping& context, size_t staffIndex,
+    const MusxInstance<others::MeasureExprAssign>& assignment, VerticalPlacement placement, bool isStaffValueSpecified = true)
 {
     auto direction = mx::api::DirectionData{};
     direction.tickTimePosition = context.timing.calcNearestMusicXmlDivisions(Fraction::fromEdu(assignment->eduPosition));
@@ -199,8 +181,7 @@ mx::api::DirectionData createExpressionDirection(
 
 /// The enclosure for a text expression. An absent or degenerate Finale enclosure is unspecified;
 /// callers exporting an element whose MusicXML default is not `none` must override it explicitly.
-mx::api::Enclosure enclosureForTextExpression(
-    const MusxInstance<others::MeasureExprAssign>& assignment)
+mx::api::Enclosure enclosureForTextExpression(const MusxInstance<others::MeasureExprAssign>& assignment)
 {
     const auto textExpression = assignment ? assignment->getTextExpression() : nullptr;
     if (!textExpression || !textExpression->hasEnclosure) {
@@ -224,12 +205,8 @@ mx::api::Enclosure enclosureForTextExpression(
     return enumConvert<mx::api::Enclosure>(enclosure->shape);
 }
 
-std::optional<mx::api::DirectionData> createTempoExpressionDirection(
-    MusicXmlMusxMapping& context,
-    size_t staffIndex,
-    const MusxInstance<others::MeasureExprAssign>& assignment,
-    const classify::ExpressionClassification& classification,
-    VerticalPlacement placement,
+std::optional<mx::api::DirectionData> createTempoExpressionDirection(MusicXmlMusxMapping& context, size_t staffIndex,
+    const MusxInstance<others::MeasureExprAssign>& assignment, const classify::ExpressionClassification& classification, VerticalPlacement placement,
     bool isStaffValueSpecified)
 {
     auto direction = createExpressionDirection(context, staffIndex, assignment, placement, isStaffValueSpecified);
@@ -246,12 +223,12 @@ std::optional<mx::api::DirectionData> createTempoExpressionDirection(
         const auto enclosure = enclosureForTextExpression(assignment);
         const auto horizontalAlignment = musicXmlHorizontalAlignmentForTextExpression(assignment);
         const auto justify = musicXmlJustifyForTextExpression(assignment);
-        forEachMusicXmlWordsRunItem(words, [&](mx::api::PositionData& positionData,
-                mx::api::Enclosure& itemEnclosure, mx::api::HorizontalAlignment& itemJustify) {
-            positionData.horizontalAlignment = horizontalAlignment;
-            itemEnclosure = enclosure;
-            itemJustify = justify;
-        });
+        forEachMusicXmlWordsRunItem(
+            words, [&](mx::api::PositionData& positionData, mx::api::Enclosure& itemEnclosure, mx::api::HorizontalAlignment& itemJustify) {
+                positionData.horizontalAlignment = horizontalAlignment;
+                itemEnclosure = enclosure;
+                itemJustify = justify;
+            });
         appendMusicXmlWordsRun(direction, std::move(words));
         tempo = &classification.tempoText().tempo;
     }
@@ -268,12 +245,8 @@ std::optional<mx::api::DirectionData> createTempoExpressionDirection(
     return direction;
 }
 
-std::optional<mx::api::DirectionData> createWordsExpressionDirection(
-    MusicXmlMusxMapping& context,
-    size_t staffIndex,
-    const MusxInstance<others::MeasureExprAssign>& assignment,
-    const classify::ExpressionClassification& classification,
-    VerticalPlacement placement,
+std::optional<mx::api::DirectionData> createWordsExpressionDirection(MusicXmlMusxMapping& context, size_t staffIndex,
+    const MusxInstance<others::MeasureExprAssign>& assignment, const classify::ExpressionClassification& classification, VerticalPlacement placement,
     bool isStaffValueSpecified)
 {
     auto direction = createExpressionDirection(context, staffIndex, assignment, placement, isStaffValueSpecified);
@@ -284,12 +257,12 @@ std::optional<mx::api::DirectionData> createWordsExpressionDirection(
     const auto enclosure = enclosureForTextExpression(assignment);
     const auto horizontalAlignment = musicXmlHorizontalAlignmentForTextExpression(assignment);
     const auto justify = musicXmlJustifyForTextExpression(assignment);
-    forEachMusicXmlWordsRunItem(words, [&](mx::api::PositionData& positionData,
-            mx::api::Enclosure& itemEnclosure, mx::api::HorizontalAlignment& itemJustify) {
-        positionData.horizontalAlignment = horizontalAlignment;
-        itemEnclosure = enclosure;
-        itemJustify = justify;
-    });
+    forEachMusicXmlWordsRunItem(
+        words, [&](mx::api::PositionData& positionData, mx::api::Enclosure& itemEnclosure, mx::api::HorizontalAlignment& itemJustify) {
+            positionData.horizontalAlignment = horizontalAlignment;
+            itemEnclosure = enclosure;
+            itemJustify = justify;
+        });
     appendMusicXmlWordsRun(direction, std::move(words));
     if (mx::api::isDirectionDataEmpty(direction)) {
         return std::nullopt;
@@ -297,12 +270,8 @@ std::optional<mx::api::DirectionData> createWordsExpressionDirection(
     return direction;
 }
 
-std::optional<mx::api::DirectionData> createRehearsalExpressionDirection(
-    MusicXmlMusxMapping& context,
-    size_t staffIndex,
-    const MusxInstance<others::MeasureExprAssign>& assignment,
-    const classify::ExpressionClassification& classification,
-    VerticalPlacement placement,
+std::optional<mx::api::DirectionData> createRehearsalExpressionDirection(MusicXmlMusxMapping& context, size_t staffIndex,
+    const MusxInstance<others::MeasureExprAssign>& assignment, const classify::ExpressionClassification& classification, VerticalPlacement placement,
     bool isStaffValueSpecified)
 {
     auto direction = createExpressionDirection(context, staffIndex, assignment, placement, isStaffValueSpecified);
@@ -317,11 +286,10 @@ std::optional<mx::api::DirectionData> createRehearsalExpressionDirection(
     rehearsal.positionData.horizontalAlignment = musicXmlHorizontalAlignmentForTextExpression(assignment);
     rehearsal.justify = musicXmlJustifyForTextExpression(assignment);
     if (classification.enigmaCtx) {
-        const auto chunks = classification.enigmaCtx->collectEnigmaTextChunks(
-            EnigmaString::EnigmaParsingOptions(EnigmaString::AccidentalStyle::Unicode));
-        const auto chunkIt = std::find_if(chunks.begin(), chunks.end(), [](const auto& chunk) {
-            return !chunk.text.empty() && chunk.styles.font && !chunk.styles.font->hidden;
-        });
+        const auto chunks =
+            classification.enigmaCtx->collectEnigmaTextChunks(EnigmaString::EnigmaParsingOptions(EnigmaString::AccidentalStyle::Unicode));
+        const auto chunkIt = std::find_if(
+            chunks.begin(), chunks.end(), [](const auto& chunk) { return !chunk.text.empty() && chunk.styles.font && !chunk.styles.font->hidden; });
         if (chunkIt != chunks.end()) {
             const auto words = musicXmlWordsFromEnigmaTextChunk(context, *chunkIt);
             if (words) {
@@ -334,12 +302,8 @@ std::optional<mx::api::DirectionData> createRehearsalExpressionDirection(
     return direction;
 }
 
-std::optional<mx::api::DirectionData> createStringMuteExpressionDirection(
-    const MusicXmlMusxMapping& context,
-    size_t staffIndex,
-    const MusxInstance<others::MeasureExprAssign>& assignment,
-    const classify::ExpressionClassification& classification,
-    VerticalPlacement placement,
+std::optional<mx::api::DirectionData> createStringMuteExpressionDirection(const MusicXmlMusxMapping& context, size_t staffIndex,
+    const MusxInstance<others::MeasureExprAssign>& assignment, const classify::ExpressionClassification& classification, VerticalPlacement placement,
     bool isStaffValueSpecified)
 {
     auto direction = createExpressionDirection(context, staffIndex, assignment, placement, isStaffValueSpecified);
@@ -350,12 +314,8 @@ std::optional<mx::api::DirectionData> createStringMuteExpressionDirection(
     return direction;
 }
 
-std::optional<mx::api::DirectionData> createHarpDiagramExpressionDirection(
-    const MusicXmlMusxMapping& context,
-    size_t staffIndex,
-    const MusxInstance<others::MeasureExprAssign>& assignment,
-    const classify::ExpressionClassification& classification,
-    VerticalPlacement placement,
+std::optional<mx::api::DirectionData> createHarpDiagramExpressionDirection(const MusicXmlMusxMapping& context, size_t staffIndex,
+    const MusxInstance<others::MeasureExprAssign>& assignment, const classify::ExpressionClassification& classification, VerticalPlacement placement,
     bool isStaffValueSpecified)
 {
     auto direction = createExpressionDirection(context, staffIndex, assignment, placement, isStaffValueSpecified);
@@ -365,12 +325,8 @@ std::optional<mx::api::DirectionData> createHarpDiagramExpressionDirection(
     return direction;
 }
 
-std::optional<mx::api::DirectionData> createAccordionRegistrationExpressionDirection(
-    const MusicXmlMusxMapping& context,
-    size_t staffIndex,
-    const MusxInstance<others::MeasureExprAssign>& assignment,
-    const classify::ExpressionClassification& classification,
-    VerticalPlacement placement,
+std::optional<mx::api::DirectionData> createAccordionRegistrationExpressionDirection(const MusicXmlMusxMapping& context, size_t staffIndex,
+    const MusxInstance<others::MeasureExprAssign>& assignment, const classify::ExpressionClassification& classification, VerticalPlacement placement,
     bool isStaffValueSpecified)
 {
     const auto accordion = musicXmlAccordionRegistration(classification.accordionRegistration(), placement);
@@ -389,8 +345,7 @@ std::optional<mx::api::DirectionData> createAccordionRegistrationExpressionDirec
     return direction;
 }
 
-enum class GroupedDirectionAction
-{
+enum class GroupedDirectionAction {
     None,
     Emit,
     ReplacePrior
@@ -422,9 +377,7 @@ bool measureHoldsOnlyFullMeasureRests(const mx::api::MeasureData& measure)
 
 /// Decides what to do with an expression that carries a multimeasure rest number. Returns true when
 /// the expression has been accounted for and must not also be emitted as text.
-bool applyMultimeasureRestNumber(
-    mx::api::MeasureData& measure,
-    const classify::ExpressionClassification& classification)
+bool applyMultimeasureRestNumber(mx::api::MeasureData& measure, const classify::ExpressionClassification& classification)
 {
     const int number = classification.multimeasureRestNumber().number;
     if (measure.multiMeasureRest > 0) {
@@ -498,9 +451,7 @@ double musicXmlQuarterNotesPerMinute(double beatsPerMinute, Edu beatUnitEdu)
     return beatsPerMinute * static_cast<double>(beatUnitEdu) / eduPerQuarterNote;
 }
 
-mx::api::TempoData musicXmlMetronomeMark(
-    const MusicXmlMusxMapping& context,
-    const MusxInstance<others::MeasureExprAssign>& assignment,
+mx::api::TempoData musicXmlMetronomeMark(const MusicXmlMusxMapping& context, const MusxInstance<others::MeasureExprAssign>& assignment,
     const classify::ExpressionClassification& classification)
 {
     const auto& metronomeMark = classification.metronomeMark();
@@ -524,13 +475,8 @@ mx::api::TempoData musicXmlMetronomeMark(
     return result;
 }
 
-void processExpressions(
-    MusicXmlMusxMapping& context,
-    mx::api::MeasureData& measure,
-    mx::api::StaffData& staff,
-    const MusxInstance<others::Measure>& musxMeasure,
-    StaffCmper staffId,
-    size_t staffIndex)
+void processExpressions(MusicXmlMusxMapping& context, mx::api::MeasureData& measure, mx::api::StaffData& staff,
+    const MusxInstance<others::Measure>& musxMeasure, StaffCmper staffId, size_t staffIndex)
 {
     (void)measure;
     (void)staffIndex;
@@ -549,12 +495,14 @@ void processExpressions(
         const auto& location = locationIt->second;
         const auto voiceIndex = static_cast<size_t>(location.userVoiceNumber - 1);
         const auto voiceIt = staff.voices.find(int(voiceIndex));
-        ASSERT_IF(voiceIt == staff.voices.end()) {
+        ASSERT_IF(voiceIt == staff.voices.end())
+        {
             return nullptr;
         }
 
         auto& voice = voiceIt->second;
-        ASSERT_IF(location.noteIndex >= voice.notes.size()) {
+        ASSERT_IF(location.noteIndex >= voice.notes.size())
+        {
             return nullptr;
         }
         return &voice.notes[location.noteIndex];
@@ -565,8 +513,8 @@ void processExpressions(
         if (auto* note = noteForEntry(assignment->calcAssociatedEntry())) {
             note->noteAttachmentData.marks.emplace_back(std::move(mark));
         } else {
-            context.logMessage(LogMsg() << "Expression in measure " << musxMeasure->getCmper()
-                << " could not be attached to a MusicXML note.", MessageSeverity::Info);
+            context.logMessage(LogMsg() << "Expression in measure " << musxMeasure->getCmper() << " could not be attached to a MusicXML note.",
+                MessageSeverity::Info);
         }
     };
 
@@ -576,8 +524,8 @@ void processExpressions(
         bool emittedFromTopStaffAssignment{};
     };
 
-    const auto exprAssigns = context.document->getOthers()->getArray<others::MeasureExprAssign>(
-        musxMeasure->getRequestedPartId(), musxMeasure->getCmper());
+    const auto exprAssigns =
+        context.document->getOthers()->getArray<others::MeasureExprAssign>(musxMeasure->getRequestedPartId(), musxMeasure->getCmper());
     const auto cuePlanIt = context.cuePlansByMeasureStaff.find(musicXmlMeasureStaffKey(musxMeasure->getCmper(), staffId));
     std::unordered_map<int, DirectionGroupTracking> directionGroups;
     for (const auto& assignment : exprAssigns) {
@@ -594,18 +542,14 @@ void processExpressions(
         }
         if (cuePlanIt != context.cuePlansByMeasureStaff.end()) {
             const auto associatedEntry = assignment->calcAssociatedEntry();
-            const auto assignedLayer = assignment->layer > 0
-                ? std::make_optional<LayerIndex>(assignment->layer - 1)
-                : std::nullopt;
-            const auto cueLayer = assignedLayer && cuePlanIt->second.isCueLayer(*assignedLayer)
-                ? assignedLayer
-                : associatedEntry && cuePlanIt->second.isCueLayer(associatedEntry.getLayerIndex())
-                    ? std::make_optional(associatedEntry.getLayerIndex())
-                    : std::nullopt;
+            const auto assignedLayer = assignment->layer > 0 ? std::make_optional<LayerIndex>(assignment->layer - 1) : std::nullopt;
+            const auto cueLayer = assignedLayer && cuePlanIt->second.isCueLayer(*assignedLayer) ? assignedLayer
+                                  : associatedEntry && cuePlanIt->second.isCueLayer(associatedEntry.getLayerIndex())
+                                      ? std::make_optional(associatedEntry.getLayerIndex())
+                                      : std::nullopt;
             if (cueLayer
                 && (!cuePlanIt->second.isVisibleCueLayer(*cueLayer)
-                    || (associatedEntry
-                        && !context.entryNumberToFirstNote.contains(associatedEntry->getEntry()->getEntryNumber())))) {
+                    || (associatedEntry && !context.entryNumberToFirstNote.contains(associatedEntry->getEntry()->getEntryNumber())))) {
                 continue;
             }
         }
@@ -650,14 +594,14 @@ void processExpressions(
             }
             staff.directions.emplace_back(std::move(*direction));
             if (assignment->staffGroup > 0) {
-                directionGroups.emplace(assignment->staffGroup, DirectionGroupTracking{ staff.directions.size() - 1, emittedFromTopStaffAssignment });
+                directionGroups.emplace(assignment->staffGroup, DirectionGroupTracking{staff.directions.size() - 1, emittedFromTopStaffAssignment});
             }
         };
 
         switch (classification.type) {
         case classify::ExpressionType::Dynamic: {
-            const auto directions = createDynamicExpressionDirections(
-                context, staffIndex, assignment, classification, placement, isStaffValueSpecified);
+            const auto directions =
+                createDynamicExpressionDirections(context, staffIndex, assignment, classification, placement, isStaffValueSpecified);
             if (directions.empty() || groupedDirectionAction == GroupedDirectionAction::None) {
                 break;
             }
@@ -670,8 +614,8 @@ void processExpressions(
                 } else {
                     staff.directions.emplace_back(std::move(direction));
                     if (!firstDirectionHandled && assignment->staffGroup > 0 && groupedDirectionAction == GroupedDirectionAction::Emit) {
-                        directionGroups.emplace(assignment->staffGroup,
-                            DirectionGroupTracking{ staff.directions.size() - 1, emittedFromTopStaffAssignment });
+                        directionGroups.emplace(
+                            assignment->staffGroup, DirectionGroupTracking{staff.directions.size() - 1, emittedFromTopStaffAssignment});
                     }
                 }
                 firstDirectionHandled = true;
@@ -680,8 +624,7 @@ void processExpressions(
         }
         case classify::ExpressionType::TempoMark:
         case classify::ExpressionType::MetronomeMark: {
-            emitGroupedDirection(createTempoExpressionDirection(
-                context, staffIndex, assignment, classification, placement, isStaffValueSpecified));
+            emitGroupedDirection(createTempoExpressionDirection(context, staffIndex, assignment, classification, placement, isStaffValueSpecified));
             break;
         }
         case classify::ExpressionType::MultimeasureRestNumber:
@@ -701,13 +644,11 @@ void processExpressions(
             [[fallthrough]];
         case classify::ExpressionType::TempoAlteration:
         case classify::ExpressionType::GenericText: {
-            emitGroupedDirection(createWordsExpressionDirection(
-                context, staffIndex, assignment, classification, placement, isStaffValueSpecified));
+            emitGroupedDirection(createWordsExpressionDirection(context, staffIndex, assignment, classification, placement, isStaffValueSpecified));
             break;
         }
         case classify::ExpressionType::TechniqueText: {
-            auto direction = createWordsExpressionDirection(
-                context, staffIndex, assignment, classification, placement, isStaffValueSpecified);
+            auto direction = createWordsExpressionDirection(context, staffIndex, assignment, classification, placement, isStaffValueSpecified);
             if (direction) {
                 appendTechniquePlayback(*direction, classification.techniqueText());
             }
@@ -715,8 +656,8 @@ void processExpressions(
             break;
         }
         case classify::ExpressionType::RehearsalMark: {
-            emitGroupedDirection(createRehearsalExpressionDirection(
-                context, staffIndex, assignment, classification, placement, isStaffValueSpecified));
+            emitGroupedDirection(
+                createRehearsalExpressionDirection(context, staffIndex, assignment, classification, placement, isStaffValueSpecified));
             break;
         }
         case classify::ExpressionType::Fermata: {
@@ -730,36 +671,30 @@ void processExpressions(
             appendMarkToAssociatedNote(assignment, musicXmlMark(mx::api::MarkType::breathMark, placement));
             break;
         case classify::ExpressionType::StringMute:
-            emitGroupedDirection(createStringMuteExpressionDirection(
-                context, staffIndex, assignment, classification, placement, isStaffValueSpecified));
+            emitGroupedDirection(
+                createStringMuteExpressionDirection(context, staffIndex, assignment, classification, placement, isStaffValueSpecified));
             break;
         case classify::ExpressionType::HarpDiagram:
-            emitGroupedDirection(createHarpDiagramExpressionDirection(
-                context, staffIndex, assignment, classification, placement, isStaffValueSpecified));
+            emitGroupedDirection(
+                createHarpDiagramExpressionDirection(context, staffIndex, assignment, classification, placement, isStaffValueSpecified));
             break;
         case classify::ExpressionType::AccordionRegistration: {
-            auto direction = createAccordionRegistrationExpressionDirection(
-                context, staffIndex, assignment, classification, placement, isStaffValueSpecified);
+            auto direction =
+                createAccordionRegistrationExpressionDirection(context, staffIndex, assignment, classification, placement, isStaffValueSpecified);
             if (!direction) {
-                direction = createWordsExpressionDirection(
-                    context, staffIndex, assignment, classification, placement, isStaffValueSpecified);
+                direction = createWordsExpressionDirection(context, staffIndex, assignment, classification, placement, isStaffValueSpecified);
             }
             emitGroupedDirection(std::move(direction));
             break;
         }
-        case classify::ExpressionType::NonArpeggio:
-            appendArpeggioCandidate(context, classification.nonArpeggio().candidate);
-            break;
+        case classify::ExpressionType::NonArpeggio: appendArpeggioCandidate(context, classification.nonArpeggio().candidate); break;
         case classify::ExpressionType::PseudoTie:
             if (classification.pseudoTie().type == classify::PseudoTie::Type::LaissezVibrer) {
                 applyPseudoLvTies(context, assignment->calcAssociatedEntry());
             }
             break;
-        case classify::ExpressionType::Error:
-            context.logMessage(LogMsg() << classification.error().message, MessageSeverity::Warning);
-            break;
-        default:
-            break;
+        case classify::ExpressionType::Error: context.logMessage(LogMsg() << classification.error().message, MessageSeverity::Warning); break;
+        default: break;
         }
     }
 }

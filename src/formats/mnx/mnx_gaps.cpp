@@ -29,45 +29,35 @@ namespace formats {
 namespace mnx {
 namespace detail {
 
-void reportChordSymbolGaps(
-    const std::shared_ptr<MnxMusxMapping>& context,
-    std::string_view measureId,
-    std::optional<int> staff,
-    const MusxInstance<others::Measure>& musxMeasure,
-    StaffCmper staffId)
+void reportChordSymbolGaps(const std::shared_ptr<MnxMusxMapping>& context, std::string_view measureId, std::optional<int> staff,
+    const MusxInstance<others::Measure>& musxMeasure, StaffCmper staffId)
 {
     if (!context->denigmaContext->gapCollector) {
         return;
     }
-    const auto assignments = context->document->getDetails()->getArray<details::ChordAssign>(
-        musxMeasure->getRequestedPartId(), staffId, musxMeasure->getCmper());
+    const auto assignments =
+        context->document->getDetails()->getArray<details::ChordAssign>(musxMeasure->getRequestedPartId(), staffId, musxMeasure->getCmper());
     const auto keySignature = musxMeasure->createKeySignature(staffId);
     for (const auto& assignment : assignments) {
-        const auto classification = classify::classifyChordSymbol(
-            assignment, keySignature, KeySignature::KeyContext::Written);
+        const auto classification = classify::classifyChordSymbol(assignment, keySignature, KeySignature::KeyContext::Written);
         if (!classification) {
-            context->logMessage(LogMsg() << "could not classify chord symbol in measure "
-                << musxMeasure->getCmper() << ", staff " << staffId << ".", MessageSeverity::Warning);
+            context->logMessage(LogMsg() << "could not classify chord symbol in measure " << musxMeasure->getCmper() << ", staff " << staffId << ".",
+                MessageSeverity::Warning);
             continue;
         }
         const auto position = Fraction::fromEdu((std::max)(Edu{}, assignment->horzEdu));
         context->denigmaContext->gapCollector->add(
-            { std::string(measureId), staff,
-                GapPosition{ position.numerator(), position.denominator() } },
-            *classification);
+            {std::string(measureId), staff, GapPosition{position.numerator(), position.denominator()}}, *classification);
     }
 }
 
-void reportNoteheadGap(
-    const std::shared_ptr<MnxMusxMapping>& context,
-    std::string_view noteId,
-    const classify::NoteheadClassification& classification,
-    NoteType noteType)
+void reportNoteheadGap(const std::shared_ptr<MnxMusxMapping>& context, std::string_view noteId,
+    const classify::NoteheadClassification& classification, NoteType noteType)
 {
     if (!context->denigmaContext->gapCollector || !classification.calcOverridesDefault(noteType)) {
         return;
     }
-    context->denigmaContext->gapCollector->add({ std::string(noteId), std::nullopt, std::nullopt }, classification);
+    context->denigmaContext->gapCollector->add({std::string(noteId), std::nullopt, std::nullopt}, classification);
 }
 
 } // namespace detail

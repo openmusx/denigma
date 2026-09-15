@@ -43,10 +43,7 @@ namespace {
 // is one of its notes. MusicXML's <harmonic> is a per-note notation whose pitch child names the pitch
 // that this note's own notehead states, so every note of the pattern carries its own mark rather than
 // depending on its neighbor for meaning.
-void applyArtificialHarmonicMark(
-    mx::api::NoteData& note,
-    const NoteInfoPtr& noteInfo,
-    const classify::EntryNoteheadClassification& entryNoteheads)
+void applyArtificialHarmonicMark(mx::api::NoteData& note, const NoteInfoPtr& noteInfo, const classify::EntryNoteheadClassification& entryNoteheads)
 {
     const auto* harmonics = entryNoteheads.as<classify::entry::ArtificialHarmonics>();
     if (!harmonics) {
@@ -76,16 +73,13 @@ void applyArtificialHarmonicMark(
     // The <harmonic> attributes govern the circular harmonic symbol, which Finale does not draw for
     // these chords. Leave print-object unspecified rather than writing print-object="no": the
     // <artificial/> child already tells a consumer this is not the circle case.
-    mark.choice = mx::api::HarmonicMarkData{ mx::api::HarmonicKind::artificial, *harmonicPitch };
+    mark.choice = mx::api::HarmonicMarkData{mx::api::HarmonicKind::artificial, *harmonicPitch};
     note.noteAttachmentData.marks.emplace_back(std::move(mark));
 }
 
 } // namespace
 
-void applyNoteheadData(
-    mx::api::NoteData& note,
-    const NoteInfoPtr& noteInfo,
-    const classify::EntryNoteheadClassification& entryNoteheads)
+void applyNoteheadData(mx::api::NoteData& note, const NoteInfoPtr& noteInfo, const classify::EntryNoteheadClassification& entryNoteheads)
 {
     using Fill = classify::notehead::Fill;
     using Shape = classify::notehead::Shape;
@@ -108,11 +102,8 @@ void applyNoteheadData(
         switch (classification.shape) {
         case Shape::Other:
         case Shape::SmallSlash:
-        case Shape::LargeSlash:
-            note.noteheadSmufl = classification.glyphName;
-            break;
-        default:
-            break;
+        case Shape::LargeSlash: note.noteheadSmufl = classification.glyphName; break;
+        default: break;
         }
     }
 

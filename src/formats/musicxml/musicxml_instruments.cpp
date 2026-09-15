@@ -872,9 +872,7 @@ std::optional<MusicXmlInstrumentSound> musicXmlInstrumentSoundFromUuid(std::stri
     });
     // clang-format on
 
-    const auto iter = std::find_if(table.begin(), table.end(), [instUuid](const InstrumentSoundMapping& item) {
-        return item.instUuid == instUuid;
-    });
+    const auto iter = std::find_if(table.begin(), table.end(), [instUuid](const InstrumentSoundMapping& item) { return item.instUuid == instUuid; });
     if (iter == table.end()) {
         return std::nullopt;
     }
@@ -885,9 +883,9 @@ std::optional<MusicXmlInstrumentSound> musicXmlInstrumentSoundFromUuid(std::stri
         std::map<SoundID, unsigned> classifications;
         for (const auto& mapping : mappings) {
             switch (instrumentSoloOrEnsembleFromUuid(mapping.instUuid)) {
-                case SoloOrEnsemble::Solo: classifications[mapping.soundId] |= soloBit; break;
-                case SoloOrEnsemble::Ensemble: classifications[mapping.soundId] |= ensembleBit; break;
-                case SoloOrEnsemble::Unspecified: break;
+            case SoloOrEnsemble::Solo: classifications[mapping.soundId] |= soloBit; break;
+            case SoloOrEnsemble::Ensemble: classifications[mapping.soundId] |= ensembleBit; break;
+            case SoloOrEnsemble::Unspecified: break;
             }
         }
         std::set<SoundID> result;
@@ -899,10 +897,8 @@ std::optional<MusicXmlInstrumentSound> musicXmlInstrumentSoundFromUuid(std::stri
         return result;
     }(table);
 
-    const auto soloOrEnsemble = ambiguousSoundIds.contains(iter->soundId)
-        ? instrumentSoloOrEnsembleFromUuid(instUuid)
-        : SoloOrEnsemble::Unspecified;
-    return MusicXmlInstrumentSound{ iter->soundId, soloOrEnsemble };
+    const auto soloOrEnsemble = ambiguousSoundIds.contains(iter->soundId) ? instrumentSoloOrEnsembleFromUuid(instUuid) : SoloOrEnsemble::Unspecified;
+    return MusicXmlInstrumentSound{iter->soundId, soloOrEnsemble};
 }
 
 } // namespace detail

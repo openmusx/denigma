@@ -30,18 +30,11 @@ namespace detail {
 
 struct MnxMusxMapping;
 
-void reportChordSymbolGaps(
-    const std::shared_ptr<MnxMusxMapping>& context,
-    std::string_view measureId,
-    std::optional<int> staff,
-    const musx::dom::MusxInstance<musx::dom::others::Measure>& musxMeasure,
-    musx::dom::StaffCmper staffId);
+void reportChordSymbolGaps(const std::shared_ptr<MnxMusxMapping>& context, std::string_view measureId, std::optional<int> staff,
+    const musx::dom::MusxInstance<musx::dom::others::Measure>& musxMeasure, musx::dom::StaffCmper staffId);
 
-void reportNoteheadGap(
-    const std::shared_ptr<MnxMusxMapping>& context,
-    std::string_view noteId,
-    const classify::NoteheadClassification& classification,
-    musx::dom::NoteType noteType);
+void reportNoteheadGap(const std::shared_ptr<MnxMusxMapping>& context, std::string_view noteId,
+    const classify::NoteheadClassification& classification, musx::dom::NoteType noteType);
 
 } // namespace detail
 } // namespace mnx

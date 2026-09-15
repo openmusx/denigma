@@ -96,16 +96,16 @@ TEST(SmartShapeLinesFixture, BuiltInLinesClassify)
         int endHookDirection;
     };
     constexpr Expected expectations[] = {
-        { kSolidLineDownBoth, LineStyle::Solid, -1, -1 },
-        { kDashLineDownBoth, LineStyle::Dashed, -1, -1 },
-        { kSolidLineDown, LineStyle::Solid, 0, -1 },
-        { kDashLineDown, LineStyle::Dashed, 0, -1 },
-        { kSolidLineUpBoth, LineStyle::Solid, 1, 1 },
-        { kDashLineUpBoth, LineStyle::Dashed, 1, 1 },
-        { kSolidLineUp, LineStyle::Solid, 0, 1 },
-        { kDashLineUp, LineStyle::Dashed, 0, 1 },
-        { kSolidLine, LineStyle::Solid, 0, 0 },
-        { kDashLine, LineStyle::Dashed, 0, 0 },
+        {kSolidLineDownBoth, LineStyle::Solid, -1, -1},
+        {kDashLineDownBoth, LineStyle::Dashed, -1, -1},
+        {kSolidLineDown, LineStyle::Solid, 0, -1},
+        {kDashLineDown, LineStyle::Dashed, 0, -1},
+        {kSolidLineUpBoth, LineStyle::Solid, 1, 1},
+        {kDashLineUpBoth, LineStyle::Dashed, 1, 1},
+        {kSolidLineUp, LineStyle::Solid, 0, 1},
+        {kDashLineUp, LineStyle::Dashed, 0, 1},
+        {kSolidLine, LineStyle::Solid, 0, 0},
+        {kDashLine, LineStyle::Dashed, 0, 0},
     };
 
     // The fixture's smart shape options: hookLength 20 Evpu, smartLineWidth 118 Efix,
@@ -128,8 +128,7 @@ TEST(SmartShapeLinesFixture, BuiltInLinesClassify)
                 EXPECT_EQ(cap.type, CapType::None) << which << " cap of smart shape " << expected.shapeCmper;
             } else {
                 EXPECT_EQ(cap.type, CapType::Hook) << which << " cap of smart shape " << expected.shapeCmper;
-                EXPECT_EQ(cap.hookLength, hookDirection * expectedHookLength)
-                    << which << " cap of smart shape " << expected.shapeCmper;
+                EXPECT_EQ(cap.hookLength, hookDirection * expectedHookLength) << which << " cap of smart shape " << expected.shapeCmper;
             }
         };
         checkCap(line->startCap, expected.startHookDirection, "start");
@@ -184,8 +183,7 @@ TEST(SmartShapeLinesFixture, EntryAttachedGlissandoClassifies)
     ASSERT_TRUE(glissando->startNote);
     ASSERT_TRUE(glissando->endNote);
     // The marking spans two pitches; that is what a reader draws the line between.
-    EXPECT_NE(glissando->startNote.calcNoteProperties().noteName,
-        glissando->endNote.calcNoteProperties().noteName);
+    EXPECT_NE(glissando->startNote.calcNoteProperties().noteName, glissando->endNote.calcNoteProperties().noteName);
 }
 
 TEST(SmartShapeLinesFixture, BuiltInTrillShapesClassify)
@@ -236,7 +234,7 @@ TEST(SmartShapeLinesFixture, MultiSegmentLinesPairWithSingleHiddenOttava)
 
     // The visual segments render a bare "15" glyph, so their direction is resolved
     // entirely by pairing with the hidden quindicesima.
-    for (const Cmper segmentCmper : { kQuindicesimaSegment1, kQuindicesimaSegment2 }) {
+    for (const Cmper segmentCmper : {kQuindicesimaSegment1, kQuindicesimaSegment2}) {
         const auto classification = classifyByCmper(document, segmentCmper);
         const auto* segment = classification.as<classifiedshape::Ottava>();
         ASSERT_NE(segment, nullptr) << "smart shape " << segmentCmper;

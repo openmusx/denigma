@@ -28,18 +28,13 @@ bool isOttavaShapeType(musx::dom::others::SmartShape::ShapeType shapeType)
     case ShapeType::OctaveDown:
     case ShapeType::OctaveUp:
     case ShapeType::TwoOctaveDown:
-    case ShapeType::TwoOctaveUp:
-        return true;
-    default:
-        return false;
+    case ShapeType::TwoOctaveUp: return true;
+    default: return false;
     }
 }
 
-OttavaShapeMap collectOttavasForMeasureStaff(
-    const musx::dom::DocumentPtr& document,
-    musx::dom::Cmper partId,
-    const musx::dom::MusxInstance<musx::dom::others::Measure>& measure,
-    musx::dom::StaffCmper staffId)
+OttavaShapeMap collectOttavasForMeasureStaff(const musx::dom::DocumentPtr& document, musx::dom::Cmper partId,
+    const musx::dom::MusxInstance<musx::dom::others::Measure>& measure, musx::dom::StaffCmper staffId)
 {
     using ShapeType = musx::dom::others::SmartShape::ShapeType;
 
@@ -69,14 +64,12 @@ OttavaShapeMap collectOttavasForMeasureStaff(
         if (!ottava || !ottava->calcIsSemanticCarrier()) {
             continue;
         }
-        result.emplace(shape->getCmper(), OttavaInstance{ shape, *ottava });
+        result.emplace(shape->getCmper(), OttavaInstance{shape, *ottava});
     }
     return result;
 }
 
-int calcOttavaOctaveAdjustment(
-    const OttavaShapeMap& ottavas,
-    const musx::dom::NoteInfoPtr& noteInfo,
+int calcOttavaOctaveAdjustment(const OttavaShapeMap& ottavas, const musx::dom::NoteInfoPtr& noteInfo,
     const std::function<void(const musx::dom::NoteInfoPtr&)>& onTiedFromOutsideOttava)
 {
     int adjustment = 0;

@@ -24,8 +24,8 @@
 #include <filesystem>
 #include <optional>
 
-#include "denigma/conversion.h"
 #include "core/denigma.h"
+#include "denigma/conversion.h"
 
  //placeholder function
 
@@ -34,9 +34,7 @@ namespace formats {
 namespace mss {
 namespace detail {
 
-void convert(const CommandInputData& inputData,
-             const DenigmaContext& denigmaContext,
-             const MultiOutputCallback& outputCallback);
+void convert(const CommandInputData& inputData, const DenigmaContext& denigmaContext, const MultiOutputCallback& outputCallback);
 void convert(const std::filesystem::path& file, const CommandInputData& inputData, const DenigmaContext& denigmaContext);
 
 } // namespace detail

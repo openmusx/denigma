@@ -43,40 +43,29 @@ std::optional<Utf8Codepoint> decodeUtf8Codepoint(const char* bytes, size_t remai
             return std::nullopt;
         }
 
-        codepoint = ((data[0] & 0x1F) << 6)
-                  |  (data[1] & 0x3F);
+        codepoint = ((data[0] & 0x1F) << 6) | (data[1] & 0x3F);
 
         if (codepoint < 0x80) {
             return std::nullopt;
         }
     } else if ((data[0] & 0xF0) == 0xE0) {
         byteCount = 3;
-        if (remaining < byteCount ||
-            (data[1] & 0xC0) != 0x80 ||
-            (data[2] & 0xC0) != 0x80) {
+        if (remaining < byteCount || (data[1] & 0xC0) != 0x80 || (data[2] & 0xC0) != 0x80) {
             return std::nullopt;
         }
 
-        codepoint = ((data[0] & 0x0F) << 12)
-                  | ((data[1] & 0x3F) << 6)
-                  |  (data[2] & 0x3F);
+        codepoint = ((data[0] & 0x0F) << 12) | ((data[1] & 0x3F) << 6) | (data[2] & 0x3F);
 
         if (codepoint < 0x800) {
             return std::nullopt;
         }
     } else if ((data[0] & 0xF8) == 0xF0) {
         byteCount = 4;
-        if (remaining < byteCount ||
-            (data[1] & 0xC0) != 0x80 ||
-            (data[2] & 0xC0) != 0x80 ||
-            (data[3] & 0xC0) != 0x80) {
+        if (remaining < byteCount || (data[1] & 0xC0) != 0x80 || (data[2] & 0xC0) != 0x80 || (data[3] & 0xC0) != 0x80) {
             return std::nullopt;
         }
 
-        codepoint = ((data[0] & 0x07) << 18)
-                  | ((data[1] & 0x3F) << 12)
-                  | ((data[2] & 0x3F) << 6)
-                  |  (data[3] & 0x3F);
+        codepoint = ((data[0] & 0x07) << 18) | ((data[1] & 0x3F) << 12) | ((data[2] & 0x3F) << 6) | (data[3] & 0x3F);
 
         if (codepoint < 0x10000 || codepoint > 0x10FFFF) {
             return std::nullopt;
@@ -85,7 +74,7 @@ std::optional<Utf8Codepoint> decodeUtf8Codepoint(const char* bytes, size_t remai
         return std::nullopt;
     }
 
-    return Utf8Codepoint{ codepoint, byteCount };
+    return Utf8Codepoint{codepoint, byteCount};
 }
 } // namespace
 
@@ -112,10 +101,7 @@ void Utf8Iterator::decodeCurrent()
         return;
     }
 
-    auto decoded = decodeUtf8Codepoint(
-        m_text.data() + m_offset,
-        m_text.size() - m_offset
-    );
+    auto decoded = decodeUtf8Codepoint(m_text.data() + m_offset, m_text.size() - m_offset);
 
     if (!decoded) {
         m_valid = false;
@@ -144,4 +130,5 @@ std::optional<char32_t> utf8ToCodepoint(const std::string& utf8)
     }
 
     return result;
-}} // namespace utils
+}
+} // namespace utils

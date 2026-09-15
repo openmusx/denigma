@@ -72,13 +72,10 @@ constexpr MusicXmlOttavaEndpointAdjustment MUSICXML_OTTAVA_ENDPOINT_ADJUSTMENT{
 // assigns the MusicXML number attribute from true serialization order at write time.
 mx::api::SpannerNumber smartShapeSpannerNumber(const MusxInstance<others::SmartShape>& shape)
 {
-    return mx::api::SpannerNumber{ std::to_string(shape->getCmper()) };
+    return mx::api::SpannerNumber{std::to_string(shape->getCmper())};
 }
 
-std::optional<MusicXmlNoteLocation> findEntryNoteLocation(
-    const MusicXmlMusxMapping& context,
-    const EntryInfoPtr& entryInfo,
-    NoteNumber noteId)
+std::optional<MusicXmlNoteLocation> findEntryNoteLocation(const MusicXmlMusxMapping& context, const EntryInfoPtr& entryInfo, NoteNumber noteId)
 {
     if (!entryInfo) {
         return std::nullopt;
@@ -128,10 +125,7 @@ int calcOttavaStartTick(const MusicXmlMusxMapping& context, const std::shared_pt
     return tick;
 }
 
-int calcOttavaStopTick(
-    const MusicXmlMusxMapping& context,
-    const std::shared_ptr<smartshape::EndPoint>& endpoint,
-    const mx::api::StaffData& staff)
+int calcOttavaStopTick(const MusicXmlMusxMapping& context, const std::shared_ptr<smartshape::EndPoint>& endpoint, const mx::api::StaffData& staff)
 {
     const auto tick = calcEndpointTick(context, endpoint);
     if (!MUSICXML_OTTAVA_ENDPOINT_ADJUSTMENT.enabled || !MUSICXML_OTTAVA_ENDPOINT_ADJUSTMENT.stopAfterEntriesAtEnd) {
@@ -140,13 +134,8 @@ int calcOttavaStopTick(
     return calcTickAfterEntriesStartingAt(staff, tick);
 }
 
-mx::api::DirectionData createSmartShapeDirection(
-    MusicXmlMusxMapping& context,
-    const std::shared_ptr<smartshape::EndPoint>& endpoint,
-    StaffCmper staffId,
-    size_t staffIndex,
-    VerticalPlacement placement,
-    std::optional<int> tickTimePosition = std::nullopt)
+mx::api::DirectionData createSmartShapeDirection(MusicXmlMusxMapping& context, const std::shared_ptr<smartshape::EndPoint>& endpoint,
+    StaffCmper staffId, size_t staffIndex, VerticalPlacement placement, std::optional<int> tickTimePosition = std::nullopt)
 {
     auto direction = mx::api::DirectionData{};
     direction.tickTimePosition = tickTimePosition.value_or(calcEndpointTick(context, endpoint));
@@ -164,8 +153,7 @@ struct MusicXmlEndpointStaffLocation
 };
 
 std::optional<MusicXmlEndpointStaffLocation> staffLocationForEndpoint(
-    MusicXmlMusxMapping& context,
-    const std::shared_ptr<smartshape::EndPoint>& endpoint)
+    MusicXmlMusxMapping& context, const std::shared_ptr<smartshape::EndPoint>& endpoint)
 {
     if (!context.currentPart || !endpoint) {
         return std::nullopt;
@@ -173,9 +161,8 @@ std::optional<MusicXmlEndpointStaffLocation> staffLocationForEndpoint(
 
     const auto measureNumber = std::to_string(endpoint->measId);
     const auto& measures = context.currentPart->measures;
-    const auto measureIt = std::ranges::find_if(measures, [&measureNumber](const mx::api::MeasureData& measure) {
-        return measure.number == measureNumber;
-    });
+    const auto measureIt =
+        std::ranges::find_if(measures, [&measureNumber](const mx::api::MeasureData& measure) { return measure.number == measureNumber; });
     if (measureIt == measures.end()) {
         return std::nullopt;
     }
@@ -194,12 +181,10 @@ std::optional<MusicXmlEndpointStaffLocation> staffLocationForEndpoint(
     if (staffIndex >= measureIt->staves.size()) {
         return std::nullopt;
     }
-    return MusicXmlEndpointStaffLocation{ measureIndex, staffIndex };
+    return MusicXmlEndpointStaffLocation{measureIndex, staffIndex};
 }
 
-mx::api::StaffData* staffDataForEndpoint(
-    MusicXmlMusxMapping& context,
-    const std::shared_ptr<smartshape::EndPoint>& endpoint)
+mx::api::StaffData* staffDataForEndpoint(MusicXmlMusxMapping& context, const std::shared_ptr<smartshape::EndPoint>& endpoint)
 {
     if (!endpoint || !endpoint->calcIsAssigned()) {
         return nullptr;
@@ -217,9 +202,7 @@ mx::api::StaffData* staffDataForEndpoint(
 // horizontal position: readers re-lay out these notations from their anchors and ignore exported
 // offsets. Idempotent: concurrent floating endpoints at one tick share a single anchor rest, and
 // re-resolving an endpoint returns its current location.
-std::optional<MusicXmlNoteLocation> createFloatingSpanAnchor(
-    MusicXmlMusxMapping& context,
-    const std::shared_ptr<smartshape::EndPoint>& endpoint)
+std::optional<MusicXmlNoteLocation> createFloatingSpanAnchor(MusicXmlMusxMapping& context, const std::shared_ptr<smartshape::EndPoint>& endpoint)
 {
     const auto staffLocation = staffLocationForEndpoint(context, endpoint);
     if (!staffLocation) {
@@ -244,8 +227,7 @@ std::optional<MusicXmlNoteLocation> createFloatingSpanAnchor(
         /// for the last entry tick, so the anchor aligns with the latest sounding event
         /// under the endpoint. Probably belongs in a musxdom helper.
         const auto measureDurationEdu = musxMeasure->calcDuration().calcEduDuration();
-        const auto beatValue = musxMeasure->createTimeSignature(endpoint->staffId)
-            ->calcBeatValueAt((std::max)(0, measureDurationEdu - 1));
+        const auto beatValue = musxMeasure->createTimeSignature(endpoint->staffId)->calcBeatValueAt((std::max)(0, measureDurationEdu - 1));
         const auto beatTicks = context.timing.calcNearestMusicXmlDivisions(beatValue);
         int anchorTick = (std::max)(0, measureTicks - beatTicks);
         for (const auto& [voiceIndex, staffVoice] : staff.voices) {
@@ -283,24 +265,24 @@ std::optional<MusicXmlNoteLocation> createFloatingSpanAnchor(
     // subdivision of a quarter that the divisions grid expresses exactly and that
     // fits the available gap.
     const auto anchorDuration = [&context](int maxTicks) -> std::pair<int, mx::api::DurationName> {
-        constexpr std::array<std::pair<int, mx::api::DurationName>, 6> subdivisions{ {
-            { 1, mx::api::DurationName::quarter },
-            { 2, mx::api::DurationName::eighth },
-            { 4, mx::api::DurationName::dur16th },
-            { 8, mx::api::DurationName::dur32nd },
-            { 16, mx::api::DurationName::dur64th },
-            { 32, mx::api::DurationName::dur128th },
-        } };
+        constexpr std::array<std::pair<int, mx::api::DurationName>, 6> subdivisions{{
+            {1, mx::api::DurationName::quarter},
+            {2, mx::api::DurationName::eighth},
+            {4, mx::api::DurationName::dur16th},
+            {8, mx::api::DurationName::dur32nd},
+            {16, mx::api::DurationName::dur64th},
+            {32, mx::api::DurationName::dur128th},
+        }};
         for (const auto& [divisor, name] : subdivisions) {
             if (context.timing.divisions % divisor != 0) {
                 continue;
             }
             const int ticks = context.timing.divisions / divisor;
             if (ticks <= maxTicks) {
-                return { ticks, name };
+                return {ticks, name};
             }
         }
-        return { (std::max)(1, maxTicks), mx::api::DurationName::dur128th };
+        return {(std::max)(1, maxTicks), mx::api::DurationName::dur128th};
     };
 
     const auto nextTick = insertIt != voice.notes.end() ? insertIt->tickTimePosition : measureTicks;
@@ -315,8 +297,7 @@ std::optional<MusicXmlNoteLocation> createFloatingSpanAnchor(
         // reaches past the new one.
         auto& previous = *std::prev(insertIt);
         if (previous.tickTimePosition + previous.durationData.durationTimeTicks > tick) {
-            std::tie(previous.durationData.durationTimeTicks, previous.durationData.durationName) =
-                anchorDuration(tick - previous.tickTimePosition);
+            std::tie(previous.durationData.durationTimeTicks, previous.durationData.durationName) = anchorDuration(tick - previous.tickTimePosition);
         }
     }
     voice.notes.insert(insertIt, std::move(rest));
@@ -340,10 +321,7 @@ struct MusicXmlSpanEndpoints
 // re-resolved afterward: when both share the anchor voice, the second insertion can shift the
 // first anchor's note index.
 MusicXmlSpanEndpoints resolveSpanEndpoints(
-    MusicXmlMusxMapping& context,
-    const MusxInstance<others::SmartShape>& shape,
-    const EntryInfoPtr& startEntry,
-    const EntryInfoPtr& endEntry)
+    MusicXmlMusxMapping& context, const MusxInstance<others::SmartShape>& shape, const EntryInfoPtr& startEntry, const EntryInfoPtr& endEntry)
 {
     MusicXmlSpanEndpoints result;
     result.start.location = findEntryNoteLocation(context, startEntry, shape->startNoteId);
@@ -364,9 +342,7 @@ MusicXmlSpanEndpoints resolveSpanEndpoints(
 }
 
 bool processSlur(
-    MusicXmlMusxMapping& context,
-    const MusxInstance<others::SmartShape>& shape,
-    const classify::SmartShapeClassification& classification)
+    MusicXmlMusxMapping& context, const MusxInstance<others::SmartShape>& shape, const classify::SmartShapeClassification& classification)
 {
     const auto* slur = classification.as<classify::smartshape::Slur>();
     if (!slur) {
@@ -377,8 +353,8 @@ bool processSlur(
     const bool startIsFloating = endpoints.start.isFloating;
     const bool endIsFloating = endpoints.end.isFloating;
     if (!endpoints.start.location || !endpoints.end.location) {
-        context.logMessage(LogMsg() << "Omitting slur smart shape " << shape->getCmper()
-            << " because an endpoint could not be attached or anchored.", MessageSeverity::Verbose);
+        context.logMessage(LogMsg() << "Omitting slur smart shape " << shape->getCmper() << " because an endpoint could not be attached or anchored.",
+            MessageSeverity::Verbose);
         return false;
     }
 
@@ -390,12 +366,13 @@ bool processSlur(
 
     // A floating endpoint's vertical position is layout-independent (EVPU relative to
     // the top staff line, as is MusicXML default-y), so it survives the anchor hop.
-    const auto applyFloatingOffset = [&context](mx::api::CurvePoints& curvePoints, const std::shared_ptr<others::SmartShape::TerminationSeg>& termSeg) {
+    const auto applyFloatingOffset = [&context](
+                                         mx::api::CurvePoints& curvePoints, const std::shared_ptr<others::SmartShape::TerminationSeg>& termSeg) {
         curvePoints.positionData.isDefaultYSpecified = true;
         curvePoints.positionData.defaultY = context.musicXmlTenthsFromEvpu(termSeg->endPointAdj->calcVertOffset());
     };
 
-    auto start = mx::api::CurveStart{ mx::api::CurveType::slur };
+    auto start = mx::api::CurveStart{mx::api::CurveType::slur};
     start.number = smartShapeSpannerNumber(shape);
     start.curveOrientation = enumConvert<mx::api::CurveOrientation>(slur->contour);
     if (shape->calcIsDashed()) {
@@ -405,7 +382,7 @@ bool processSlur(
         applyFloatingOffset(start.curvePoints, shape->startTermSeg);
     }
     startNote->noteAttachmentData.curveStarts.emplace_back(std::move(start));
-    auto stop = mx::api::CurveStop{ mx::api::CurveType::slur };
+    auto stop = mx::api::CurveStop{mx::api::CurveType::slur};
     stop.number = smartShapeSpannerNumber(shape);
     if (endIsFloating) {
         applyFloatingOffset(stop.curvePoints, shape->endTermSeg);
@@ -414,18 +391,15 @@ bool processSlur(
     return true;
 }
 
-void processArpeggiatedTie(
-    MusicXmlMusxMapping& context,
-    const classify::smartshape::ArpeggiatedTie& arpeggiatedTie)
+void processArpeggiatedTie(MusicXmlMusxMapping& context, const classify::smartshape::ArpeggiatedTie& arpeggiatedTie)
 {
-    ASSERT_IF(!arpeggiatedTie.tiedFrom || !arpeggiatedTie.tiedTo) {
+    ASSERT_IF(!arpeggiatedTie.tiedFrom || !arpeggiatedTie.tiedTo)
+    {
         return;
     }
 
-    const auto startLocation = findEntryNoteLocation(
-        context, arpeggiatedTie.tiedFrom.getEntryInfo(), arpeggiatedTie.tiedFrom->getNoteId());
-    const auto endLocation = findEntryNoteLocation(
-        context, arpeggiatedTie.tiedTo.getEntryInfo(), arpeggiatedTie.tiedTo->getNoteId());
+    const auto startLocation = findEntryNoteLocation(context, arpeggiatedTie.tiedFrom.getEntryInfo(), arpeggiatedTie.tiedFrom->getNoteId());
+    const auto endLocation = findEntryNoteLocation(context, arpeggiatedTie.tiedTo.getEntryInfo(), arpeggiatedTie.tiedTo->getNoteId());
     if (!startLocation || !endLocation) {
         return;
     }
@@ -440,13 +414,8 @@ void processArpeggiatedTie(
     endNote->isTieStop = true;
 }
 
-void appendHairpin(
-    MusicXmlMusxMapping& context,
-    mx::api::StaffData& staff,
-    StaffCmper staffId,
-    size_t staffIndex,
-    const MusxInstance<others::SmartShape>& shape,
-    mx::api::WedgeType wedgeType)
+void appendHairpin(MusicXmlMusxMapping& context, mx::api::StaffData& staff, StaffCmper staffId, size_t staffIndex,
+    const MusxInstance<others::SmartShape>& shape, mx::api::WedgeType wedgeType)
 {
     if (shape->hidden) {
         return;
@@ -491,13 +460,8 @@ std::optional<mx::api::OttavaType> ottavaTypeFromOctaveShift(int octaveShift)
     }
 }
 
-void appendOttava(
-    MusicXmlMusxMapping& context,
-    mx::api::StaffData& staff,
-    StaffCmper staffId,
-    size_t staffIndex,
-    const MusxInstance<others::SmartShape>& shape,
-    const classify::smartshape::Ottava& ottava)
+void appendOttava(MusicXmlMusxMapping& context, mx::api::StaffData& staff, StaffCmper staffId, size_t staffIndex,
+    const MusxInstance<others::SmartShape>& shape, const classify::smartshape::Ottava& ottava)
 {
     if (!ottava.calcIsSemanticCarrier()) {
         // A paired visual custom line: its hidden counterpart carries the octave shift.
@@ -513,19 +477,17 @@ void appendOttava(
     }
     const auto ottavaType = ottavaTypeFromOctaveShift(ottava.octaveShift);
     if (!ottavaType) {
-        context.logMessage(LogMsg() << "Skipping ottava smart shape " << shape->getCmper()
-            << " with octave shift " << ottava.octaveShift
-            << " because mx::api cannot express this octave shift.", MessageSeverity::Warning);
+        context.logMessage(LogMsg() << "Skipping ottava smart shape " << shape->getCmper() << " with octave shift " << ottava.octaveShift
+                                    << " because mx::api cannot express this octave shift.",
+            MessageSeverity::Warning);
         return;
     }
 
     // A hidden carrier has no meaningful endpoint geometry of its own; place it by
     // its direction, which is how its (possibly text-expression) proxy reads.
-    const auto placement = shape->hidden
-        ? (ottava.octaveShift > 0 ? VerticalPlacement::Above : VerticalPlacement::Below)
-        : shape->calcVerticalPlacementForBeatAttached();
-    auto startDirection = createSmartShapeDirection(
-        context, startPoint, staffId, staffIndex, placement, calcOttavaStartTick(context, startPoint));
+    const auto placement = shape->hidden ? (ottava.octaveShift > 0 ? VerticalPlacement::Above : VerticalPlacement::Below)
+                                         : shape->calcVerticalPlacementForBeatAttached();
+    auto startDirection = createSmartShapeDirection(context, startPoint, staffId, staffIndex, placement, calcOttavaStartTick(context, startPoint));
     auto ottavaStart = mx::api::OttavaStart{};
     ottavaStart.ottavaType = *ottavaType;
     ottavaStart.writeDefaultSize = true;
@@ -535,8 +497,8 @@ void appendOttava(
     staff.directions.emplace_back(std::move(startDirection));
 
     if (auto* stopStaff = staffDataForEndpoint(context, endPoint)) {
-        auto stopDirection = createSmartShapeDirection(
-            context, endPoint, staffId, staffIndex, placement, calcOttavaStopTick(context, endPoint, *stopStaff));
+        auto stopDirection =
+            createSmartShapeDirection(context, endPoint, staffId, staffIndex, placement, calcOttavaStopTick(context, endPoint, *stopStaff));
         auto ottavaStop = mx::api::OttavaStop{};
         ottavaStop.spannerStop.tickTimePosition = stopDirection.tickTimePosition;
         ottavaStop.spannerStop.number = smartShapeSpannerNumber(shape);
@@ -545,29 +507,17 @@ void appendOttava(
     }
 }
 
-bool isPedalChange(
-    const std::optional<classify::KeyboardPedalClassification>& marking,
-    classify::smartshape::KeyboardPedal::CapType cap)
+bool isPedalChange(const std::optional<classify::KeyboardPedalClassification>& marking, classify::smartshape::KeyboardPedal::CapType cap)
 {
     return cap == classify::smartshape::KeyboardPedal::CapType::PedalChange
-        || (marking && marking->type == classify::keyboardpedal::Type::PedalChange);
+           || (marking && marking->type == classify::keyboardpedal::Type::PedalChange);
 }
 
-void appendGeneralLine(
-    MusicXmlMusxMapping& context,
-    mx::api::StaffData& staff,
-    StaffCmper staffId,
-    size_t staffIndex,
-    const MusxInstance<others::SmartShape>& shape,
-    const classify::smartshape::GeneralLine& line);
+void appendGeneralLine(MusicXmlMusxMapping& context, mx::api::StaffData& staff, StaffCmper staffId, size_t staffIndex,
+    const MusxInstance<others::SmartShape>& shape, const classify::smartshape::GeneralLine& line);
 
-void appendKeyboardPedal(
-    MusicXmlMusxMapping& context,
-    mx::api::StaffData& staff,
-    StaffCmper staffId,
-    size_t staffIndex,
-    const MusxInstance<others::SmartShape>& shape,
-    const classify::smartshape::KeyboardPedal& pedal)
+void appendKeyboardPedal(MusicXmlMusxMapping& context, mx::api::StaffData& staff, StaffCmper staffId, size_t staffIndex,
+    const MusxInstance<others::SmartShape>& shape, const classify::smartshape::KeyboardPedal& pedal)
 {
     const auto startPoint = shape->startTermSeg->endPoint;
     const auto endPoint = shape->endTermSeg->endPoint;
@@ -598,10 +548,8 @@ void appendKeyboardPedal(
             return;
         }
         // mx::api's pedal marks are the way to request sign="yes" with line="no".
-        startDirection.directionTypes.emplace_back(
-            mx::api::MarkData{ enumConvert<mx::api::Placement>(placement), mx::api::MarkType::pedal });
-        stopDirection.directionTypes.emplace_back(
-            mx::api::MarkData{ enumConvert<mx::api::Placement>(placement), mx::api::MarkType::damp });
+        startDirection.directionTypes.emplace_back(mx::api::MarkData{enumConvert<mx::api::Placement>(placement), mx::api::MarkType::pedal});
+        stopDirection.directionTypes.emplace_back(mx::api::MarkData{enumConvert<mx::api::Placement>(placement), mx::api::MarkType::damp});
     } else {
         auto start = mx::api::PedalLineData{};
         auto stop = mx::api::PedalLineData{};
@@ -610,11 +558,9 @@ void appendKeyboardPedal(
         start.positionData.placement = enumConvert<mx::api::Placement>(placement);
         stop.positionData.placement = enumConvert<mx::api::Placement>(placement);
         start.kind = isPedalChange(pedal.startText, pedal.startCap)
-            ? mx::api::PedalLineKind::change
-            : (pedal.isSostPedal() ? mx::api::PedalLineKind::sostenuto : mx::api::PedalLineKind::start);
-        stop.kind = isPedalChange(pedal.endText, pedal.endCap)
-            ? mx::api::PedalLineKind::change
-            : mx::api::PedalLineKind::stop;
+                         ? mx::api::PedalLineKind::change
+                         : (pedal.isSostPedal() ? mx::api::PedalLineKind::sostenuto : mx::api::PedalLineKind::start);
+        stop.kind = isPedalChange(pedal.endText, pedal.endCap) ? mx::api::PedalLineKind::change : mx::api::PedalLineKind::stop;
         startDirection.directionTypes.emplace_back(std::move(start));
         stopDirection.directionTypes.emplace_back(std::move(stop));
     }
@@ -625,8 +571,7 @@ void appendKeyboardPedal(
 
 double tenthsFromEfix(Efix value)
 {
-    return (static_cast<double>(value) / EFIX_PER_EVPU)
-        * (MUSICXML_DEFAULT_TENTHS_PER_STAFF / EVPU_PER_STANDARD_STAFF);
+    return (static_cast<double>(value) / EFIX_PER_EVPU) * (MUSICXML_DEFAULT_TENTHS_PER_STAFF / EVPU_PER_STANDARD_STAFF);
 }
 
 mx::api::LineHook lineHookFromCap(const classify::smartshape::LineCap& cap)
@@ -643,8 +588,7 @@ mx::api::LineHook lineHookFromCap(const classify::smartshape::LineCap& cap)
         // Arrowhead geometry is unrepresentable in MusicXML; line-end="arrow" is the
         // closest expressible form.
         return mx::api::LineHook::arrow;
-    case CapType::None:
-        break;
+    case CapType::None: break;
     }
     return mx::api::LineHook::none;
 }
@@ -675,13 +619,8 @@ void applyGeneralLineDashes(const classify::smartshape::GeneralLine& line, mx::a
     }
 }
 
-void appendGeneralLine(
-    MusicXmlMusxMapping& context,
-    mx::api::StaffData& staff,
-    StaffCmper staffId,
-    size_t staffIndex,
-    const MusxInstance<others::SmartShape>& shape,
-    const classify::smartshape::GeneralLine& line)
+void appendGeneralLine(MusicXmlMusxMapping& context, mx::api::StaffData& staff, StaffCmper staffId, size_t staffIndex,
+    const MusxInstance<others::SmartShape>& shape, const classify::smartshape::GeneralLine& line)
 {
     const auto startPoint = shape->startTermSeg->endPoint;
     const auto endPoint = shape->endTermSeg->endPoint;
@@ -694,12 +633,13 @@ void appendGeneralLine(
     }
 
     if (line.continuationText) {
-        context.logMessage(LogMsg() << "Omitting continuation text of custom line smart shape "
-            << shape->getCmper() << ": MusicXML has no continuation-text concept.", MessageSeverity::Verbose);
+        context.logMessage(LogMsg() << "Omitting continuation text of custom line smart shape " << shape->getCmper()
+                                    << ": MusicXML has no continuation-text concept.",
+            MessageSeverity::Verbose);
     }
     if (line.centerFullText || line.centerAbbrText) {
-        context.logMessage(LogMsg() << "Omitting center text of custom line smart shape "
-            << shape->getCmper() << ": MusicXML has no equivalent outside of glissando text.",
+        context.logMessage(LogMsg() << "Omitting center text of custom line smart shape " << shape->getCmper()
+                                    << ": MusicXML has no equivalent outside of glissando text.",
             MessageSeverity::Verbose);
     }
 
@@ -712,8 +652,8 @@ void appendGeneralLine(
     appendMusicXmlWordsRun(startDirection, std::move(startWords));
 
     if (line.lineVisible) {
-        const bool hasCaps = line.startCap.type != classify::smartshape::LineCap::Type::None
-            || line.endCap.type != classify::smartshape::LineCap::Type::None;
+        const bool hasCaps =
+            line.startCap.type != classify::smartshape::LineCap::Type::None || line.endCap.type != classify::smartshape::LineCap::Type::None;
         auto start = mx::api::SpannerStart{};
         auto stop = mx::api::SpannerStop{};
         start.tickTimePosition = startDirection.tickTimePosition;
@@ -750,8 +690,8 @@ void appendGeneralLine(
     const bool startHasContent = !startDirection.directionTypes.empty();
     const bool stopHasContent = !stopDirection.directionTypes.empty();
     if (!startHasContent && !stopHasContent) {
-        context.logMessage(LogMsg() << "Omitting custom line smart shape " << shape->getCmper()
-            << " with no expressible MusicXML content.", MessageSeverity::Verbose);
+        context.logMessage(LogMsg() << "Omitting custom line smart shape " << shape->getCmper() << " with no expressible MusicXML content.",
+            MessageSeverity::Verbose);
         return;
     }
     if (startHasContent) {
@@ -774,14 +714,12 @@ void appendGeneralLine(
 mx::api::GlissandoType glissandoTypeForShape(const MusxInstance<others::SmartShape>& shape)
 {
     switch (shape->shapeType) {
-    case others::SmartShape::ShapeType::Glissando:
-        return mx::api::GlissandoType::glissando;
-    case others::SmartShape::ShapeType::TabSlide:
-        return mx::api::GlissandoType::slide;
-    default:
-        break;
+    case others::SmartShape::ShapeType::Glissando: return mx::api::GlissandoType::glissando;
+    case others::SmartShape::ShapeType::TabSlide: return mx::api::GlissandoType::slide;
+    default: break;
     }
-    ASSERT_IF(true) {
+    ASSERT_IF(true)
+    {
         throw std::logic_error("Glissando classification from unexpected smart shape type.");
     }
     return mx::api::GlissandoType::glissando;
@@ -791,14 +729,12 @@ mx::api::GlissandoType glissandoTypeForShape(const MusxInstance<others::SmartSha
 // these elements are the one place MusicXML has for it; the start and end texts stand in when
 // there is no center text. The element carries a single unformatted string, so a label's own font
 // and styling cannot survive.
-std::string glissandoText(
-    MusicXmlMusxMapping& context,
-    const classify::smartshape::GeneralLine& line)
+std::string glissandoText(MusicXmlMusxMapping& context, const classify::smartshape::GeneralLine& line)
 {
-    const auto& source = line.centerFullText ? line.centerFullText
-        : line.centerAbbrText ? line.centerAbbrText
-        : line.startText ? line.startText
-        : line.endText;
+    const auto& source = line.centerFullText   ? line.centerFullText
+                         : line.centerAbbrText ? line.centerAbbrText
+                         : line.startText      ? line.startText
+                                               : line.endText;
     if (!source) {
         return {};
     }
@@ -811,36 +747,32 @@ std::string glissandoText(
     return result;
 }
 
-void appendGlissando(
-    MusicXmlMusxMapping& context,
-    const MusxInstance<others::SmartShape>& shape,
-    const classify::smartshape::Glissando& glissando)
+void appendGlissando(MusicXmlMusxMapping& context, const MusxInstance<others::SmartShape>& shape, const classify::smartshape::Glissando& glissando)
 {
-    const auto startLocation = findEntryNoteLocation(
-        context, glissando.startNote.getEntryInfo(), glissando.startNote->getNoteId());
-    const auto endLocation = findEntryNoteLocation(
-        context, glissando.endNote.getEntryInfo(), glissando.endNote->getNoteId());
+    const auto startLocation = findEntryNoteLocation(context, glissando.startNote.getEntryInfo(), glissando.startNote->getNoteId());
+    const auto endLocation = findEntryNoteLocation(context, glissando.endNote.getEntryInfo(), glissando.endNote->getNoteId());
     auto* startNote = startLocation ? noteDataAt(context, *startLocation) : nullptr;
     auto* endNote = endLocation ? noteDataAt(context, *endLocation) : nullptr;
     if (!startNote || !endNote) {
         // These markings are note-attached by nature, so unlike a curve there is no anchor rest
         // that could stand in for a missing endpoint note.
-        context.logMessage(LogMsg() << "Omitting glissando smart shape " << shape->getCmper()
-            << " because an endpoint note is not in the exported music.", MessageSeverity::Verbose);
+        context.logMessage(
+            LogMsg() << "Omitting glissando smart shape " << shape->getCmper() << " because an endpoint note is not in the exported music.",
+            MessageSeverity::Verbose);
         return;
     }
 
     const auto glissandoType = glissandoTypeForShape(shape);
     const auto lineType = lineTypeFromGeneralLine(glissando.line);
 
-    auto start = mx::api::GlissandoStart{ glissandoType };
+    auto start = mx::api::GlissandoStart{glissandoType};
     start.number = smartShapeSpannerNumber(shape);
     start.text = glissandoText(context, glissando.line);
     start.lineData.lineType = lineType;
     applyGeneralLineDashes(glissando.line, start.lineData);
     startNote->noteAttachmentData.glissandoStarts.emplace_back(std::move(start));
 
-    auto stop = mx::api::GlissandoStop{ glissandoType };
+    auto stop = mx::api::GlissandoStop{glissandoType};
     stop.number = smartShapeSpannerNumber(shape);
     stop.lineData.lineType = lineType;
     applyGeneralLineDashes(glissando.line, stop.lineData);
@@ -853,8 +785,7 @@ void appendGlissando(
 // so passing one through would silently substitute the wrong glyph.
 bool isMusicXmlWavyLineGlyph(std::string_view glyphName)
 {
-    return glyphName.starts_with("wiggle")
-        || (glyphName.starts_with("guitar") && glyphName.ends_with("VibratoStroke"));
+    return glyphName.starts_with("wiggle") || (glyphName.starts_with("guitar") && glyphName.ends_with("VibratoStroke"));
 }
 
 // True when the shape covers music rather than sitting at a single point. A trill drawn without a
@@ -876,16 +807,13 @@ bool shapeSpansMusic(const MusxInstance<others::SmartShape>& shape)
 // An ornament belongs to a note. A curve endpoint can hang in empty space and needs an anchor of
 // its own, but a trill that begins halfway through a whole note is still that whole note's trill,
 // and MusicXML has no way to say otherwise. Finale's own export attaches these the same way.
-std::optional<MusicXmlNoteLocation> findSoundingNoteLocation(
-    MusicXmlMusxMapping& context,
-    const std::shared_ptr<smartshape::EndPoint>& endpoint)
+std::optional<MusicXmlNoteLocation> findSoundingNoteLocation(MusicXmlMusxMapping& context, const std::shared_ptr<smartshape::EndPoint>& endpoint)
 {
     const auto staffLocation = staffLocationForEndpoint(context, endpoint);
     if (!staffLocation) {
         return std::nullopt;
     }
-    const auto& staff = context.currentPart->measures[staffLocation->measureIndex]
-        .staves[staffLocation->staffIndex];
+    const auto& staff = context.currentPart->measures[staffLocation->measureIndex].staves[staffLocation->staffIndex];
     const auto tick = calcEndpointTick(context, endpoint);
 
     for (const auto& [voiceIndex, voice] : staff.voices) {
@@ -909,15 +837,11 @@ std::optional<MusicXmlNoteLocation> findSoundingNoteLocation(
 }
 
 // Trill extensions and vibrato lines are both `<ornaments><wavy-line>` pairs.
-void appendWavyLine(
-    MusicXmlMusxMapping& context,
-    const MusxInstance<others::SmartShape>& shape,
-    const std::optional<std::string>& glyphName)
+void appendWavyLine(MusicXmlMusxMapping& context, const MusxInstance<others::SmartShape>& shape, const std::optional<std::string>& glyphName)
 {
     // An endpoint that coincides with no entry still belongs to whatever is sounding under it, so
     // unlike a curve this looks for a spanning note before resorting to an anchor rest.
-    const auto resolveEnd = [&context](const std::shared_ptr<smartshape::EndPoint>& endpoint,
-                                       const EntryInfoPtr& entry, NoteNumber noteId) {
+    const auto resolveEnd = [&context](const std::shared_ptr<smartshape::EndPoint>& endpoint, const EntryInfoPtr& entry, NoteNumber noteId) {
         if (auto location = findEntryNoteLocation(context, entry, noteId)) {
             return location;
         }
@@ -928,15 +852,14 @@ void appendWavyLine(
     };
 
     MusicXmlSpanEndpoints endpoints;
-    endpoints.start.location = resolveEnd(shape->startTermSeg->endPoint,
-        shape->startTermSeg->endPoint->calcAssociatedEntry(), shape->startNoteId);
-    endpoints.end.location = resolveEnd(shape->endTermSeg->endPoint,
-        shape->endTermSeg->endPoint->calcAssociatedEntry(), shape->endNoteId);
+    endpoints.start.location = resolveEnd(shape->startTermSeg->endPoint, shape->startTermSeg->endPoint->calcAssociatedEntry(), shape->startNoteId);
+    endpoints.end.location = resolveEnd(shape->endTermSeg->endPoint, shape->endTermSeg->endPoint->calcAssociatedEntry(), shape->endNoteId);
     auto* startNote = endpoints.start.location ? noteDataAt(context, *endpoints.start.location) : nullptr;
     auto* endNote = endpoints.end.location ? noteDataAt(context, *endpoints.end.location) : nullptr;
     if (!startNote || !endNote) {
-        context.logMessage(LogMsg() << "Omitting wavy line of smart shape " << shape->getCmper()
-            << " because an endpoint could not be attached or anchored.", MessageSeverity::Verbose);
+        context.logMessage(
+            LogMsg() << "Omitting wavy line of smart shape " << shape->getCmper() << " because an endpoint could not be attached or anchored.",
+            MessageSeverity::Verbose);
         return;
     }
 
@@ -955,10 +878,7 @@ void appendWavyLine(
     endNote->noteAttachmentData.wavyLineStops.emplace_back(std::move(stop));
 }
 
-void appendTrillLine(
-    MusicXmlMusxMapping& context,
-    const MusxInstance<others::SmartShape>& shape,
-    const classify::smartshape::TrillLine& trillLine)
+void appendTrillLine(MusicXmlMusxMapping& context, const MusxInstance<others::SmartShape>& shape, const classify::smartshape::TrillLine& trillLine)
 {
     if (trillLine.includesTrSymbol) {
         const auto startEntry = shape->startTermSeg->endPoint->calcAssociatedEntry();
@@ -970,46 +890,43 @@ void appendTrillLine(
             note->noteAttachmentData.marks.emplace_back(std::move(mark));
         } else {
             // The extension can still be anchored, so lose only the symbol.
-            context.logMessage(LogMsg() << "Omitting trill symbol of smart shape " << shape->getCmper()
-                << " because no note is associated with its start point.", MessageSeverity::Verbose);
+            context.logMessage(
+                LogMsg() << "Omitting trill symbol of smart shape " << shape->getCmper() << " because no note is associated with its start point.",
+                MessageSeverity::Verbose);
         }
     }
     if (shapeSpansMusic(shape)) {
         appendWavyLine(context, shape, trillLine.line ? trillLine.line->lineCharGlyphName : std::nullopt);
     } else if (!trillLine.includesTrSymbol) {
         // No symbol and no extent leaves nothing to write.
-        context.logMessage(LogMsg() << "Omitting trill extension smart shape " << shape->getCmper()
-            << " because it spans no music.", MessageSeverity::Verbose);
+        context.logMessage(
+            LogMsg() << "Omitting trill extension smart shape " << shape->getCmper() << " because it spans no music.", MessageSeverity::Verbose);
     }
 }
 
 void processSmartShapesForStaff(
-    MusicXmlMusxMapping& context,
-    mx::api::StaffData& staff,
-    const MusxInstance<others::Measure>& musxMeasure,
-    StaffCmper staffId,
-    size_t staffIndex)
+    MusicXmlMusxMapping& context, mx::api::StaffData& staff, const MusxInstance<others::Measure>& musxMeasure, StaffCmper staffId, size_t staffIndex)
 {
     if (!musxMeasure->hasSmartShape) {
         return;
     }
 
-    const auto assigns = context.document->getOthers()->getArray<others::SmartShapeMeasureAssign>(
-        musxMeasure->getRequestedPartId(), musxMeasure->getCmper());
+    const auto assigns =
+        context.document->getOthers()->getArray<others::SmartShapeMeasureAssign>(musxMeasure->getRequestedPartId(), musxMeasure->getCmper());
     for (const auto& assign : assigns) {
-        MUSX_ASSERT_IF(!assign) {
+        MUSX_ASSERT_IF(!assign)
+        {
             continue;
         }
         if (assign->centerShapeNum != 0) {
             continue;
         }
-        const auto shape = context.document->getOthers()->get<others::SmartShape>(
-            musxMeasure->getRequestedPartId(), assign->shapeNum);
-        ASSERT_IF(!shape) {
+        const auto shape = context.document->getOthers()->get<others::SmartShape>(musxMeasure->getRequestedPartId(), assign->shapeNum);
+        ASSERT_IF(!shape)
+        {
             continue;
         }
-        if (shape->startTermSeg->endPoint->staffId != staffId
-            || shape->startTermSeg->endPoint->measId != musxMeasure->getCmper()) {
+        if (shape->startTermSeg->endPoint->staffId != staffId || shape->startTermSeg->endPoint->measId != musxMeasure->getCmper()) {
             continue;
         }
 
@@ -1023,48 +940,47 @@ void processSmartShapesForStaff(
             continue;
         }
 
-        std::visit([&](const auto& value) {
-            using Value = std::decay_t<decltype(value)>;
-            if constexpr (std::is_same_v<Value, classify::smartshape::Crescendo>) {
-                appendHairpin(context, staff, staffId, staffIndex, shape, mx::api::WedgeType::crescendo);
-            } else if constexpr (std::is_same_v<Value, classify::smartshape::Decrescendo>) {
-                appendHairpin(context, staff, staffId, staffIndex, shape, mx::api::WedgeType::diminuendo);
-            } else if constexpr (std::is_same_v<Value, classify::smartshape::Ottava>) {
-                appendOttava(context, staff, staffId, staffIndex, shape, value);
-            } else if constexpr (std::is_same_v<Value, classify::smartshape::KeyboardPedal>) {
-                appendKeyboardPedal(context, staff, staffId, staffIndex, shape, value);
-            } else if constexpr (std::is_same_v<Value, classify::smartshape::TrillLine>) {
-                appendTrillLine(context, shape, value);
-            } else if constexpr (std::is_same_v<Value, classify::smartshape::VibratoLine>) {
-                appendWavyLine(context, shape, value.line.lineCharGlyphName);
-            } else if constexpr (std::is_same_v<Value, classify::smartshape::Glissando>) {
-                appendGlissando(context, shape, value);
-            } else if constexpr (std::is_same_v<Value, classify::smartshape::GeneralLine>) {
-                appendGeneralLine(context, staff, staffId, staffIndex, shape, value);
-            } else if constexpr (std::is_same_v<Value, classify::smartshape::ArpeggiatedTie>) {
-                processArpeggiatedTie(context, value);
-            } else if constexpr (std::is_same_v<Value, classify::PseudoTie>) {
-                if (value.type == classify::PseudoTie::Type::LaissezVibrer) {
-                    applyPseudoLvTies(context, shape->startTermSeg->endPoint->calcAssociatedEntry());
-                }
-            } else if constexpr (std::is_same_v<Value, classify::smartshape::NonArpeggio>) {
-                appendArpeggioCandidate(context, value.candidate);
-            } else if constexpr (std::is_same_v<Value, std::monostate>) {
+        std::visit(
+            [&](const auto& value) {
+                using Value = std::decay_t<decltype(value)>;
+                if constexpr (std::is_same_v<Value, classify::smartshape::Crescendo>) {
+                    appendHairpin(context, staff, staffId, staffIndex, shape, mx::api::WedgeType::crescendo);
+                } else if constexpr (std::is_same_v<Value, classify::smartshape::Decrescendo>) {
+                    appendHairpin(context, staff, staffId, staffIndex, shape, mx::api::WedgeType::diminuendo);
+                } else if constexpr (std::is_same_v<Value, classify::smartshape::Ottava>) {
+                    appendOttava(context, staff, staffId, staffIndex, shape, value);
+                } else if constexpr (std::is_same_v<Value, classify::smartshape::KeyboardPedal>) {
+                    appendKeyboardPedal(context, staff, staffId, staffIndex, shape, value);
+                } else if constexpr (std::is_same_v<Value, classify::smartshape::TrillLine>) {
+                    appendTrillLine(context, shape, value);
+                } else if constexpr (std::is_same_v<Value, classify::smartshape::VibratoLine>) {
+                    appendWavyLine(context, shape, value.line.lineCharGlyphName);
+                } else if constexpr (std::is_same_v<Value, classify::smartshape::Glissando>) {
+                    appendGlissando(context, shape, value);
+                } else if constexpr (std::is_same_v<Value, classify::smartshape::GeneralLine>) {
+                    appendGeneralLine(context, staff, staffId, staffIndex, shape, value);
+                } else if constexpr (std::is_same_v<Value, classify::smartshape::ArpeggiatedTie>) {
+                    processArpeggiatedTie(context, value);
+                } else if constexpr (std::is_same_v<Value, classify::PseudoTie>) {
+                    if (value.type == classify::PseudoTie::Type::LaissezVibrer) {
+                        applyPseudoLvTies(context, shape->startTermSeg->endPoint->calcAssociatedEntry());
+                    }
+                } else if constexpr (std::is_same_v<Value, classify::smartshape::NonArpeggio>) {
+                    appendArpeggioCandidate(context, value.candidate);
+                } else if constexpr (std::is_same_v<Value, std::monostate>) {
                 // A silent omission is indistinguishable from a shape Denigma never saw.
-                context.logMessage(LogMsg() << "Omitting smart shape " << shape->getCmper()
-                    << " of unclassified type " << int(classification.shapeType) << ".",
-                    MessageSeverity::Verbose);
-            }
-        }, classification.value);
+                    context.logMessage(
+                        LogMsg() << "Omitting smart shape " << shape->getCmper() << " of unclassified type " << int(classification.shapeType) << ".",
+                        MessageSeverity::Verbose);
+                }
+            },
+            classification.value);
     }
 }
 
 } // namespace
 
-void processSmartShapes(
-    MusicXmlMusxMapping& context,
-    const MusxInstanceList<others::Measure>& musxMeasures,
-    const std::vector<StaffCmper>& staves)
+void processSmartShapes(MusicXmlMusxMapping& context, const MusxInstanceList<others::Measure>& musxMeasures, const std::vector<StaffCmper>& staves)
 {
     if (!context.currentPart) {
         return;

@@ -35,10 +35,7 @@ namespace detail {
 
 namespace {
 
-void createPageLayoutData(
-    const MusicXmlMusxMapping& context,
-    const options::PageFormatOptions::PageFormat& pagePrefs,
-    double combinedSystemScaling)
+void createPageLayoutData(const MusicXmlMusxMapping& context, const options::PageFormatOptions::PageFormat& pagePrefs, double combinedSystemScaling)
 {
     auto& pageLayout = context.musicXmlScore->defaults.pageLayout;
     pageLayout.size = mx::api::SizeData{
@@ -59,24 +56,15 @@ void createPageLayoutData(
             context.musicXmlTenthsFromEvpu(bottomEvpu, pageScaleBackout),
         };
     };
-    const auto evenMargins = createPageMargins(
-        pagePrefs.leftPageMarginLeft,
-        -pagePrefs.leftPageMarginRight,
-        -pagePrefs.leftPageMarginTop,
-        pagePrefs.leftPageMarginBottom);
+    const auto evenMargins =
+        createPageMargins(pagePrefs.leftPageMarginLeft, -pagePrefs.leftPageMarginRight, -pagePrefs.leftPageMarginTop, pagePrefs.leftPageMarginBottom);
     pageLayout.margins.even = evenMargins;
-    pageLayout.margins.odd = pagePrefs.facingPages
-        ? createPageMargins(
-              pagePrefs.rightPageMarginLeft,
-              -pagePrefs.rightPageMarginRight,
-              -pagePrefs.rightPageMarginTop,
-              pagePrefs.rightPageMarginBottom)
-        : evenMargins;
+    pageLayout.margins.odd = pagePrefs.facingPages ? createPageMargins(pagePrefs.rightPageMarginLeft, -pagePrefs.rightPageMarginRight,
+                                                         -pagePrefs.rightPageMarginTop, pagePrefs.rightPageMarginBottom)
+                                                   : evenMargins;
 }
 
-void createSystemLayoutData(
-    const MusicXmlMusxMapping& context,
-    const options::PageFormatOptions::PageFormat& pagePrefs)
+void createSystemLayoutData(const MusicXmlMusxMapping& context, const options::PageFormatOptions::PageFormat& pagePrefs)
 {
     auto& systemLayout = context.musicXmlScore->defaults.systemLayout;
     const auto systemScaleBackout = pagePrefs.calcSystemScaling().toDouble();
@@ -84,16 +72,11 @@ void createSystemLayoutData(
         context.musicXmlTenthsFromEvpu(pagePrefs.sysMarginLeft, systemScaleBackout),
         context.musicXmlTenthsFromEvpu(-pagePrefs.sysMarginRight, systemScaleBackout),
     };
-    const auto systemDistance =
-        -pagePrefs.sysMarginTop
-        - pagePrefs.sysDistanceBetween
-        - (pagePrefs.sysMarginBottom + EVPU_PER_STANDARD_STAFF);
-    systemLayout.systemDistance =
-        context.musicXmlTenthsFromEvpu(systemDistance, systemScaleBackout);
+    const auto systemDistance = -pagePrefs.sysMarginTop - pagePrefs.sysDistanceBetween - (pagePrefs.sysMarginBottom + EVPU_PER_STANDARD_STAFF);
+    systemLayout.systemDistance = context.musicXmlTenthsFromEvpu(systemDistance, systemScaleBackout);
     if (const auto firstSystem = context.document->getOthers()->get<others::StaffSystem>(context.forPartId, 1)) {
         const auto topSystemDistance = -firstSystem->top - firstSystem->distanceToPrev;
-        systemLayout.topSystemDistance =
-            context.musicXmlTenthsFromEvpu(topSystemDistance, systemScaleBackout);
+        systemLayout.topSystemDistance = context.musicXmlTenthsFromEvpu(topSystemDistance, systemScaleBackout);
     }
 }
 
@@ -114,9 +97,7 @@ void createAppearance(const MusicXmlMusxMapping& context)
     const auto addDistance = [&](const std::string& subType, double evpu) {
         addAppearance(mx::api::AppearanceType::Distance, subType, context.musicXmlTenthsFromEvpu(evpu));
     };
-    const auto addNoteSize = [&](const std::string& subType, double percent) {
-        addAppearance(mx::api::AppearanceType::NoteSize, subType, percent);
-    };
+    const auto addNoteSize = [&](const std::string& subType, double percent) { addAppearance(mx::api::AppearanceType::NoteSize, subType, percent); };
 
     const auto& options = context.finaleOptions;
     addLineWidth("stem", options.stemOptions->stemWidth);
@@ -154,9 +135,7 @@ void createFontData(const MusicXmlMusxMapping& context)
     auto& defaults = context.musicXmlScore->defaults;
     const auto& defaultMusicFont = *context.finaleOptions.defaultMusicFont;
     const auto musicFontStyle = utils::musicFontStyleForFont(defaultMusicFont.getName());
-    const auto musicFontFallback = musicFontStyle
-        ? enumConvert<MusicXmlFontFamilyFallback>(*musicFontStyle)
-        : MusicXmlFontFamilyFallback::Music;
+    const auto musicFontFallback = musicFontStyle ? enumConvert<MusicXmlFontFamilyFallback>(*musicFontStyle) : MusicXmlFontFamilyFallback::Music;
     defaults.musicFont = context.musicXmlFontDataFromFontInfo(defaultMusicFont, musicFontFallback);
 
     if (const auto wordFont = context.finaleOptions.fontOptions->getFontInfo(options::FontOptions::FontType::Expression)) {
@@ -165,7 +144,8 @@ void createFontData(const MusicXmlMusxMapping& context)
 
     const auto addFirstLyricFont = [&](const auto& lyricTexts) {
         for (const auto& lyricText : lyricTexts) {
-            ASSERT_IF(!lyricText) {
+            ASSERT_IF(!lyricText)
+            {
                 continue;
             }
             if (const auto fontInfo = lyricText->getRawTextCtx(lyricText, context.forPartId).parseFirstFontInfo()) {
@@ -190,9 +170,7 @@ void createSystemBreaks(const MusicXmlMusxMapping& context)
 {
     const auto measures = context.document->getOthers()->getArray<others::Measure>(context.forPartId);
     const auto setSystemBreak = [&](MeasCmper measureId) {
-        const auto it = std::find_if(measures.begin(), measures.end(), [&](const auto& measure) {
-            return measure->getCmper() == measureId;
-        });
+        const auto it = std::find_if(measures.begin(), measures.end(), [&](const auto& measure) { return measure->getCmper() == measureId; });
         if (it == measures.end()) {
             return;
         }
@@ -216,8 +194,8 @@ void createSystemBreaks(const MusicXmlMusxMapping& context)
     const auto locks = context.document->getOthers()->getArray<others::SystemLock>(context.forPartId);
     if (!context.partLayoutIsCalculated) {
         if (!locks.empty()) {
-            context.logMessage(LogMsg() << "Part " << context.forPartId << " has an uncalculated page layout; dropping "
-                << locks.size() << " system lock(s) rather than exporting system breaks that do not match its systems.");
+            context.logMessage(LogMsg() << "Part " << context.forPartId << " has an uncalculated page layout; dropping " << locks.size()
+                                        << " system lock(s) rather than exporting system breaks that do not match its systems.");
         }
         return;
     }

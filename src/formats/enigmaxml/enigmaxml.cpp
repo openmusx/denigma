@@ -19,20 +19,20 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#include <string>
 #include <algorithm>
 #include <array>
-#include <filesystem>
-#include <vector>
-#include <iostream>
-#include <sstream>
 #include <ctime>
-#include <regex>
+#include <filesystem>
+#include <iostream>
 #include <limits>
+#include <regex>
+#include <sstream>
 #include <stdexcept>
+#include <string>
+#include <vector>
 
-#include "zlib.h"
 #include "zip.h"
+#include "zlib.h"
 
 #ifdef _WIN32
 #include "iowin32.h"
@@ -42,8 +42,8 @@
 
 #include "core/denigma.h"
 #include "enigmaxml.h"
-#include "utils/ziputils.h"
 #include "score_encoder/score_encoder.h"
+#include "utils/ziputils.h"
 
 constexpr char SCORE_DAT_NAME[] = "score.dat";
 
@@ -184,19 +184,7 @@ static zip_fileinfo makeCurrentZipFileInfo()
 static void writeZipEntry(zipFile outputZip, const char* name, const std::string& content, int method, int level)
 {
     zip_fileinfo info = makeCurrentZipFileInfo();
-    int rc = zipOpenNewFileInZip64(
-        outputZip,
-        name,
-        &info,
-        nullptr,
-        0,
-        nullptr,
-        0,
-        nullptr,
-        method,
-        level,
-        content.size() >= 0xffffffffULL ? 1 : 0
-    );
+    int rc = zipOpenNewFileInZip64(outputZip, name, &info, nullptr, 0, nullptr, 0, nullptr, method, level, content.size() >= 0xffffffffULL ? 1 : 0);
     if (rc != ZIP_OK) {
         throw std::runtime_error(std::string("unable to create ") + name + " in musx archive");
     }
@@ -221,9 +209,7 @@ static void writeZipEntry(zipFile outputZip, const char* name, const std::string
 static std::pair<int, int> extractFileVersionFromEnigmaXml(const Buffer& xmlBuffer)
 {
     std::match_results<Buffer::const_iterator> match;
-    const std::regex modifiedFileVersion(
-        R"(<modified>[\s\S]*?<fileVersion>[\s\S]*?<major>(\d+)</major>[\s\S]*?<minor>(\d+)</minor>)"
-    );
+    const std::regex modifiedFileVersion(R"(<modified>[\s\S]*?<fileVersion>[\s\S]*?<major>(\d+)</major>[\s\S]*?<minor>(\d+)</minor>)");
     if (std::regex_search(xmlBuffer.cbegin(), xmlBuffer.cend(), match, modifiedFileVersion) && match.size() >= 3) {
         return {
             std::stoi(std::string(match[1].first, match[1].second)),
@@ -231,9 +217,7 @@ static std::pair<int, int> extractFileVersionFromEnigmaXml(const Buffer& xmlBuff
         };
     }
 
-    const std::regex createdFileVersion(
-        R"(<created>[\s\S]*?<fileVersion>[\s\S]*?<major>(\d+)</major>[\s\S]*?<minor>(\d+)</minor>)"
-    );
+    const std::regex createdFileVersion(R"(<created>[\s\S]*?<fileVersion>[\s\S]*?<major>(\d+)</major>[\s\S]*?<minor>(\d+)</minor>)");
     if (std::regex_search(xmlBuffer.cbegin(), xmlBuffer.cend(), match, createdFileVersion) && match.size() >= 3) {
         return {
             std::stoi(std::string(match[1].first, match[1].second)),
@@ -241,7 +225,7 @@ static std::pair<int, int> extractFileVersionFromEnigmaXml(const Buffer& xmlBuff
         };
     }
 
-    return { 27, 4 };
+    return {27, 4};
 }
 
 static CommandInputData readMusxArchive(const IRandomAccessReader& reader, const DenigmaContext& denigmaContext)
@@ -252,9 +236,7 @@ static CommandInputData readMusxArchive(const IRandomAccessReader& reader, const
     CommandInputData result;
     result.primaryBuffer = gunzipBuffer(archiveFiles.scoreDat);
     if (archiveFiles.notationMetadata.has_value()) {
-        result.notationMetadata = Buffer(
-            archiveFiles.notationMetadata->begin(),
-            archiveFiles.notationMetadata->end());
+        result.notationMetadata = Buffer(archiveFiles.notationMetadata->begin(), archiveFiles.notationMetadata->end());
     }
     result.embeddedGraphics = std::move(archiveFiles.embeddedGraphics);
     return result;
@@ -278,7 +260,7 @@ CommandInputData readEnigmaXmlInputData(const std::filesystem::path& inputPath, 
 
         Buffer buffer(static_cast<std::size_t>(fileSize));
         xmlFile.read(buffer.data(), fileSize);
-        return CommandInputData{ std::move(buffer), std::nullopt, {} };
+        return CommandInputData{std::move(buffer), std::nullopt, {}};
     } catch (const std::ios_base::failure& ex) {
         denigmaContext.logMessage(LogMsg() << "unable to read " << utils::asUtf8Bytes(inputPath), MessageSeverity::Error);
         denigmaContext.logMessage(LogMsg() << "message: " << ex.what(), MessageSeverity::Error);
@@ -298,7 +280,7 @@ CommandInputData readZippedEnigmaXmlInputData(const std::filesystem::path& input
     }
     try {
         const std::string enigmaXml = utils::readSoleFileWithExtension(inputPath, ENIGMAXML_EXTENSION, denigmaContext);
-        return CommandInputData{ Buffer(enigmaXml.begin(), enigmaXml.end()), std::nullopt, {} };
+        return CommandInputData{Buffer(enigmaXml.begin(), enigmaXml.end()), std::nullopt, {}};
     } catch (const std::exception& ex) {
         denigmaContext.logMessage(LogMsg() << "unable to read enigmaxml from archive " << utils::asUtf8Bytes(inputPath), MessageSeverity::Error);
         denigmaContext.logMessage(LogMsg() << " (exception: " << ex.what() << ")", MessageSeverity::Error);
@@ -347,9 +329,11 @@ void writeEnigmaXml(const std::filesystem::path& outputPath, const CommandInputD
         return;
     }
 
-    if (!denigmaContext.validatePathsAndOptions(outputPath)) return;
+    if (!denigmaContext.validatePathsAndOptions(outputPath)) {
+        return;
+    }
 
-    try	{
+    try {
         const Buffer& xmlBuffer = inputData.primaryBuffer;
         std::ifstream inFile;
 
@@ -379,7 +363,9 @@ void writeMusxForCli(const std::filesystem::path& outputPath, const CommandInput
         return;
     }
 
-    if (!denigmaContext.validatePathsAndOptions(outputPath)) return;
+    if (!denigmaContext.validatePathsAndOptions(outputPath)) {
+        return;
+    }
 
     try {
         const Buffer& xmlBuffer = inputData.primaryBuffer;
@@ -393,23 +379,25 @@ void writeMusxForCli(const std::filesystem::path& outputPath, const CommandInput
         }
 
         static const std::string kMimetype = "application/vnd.makemusic.notation";
-        const std::string kContainerXml =
-            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-            "<container version=\"" + std::to_string(fileVersionMajor) + "\" xmlns=\"http://www.makemusic.com/2012/container\">\n"
-            "  <rootfiles>\n"
-            "    <rootfile full-path=\"score.dat\" media-type=\"application/vnd.makemusic.notation.dat.1\"/>\n"
-            "  </rootfiles>\n"
-            "</container>\n";
-        const std::string kNotationMetadataXml =
-            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-            "<metadata version=\"" + std::to_string(fileVersionMajor) + "." + std::to_string(fileVersionMinor) + "\" xmlns=\"http://www.makemusic.com/2012/NotationMetadata\">\n"
-            "  <fileInfo>\n"
-            "    <keySignature>C</keySignature>\n"
-            "    <initialTempo>96</initialTempo>\n"
-            "    <scoreDuration>0</scoreDuration>\n"
-            "    <creatorString>denigma " DENIGMA_VERSION " reverse export</creatorString>\n"
-            "  </fileInfo>\n"
-            "</metadata>\n";
+        const std::string kContainerXml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+                                          "<container version=\""
+                                          + std::to_string(fileVersionMajor)
+                                          + "\" xmlns=\"http://www.makemusic.com/2012/container\">\n"
+                                            "  <rootfiles>\n"
+                                            "    <rootfile full-path=\"score.dat\" media-type=\"application/vnd.makemusic.notation.dat.1\"/>\n"
+                                            "  </rootfiles>\n"
+                                            "</container>\n";
+        const std::string kNotationMetadataXml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+                                                 "<metadata version=\""
+                                                 + std::to_string(fileVersionMajor) + "." + std::to_string(fileVersionMinor)
+                                                 + "\" xmlns=\"http://www.makemusic.com/2012/NotationMetadata\">\n"
+                                                   "  <fileInfo>\n"
+                                                   "    <keySignature>C</keySignature>\n"
+                                                   "    <initialTempo>96</initialTempo>\n"
+                                                   "    <scoreDuration>0</scoreDuration>\n"
+                                                   "    <creatorString>denigma " DENIGMA_VERSION " reverse export</creatorString>\n"
+                                                   "  </fileInfo>\n"
+                                                   "</metadata>\n";
 
         writeZipEntry(outputZip, "mimetype", kMimetype, 0, 0);
         writeZipEntry(outputZip, "META-INF/container.xml", kContainerXml, Z_DEFLATED, Z_DEFAULT_COMPRESSION);

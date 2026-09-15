@@ -30,8 +30,7 @@ namespace jump {
 
 /// @enum Jump
 /// @brief Jump or repeat-text classes recognized by the classifier.
-enum class Jump
-{
+enum class Jump {
     None,
     Segno,
     Coda,
@@ -50,8 +49,8 @@ enum class Jump
 /// @brief Classification of a Finale text repeat assignment.
 struct JumpClassification
 {
-    jump::Jump visual{ jump::Jump::None };   ///< Classification from the repeat text/glyph.
-    jump::Jump playback{ jump::Jump::None }; ///< Classification from Finale's playback action and target.
+    jump::Jump visual{jump::Jump::None};   ///< Classification from the repeat text/glyph.
+    jump::Jump playback{jump::Jump::None}; ///< Classification from Finale's playback action and target.
 };
 
 /// Classifies a Finale text repeat definition by text/glyph only.

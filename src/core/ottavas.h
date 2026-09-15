@@ -44,16 +44,11 @@ using OttavaShapeMap = std::unordered_map<musx::dom::Cmper, OttavaInstance>;
 bool isOttavaShapeType(musx::dom::others::SmartShape::ShapeType shapeType);
 
 /// @brief Collects the semantic-carrier ottavas that touch the given measure and staff.
-OttavaShapeMap collectOttavasForMeasureStaff(
-    const musx::dom::DocumentPtr& document,
-    musx::dom::Cmper partId,
-    const musx::dom::MusxInstance<musx::dom::others::Measure>& measure,
-    musx::dom::StaffCmper staffId);
+OttavaShapeMap collectOttavasForMeasureStaff(const musx::dom::DocumentPtr& document, musx::dom::Cmper partId,
+    const musx::dom::MusxInstance<musx::dom::others::Measure>& measure, musx::dom::StaffCmper staffId);
 
 /// @brief Returns the octave displacement (sum of applicable carrier ottavas) for a note.
-int calcOttavaOctaveAdjustment(
-    const OttavaShapeMap& ottavas,
-    const musx::dom::NoteInfoPtr& noteInfo,
+int calcOttavaOctaveAdjustment(const OttavaShapeMap& ottavas, const musx::dom::NoteInfoPtr& noteInfo,
     const std::function<void(const musx::dom::NoteInfoPtr&)>& onTiedFromOutsideOttava = {});
 
 } // namespace denigma

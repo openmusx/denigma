@@ -20,9 +20,9 @@
  * THE SOFTWARE.
  */
 
-#include "mnx.h"
 #include "mnx_expressions.h"
 #include "denigma/classify/expressions.h"
+#include "mnx.h"
 #include "utils/stringutils.h"
 
 namespace denigma {
@@ -31,13 +31,14 @@ namespace mnx {
 namespace detail {
 
 namespace {
-struct ExpressionAttachmentContext {
+struct ExpressionAttachmentContext
+{
     EntryInfoPtr entryInfo;
-    const EntryTarget* entryTarget{ nullptr };
+    const EntryTarget* entryTarget{nullptr};
 };
 
 ExpressionAttachmentContext calcAttachmentContext(const MnxMusxMappingPtr& context, const MusxInstance<others::MeasureExprAssign>& asgn)
-    {
+{
     ExpressionAttachmentContext result;
     result.entryInfo = asgn->calcAssociatedEntry();
     if (!result.entryInfo) {
@@ -58,17 +59,14 @@ struct MnxDynamicProjection
     std::string prefixText;
     std::string suffixText;
     std::vector<std::string> glyphs;
-    classify::dynamics::Change change{ classify::dynamics::Change::Absolute };
+    classify::dynamics::Change change{classify::dynamics::Change::Absolute};
 
-    [[nodiscard]] bool containsText() const noexcept
-    { return !prefixText.empty() || !glyphs.empty() || !suffixText.empty(); }
+    [[nodiscard]] bool containsText() const noexcept { return !prefixText.empty() || !glyphs.empty() || !suffixText.empty(); }
 };
 
 std::optional<MnxDynamicProjection> projectPrimaryDynamicForMnx(const classify::ExpressionClassification& classification)
 {
-    auto appendText = [](std::string& dest, const classify::expression::RunClassification& run) {
-        dest += run.chunk.text;
-    };
+    auto appendText = [](std::string& dest, const classify::expression::RunClassification& run) { dest += run.chunk.text; };
     auto mergeQualifier = [](classify::dynamics::Change& current, classify::dynamics::Change next) {
         if (next == classify::dynamics::Change::Absolute) {
             return true;
@@ -127,9 +125,8 @@ std::optional<MnxDynamicProjection> projectPrimaryDynamicForMnx(const classify::
     result.prefixText = utils::trimAscii(result.prefixText);
     result.suffixText = utils::trimAscii(result.suffixText);
     if (result.dynamic == classify::dynamics::Dynamic::Other && result.glyphs.empty() && result.prefixText.empty() && result.suffixText.empty()) {
-        const auto dynamicIt = std::find_if(classification.runs.begin(), classification.runs.end(), [](const classify::expression::RunClassification& run) {
-            return std::holds_alternative<classify::dynamics::Mark>(run.value);
-        });
+        const auto dynamicIt = std::find_if(classification.runs.begin(), classification.runs.end(),
+            [](const classify::expression::RunClassification& run) { return std::holds_alternative<classify::dynamics::Mark>(run.value); });
         if (dynamicIt != classification.runs.end()) {
             result.prefixText = utils::trimAscii(dynamicIt->chunk.text);
         }
@@ -147,10 +144,10 @@ struct MnxDynamicShape
     std::optional<mnxdom::DynamicValue> residualValue;
     /// @brief The leading syllable. MNX defaults this to "s", so it must be set explicitly
     /// for every accent that is not sforzando.
-    mnxdom::DynamicPrefix accentPrefix{ mnxdom::DynamicPrefix::None };
+    mnxdom::DynamicPrefix accentPrefix{mnxdom::DynamicPrefix::None};
     /// @brief The trailing syllable. MNX defaults this to "z", so it must be set explicitly
     /// for every accent that is not forzato.
-    mnxdom::DynamicSuffix accentSuffix{ mnxdom::DynamicSuffix::None };
+    mnxdom::DynamicSuffix accentSuffix{mnxdom::DynamicSuffix::None};
     /// @brief Whether MNX represents the dynamic as an accent rather than an immediate value.
     bool isAccent{};
 };
@@ -175,9 +172,8 @@ MnxDynamicShape calcDynamicShape(const classify::dynamics::Composition& composit
     result.residualValue = calcDynamicValue(composition.subsequent);
     result.accentPrefix = enumConvert<mnxdom::DynamicPrefix>(composition.reinforcement);
     result.accentSuffix = composition.forzato ? mnxdom::DynamicSuffix::z : mnxdom::DynamicSuffix::None;
-    const bool hasAffix = composition.reinforcement != classify::dynamics::Reinforcement::None
-        || composition.forzato
-        || composition.subsequent != classify::dynamics::Level::None;
+    const bool hasAffix = composition.reinforcement != classify::dynamics::Reinforcement::None || composition.forzato
+                          || composition.subsequent != classify::dynamics::Level::None;
     result.isAccent = hasAffix && result.value.has_value();
     return result;
 }
@@ -207,9 +203,8 @@ void appendDynamic(const MnxMusxMappingPtr& context, mnxdom::part::Measure& mnxM
     auto mnxDynamic = [&]() -> mnxdom::part::DynamicGroupBase {
         using DynRelType = classify::dynamics::Change;
         if (dynamicClass->change != DynRelType::Absolute) {
-            auto relValue = dynamicClass->change == DynRelType::RelativeIncrease
-                ? mnxdom::DynamicRelativeValue::Louder
-                : mnxdom::DynamicRelativeValue::Softer;
+            auto relValue =
+                dynamicClass->change == DynRelType::RelativeIncrease ? mnxdom::DynamicRelativeValue::Louder : mnxdom::DynamicRelativeValue::Softer;
             auto dyn = mnxMeasure.ensure_dynamics().appendRelative(relValue, mnxFractionFromEdu(asgn->eduPosition));
             if (shape.value) {
                 dyn.set_value(shape.value.value());
@@ -285,8 +280,9 @@ void attachFermata(const MnxMusxMappingPtr& context, mnxdom::part::Measure& mnxM
             break;
         }
     } else if (attachment.entryInfo) {
-        context->logMessage(LogMsg() << "Entry " << attachment.entryInfo->getEntry()->getEntryNumber()
-            << " was not mapped to an event or full measure rest", MessageSeverity::Warning);
+        context->logMessage(
+            LogMsg() << "Entry " << attachment.entryInfo->getEntry()->getEntryNumber() << " was not mapped to an event or full measure rest",
+            MessageSeverity::Warning);
     } else {
         const int staffNumber = mnxStaffNumber.value_or(1);
         bool attached = false;
@@ -304,7 +300,8 @@ void attachFermata(const MnxMusxMappingPtr& context, mnxdom::part::Measure& mnxM
     }
 }
 
-void attachBreathMark(const MnxMusxMappingPtr& context, const ExpressionAttachmentContext& attachment, const mnxdom::sequence::BreathMark& breathMark) {
+void attachBreathMark(const MnxMusxMappingPtr& context, const ExpressionAttachmentContext& attachment, const mnxdom::sequence::BreathMark& breathMark)
+{
     if (attachment.entryTarget && attachment.entryTarget->kind == EntryTargetKind::Event) {
         mnxdom::sequence::Event(context->mnxDocument->root(), attachment.entryTarget->pointer).ensure_markings().set_breath(breathMark);
     }
@@ -325,19 +322,20 @@ void recordMeasureRepeatCount(const MnxMusxMappingPtr& context, const MusxInstan
     }
     const auto [it, inserted] = context->measureRepeatCounts.emplace(musxMeasure->getCmper(), count);
     if (!inserted && it->second != count) {
-        context->logMessage(LogMsg() << "Measure repeat counter " << count
-            << " disagrees with counter " << it->second << " on another staff of the same part;"
-            " MNX has one counter per part measure, so only the first is exported.",
+        context->logMessage(LogMsg() << "Measure repeat counter " << count << " disagrees with counter " << it->second
+                                     << " on another staff of the same part;"
+                                        " MNX has one counter per part measure, so only the first is exported.",
             MessageSeverity::Verbose);
     }
 }
 } // namespace
 
-void processExpressions(const MnxMusxMappingPtr& context, const MusxInstance<others::Measure>& musxMeasure,
-    mnxdom::part::Measure& mnxMeasure, std::optional<int> mnxStaffNumber)
+void processExpressions(const MnxMusxMappingPtr& context, const MusxInstance<others::Measure>& musxMeasure, mnxdom::part::Measure& mnxMeasure,
+    std::optional<int> mnxStaffNumber)
 {
     if (musxMeasure->hasExpression) {
-        auto exprAssigns = context->document->getOthers()->getArray<others::MeasureExprAssign>(musxMeasure->getRequestedPartId(), musxMeasure->getCmper());
+        auto exprAssigns =
+            context->document->getOthers()->getArray<others::MeasureExprAssign>(musxMeasure->getRequestedPartId(), musxMeasure->getCmper());
         for (const auto& asgn : exprAssigns) {
             if (asgn->hidden || asgn->staffAssign != context->current.staff) {
                 continue;
@@ -348,9 +346,7 @@ void processExpressions(const MnxMusxMappingPtr& context, const MusxInstance<oth
             const auto classification = classify::classifyExpression(asgn);
             auto placement = asgn->calcVerticalPlacement();
             switch (classification.type) {
-            case classify::ExpressionType::Dynamic:
-                appendDynamic(context, mnxMeasure, mnxStaffNumber, asgn, classification, placement);
-                break;
+            case classify::ExpressionType::Dynamic: appendDynamic(context, mnxMeasure, mnxStaffNumber, asgn, classification, placement); break;
             case classify::ExpressionType::Fermata: {
                 const auto& fermata = classification.fermata();
                 if (auto mnxFermata = makeFermata(fermata.fermata, fermata.glyphStyle, placement)) {
@@ -359,22 +355,15 @@ void processExpressions(const MnxMusxMappingPtr& context, const MusxInstance<oth
                 break;
             }
             case classify::ExpressionType::BreathMark:
-                attachBreathMark(context, calcAttachmentContext(context, asgn),
-                    makeBreathMark(classification.breathMark().breathMark, placement));
+                attachBreathMark(context, calcAttachmentContext(context, asgn), makeBreathMark(classification.breathMark().breathMark, placement));
                 break;
-            case classify::ExpressionType::NonArpeggio:
-                appendArpeggioCandidate(context, mnxMeasure, classification.nonArpeggio().candidate);
-                break;
+            case classify::ExpressionType::NonArpeggio: appendArpeggioCandidate(context, mnxMeasure, classification.nonArpeggio().candidate); break;
             case classify::ExpressionType::MeasureRepeatCount:
                 recordMeasureRepeatCount(context, asgn, musxMeasure, classification.measureRepeatCount().count);
                 break;
-            case classify::ExpressionType::PseudoTie:
-                break;
-            case classify::ExpressionType::Error:
-                context->logMessage(LogMsg() << classification.error().message, MessageSeverity::Warning);
-                break;
-            default:
-                break;
+            case classify::ExpressionType::PseudoTie: break;
+            case classify::ExpressionType::Error: context->logMessage(LogMsg() << classification.error().message, MessageSeverity::Warning); break;
+            default: break;
             }
         }
     }

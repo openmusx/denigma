@@ -70,14 +70,13 @@ FontContext makeFontContext(const std::string& fontName)
     auto font = std::make_shared<FontInfo>(document);
     font->fontId = 1;
     font->fontSize = SUFFIX_FONT_SIZE;
-    return { document, font };
+    return {document, font};
 }
 
 MusxInstanceList<others::ChordSuffixElement> makeSuffix(const FontContext& context, char32_t symbol)
 {
     MusxInstanceList<others::ChordSuffixElement> suffix(context.document, SCORE_PARTID);
-    auto element = std::make_shared<others::ChordSuffixElement>(
-        context.document, SCORE_PARTID, CommonClassBase::ShareMode::All, Cmper(1), Inci(0));
+    auto element = std::make_shared<others::ChordSuffixElement>(context.document, SCORE_PARTID, CommonClassBase::ShareMode::All, Cmper(1), Inci(0));
     element->font = context.font;
     element->symbol = symbol;
     suffix.push_back(element);
@@ -85,14 +84,9 @@ MusxInstanceList<others::ChordSuffixElement> makeSuffix(const FontContext& conte
 }
 
 void appendSuffixElement(
-    MusxInstanceList<others::ChordSuffixElement>& suffix,
-    const FontContext& context,
-    char32_t symbol,
-    Inci index,
-    Evpu verticalOffset = 0)
+    MusxInstanceList<others::ChordSuffixElement>& suffix, const FontContext& context, char32_t symbol, Inci index, Evpu verticalOffset = 0)
 {
-    auto element = std::make_shared<others::ChordSuffixElement>(
-        context.document, SCORE_PARTID, CommonClassBase::ShareMode::All, Cmper(1), index);
+    auto element = std::make_shared<others::ChordSuffixElement>(context.document, SCORE_PARTID, CommonClassBase::ShareMode::All, Cmper(1), index);
     element->font = context.font;
     element->symbol = symbol;
     element->ydisp = verticalOffset;
@@ -187,15 +181,13 @@ TEST(ChordSuffixClassifier, SeparatesStackedSuffixStrings)
 {
     const auto context = makeFontContext("Times New Roman");
     auto suffix = makeSuffix(context, U'm');
-    auto stacked = std::make_shared<others::ChordSuffixElement>(
-        context.document, SCORE_PARTID, CommonClassBase::ShareMode::All, Cmper(1), Inci(1));
+    auto stacked = std::make_shared<others::ChordSuffixElement>(context.document, SCORE_PARTID, CommonClassBase::ShareMode::All, Cmper(1), Inci(1));
     stacked->font = context.font;
     stacked->symbol = 9;
     stacked->isNumber = true;
     stacked->ydisp = STACKED_OFFSET;
     suffix.push_back(stacked);
-    auto trailing = std::make_shared<others::ChordSuffixElement>(
-        context.document, SCORE_PARTID, CommonClassBase::ShareMode::All, Cmper(1), Inci(2));
+    auto trailing = std::make_shared<others::ChordSuffixElement>(context.document, SCORE_PARTID, CommonClassBase::ShareMode::All, Cmper(1), Inci(2));
     trailing->font = context.font;
     trailing->symbol = U'7';
     suffix.push_back(trailing);
@@ -514,13 +506,10 @@ TEST(ChordSuffixClassifierFixture, RetainsInternalParenthesesAndStackedStrings)
     EXPECT_FALSE(majorMinor->hasOuterParentheses);
 
     const auto stacked = std::find_if(classifications.begin(), classifications.end(), [](const auto& classification) {
-        return std::any_of(classification.strings.begin(), classification.strings.end(), [](const auto& string) {
-            return string.position != denigma::classify::chord::SuffixString::Position::Inline;
-        });
+        return std::any_of(classification.strings.begin(), classification.strings.end(),
+            [](const auto& string) { return string.position != denigma::classify::chord::SuffixString::Position::Inline; });
     });
     ASSERT_NE(stacked, classifications.end());
     EXPECT_GT(stacked->strings.size(), 1);
     EXPECT_TRUE(stacked->stackDegrees) << stacked->calcText();
 }
-
-

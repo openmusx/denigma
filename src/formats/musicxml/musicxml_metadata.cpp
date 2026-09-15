@@ -50,9 +50,8 @@ bool hasValidDate(const header::FileInfo& fileInfo)
 
 std::string formatDate(const header::FileInfo& fileInfo)
 {
-    return std::to_string(fileInfo.year) + "-"
-        + (fileInfo.month < 10 ? "0" : "") + std::to_string(fileInfo.month) + "-"
-        + (fileInfo.day < 10 ? "0" : "") + std::to_string(fileInfo.day);
+    return std::to_string(fileInfo.year) + "-" + (fileInfo.month < 10 ? "0" : "") + std::to_string(fileInfo.month) + "-"
+           + (fileInfo.day < 10 ? "0" : "") + std::to_string(fileInfo.day);
 }
 
 void addMiscellaneousField(mx::api::EncodingData& encoding, std::string key, std::string value)
@@ -69,24 +68,12 @@ void setFileInfoText(mx::api::ScoreData& score, FileInfoText::TextType textType,
     }
 
     switch (textType) {
-    case FileInfoText::TextType::Title:
-        score.workTitle = std::move(value);
-        break;
-    case FileInfoText::TextType::Composer:
-        score.composer = std::move(value);
-        break;
-    case FileInfoText::TextType::Copyright:
-        score.copyright = std::move(value);
-        break;
-    case FileInfoText::TextType::Description:
-        addMiscellaneousField(score.encoding, "description", std::move(value));
-        break;
-    case FileInfoText::TextType::Lyricist:
-        score.lyricist = std::move(value);
-        break;
-    case FileInfoText::TextType::Arranger:
-        score.arranger = std::move(value);
-        break;
+    case FileInfoText::TextType::Title: score.workTitle = std::move(value); break;
+    case FileInfoText::TextType::Composer: score.composer = std::move(value); break;
+    case FileInfoText::TextType::Copyright: score.copyright = std::move(value); break;
+    case FileInfoText::TextType::Description: addMiscellaneousField(score.encoding, "description", std::move(value)); break;
+    case FileInfoText::TextType::Lyricist: score.lyricist = std::move(value); break;
+    case FileInfoText::TextType::Arranger: score.arranger = std::move(value); break;
     case FileInfoText::TextType::Subtitle:
         // MusicXML has no subtitle element: <work> offers only title and number, and <identification>
         // admits no new child. A subtitle travels as a <credit> with credit-type "subtitle", which the
@@ -107,8 +94,7 @@ bool pageMatchesAssignment(const others::PageTextAssign& assignment, PageCmper p
     return false;
 }
 
-mx::api::PositionData pageTextPosition(const MusicXmlMusxMapping& context,
-    const others::PageTextAssign& assignment, PageCmper pageNumber)
+mx::api::PositionData pageTextPosition(const MusicXmlMusxMapping& context, const others::PageTextAssign& assignment, PageCmper pageNumber)
 {
     mx::api::PositionData result;
     const auto& layout = context.musicXmlScore->defaults.pageLayout;
@@ -188,8 +174,7 @@ void createMetaData(const MusicXmlMusxMapping& context)
     // report the content format, not the container: a zipped enigmaxml is provenance-identical to a plain one
     const auto inputFilePath = unwrappedInputPath(context.denigmaContext->inputFilePath);
     const std::u8string sourceFormat = utils::normalizedPathExtension(inputFilePath);
-    addMiscellaneousField(score.encoding, "source-format",
-        sourceFormat.empty() ? std::string("unknown") : utils::utf8ToString(sourceFormat));
+    addMiscellaneousField(score.encoding, "source-format", sourceFormat.empty() ? std::string("unknown") : utils::utf8ToString(sourceFormat));
     if (!inputFilePath.empty()) {
         addMiscellaneousField(score.encoding, "source-filename", utils::pathToString(inputFilePath.filename()));
     }

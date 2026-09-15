@@ -154,8 +154,8 @@ TEST(EntryNoteheadClassification, ClassifiesWrittenSoundingPitch)
         ExpectedPitch sounding;
     };
     const std::vector<ExpectedHarmonic> expectedHarmonics = {
-        { TouchInterval::Fourth, { NoteName::G, 4, 0 }, { NoteName::C, 5, 0 }, { NoteName::G, 6, 0 } },
-        { TouchInterval::Fifth,  { NoteName::G, 4, 0 }, { NoteName::D, 5, 0 }, { NoteName::D, 6, 0 } },
+        {TouchInterval::Fourth, {NoteName::G, 4, 0}, {NoteName::C, 5, 0}, {NoteName::G, 6, 0}},
+        {TouchInterval::Fifth, {NoteName::G, 4, 0}, {NoteName::D, 5, 0}, {NoteName::D, 6, 0}},
     };
 
     ASSERT_EQ(found.size(), expectedHarmonics.size());

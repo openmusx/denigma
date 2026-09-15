@@ -20,10 +20,10 @@
 #include <cstddef>
 #include <vector>
 
-#include "gtest/gtest.h"
-#include "mx/api/ScoreData.h"
 #include "musicxml_test.h"
+#include "mx/api/ScoreData.h"
 #include "test_utils.h"
+#include "gtest/gtest.h"
 
 using namespace denigma;
 using namespace denigma::test::musicxml;
