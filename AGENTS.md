@@ -82,7 +82,13 @@ The repository builds a CLI plus reusable libraries for classification, massage,
 - Preserve the existing CMake target structure and naming conventions.
 - Do not remove or rewrite third-party dependency wiring unless the task is specifically about build configuration.
 - Prefer a local lambda over a file-scope one-off helper when the logic is only used in one function and does not improve readability as a named abstraction.
-- Prefer horizontal function calls up to about 135 columns. When wrapping is needed, keep as much of the call as practical on the next indented line.
+- Formatting is fixed by `.clang-format` and checked by `scripts/check_format.py`; run it with
+  `--fix` before handing off and do not hand-format. The config file names each rule and its
+  deliberate deviations from MuseScore's style; it is shared verbatim with `finale-mus-reader`, so
+  change it there too or not at all. A braced list keeps one element per line by ending in a
+  trailing comma, never by `// clang-format off`, which is reserved for column-aligned lookup
+  tables. `src/score_encoder` is third-party code listed in `.clang-format-ignore`; do not
+  reformat it.
 - Strongly prefer named constants, existing domain constants, or computed values over hardcoded numeric literals other than `0`.
 - Do not place project-internal design notes in top-level `docs`; that directory is primarily for Doxygen/external-library documentation. Keep implementation notes near the relevant source area unless asked otherwise.
 - Record deferred feature work in the relevant `roadmap.md`, concrete third-party API limitations in the matching gaps document, such as `src/formats/musicxml/mx-api-gaps.md`, and deliberate policy choices in the matching design-decisions document, such as `src/formats/musicxml/design-decisions.md`. A decision recorded there is settled; reverse it by deleting the entry, not by leaving it to contradict the code. Findings that fit none of those, notably how other applications treat output believed correct, go in the matching implementation-notes document, such as `src/formats/musicxml/implementation_notes.md`.
@@ -92,6 +98,7 @@ The repository builds a CLI plus reusable libraries for classification, massage,
 ## Verification
 
 - For source changes, at minimum run the relevant targeted test subset.
+- Run `python3 scripts/check_format.py` before handing off; CI runs the same check and fails on any unformatted project file.
 - For converter or fixture changes, run the most specific affected test target first, then widen to `ctest` if needed.
 - If you change build logic, verify both configure and build steps still succeed.
 - The default build cannot catch a violation of the minimum C++ standard, because it compiles at the newer one. When a change uses a recent library or language feature, build it at the minimum as well, for instance by configuring `denigma-online` against the local checkout.
@@ -100,4 +107,6 @@ The repository builds a CLI plus reusable libraries for classification, massage,
 
 - The repository is cross-platform but currently has macOS-specific logic in the top-level CMake file.
 - Warnings are treated as errors in both production and test builds.
+- CI pins clang-format 19.1.6 (`pip install clang-format==19.1.6`; Homebrew's `clang-format` currently matches). `scripts/check_format.py` refuses another major version because releases differ in output; `--no-version-check` overrides it.
+- The whole-repository reformat commits are listed in `.git-blame-ignore-revs`. Run `git config --global blame.ignoreRevsFile .git-blame-ignore-revs` once per machine so `git blame` reports the authoring change.
 - The project targets C++23 by default, with a minimum supported standard of C++20. Both matter; see the editing rule on the minimum standard.

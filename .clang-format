@@ -1,0 +1,111 @@
+# Formatting policy for project-owned C++. A translation of MuseScore's uncrustify profile
+# (muse/tools/codestyle/uncrustify_muse.cfg) and CodeGuidelines wiki, except where a comment
+# names a deliberate deviation. Enforced by scripts/check_format.py and CI, which pin the
+# clang-format major version; the prose summary lives in AGENTS.md.
+---
+Language: Cpp
+BasedOnStyle: LLVM
+Standard: c++20
+
+# Layout
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+ContinuationIndentWidth: 4
+ColumnLimit: 150                      # MuseScore uses 140
+MaxEmptyLinesToKeep: 1
+KeepEmptyLinesAtTheStartOfBlocks: false
+InsertNewlineAtEOF: true
+LineEnding: LF
+
+# Braces: function and type definitions break; everything else attaches
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterFunction: true
+  AfterClass: true
+  AfterStruct: true                   # deliberate: struct == class here (MuseScore leaves structs alone)
+  AfterUnion: true
+  AfterEnum: false
+  AfterNamespace: false
+  AfterExternBlock: false
+  AfterControlStatement: Never
+  BeforeElse: false
+  BeforeCatch: false
+  BeforeWhile: false
+  BeforeLambdaBody: false
+  IndentBraces: false
+  SplitEmptyFunction: false
+  SplitEmptyRecord: false
+  SplitEmptyNamespace: false
+InsertBraces: true                    # MuseScore: always braces, even for one-line bodies
+RemoveSemicolon: false
+
+# Indentation inside constructs
+AccessModifierOffset: -4              # public:/private: at the class column
+IndentCaseLabels: false               # case at the switch column
+IndentCaseBlocks: false
+NamespaceIndentation: None
+IndentPPDirectives: None
+LambdaBodyIndentation: Signature
+IndentRequiresClause: true
+RequiresClausePosition: OwnLine
+
+# Declarations
+PointerAlignment: Left
+ReferenceAlignment: Left
+DerivePointerAlignment: false
+QualifierAlignment: Leave
+BreakTemplateDeclarations: Yes        # template <...> on its own line
+PenaltyReturnTypeOnItsOwnLine: 1000
+BreakInheritanceList: BeforeColon
+BreakConstructorInitializers: BeforeColon
+PackConstructorInitializers: NextLineOnly   # ": Base(x), m_y(y)" on the line after the signature
+ConstructorInitializerIndentWidth: 4
+
+# Wrapping
+AlignAfterOpenBracket: DontAlign      # deliberate deviation: wrapped arguments continue at +4, not under the paren.
+                                      # DontAlign is also what stops clang-format from packing a braced list into
+                                      # columns, so a trailing comma reliably keeps a table one row per line.
+BinPackParameters: true
+BinPackArguments: true
+AllowAllParametersOfDeclarationOnNextLine: true
+AllowAllArgumentsOnNextLine: true
+BreakBeforeBinaryOperators: NonAssignment   # leading && || +; trailing =
+BreakBeforeTernaryOperators: true
+AlignOperands: Align
+AlignEscapedNewlines: Left
+
+# One-liners
+AllowShortFunctionsOnASingleLine: Inline    # class-body accessors only; free functions always expand
+AllowShortLambdasOnASingleLine: All
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AllowShortCaseLabelsOnASingleLine: true     # keeps "case 3: return X;" lookup tables
+AllowShortBlocksOnASingleLine: Empty
+AllowShortEnumsOnASingleLine: false
+AllowShortCompoundRequirementOnASingleLine: true
+
+# Alignment (MuseScore aligns nothing)
+AlignConsecutiveAssignments: None
+AlignConsecutiveDeclarations: None
+AlignConsecutiveMacros: None
+AlignTrailingComments:
+  Kind: Leave
+
+# Spacing
+SpaceBeforeParens: ControlStatements
+SpacesInParens: Never
+SpacesInSquareBrackets: false
+SpaceAfterCStyleCast: false
+SpaceAfterTemplateKeyword: true
+SpaceBeforeCpp11BracedList: false
+Cpp11BracedListStyle: true            # deliberate deviation: {1, 2}, not MuseScore's { 1, 2 }
+SpaceBeforeRangeBasedForLoopColon: true
+SpacesBeforeTrailingComments: 1
+
+# Includes and comments
+SortIncludes: CaseSensitive           # alphabetical within a category
+IncludeBlocks: Preserve               # blank-line-separated groups are the categories; never merged
+FixNamespaceComments: true
+ReflowComments: false                 # never rewrap Doxygen; a long comment line is not an error
+SeparateDefinitionBlocks: Leave
