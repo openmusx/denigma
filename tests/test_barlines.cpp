@@ -104,7 +104,7 @@ static BarlineContext makeBarlineContext(
         document,
         document->getOthers()->get<others::Staff>(SCORE_PARTID, 1),
         document->getOthers()->get<others::Measure>(SCORE_PARTID, 1),
-        document->getOptions()->get<options::BarlineOptions>()
+        document->getOptions()->get<options::BarlineOptions>(),
     };
 }
 

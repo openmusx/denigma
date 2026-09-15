@@ -227,7 +227,7 @@ static std::pair<int, int> extractFileVersionFromEnigmaXml(const Buffer& xmlBuff
     if (std::regex_search(xmlBuffer.cbegin(), xmlBuffer.cend(), match, modifiedFileVersion) && match.size() >= 3) {
         return {
             std::stoi(std::string(match[1].first, match[1].second)),
-            std::stoi(std::string(match[2].first, match[2].second))
+            std::stoi(std::string(match[2].first, match[2].second)),
         };
     }
 
@@ -237,7 +237,7 @@ static std::pair<int, int> extractFileVersionFromEnigmaXml(const Buffer& xmlBuff
     if (std::regex_search(xmlBuffer.cbegin(), xmlBuffer.cend(), match, createdFileVersion) && match.size() >= 3) {
         return {
             std::stoi(std::string(match[1].first, match[1].second)),
-            std::stoi(std::string(match[2].first, match[2].second))
+            std::stoi(std::string(match[2].first, match[2].second)),
         };
     }
 

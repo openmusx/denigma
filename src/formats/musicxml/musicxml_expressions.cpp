@@ -69,7 +69,7 @@ mx::api::HarpPedalsData musicXmlHarpPedals(const classify::expression::HarpDiagr
         { mx::api::Step::e, alteration(diagram.e) },
         { mx::api::Step::f, alteration(diagram.f) },
         { mx::api::Step::g, alteration(diagram.g) },
-        { mx::api::Step::a, alteration(diagram.a) }
+        { mx::api::Step::a, alteration(diagram.a) },
     };
     return result;
 }

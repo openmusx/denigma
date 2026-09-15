@@ -32,6 +32,7 @@ namespace detail {
 
 DEFINE_ENUM_CONVERT_TEMPLATE
 
+// clang-format off
 BEGIN_ENUM_CONVERSION(AlignJustify, mx::api::HorizontalAlignment)
     case AlignJustify::Left: return mx::api::HorizontalAlignment::left;
     case AlignJustify::Right: return mx::api::HorizontalAlignment::right;
@@ -315,6 +316,7 @@ BEGIN_ENUM_CONVERSION(VerticalPlacement, mx::api::Placement)
     case VerticalPlacement::Above: return mx::api::Placement::above;
     case VerticalPlacement::Below: return mx::api::Placement::below;
 END_ENUM_CONVERSION
+// clang-format on
 
 } // namespace detail
 } // namespace musicxml

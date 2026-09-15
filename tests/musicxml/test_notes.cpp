@@ -242,7 +242,7 @@ std::vector<ComparableLaissezVibrerTie> createComparableMnxLaissezVibrerTies(con
                                 pitch.at("octave").get<int>(),
                                 side == "up" ? mx::api::CurveOrientation::overhand
                                     : side == "down" ? mx::api::CurveOrientation::underhand
-                                    : mx::api::CurveOrientation::unspecified
+                                    : mx::api::CurveOrientation::unspecified,
                             });
                         }
                     }
@@ -272,7 +272,7 @@ std::vector<ComparableLaissezVibrerTie> createComparableMusicXmlLaissezVibrerTie
                             note.pitchData.step,
                             note.pitchData.alter,
                             note.pitchData.octave,
-                            note.tieLetRing->curveOrientation
+                            note.tieLetRing->curveOrientation,
                         });
                     }
                 }
@@ -301,7 +301,7 @@ std::vector<ComparableTremoloEvent> createComparableTremoloEvents(const mx::api:
                                 .durationName = note.durationData.durationName,
                                 .durationDots = note.durationData.durationDots,
                                 .timeModificationActualNotes = note.durationData.timeModificationActualNotes,
-                                .timeModificationNormalNotes = note.durationData.timeModificationNormalNotes
+                                .timeModificationNormalNotes = note.durationData.timeModificationNormalNotes,
                             });
                         }
                     }
@@ -340,7 +340,7 @@ std::vector<ComparableNoteEvent> createComparableNoteEvents(const mx::api::Score
                             note.isTieStop,
                             note.isRest ? mx::api::Step::unspecified : note.pitchData.step,
                             note.isRest ? 0 : note.pitchData.alter,
-                            note.isRest ? 0 : note.pitchData.octave
+                            note.isRest ? 0 : note.pitchData.octave,
                         });
                     }
                 }
@@ -420,7 +420,7 @@ std::vector<ComparableStemEvent> createComparableStemEvents(const mx::api::Score
                             note.pitchData.step,
                             note.pitchData.alter,
                             note.pitchData.octave,
-                            note.stem
+                            note.stem,
                         });
                     }
                 }
@@ -462,7 +462,7 @@ std::vector<ComparableMnxCrossStaffEvent> createComparableMnxCrossStaffEvents(co
                         note["staff"],
                         parseStep(pitch["step"]),
                         pitch.value("alter", 0),
-                        pitch["octave"]
+                        pitch["octave"],
                     });
                 }
             }
@@ -536,7 +536,7 @@ std::vector<ComparableMnxCrossStaffEvent> createComparableMusicXmlCrossStaffEven
                     noteStaff,
                     parseStep(pitch.child_value("step")),
                     pitch.child("alter").text().as_int(),
-                    pitch.child("octave").text().as_int()
+                    pitch.child("octave").text().as_int(),
                 });
             }
             eventNotes.clear();
@@ -1273,7 +1273,7 @@ TEST(MusicXmlNotes, UnmappedTechniquesCarryTheirSmuflGlyph)
     // A technique with no MusicXML element of its own keeps its identity in the `smufl` attribute
     // and leaves the element text empty, rather than displaying the glyph name.
     const std::vector<std::pair<std::string, std::optional<std::string>>> expected = {
-        { "", std::optional<std::string>{ "brassMuteClosed" } }
+        { "", std::optional<std::string>{ "brassMuteClosed" } },
     };
     EXPECT_EQ(otherMarks, expected);
 }

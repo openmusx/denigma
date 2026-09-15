@@ -93,7 +93,7 @@ std::vector<ComparableWordsDirection> collectWordsOnlyDirections(
                     directionDrawnTick(direction),
                     direction.placement,
                     {},
-                    {}
+                    {},
                 };
                 for (const auto& word : words) {
                     comparable.words.emplace_back(word.text);
@@ -189,7 +189,7 @@ std::vector<ComparableRehearsalDirection> collectRehearsalDirections(const mx::a
                             : std::nullopt,
                         rehearsal.fontData.underline,
                         rehearsal.fontData.overline,
-                        rehearsal.fontData.lineThrough
+                        rehearsal.fontData.lineThrough,
                     };
                     comparable.fontFamilies.reserve(rehearsal.fontData.fontFamily.size());
                     for (const auto& family : rehearsal.fontData.fontFamily) {
@@ -236,7 +236,7 @@ std::vector<ComparableExpressionEnclosure> collectExpressionEnclosures(
                             directionDrawnTick(direction),
                             direction.placement,
                             word.text,
-                            word.enclosure
+                            word.enclosure,
                         });
                     }
                 }
@@ -247,7 +247,7 @@ std::vector<ComparableExpressionEnclosure> collectExpressionEnclosures(
                             directionDrawnTick(direction),
                             direction.placement,
                             rehearsal.text,
-                            rehearsal.enclosure
+                            rehearsal.enclosure,
                         });
                     }
                 }
@@ -542,7 +542,7 @@ TEST(MusicXmlExpressions, HarpPedalDiagramMapsToOrderedPedalTunings)
         PedalPosition::Sharp,
         PedalPosition::Natural,
         PedalPosition::Flat,
-        PedalPosition::Sharp
+        PedalPosition::Sharp,
     });
 
     constexpr int FLAT_ALTERATION = -1;
@@ -555,7 +555,7 @@ TEST(MusicXmlExpressions, HarpPedalDiagramMapsToOrderedPedalTunings)
         { mx::api::Step::e, SHARP_ALTERATION },
         { mx::api::Step::f, NATURAL_ALTERATION },
         { mx::api::Step::g, FLAT_ALTERATION },
-        { mx::api::Step::a, SHARP_ALTERATION }
+        { mx::api::Step::a, SHARP_ALTERATION },
     };
     EXPECT_EQ(harpPedals.pedalTunings, expected);
 }
@@ -571,7 +571,7 @@ TEST(MusicXmlExpressions, AccordionRegistrationMapsToMusicXmlStops)
         Dot{ DotPosition::Top },
         Dot{ DotPosition::UpperMiddle },
         Dot{ DotPosition::Middle },
-        Dot{ DotPosition::Bottom }
+        Dot{ DotPosition::Bottom },
     };
 
     const auto accordion = formats::musicxml::detail::musicXmlAccordionRegistration(
@@ -716,14 +716,14 @@ TEST(MusicXmlExpressions, TempoVariedStavesSmoke)
     const std::vector<std::pair<std::string, double>> piccoloExpected = {
         { "Tempo ({metNoteQuarterUp}=120)", 120.0 },
         { "accel.", 132.0 },
-        { "", 144.0 }
+        { "", 144.0 },
     };
     const std::vector<std::pair<std::string, double>> hornExpected = {
-        { "Tempo ({metNoteQuarterUp}=120)", 120.0 }
+        { "Tempo ({metNoteQuarterUp}=120)", 120.0 },
     };
     const std::vector<std::pair<std::string, double>> violinExpected = {
         { "Tempo ({metNoteQuarterUp}=120)", 120.0 },
-        { "accel.", 132.0 }
+        { "accel.", 132.0 },
     };
 
     expectMeasureTempos(*piccolo, 0, piccoloExpected);
@@ -811,7 +811,7 @@ TEST(MusicXmlExpressions, MeasureTextSmoke)
                         position->isDefaultXSpecified ? std::make_optional(position->defaultX) : std::nullopt,
                         position->isDefaultYSpecified ? std::make_optional(position->defaultY) : std::nullopt,
                         position->isRelativeXSpecified ? std::make_optional(position->relativeX) : std::nullopt,
-                        drawnTick > 0 ? std::make_optional(drawnTick) : std::nullopt
+                        drawnTick > 0 ? std::make_optional(drawnTick) : std::nullopt,
                     });
                 }
             }
@@ -977,7 +977,7 @@ TEST(MusicXmlExpressions, TechniquesMatchReference)
                     }
                     ComparableTechniqueDirection comparable{
                         words.front().text,
-                        std::nullopt
+                        std::nullopt,
                     };
                     if (direction.isSoundDataSpecified && direction.soundData.pizzicato != mx::api::Bool::unspecified) {
                         comparable.pizzicato = direction.soundData.pizzicato;
@@ -1001,7 +1001,7 @@ TEST(MusicXmlExpressions, TechniquesMatchReference)
         { "open", std::nullopt },
         { "harmon mute", std::nullopt },
         { "stopped", std::nullopt },
-        { "open", std::nullopt }
+        { "open", std::nullopt },
     };
 
     ASSERT_EQ(actualDirections.size(), expected.size());
@@ -1028,7 +1028,7 @@ TEST(MusicXmlExpressions, ExpressionEnclosuresExportExpectedShapes)
         { 0u, 0, mx::api::Placement::above, "Tempo", mx::api::Enclosure::hexagon },
         { 0u, 16, mx::api::Placement::below, "expressive", mx::api::Enclosure::unspecified },
         { 1u, 8, mx::api::Placement::above, "pizz.", mx::api::Enclosure::rectangle },
-        { 2u, 0, mx::api::Placement::above, "Reh. 1", mx::api::Enclosure::oval }
+        { 2u, 0, mx::api::Placement::above, "Reh. 1", mx::api::Enclosure::oval },
     };
 
     ASSERT_EQ(actualEnclosures.size(), expected.size());
@@ -1056,7 +1056,7 @@ TEST(MusicXmlExpressions, MeasureTextEnclosuresUseStandardFrameRule)
 
     const std::vector<ComparableExpressionEnclosure> expected = {
         { 2u, 16, mx::api::Placement::below, "no enclosure", mx::api::Enclosure::unspecified },
-        { 3u, 3, mx::api::Placement::above, "has enclosure", mx::api::Enclosure::rectangle }
+        { 3u, 3, mx::api::Placement::above, "has enclosure", mx::api::Enclosure::rectangle },
     };
 
     ASSERT_EQ(actualEnclosures.size(), expected.size());
@@ -1422,7 +1422,7 @@ TEST(MusicXmlExpressions, GlyphlessDynamicsFallBackToTheirLetters)
         // "ffz", drawn as the glyphs ff and z, keeps its glyph sequence.
         { "ffz", { { mx::api::StandardDynamic::ff, "", std::nullopt }, { std::nullopt, "z", "dynamicZ" } } },
         // "sfmp", typed as ASCII letters, carries its letters and no glyph name.
-        { "sfmp", { { std::nullopt, "sfmp", std::nullopt } } }
+        { "sfmp", { { std::nullopt, "sfmp", std::nullopt } } },
     };
     EXPECT_EQ(marks, expected);
     EXPECT_EQ(wordsCount, 0u);

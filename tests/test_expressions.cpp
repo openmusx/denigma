@@ -195,7 +195,7 @@ static TextExpressionContext makeTextExpressionContext(
     return {
         document,
         document->getOthers()->get<others::TextExpressionDef>(SCORE_PARTID, 1),
-        assignment
+        assignment,
     };
 }
 
@@ -232,7 +232,7 @@ static ShapeExpressionContext makeShapeExpressionContext(
     return {
         document,
         document->getOthers()->get<others::ShapeExpressionDef>(SCORE_PARTID, 1),
-        assignment
+        assignment,
     };
 }
 
@@ -319,7 +319,7 @@ TEST(ExpressionClassification, ClassifiesStringMuteGlyphExpressions)
 
     const std::vector<ExpectedStringMute> expected = {
         { u8"\uE616", articulation::StringMute::Type::On },
-        { u8"\uE617", articulation::StringMute::Type::Off }
+        { u8"\uE617", articulation::StringMute::Type::Off },
     };
 
     for (const auto& item : expected) {
@@ -668,7 +668,7 @@ TEST(ExpressionClassification, MapsEverySimpleMetronomeNoteGlyphToANoteType)
         { "&#xECB3;", NoteType::Note512th },
         { "&#xECB4;", NoteType::Note512th },
         { "&#xECB5;", NoteType::Note1024th },
-        { "&#xECB6;", NoteType::Note1024th }
+        { "&#xECB6;", NoteType::Note1024th },
     };
 
     for (const auto& [glyph, expected] : cases) {
@@ -806,7 +806,7 @@ TEST(ExpressionClassification, ClassifiesStringTechniqueTokens)
         { "stop mute", expression::TechniqueText::Type::StopMute },
         { "brass mute", expression::TechniqueText::Type::StopMute },
         { "stopped", expression::TechniqueText::Type::Stopped },
-        { "stop", expression::TechniqueText::Type::Stopped }
+        { "stop", expression::TechniqueText::Type::Stopped },
     };
 
     for (const auto& item : expected) {

@@ -114,7 +114,7 @@ std::vector<ComparableSlurEvent> createComparableSlurEvents(const mx::api::Score
                                 note.isRest ? 0 : note.pitchData.octave,
                                 normalizeNumberLevel(numberLevel),
                                 curveOrientation,
-                                lineType
+                                lineType,
                             });
                         };
 

@@ -268,7 +268,7 @@ constexpr auto durationTypeMap = std::to_array<std::pair<std::string_view, NoteT
     { "128th", NoteType::Note128th },
     { "256th", NoteType::Note256th },
     { "512th", NoteType::Note512th },
-    { "1024th", NoteType::Note1024th }
+    { "1024th", NoteType::Note1024th },
 });
 
 static const std::pair<std::string_view, NoteType>* findDurationType(std::string_view typeName)
@@ -669,7 +669,7 @@ std::optional<std::filesystem::path> findFinaleFile(const std::filesystem::path&
     // Define default search paths: current directory of inputPath and its parent
     std::vector<std::filesystem::path> defaultPaths = {
         inputPath.parent_path(),
-        inputPath.parent_path().parent_path()
+        inputPath.parent_path().parent_path(),
     };
 
     // Search default paths for `.musx` and `.enigmaxml` in order

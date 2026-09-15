@@ -46,7 +46,7 @@ TEST(MnxGlobal, MetronomeMarkUsesDisplayedTempoWithoutPlayback)
         NoteType::Half,
         "metNoteHalfUp",
         2,
-        72
+        72,
     };
 
     const auto tempo = formats::mnx::detail::mnxTempoFromMetronomeMark(mark);
@@ -368,7 +368,7 @@ TEST(MnxGlobal, BarlineTypes)
         mnxdom::BarlineType::NoBarline,
         mnxdom::BarlineType::Short,
         mnxdom::BarlineType::Tick,
-        mnxdom::BarlineType::Double
+        mnxdom::BarlineType::Double,
     };
 
     for (size_t i = 0; i < expected.size(); ++i) {

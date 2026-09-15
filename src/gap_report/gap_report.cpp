@@ -32,7 +32,7 @@ json pitchJson(const classify::chord::Pitch& pitch)
 {
     return {
         { "step", classify::chordPitchStepName(pitch.step) },
-        { "alteration", pitch.alteration }
+        { "alteration", pitch.alteration },
     };
 }
 
@@ -42,7 +42,7 @@ json suffixJson(const classify::ChordSuffixClassification& suffix)
     for (const auto& string : suffix.strings) {
         strings.push_back({
             { "text", string.text },
-            { "position", classify::chordSuffixStringPositionName(string.position) }
+            { "position", classify::chordSuffixStringPositionName(string.position) },
         });
     }
     auto degrees = json::array();
@@ -51,7 +51,7 @@ json suffixJson(const classify::ChordSuffixClassification& suffix)
             { "value", degree.value },
             { "alteration", degree.alteration },
             { "type", classify::chordDegreeTypeName(degree.type) },
-            { "impliedByText", degree.impliedByText }
+            { "impliedByText", degree.impliedByText },
         });
     }
     json result{
@@ -61,7 +61,7 @@ json suffixJson(const classify::ChordSuffixClassification& suffix)
         { "parenthesizeDegrees", suffix.parenthesizeDegrees },
         { "stackDegrees", suffix.stackDegrees },
         { "hasOuterParentheses", suffix.hasOuterParentheses },
-        { "hasUnrecognizedGlyphs", suffix.hasUnrecognizedGlyphs }
+        { "hasUnrecognizedGlyphs", suffix.hasUnrecognizedGlyphs },
     };
     if (suffix.quality) {
         result["quality"] = classify::chordQualityName(*suffix.quality);
@@ -76,7 +76,7 @@ json chordJson(const classify::ChordSymbolClassification& chord)
         { "rootLowerCase", chord.rootLowerCase },
         { "showRoot", chord.showRoot },
         { "showSuffix", chord.showSuffix },
-        { "suffix", suffixJson(chord.suffix) }
+        { "suffix", suffixJson(chord.suffix) },
     };
     if (chord.bass) {
         result["bass"] = pitchJson(*chord.bass);
@@ -92,7 +92,7 @@ json noteheadJson(const classify::NoteheadClassification& notehead)
 {
     json result{
         { "shape", classify::noteheadShapeName(notehead.shape) },
-        { "fill", classify::noteheadFillName(notehead.fill) }
+        { "fill", classify::noteheadFillName(notehead.fill) },
     };
     if (notehead.glyphName) {
         result["glyph"] = *notehead.glyphName;
@@ -103,7 +103,7 @@ json noteheadJson(const classify::NoteheadClassification& notehead)
 json gapJson(const Gap& gap)
 {
     json result{
-        { "anchor", gap.anchor.id }
+        { "anchor", gap.anchor.id },
     };
     if (gap.anchor.staff) {
         result["staff"] = *gap.anchor.staff;
@@ -111,7 +111,7 @@ json gapJson(const Gap& gap)
     if (gap.anchor.position) {
         result["position"] = {
             { "numerator", gap.anchor.position->numerator },
-            { "denominator", gap.anchor.position->denominator }
+            { "denominator", gap.anchor.position->denominator },
         };
     }
     std::visit([&](const auto& payload) {
@@ -142,7 +142,7 @@ std::string serializeGapReport(const GapCollector& collector, const GapReportPro
             { "version", producer.version },
             { "commit", producer.commit }
         } },
-        { "gaps", std::move(gaps) }
+        { "gaps", std::move(gaps) },
     }.dump(2);
 }
 

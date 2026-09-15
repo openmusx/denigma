@@ -183,7 +183,7 @@ static std::optional<AccordionRegistration> classifyAccordionRegistrationGlyph(s
         { "accdnRH3RanksOrgan", InstrumentType::Organ },
         { "accdnRH3RanksHarmonium", InstrumentType::Harmonium },
         { "accdnRH3RanksBandoneon", InstrumentType::Bandoneon },
-        { "accdnRH3RanksAccordion", InstrumentType::Accordion }
+        { "accdnRH3RanksAccordion", InstrumentType::Accordion },
     };
     if (const auto found = instrumentTypes.find(name); found != instrumentTypes.end()) {
         result.instrumentType = found->second;
@@ -220,7 +220,7 @@ static std::optional<AccordionRegistration> classifyAccordionRegistrationGlyph(s
         { "accdnLH3Ranks2Square", { DotPosition::Top } },
         { "accdnLH3RanksDouble8Square", { DotPosition::Middle, DotPosition::Bottom } },
         { "accdnLH3Ranks2Plus8Square", { DotPosition::Top, DotPosition::Middle } },
-        { "accdnLH3RanksTuttiSquare", { DotPosition::Top, DotPosition::Middle, DotPosition::Bottom } }
+        { "accdnLH3RanksTuttiSquare", { DotPosition::Top, DotPosition::Middle, DotPosition::Bottom } },
     };
     if (const auto found = dotPositions.find(name); found != dotPositions.end()) {
         for (const auto position : found->second) {
@@ -395,7 +395,7 @@ static std::vector<Ornament::AccidentalMark> accidentalsAboveBelow(Ornament::Acc
 {
     return {
         { above, musx::dom::VerticalPlacement::Above },
-        { below, musx::dom::VerticalPlacement::Below }
+        { below, musx::dom::VerticalPlacement::Below },
     };
 }
 
@@ -997,7 +997,7 @@ static PrivateClassification classifyGlyphName(std::string glyphName)
         } },
         { "unmeasuredTremoloSimple", [](std::string glyphName) -> PrivateClassification {
             return makeTremolo(Tremolo::Style::Unmeasured, 0, std::move(glyphName));
-        } }
+        } },
     };
 
     const std::string_view glyph = glyphName;

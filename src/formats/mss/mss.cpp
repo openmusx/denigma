@@ -68,21 +68,21 @@ static constexpr auto solidLinesWithHooks = std::to_array<std::string_view>({
     "systemTextLine",
     "letRing",
     "palmMute",
-    "pedal"
+    "pedal",
 });
 
 static constexpr auto dashedLinesWithHooks = std::to_array<std::string_view>({
-    "whammyBar"
+    "whammyBar",
 });
 
 static constexpr auto solidLinesNoHooks = std::to_array<std::string_view>({
     "noteLine",
-    "glissando"
+    "glissando",
 });
 
 static constexpr auto dashedLinesNoHooks = std::to_array<std::string_view>({
     "ottava",
-    "tempoChange"
+    "tempoChange",
 });
 
 static bool fontIsEngravingWithMappedLegacy(const FontInfo* fontInfo)

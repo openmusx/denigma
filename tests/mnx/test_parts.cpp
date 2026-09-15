@@ -253,7 +253,7 @@ TEST(MnxParts, CueLayer)
     ArgList args = { DENIGMA_NAME, "export", pathString(inputPath), "--mnx", "--cue-layer", "1", "--no-validate", "--verbose" };
     checkStderr(std::vector<std::string>{
         "discarded cue material detected by --cue-layer in measure 2, staff 1, layer 1; MNX does not currently support cues.",
-        "discarded 1 cue frames because MNX does not currently support cues."
+        "discarded 1 cue frames because MNX does not currently support cues.",
     }, [&]() {
         EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx with cue layer: " << pathString(inputPath);
     });
@@ -272,7 +272,7 @@ TEST(MnxParts, MeasureRepeats)
         "has a 2-bar repeat in measure 2 that would reach back before the first measure",
         "has a 2-bar repeat in measure 14 that would extend past the last measure",
         // Measure 8 asks for a 1-bar repeat while already covered by the 2-bar repeat in measure 7.
-        "has a 1-bar repeat in measure 8 that falls inside the 2-bar repeat beginning in measure 7"
+        "has a 1-bar repeat in measure 8 that falls inside the 2-bar repeat beginning in measure 7",
     }, [&]() {
         EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath);
     });
@@ -301,7 +301,7 @@ TEST(MnxParts, MeasureRepeats)
         std::nullopt,       // m11
         2,                  // m12
         std::nullopt,       // m13
-        std::nullopt        // m14: dropped, extends past the end
+        std::nullopt,        // m14: dropped, extends past the end
     };
     for (size_t x = 0; x < expectedRepeats.size(); x++) {
         const auto measureRepeat = measures[x].measureRepeat();
@@ -337,7 +337,7 @@ TEST(MnxParts, MeasureRepeatCounters)
     checkStderr({
         "Processing", pathString(inputPath.filename()), "!validation error",
         // Every counter in the fixture belongs to a measure that declares a repeat, so none is dropped.
-        "!measure repeat counter"
+        "!measure repeat counter",
     }, [&]() {
         EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath);
     });

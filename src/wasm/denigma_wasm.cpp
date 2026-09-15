@@ -260,7 +260,7 @@ PageSize pageSizeForPart(const musx::dom::DocumentPtr& document, musx::dom::Cmpe
             static_cast<double>(format->pageWidth) / musx::dom::EVPU_PER_MM,
             static_cast<double>(format->pageHeight) / musx::dom::EVPU_PER_MM,
             format->calcCombinedSystemScaling().toDouble() * musx::dom::EVPU_PER_SPACE
-                / musx::dom::EVPU_PER_MM
+                / musx::dom::EVPU_PER_MM,
         };
         const auto firstPage = document->getOthers()->get<musx::dom::others::Page>(partId, 1);
         const auto marginScaling = firstPage && !firstPage->holdMargins
@@ -322,7 +322,7 @@ void inspectInput(OnlineResult& result, std::span<const std::byte> bytes, const 
             std::move(name),
             outputIndex++,
             part->partOrder,
-            pageSizeForPart(document, part->getCmper())
+            pageSizeForPart(document, part->getCmper()),
         });
     }
     std::stable_sort(result.parts.begin(), result.parts.end(), [](const PartInfo& lhs, const PartInfo& rhs) {

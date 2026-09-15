@@ -47,7 +47,7 @@ const std::vector<LayoutFixture>& layoutFixtures()
 {
     static const std::vector<LayoutFixture> fixtures{
         { "musicxml/page70-staff82ev.musx", "musicxml/page70-staff82ev-ref.musicxml", 211 },
-        { "musicxml/page70nohold-staff82ev.musx", "musicxml/page70nohold-staff82ev-ref.musicxml", 211 }
+        { "musicxml/page70nohold-staff82ev.musx", "musicxml/page70nohold-staff82ev-ref.musicxml", 211 },
     };
     return fixtures;
 }

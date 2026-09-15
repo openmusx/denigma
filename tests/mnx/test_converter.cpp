@@ -202,7 +202,7 @@ TEST(ConverterApi, EnigmaXmlToMnxJsonCollectsErrorDiagnosticsForInvalidXml)
         std::byte(' '),
         std::byte('x'),
         std::byte('m'),
-        std::byte('l')
+        std::byte('l'),
     };
 
     std::ostringstream output;

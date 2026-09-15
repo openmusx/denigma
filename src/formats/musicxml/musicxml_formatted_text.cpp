@@ -68,7 +68,7 @@ bool isGenericFontFamily(std::string_view name)
         MusicXmlFontFamilyFallback::Handwritten, MusicXmlFontFamilyFallback::Text,
         MusicXmlFontFamilyFallback::Serif, MusicXmlFontFamilyFallback::SansSerif,
         MusicXmlFontFamilyFallback::Cursive, MusicXmlFontFamilyFallback::Fantasy,
-        MusicXmlFontFamilyFallback::Monospace
+        MusicXmlFontFamilyFallback::Monospace,
     };
     return std::any_of(std::begin(kGenerics), std::end(kGenerics),
         [name](MusicXmlFontFamilyFallback fallback) { return name == musicXmlFontFamilyFallbackName(fallback); });

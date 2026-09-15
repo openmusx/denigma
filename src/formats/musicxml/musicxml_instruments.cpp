@@ -53,6 +53,7 @@ struct InstrumentSoundMapping
 
 std::optional<MusicXmlInstrumentSound> musicXmlInstrumentSoundFromUuid(std::string_view instUuid)
 {
+    // clang-format off
     static constexpr auto table = std::to_array<InstrumentSoundMapping>({
         // { uuid::BlankStaff,                     SoundID:: },
         // { uuid::BlankStaff2,                    SoundID:: },
@@ -869,6 +870,7 @@ std::optional<MusicXmlInstrumentSound> musicXmlInstrumentSoundFromUuid(std::stri
         { uuid::Udu,                            SoundID::drumUdu },
         { uuid::Zills,                          SoundID::metalBellsZills },
     });
+    // clang-format on
 
     const auto iter = std::find_if(table.begin(), table.end(), [instUuid](const InstrumentSoundMapping& item) {
         return item.instUuid == instUuid;

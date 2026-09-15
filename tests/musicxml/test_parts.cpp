@@ -63,7 +63,7 @@ struct ComparablePartGroup
 const std::vector<PartGroupFixture>& partGroupFixtures()
 {
     static const std::vector<PartGroupFixture> fixtures{
-        { "large_orchestra.musx", "musicxml/large_orchestra-ref.musicxml" }
+        { "large_orchestra.musx", "musicxml/large_orchestra-ref.musicxml" },
     };
     return fixtures;
 }
@@ -77,7 +77,7 @@ std::vector<ComparablePartGroup> createComparablePartGroups(const std::vector<mx
             group.firstPartIndex,
             group.lastPartIndex,
             group.bracketType,
-            group.groupBarline
+            group.groupBarline,
         });
     }
     std::sort(result.begin(), result.end());
@@ -228,7 +228,7 @@ ComparableKeySignature createComparableKeySignature(const mx::api::KeyData& key)
 {
     return {
         key.fifths,
-        key.mode
+        key.mode,
     };
 }
 
@@ -279,7 +279,7 @@ std::vector<ComparableTranspositionEvent> collectTranspositionEvents(const mx::a
                     transposition.tickTimePosition,
                     transposition.staffIndex,
                     transposition.chromatic,
-                    transposition.diatonic
+                    transposition.diatonic,
                 });
             }
         }
@@ -456,7 +456,7 @@ TEST(MusicXmlParts, BarlinesOverrideCorrectTypes)
         mx::api::BarlineType::none,
         mx::api::BarlineType::short_,
         mx::api::BarlineType::tick,
-        mx::api::BarlineType::lightLight
+        mx::api::BarlineType::lightLight,
     };
 
     for (size_t i = 0; i < expected.size(); ++i) {
@@ -713,7 +713,7 @@ TEST(MusicXmlParts, SoloOrEnsembleMatchesFinale)
         { "measnums_topbottom.musx", "musicxml/measnums_topbottom-ref.musicxml" },
         { "techniques.musx", "musicxml/techniques-ref.musicxml" },
         { "tempo_varied_staves.musx", "musicxml/tempo_varied_staves-ref.musicxml" },
-        { "zwei_gesange.musx", "musicxml/zwei_gesange-ref.musicxml" }
+        { "zwei_gesange.musx", "musicxml/zwei_gesange-ref.musicxml" },
     });
 
     for (const auto& [musxFile, referenceFile] : fixtures) {
@@ -744,7 +744,7 @@ TEST(MusicXmlParts, FinaleMusicXmlUuidsMapToSoundIds)
         { musx::dom::uuid::MusicXmlCavaquinho, mx::api::SoundID::pluckCavaquinho },
         { musx::dom::uuid::MusicXmlVocals, mx::api::SoundID::voiceVocals },
         { musx::dom::uuid::MusicXmlCalliope, mx::api::SoundID::windFlutesCalliope },
-        { musx::dom::uuid::MusicXmlAlbogue, mx::api::SoundID::windReedAlbogue }
+        { musx::dom::uuid::MusicXmlAlbogue, mx::api::SoundID::windReedAlbogue },
     });
 
     for (const auto& [uuid, expectedSoundId] : mappings) {
@@ -765,7 +765,7 @@ TEST(MusicXmlParts, SoloOrEnsembleOnlyDisambiguatesSharedSoundIds)
         { musx::dom::uuid::Vocals, SoloOrEnsemble::Ensemble },
         { musx::dom::uuid::Piano, SoloOrEnsemble::Unspecified },
         { musx::dom::uuid::PianoNoName, SoloOrEnsemble::Unspecified },
-        { musx::dom::uuid::Flute, SoloOrEnsemble::Unspecified }
+        { musx::dom::uuid::Flute, SoloOrEnsemble::Unspecified },
     });
 
     for (const auto& [uuid, expected] : mappings) {
@@ -784,7 +784,7 @@ TEST(MusicXmlParts, StandardDiatonicModesUseMusicXmlModes)
         std::pair{ music_theory::DiatonicMode::Lydian, mx::api::KeyMode::lydian },
         std::pair{ music_theory::DiatonicMode::Mixolydian, mx::api::KeyMode::mixolydian },
         std::pair{ music_theory::DiatonicMode::Aeolian, mx::api::KeyMode::aeolian },
-        std::pair{ music_theory::DiatonicMode::Locrian, mx::api::KeyMode::locrian }
+        std::pair{ music_theory::DiatonicMode::Locrian, mx::api::KeyMode::locrian },
     };
     for (const auto& [musxMode, musicXmlMode] : expected) {
         EXPECT_EQ(formats::musicxml::detail::enumConvert<mx::api::KeyMode>(musxMode), musicXmlMode);
@@ -804,7 +804,7 @@ TEST(MusicXmlParts, CustomLinearKeySignaturesExportDiatonicModes)
         mx::api::KeyMode::major,
         mx::api::KeyMode::minor,
         mx::api::KeyMode::lydian,
-        mx::api::KeyMode::phrygian
+        mx::api::KeyMode::phrygian,
     };
     ASSERT_GE(measures.size(), expectedModes.size());
     for (size_t measureIndex = 0; measureIndex < expectedModes.size(); ++measureIndex) {
@@ -830,7 +830,7 @@ TEST(MusicXmlParts, NonTraditional12EdoKeySignaturesPreserveAccidentalOrder)
     const std::vector expected{
         mx::api::KeyComponent{ mx::api::Step::b, -1, 0.0, mx::api::Accidental::flat },
         mx::api::KeyComponent{ mx::api::Step::e, -1, 0.0, mx::api::Accidental::flat },
-        mx::api::KeyComponent{ mx::api::Step::f, 1, 0.0, mx::api::Accidental::sharp }
+        mx::api::KeyComponent{ mx::api::Step::f, 1, 0.0, mx::api::Accidental::sharp },
     };
     EXPECT_EQ(components, expected);
 

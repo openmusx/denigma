@@ -86,8 +86,8 @@ The repository builds a CLI plus reusable libraries for classification, massage,
   `--fix` before handing off and do not hand-format. The config file names each rule and its
   deliberate deviations from MuseScore's style; it is shared verbatim with `finale-mus-reader`, so
   change it there too or not at all. A braced list keeps one element per line by ending in a
-  trailing comma, never by `// clang-format off`, which is reserved for column-aligned lookup
-  tables. `src/score_encoder` is third-party code listed in `.clang-format-ignore`; do not
+  trailing comma, never by `// clang-format off`, which is reserved for lookup tables whose shape
+  clang-format cannot express: column-aligned tables and `BEGIN_ENUM_CONVERSION` blocks. `src/score_encoder` is third-party code listed in `.clang-format-ignore`; do not
   reformat it.
 - Strongly prefer named constants, existing domain constants, or computed values over hardcoded numeric literals other than `0`.
 - Do not place project-internal design notes in top-level `docs`; that directory is primarily for Doxygen/external-library documentation. Keep implementation notes near the relevant source area unless asked otherwise.

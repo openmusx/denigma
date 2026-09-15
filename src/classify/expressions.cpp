@@ -216,7 +216,7 @@ static std::vector<RunClassification> classifyChunkRuns(
             result.push_back({
                 sliceChunk(chunk, dynamicSpan.sourceText),
                 basisForRecognition(categoryType, CategoryType::Dynamics),
-                dynamicSpan.mark
+                dynamicSpan.mark,
             });
             cursor = dynamicStart + dynamicSpan.sourceText.size();
         }
@@ -392,7 +392,7 @@ static std::optional<musx::dom::NoteType> metronomeNoteTypeFromGlyphName(std::st
         { "metNote512thUp", NoteType::Note512th },
         { "metNote512thDown", NoteType::Note512th },
         { "metNote1024thUp", NoteType::Note1024th },
-        { "metNote1024thDown", NoteType::Note1024th }
+        { "metNote1024thDown", NoteType::Note1024th },
     };
     const auto found = noteTypes.find(glyphName);
     return found != noteTypes.end() ? std::optional{ found->second } : std::nullopt;

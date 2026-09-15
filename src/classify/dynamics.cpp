@@ -131,7 +131,7 @@ static const std::unordered_map<std::string_view, std::string_view>& dynamicGlyp
         { "dynamicZSmall", "z" },
         { "dynamicNiente", "n" },
         { "dynamicNienteForHairpin", "n" },
-        { "dynamicNienteSmall", "n" }
+        { "dynamicNienteSmall", "n" },
     };
     return result;
 }
@@ -234,7 +234,7 @@ static Dynamic classifyExactDynamicToken(std::string_view text)
         { "rinforzando", Dynamic::rf },
         { "rfz", Dynamic::rfz },
         { "n", Dynamic::n },
-        { "niente", Dynamic::n }
+        { "niente", Dynamic::n },
     };
     const auto tokenIt = dynamicTokens.find(text);
     return tokenIt == dynamicTokens.end() ? Dynamic::None : tokenIt->second;
@@ -263,7 +263,7 @@ static Dynamic classifyCompleteDynamicText(std::string_view text)
         { "fortissimo", Dynamic::ff },
         { "fortississimo", Dynamic::fff },
         { "forte piano", Dynamic::fp },
-        { "fortepiano", Dynamic::fp }
+        { "fortepiano", Dynamic::fp },
     };
     const auto spellingIt = wordSpellings.find(text);
     return spellingIt == wordSpellings.end() ? Dynamic::None : spellingIt->second;
@@ -420,7 +420,7 @@ std::vector<DynamicSpan> findDynamicSpans(const musx::util::EnigmaTextChunk& chu
     for (const auto& match : findDynamicTokens(normalizedText)) {
         result.push_back({
             sourceSpanForMatch(chunk, normalizedText, match),
-            Mark{ match.dynamic, dynamicComposition(match.dynamic), matchedGlyphNames(normalizedText, match) }
+            Mark{ match.dynamic, dynamicComposition(match.dynamic), matchedGlyphNames(normalizedText, match) },
         });
     }
     return result;
@@ -445,7 +445,7 @@ Composition dynamicCompositionFromLetters(std::string_view letters)
         { "fff", Level::fff },
         { "ffff", Level::ffff },
         { "fffff", Level::fffff },
-        { "ffffff", Level::ffffff }
+        { "ffffff", Level::ffffff },
     };
 
     // Consumes one level from the front of the remaining letters: "n", "mp", "mf", or a run of "p"

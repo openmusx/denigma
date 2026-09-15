@@ -216,7 +216,7 @@ static void deferJumpTies(const MnxMusxMappingPtr& context, const NoteInfoPtr& m
         MnxMusxMapping::DeferredJumpTie deferred{
             startNoteId,
             endNoteId,
-            std::nullopt
+            std::nullopt,
         };
         if (direction != CurveContourDirection::Unspecified) {
             deferred.side = (direction == CurveContourDirection::Up) ? mnxdom::SlurTieSide::Up : mnxdom::SlurTieSide::Down;

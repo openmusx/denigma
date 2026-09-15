@@ -65,7 +65,7 @@ struct MusicXmlOttavaEndpointAdjustment
 constexpr MusicXmlOttavaEndpointAdjustment MUSICXML_OTTAVA_ENDPOINT_ADJUSTMENT{
     .enabled = true,
     .startBeforeGraceNotes = true,
-    .stopAfterEntriesAtEnd = true
+    .stopAfterEntriesAtEnd = true,
 };
 
 // Start/continue/stop events sharing an identity are one logical spanner; mx::api
@@ -272,7 +272,7 @@ std::optional<MusicXmlNoteLocation> createFloatingSpanAnchor(
         .measureIndex = staffLocation->measureIndex,
         .staffIndex = staffLocation->staffIndex,
         .userVoiceNumber = userVoiceNumber,
-        .noteIndex = noteIndex
+        .noteIndex = noteIndex,
     };
     if (insertIt != voice.notes.end() && insertIt->tickTimePosition == tick) {
         return location;
@@ -900,7 +900,7 @@ std::optional<MusicXmlNoteLocation> findSoundingNoteLocation(
                     .measureIndex = staffLocation->measureIndex,
                     .staffIndex = staffLocation->staffIndex,
                     .userVoiceNumber = int(voiceIndex) + 1,
-                    .noteIndex = noteIndex
+                    .noteIndex = noteIndex,
                 };
             }
         }

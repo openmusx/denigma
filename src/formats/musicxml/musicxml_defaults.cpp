@@ -43,7 +43,7 @@ void createPageLayoutData(
     auto& pageLayout = context.musicXmlScore->defaults.pageLayout;
     pageLayout.size = mx::api::SizeData{
         context.musicXmlTenthsFromEvpu(pagePrefs.pageHeight, combinedSystemScaling),
-        context.musicXmlTenthsFromEvpu(pagePrefs.pageWidth, combinedSystemScaling)
+        context.musicXmlTenthsFromEvpu(pagePrefs.pageWidth, combinedSystemScaling),
     };
 
     bool holdMargins = true;
@@ -56,7 +56,7 @@ void createPageLayoutData(
             context.musicXmlTenthsFromEvpu(leftEvpu, pageScaleBackout),
             context.musicXmlTenthsFromEvpu(rightEvpu, pageScaleBackout),
             context.musicXmlTenthsFromEvpu(topEvpu, pageScaleBackout),
-            context.musicXmlTenthsFromEvpu(bottomEvpu, pageScaleBackout)
+            context.musicXmlTenthsFromEvpu(bottomEvpu, pageScaleBackout),
         };
     };
     const auto evenMargins = createPageMargins(
@@ -82,7 +82,7 @@ void createSystemLayoutData(
     const auto systemScaleBackout = pagePrefs.calcSystemScaling().toDouble();
     systemLayout.margins = mx::api::LeftRight{
         context.musicXmlTenthsFromEvpu(pagePrefs.sysMarginLeft, systemScaleBackout),
-        context.musicXmlTenthsFromEvpu(-pagePrefs.sysMarginRight, systemScaleBackout)
+        context.musicXmlTenthsFromEvpu(-pagePrefs.sysMarginRight, systemScaleBackout),
     };
     const auto systemDistance =
         -pagePrefs.sysMarginTop

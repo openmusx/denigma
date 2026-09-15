@@ -409,7 +409,7 @@ private:
             ResolvedFace{ utils::utf8ToString(fontPathUtf8), static_cast<int>(faceIndex) },
             utils::normalizedFontName(family),
             bold,
-            italic
+            italic,
         });
 
         FT_Done_Face(face);

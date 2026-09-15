@@ -272,6 +272,6 @@ TEST(MnxFormattedText, ChunkCallbackSplitsSmuflPolicy)
     EXPECT_EQ(glyphs, (std::vector<std::vector<std::string>>{
         { "dynamicPiano" },
         {},
-        { "dynamicForte" }
+        { "dynamicForte" },
     }));
 }

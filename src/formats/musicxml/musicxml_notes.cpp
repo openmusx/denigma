@@ -556,7 +556,7 @@ void appendEntryNotes(
             .measureIndex = measureIndex,
             .staffIndex = staffIndex,
             .userVoiceNumber = userVoiceNumber,
-            .noteIndex = noteIndex
+            .noteIndex = noteIndex,
         });
     };
     auto rememberExactNote = [&](const NoteInfoPtr& noteInfo, size_t noteIndex) {
@@ -566,7 +566,7 @@ void appendEntryNotes(
                 .measureIndex = measureIndex,
                 .staffIndex = staffIndex,
                 .userVoiceNumber = userVoiceNumber,
-                .noteIndex = noteIndex
+                .noteIndex = noteIndex,
             });
     };
     if (entryInfo.calcIsFullMeasureRest() || entryInfo.calcDisplaysAsRest()) {
