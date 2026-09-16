@@ -207,7 +207,7 @@ static void createScores(const MnxMusxMappingPtr& context)
         if (mnxScore.name().empty()) {
             mnxScore.set_name(linkedPart->isScore() ? std::string("Score") : std::string("Part ") + std::to_string(linkedPart->getCmper()));
         }
-        mnxScore.set_layout(calcSystemLayoutId(linkedPart->getCmper(), BASE_SYSTEM_ID));
+        mnxScore.set_layout(calcSystemLayoutId(linkedPart, linkedPart->calcScrollViewCmper()));
         auto mmRests = context->document->getOthers()->getArray<others::MultimeasureRest>(linkedPart->getCmper());
         for (const auto& mmRest : mmRests) {
             auto mnxMmRest =
@@ -232,7 +232,7 @@ static void createScores(const MnxMusxMappingPtr& context)
                                                + linkedPart->getName() + " does not exist.");
                     }
                     auto mnxSystem = mnxSystems.append(core::calcGlobalMeasureId(system->startMeas));
-                    mnxSystem.set_layout(calcSystemLayoutId(linkedPart->getCmper(), sysId));
+                    mnxSystem.set_layout(calcSystemLayoutId(linkedPart, sysId));
                 }
             }
         }
