@@ -61,12 +61,12 @@ auto artifact = registry.convert(
 
 ### Conversion gap reports
 
-Gap collection is opt-in. Supply a `GapCollector` through `CommonOptions::gapCollector`, then inspect its typed gaps directly or serialize it with the separate `denigma::gap-report` library:
+Gap collection is opt-in. Supply a `classify::GapCollector` (from `denigma/classify/gaps.h`, part of `denigma::classify`) through `CommonOptions::gapCollector`, then inspect its typed gaps directly or serialize it with the separate `denigma::gap-report` library. Exporters depend only on the collector; none of them links the serializer, so a project that consumes a converter without wanting reports never pulls it in.
 
 ```cpp
 #include "denigma/gap_report.h"
 
-denigma::GapCollector gaps;
+denigma::classify::GapCollector gaps;
 denigma::formats::mnx::Options options;
 options.common.gapCollector = &gaps;
 
@@ -111,6 +111,8 @@ Serialized reports use these compatibility rules:
 
 The WebAssembly API opts into collection and exposes serialized report bytes through `denigma_result_gap_report_data` and `denigma_result_gap_report_size`. CLI users can pass `--gap-report` with MNX output to write `<output>.gaps.json` beside the score.
 
+The serializer library is built by default and can be excluded with `denigma_BUILD_GAP_REPORT=OFF`. In such a build the CLI warns and ignores `--gap-report`, and the WebAssembly accessors return an empty report, while every converter and the collector remain available. Code that must compile either way serializes through `denigma::withGapReport(collector, [&]<typename Writer>(const Writer& writer) { ... writer.serialize(producer) ... })`, which runs the callback only when the serializer is present; `denigma::GAP_REPORT_AVAILABLE` says which.
+
 Gap payloads are not intended to duplicate every missing exporter feature. Features that the target standard can represent should normally be implemented directly in that exporter or its dependency. Typed payloads are reserved for durable target-format limitations with a demonstrated downstream recovery use case.
 
 The companion [denigma-examples](https://github.com/openmusx/denigma-examples) repository demonstrates this from separate native and WebAssembly projects using CMake `FetchContent` or a local Denigma checkout.
@@ -120,6 +122,7 @@ When Denigma is added as a CMake subproject, its CLI and tests are disabled by d
 ```cmake
 set(denigma_BUILD_CLI OFF CACHE BOOL "" FORCE)
 set(denigma_BUILD_TESTING OFF CACHE BOOL "" FORCE)
+set(denigma_BUILD_GAP_REPORT OFF CACHE BOOL "" FORCE) # optional: omit the gap report serializer
 
 include(FetchContent)
 FetchContent_Declare(

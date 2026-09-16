@@ -8,6 +8,9 @@
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -16,12 +19,12 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#include "mnx_gaps.h"
+#include "mnx_chords.h"
 
-#include <algorithm>
+#include <string>
 
 #include "denigma/classify/chords.h"
-#include "denigma/gaps.h"
+#include "denigma/classify/gaps.h"
 #include "mnx.h"
 
 namespace denigma {
@@ -29,35 +32,30 @@ namespace formats {
 namespace mnx {
 namespace detail {
 
-void reportChordSymbolGaps(const std::shared_ptr<MnxMusxMapping>& context, std::string_view measureId, std::optional<int> staff,
+void processChords(const MnxMusxMappingPtr& context, mnxdom::part::Measure& mnxMeasure, std::optional<int> mnxStaffNumber,
     const MusxInstance<others::Measure>& musxMeasure, StaffCmper staffId)
 {
-    if (!context->denigmaContext->gapCollector) {
+    auto* const gapCollector = context->denigmaContext->gapCollector;
+    if (!gapCollector) {
         return;
     }
     const auto assignments =
         context->document->getDetails()->getArray<details::ChordAssign>(musxMeasure->getRequestedPartId(), staffId, musxMeasure->getCmper());
-    const auto keySignature = musxMeasure->createKeySignature(staffId);
-    for (const auto& assignment : assignments) {
-        const auto classification = classify::classifyChordSymbol(assignment, keySignature, KeySignature::KeyContext::Written);
-        if (!classification) {
-            context->logMessage(LogMsg() << "could not classify chord symbol in measure " << musxMeasure->getCmper() << ", staff " << staffId << ".",
-                MessageSeverity::Warning);
-            continue;
-        }
-        const auto position = Fraction::fromEdu((std::max)(Edu{}, assignment->horzEdu));
-        context->denigmaContext->gapCollector->add(
-            {std::string(measureId), staff, GapPosition{position.numerator(), position.denominator()}}, *classification);
-    }
-}
-
-void reportNoteheadGap(const std::shared_ptr<MnxMusxMapping>& context, std::string_view noteId,
-    const classify::NoteheadClassification& classification, NoteType noteType)
-{
-    if (!context->denigmaContext->gapCollector || !classification.calcOverridesDefault(noteType)) {
+    if (assignments.empty()) {
         return;
     }
-    context->denigmaContext->gapCollector->add({std::string(noteId), std::nullopt, std::nullopt}, classification);
+    const auto keySignature = musxMeasure->createKeySignature(staffId);
+    if (!keySignature) {
+        context->logMessage(
+            LogMsg() << "Skipping chord symbols in measure " << musxMeasure->getCmper() << " because no effective key signature was found.",
+            MessageSeverity::Warning);
+        return;
+    }
+    const auto measureId = mnxMeasure.id_or("");
+    for (auto& chord : classify::classifyChordAssignments(assignments, keySignature, KeySignature::KeyContext::Written)) {
+        gapCollector->add({measureId, mnxStaffNumber, classify::GapPosition{chord.position.numerator(), chord.position.denominator()}},
+            std::move(chord.classification));
+    }
 }
 
 } // namespace detail

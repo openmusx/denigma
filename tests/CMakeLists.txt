@@ -74,6 +74,12 @@ endfunction()
         ${CMAKE_SOURCE_DIR}/src/main.cpp
         ${CMAKE_SOURCE_DIR}/src/about.cpp
     )
+    if(denigma_BUILD_GAP_REPORT)
+        target_sources(denigma_tests PRIVATE
+            test_gap_report.cpp
+            mnx/test_gaps.cpp
+        )
+    endif()
 
     target_add_denigma_test_warnings(denigma_tests)
 
@@ -174,6 +180,12 @@ endfunction()
         ${CMAKE_SOURCE_DIR}/src/io/random_access_reader.cpp
     )
     target_add_denigma_test_warnings(denigma_conversion_contract_tests)
-    target_link_libraries(denigma_conversion_contract_tests PRIVATE denigma::gap-report gtest_main)
+    target_link_libraries(denigma_conversion_contract_tests PRIVATE denigma::conversion gtest_main)
+    if(denigma_BUILD_GAP_REPORT)
+        target_sources(denigma_conversion_contract_tests PRIVATE test_gap_report.cpp)
+        target_link_libraries(denigma_conversion_contract_tests PRIVATE denigma::gap-report)
+    else()
+        target_link_libraries(denigma_conversion_contract_tests PRIVATE denigma::classify)
+    endif()
 
 endif()

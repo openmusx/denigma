@@ -42,7 +42,9 @@
 /// @brief Core public API for the Denigma conversion libraries.
 namespace denigma {
 
+namespace classify {
 class GapCollector;
+} // namespace classify
 
 /// @enum FormatId
 /// @brief Stable identifiers for converter input and output formats.
@@ -87,7 +89,7 @@ struct CommonOptions
     /// Every source font will be available in the environment that reads the converted output.
     bool allFontsAvailable{false};
     /// Optional non-owning destination for typed conversion gaps. Null disables gap collection.
-    GapCollector* gapCollector{};
+    classify::GapCollector* gapCollector{};
     /// Optional callback that receives converter log messages. Defaults to no-op.
     std::function<void(MessageSeverity severity, std::string_view message)> logCallback = [](MessageSeverity, std::string_view) {};
 };

@@ -142,7 +142,7 @@ void exportMnxJsonWithAdapter(const std::filesystem::path& outputPath, const Com
     output.open(outputPath, std::ios::out | std::ios::binary);
 
     auto options = makeMnxOptions(denigmaContext);
-    GapCollector gapCollector;
+    classify::GapCollector gapCollector;
     if (denigmaContext.writeGapReport) {
         options.common.gapCollector = &gapCollector;
     }
@@ -150,13 +150,20 @@ void exportMnxJsonWithAdapter(const std::filesystem::path& outputPath, const Com
     output.close();
 
     if (denigmaContext.writeGapReport) {
-        auto gapReportPath = outputPath;
-        gapReportPath += ".gaps.json";
-        if (denigmaContext.validatePathsAndOptions(gapReportPath)) {
-            std::ofstream gapReport;
-            gapReport.exceptions(std::ofstream::failbit | std::ofstream::badbit);
-            gapReport.open(gapReportPath, std::ios::out | std::ios::binary);
-            gapReport << serializeGapReport(gapCollector, {DENIGMA_NAME, DENIGMA_VERSION, gitCommit()});
+        const bool written = withGapReport(gapCollector, [&]<typename Writer>(const Writer& writer) {
+            auto gapReportPath = outputPath;
+            gapReportPath += ".gaps.json";
+            if (denigmaContext.validatePathsAndOptions(gapReportPath)) {
+                std::ofstream gapReport;
+                gapReport.exceptions(std::ofstream::failbit | std::ofstream::badbit);
+                gapReport.open(gapReportPath, std::ios::out | std::ios::binary);
+                gapReport << writer.serialize({DENIGMA_NAME, DENIGMA_VERSION, gitCommit()});
+            }
+        });
+        if (!written) {
+            denigmaContext.logMessage(
+                LogMsg() << "This build of " << DENIGMA_NAME << " does not include gap report support; --gap-report is ignored.",
+                MessageSeverity::Warning);
         }
     }
 }
@@ -396,7 +403,10 @@ int ExportCommand::showHelpPage(const std::string_view& programName, const std::
     std::cout << indentSpaces << "  --cue-layer <1..4>              Treat entries in this Finale layer as cue material." << std::endl;
     std::cout << indentSpaces << "  --mnx-schema [file-path]        Validate against this json schema file rather than the embedded one."
               << std::endl;
-    std::cout << indentSpaces << "  --gap-report                    Write an MNX gap report beside the output as <output>.gaps.json." << std::endl;
+    if (GAP_REPORT_AVAILABLE) {
+        std::cout << indentSpaces << "  --gap-report                    Write an MNX gap report beside the output as <output>.gaps.json."
+                  << std::endl;
+    }
     std::cout << indentSpaces << "  --include-tempo-tool            Include tempo changes created with the Tempo Tool." << std::endl;
     std::cout << indentSpaces << "  --no-include-tempo-tool         Exclude tempo changes created with the Tempo Tool (default: exclude)."
               << std::endl;

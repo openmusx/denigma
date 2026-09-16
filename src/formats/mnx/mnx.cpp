@@ -28,7 +28,6 @@
 #include "core/element_ids.h"
 #include "core/musx_reader.h"
 #include "mnx.h"
-#include "mnx_gaps.h"
 #include "utils/stringutils.h"
 
 using namespace musx::dom;

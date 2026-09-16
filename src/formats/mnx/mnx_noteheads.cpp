@@ -8,6 +8,9 @@
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -16,25 +19,32 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#pragma once
+#include "mnx_noteheads.h"
 
-#include <optional>
-#include <string_view>
+#include <string>
 
+#include "denigma/classify/gaps.h"
 #include "denigma/classify/noteheads.h"
+#include "mnx.h"
 
 namespace denigma {
 namespace formats {
 namespace mnx {
 namespace detail {
 
-struct MnxMusxMapping;
-
-void reportChordSymbolGaps(const std::shared_ptr<MnxMusxMapping>& context, std::string_view measureId, std::optional<int> staff,
-    const musx::dom::MusxInstance<musx::dom::others::Measure>& musxMeasure, musx::dom::StaffCmper staffId);
-
-void reportNoteheadGap(const std::shared_ptr<MnxMusxMapping>& context, std::string_view noteId,
-    const classify::NoteheadClassification& classification, musx::dom::NoteType noteType);
+void processNotehead(const MnxMusxMappingPtr& context, std::string_view noteId, const NoteInfoPtr& musxNote)
+{
+    auto* const gapCollector = context->denigmaContext->gapCollector;
+    if (!gapCollector) {
+        return;
+    }
+    const auto noteType = std::get<0>(musxNote.getEntryInfo()->getEntry()->calcDurationInfo());
+    auto classification = classify::classifyNotehead(musxNote);
+    if (!classification.calcOverridesDefault(noteType)) {
+        return;
+    }
+    gapCollector->add({std::string(noteId), std::nullopt, std::nullopt}, std::move(classification));
+}
 
 } // namespace detail
 } // namespace mnx

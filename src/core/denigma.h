@@ -280,7 +280,7 @@ public:
     PathSet scheduledInputPaths;
     std::function<void(MessageSeverity severity, std::string_view message)> logCallback;
     ConversionResult* conversionResult{};
-    GapCollector* gapCollector{};
+    classify::GapCollector* gapCollector{};
 
     // Specific options for `massage` command
     bool refloatRests{true};

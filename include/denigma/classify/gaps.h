@@ -29,6 +29,7 @@
 #include "denigma/classify/noteheads.h"
 
 namespace denigma {
+namespace classify {
 
 /// @struct GapPosition
 /// @brief Position within an anchored measure as a whole-note fraction.
@@ -47,7 +48,7 @@ struct GapAnchor
     std::optional<GapPosition> position;
 };
 
-using GapPayload = std::variant<classify::ChordSymbolClassification, classify::NoteheadClassification>;
+using GapPayload = std::variant<ChordSymbolClassification, NoteheadClassification>;
 
 /// @struct Gap
 /// @brief One classified feature omitted from a conversion target.
@@ -79,4 +80,5 @@ private:
     std::vector<Gap> m_gaps;
 };
 
+} // namespace classify
 } // namespace denigma

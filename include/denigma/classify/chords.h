@@ -174,8 +174,30 @@ ChordSuffixClassification classifyChordSuffix(const musx::dom::MusxInstanceList<
 /// @brief Classifies a Finale chord with no displayed suffix as a major triad.
 ChordSuffixClassification classifyChordSuffix();
 
+/// @struct ChordAssignmentClassification
+/// @brief Classification paired with the Finale chord assignment that produced it.
+struct ChordAssignmentClassification
+{
+    /// @brief Source chord assignment.
+    musx::dom::MusxInstance<musx::dom::details::ChordAssign> assignment;
+    /// @brief Position of the chord from the start of its measure, as a fraction of a whole note.
+    musx::util::Fraction position;
+    /// @brief Semantic classification of the assigned chord.
+    ChordSymbolClassification classification;
+};
+
 /// @brief Classifies a Finale chord assignment using the effective key signature.
+/// @return The classification, or std::nullopt when @p assignment or @p keySignature is null.
 std::optional<ChordSymbolClassification> classifyChordSymbol(const musx::dom::MusxInstance<musx::dom::details::ChordAssign>& assignment,
+    const musx::dom::MusxInstance<musx::dom::KeySignature>& keySignature, musx::dom::KeySignature::KeyContext keyContext);
+
+/// @brief Classifies a list of Finale chord assignments, normally one staff's assignments in one measure.
+/// @param assignments Source assignments to classify.
+/// @param keySignature The effective key signature for the assignments' measure and staff.
+/// @param keyContext Whether pitches are spelled as written or as sounding.
+/// @return One assignment/classification pair for each input assignment, in input order.
+/// @throws std::invalid_argument if @p keySignature is null.
+std::vector<ChordAssignmentClassification> classifyChordAssignments(const musx::dom::MusxInstanceList<musx::dom::details::ChordAssign>& assignments,
     const musx::dom::MusxInstance<musx::dom::KeySignature>& keySignature, musx::dom::KeySignature::KeyContext keyContext);
 
 /// @brief Returns the stable serialized name for a classified chord quality.

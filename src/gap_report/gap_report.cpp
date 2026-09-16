@@ -100,7 +100,7 @@ json noteheadJson(const classify::NoteheadClassification& notehead)
     return result;
 }
 
-json gapJson(const Gap& gap)
+json gapJson(const classify::Gap& gap)
 {
     json result{
         {"anchor", gap.anchor.id},
@@ -131,7 +131,7 @@ json gapJson(const Gap& gap)
 
 } // namespace
 
-std::string serializeGapReport(const GapCollector& collector, const GapReportProducer& producer)
+std::string serializeGapReport(const classify::GapCollector& collector, const GapReportProducer& producer)
 {
     auto gaps = json::array();
     for (const auto& gap : collector.gaps()) {

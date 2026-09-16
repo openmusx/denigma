@@ -19,8 +19,9 @@
 #pragma once
 
 #include <string>
+#include <utility>
 
-#include "denigma/gaps.h"
+#include "denigma/classify/gaps.h"
 
 namespace denigma {
 
@@ -33,7 +34,54 @@ struct GapReportProducer
     std::string commit;
 };
 
+#if DENIGMA_HAS_GAP_REPORT
+/// True when this build includes the gap report serializer (`denigma::gap-report`).
+inline constexpr bool GAP_REPORT_AVAILABLE = true;
+
 /// Serializes a collector as JSON, including an empty `gaps` array when no gaps were collected.
-std::string serializeGapReport(const GapCollector& collector, const GapReportProducer& producer);
+std::string serializeGapReport(const classify::GapCollector& collector, const GapReportProducer& producer);
+
+/// @class GapReportWriter
+/// @brief Serialization handle passed to a #withGapReport callback.
+class GapReportWriter
+{
+public:
+    /// @brief Wraps the collector whose gaps the callback serializes.
+    explicit GapReportWriter(const classify::GapCollector& collector)
+        : m_collector(collector)
+    {}
+
+    /// @brief Serializes the wrapped collector as JSON. (See #serializeGapReport.)
+    [[nodiscard]] std::string serialize(const GapReportProducer& producer) const { return serializeGapReport(m_collector, producer); }
+
+private:
+    const classify::GapCollector& m_collector;
+};
+#else
+inline constexpr bool GAP_REPORT_AVAILABLE = false;
+
+/// @class GapReportWriter
+/// @brief Placeholder in builds without the serializer. #withGapReport never passes it to a callback.
+class GapReportWriter
+{
+public:
+    explicit GapReportWriter(const classify::GapCollector&) {}
+};
+#endif // DENIGMA_HAS_GAP_REPORT
+
+/// @brief Invokes a generic serialization callback synchronously, only in builds that include the gap report serializer.
+/// @details The callback receives a #GapReportWriter for @p collector. Write it as a generic lambda whose body depends
+/// on the writer parameter, so that a build without the serializer never instantiates it and needs neither the
+/// serializer's symbols nor its headers.
+/// @return True when the callback ran, false when this build has no gap report serializer.
+template <typename Callback>
+bool withGapReport(const classify::GapCollector& collector, Callback&& callback)
+{
+    if constexpr (GAP_REPORT_AVAILABLE) {
+        GapReportWriter writer(collector);
+        std::forward<Callback>(callback)(writer);
+    }
+    return GAP_REPORT_AVAILABLE;
+}
 
 } // namespace denigma

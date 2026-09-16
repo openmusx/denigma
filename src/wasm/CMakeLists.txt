@@ -10,11 +10,13 @@ add_executable(denigma_wasm denigma_wasm.cpp)
 target_compile_options(denigma_wasm PRIVATE ${DENIGMA_WARNING_OPTIONS})
 target_link_libraries(denigma_wasm PRIVATE
     denigma::enigmaxml
-    denigma::gap-report
     denigma::mnx
     denigma::musicxml
     denigma_internal_deps
 )
+if(denigma_BUILD_GAP_REPORT)
+    target_link_libraries(denigma_wasm PRIVATE denigma::gap-report)
+endif()
 
 set(DENIGMA_WASM_OUTPUT_DIR "${PROJECT_BINARY_DIR}/wasm")
 set_target_properties(denigma_wasm PROPERTIES
