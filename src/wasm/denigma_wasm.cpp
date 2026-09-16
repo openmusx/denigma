@@ -351,9 +351,11 @@ void convertMnx(OnlineResult& result, std::span<const std::byte> bytes, const ch
     bool splitInstruments, int indentSpaces, int cueLayer)
 {
     denigma::ConversionResult conversionResult;
-    denigma::GapCollector gapCollector;
     auto context = makeConversionContext(result, sourceName, inputFormat, conversionResult);
-    context.gapCollector = &gapCollector;
+    std::optional<denigma::classify::GapCollector> gapCollector;
+    if constexpr (denigma::GAP_REPORT_AVAILABLE) {
+        context.gapCollector = &gapCollector.emplace();
+    }
     context.includeTempoTool = includeTempo;
     context.mnxSplitInstruments = splitInstruments;
     context.indentSpaces = indentSpaces < 0 ? std::nullopt : std::optional<int>(indentSpaces);
@@ -365,7 +367,11 @@ void convertMnx(OnlineResult& result, std::span<const std::byte> bytes, const ch
     const denigma::MusxLoggerScope musxLogger(denigma::makeMusxLogCallback(context));
     const auto& input = cachedInputData(bytes, inputFormat, context, sourceName);
     denigma::formats::mnx::detail::exportJson(output, input, context);
-    result.gapReport = denigma::serializeGapReport(gapCollector, {DENIGMA_NAME, DENIGMA_VERSION, denigma::gitCommit()});
+    if (gapCollector) {
+        denigma::withGapReport(*gapCollector, [&]<typename Writer>(const Writer& writer) {
+            result.gapReport = writer.serialize({DENIGMA_NAME, DENIGMA_VERSION, denigma::gitCommit()});
+        });
+    }
     if (!conversionResult.hasError()) {
         appendOutput(result, {}, output.str());
     }

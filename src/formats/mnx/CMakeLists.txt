@@ -53,11 +53,12 @@ set(DENIGMA_FORMAT_MNX_SOURCES
     ${CMAKE_CURRENT_LIST_DIR}/mnx_enums.cpp
     ${CMAKE_CURRENT_LIST_DIR}/mnx_expressions.cpp
     ${CMAKE_CURRENT_LIST_DIR}/mnx_formatted_text.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/mnx_gaps.cpp
     ${CMAKE_CURRENT_LIST_DIR}/mnx_global.cpp
     ${CMAKE_CURRENT_LIST_DIR}/mnx_layouts.cpp
     ${CMAKE_CURRENT_LIST_DIR}/mnx_mapping.cpp
     ${CMAKE_CURRENT_LIST_DIR}/mnx_articulations.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/mnx_chords.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/mnx_noteheads.cpp
     ${CMAKE_CURRENT_LIST_DIR}/mnx_parts.cpp
     ${CMAKE_CURRENT_LIST_DIR}/mnx_sequences.cpp
     ${CMAKE_CURRENT_LIST_DIR}/mnx_smartshapes.cpp

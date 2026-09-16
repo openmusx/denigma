@@ -8,23 +8,27 @@ add_denigma_internal_library(denigma_export MUSX_PCH ${DENIGMA_EXPORT_COMMAND_SO
 # directly instead of linking denigma_export.
 target_link_libraries(denigma_export PUBLIC
     denigma_core
-    denigma_gap_report
     denigma_format_enigmaxml
     denigma_musicxml
     denigma_mnx
     denigma_mss
     denigma_svg
 )
+if(denigma_BUILD_GAP_REPORT)
+    target_link_libraries(denigma_export PUBLIC denigma_gap_report)
+endif()
 
 if(denigma_BUILD_TESTING)
     add_denigma_internal_test_library(denigma_export_test ${DENIGMA_EXPORT_COMMAND_SOURCES})
     target_link_libraries(denigma_export_test PUBLIC
         denigma_core_test
-        denigma_gap_report
         denigma_format_enigmaxml
         denigma_musicxml
         denigma_mnx
         denigma_mss
         denigma_svg
     )
+endif()
+if(denigma_BUILD_TESTING AND denigma_BUILD_GAP_REPORT)
+    target_link_libraries(denigma_export_test PUBLIC denigma_gap_report)
 endif()

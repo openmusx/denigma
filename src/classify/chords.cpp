@@ -25,6 +25,7 @@
 #include <cctype>
 #include <cstdint>
 #include <optional>
+#include <stdexcept>
 #include <string_view>
 #include <unordered_map>
 #include <utility>
@@ -571,6 +572,26 @@ std::optional<ChordSymbolClassification> classifyChordSymbol(const musx::dom::Mu
         case BassPosition::UnderRoot: result.bassArrangement = chord::BassArrangement::Vertical; break;
         case BassPosition::Subtext: result.bassArrangement = chord::BassArrangement::Diagonal; break;
         }
+    }
+    return result;
+}
+
+std::vector<ChordAssignmentClassification> classifyChordAssignments(const musx::dom::MusxInstanceList<musx::dom::details::ChordAssign>& assignments,
+    const musx::dom::MusxInstance<musx::dom::KeySignature>& keySignature, musx::dom::KeySignature::KeyContext keyContext)
+{
+    if (!keySignature) {
+        throw std::invalid_argument("classifyChordAssignments requires a key signature.");
+    }
+    std::vector<ChordAssignmentClassification> result;
+    result.reserve(assignments.size());
+    for (const auto& assignment : assignments) {
+        auto classification = classifyChordSymbol(assignment, keySignature, keyContext);
+        if (!classification) {
+            continue;
+        }
+        // Finale stores the position as an EDU offset from the measure start and never places a chord before it.
+        const auto position = musx::util::Fraction::fromEdu((std::max)(musx::dom::Edu{}, assignment->horzEdu));
+        result.push_back({assignment, position, std::move(*classification)});
     }
     return result;
 }

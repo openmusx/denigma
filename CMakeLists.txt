@@ -16,6 +16,7 @@ endif()
 option(denigma_BUILD_CLI "Build the Denigma command-line application" ${_denigma_default_native})
 option(denigma_BUILD_TESTING "Build the Denigma test suite" ${_denigma_default_native})
 option(denigma_BUILD_WASM "Build the Denigma WebAssembly module (requires Emscripten)" ${_denigma_default_wasm})
+option(denigma_BUILD_GAP_REPORT "Build the Denigma gap report library (JSON serialization of conversion gaps)" ON)
 unset(_denigma_default_native)
 unset(_denigma_default_wasm)
 

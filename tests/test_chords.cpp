@@ -513,3 +513,32 @@ TEST(ChordSuffixClassifierFixture, RetainsInternalParenthesesAndStackedStrings)
     EXPECT_GT(stacked->strings.size(), 1);
     EXPECT_TRUE(stacked->stackDegrees) << stacked->calcText();
 }
+
+TEST(ChordAssignmentClassifierFixture, ClassifiesEveryAssignmentInMeasureOrder)
+{
+    const auto document = loadChordsFixture();
+    ASSERT_TRUE(document);
+
+    // Measure 1 of chords.musx carries two chords: C on the downbeat and Cm at the half note.
+    const auto measure = document->getOthers()->get<others::Measure>(SCORE_PARTID, 1);
+    ASSERT_TRUE(measure);
+    const StaffCmper staffId = 1;
+    const auto assignments = document->getDetails()->getArray<details::ChordAssign>(SCORE_PARTID, staffId, measure->getCmper());
+    ASSERT_EQ(assignments.size(), 2u);
+    const auto keySignature = measure->createKeySignature(staffId);
+    ASSERT_TRUE(keySignature);
+
+    const auto classified = denigma::classify::classifyChordAssignments(assignments, keySignature, KeySignature::KeyContext::Written);
+    ASSERT_EQ(classified.size(), assignments.size());
+    for (size_t x = 0; x < classified.size(); x++) {
+        EXPECT_EQ(classified[x].assignment, assignments[x]);
+        EXPECT_EQ(classified[x].position, musx::util::Fraction::fromEdu(assignments[x]->horzEdu));
+        EXPECT_EQ(classified[x].classification.root.step, music_theory::NoteName::C);
+    }
+    EXPECT_EQ(classified[0].position, musx::util::Fraction(0));
+    EXPECT_EQ(classified[0].classification.suffix.quality, denigma::classify::chord::Quality::Major);
+    EXPECT_EQ(classified[1].position, musx::util::Fraction(1, 2));
+    EXPECT_EQ(classified[1].classification.suffix.quality, denigma::classify::chord::Quality::Minor);
+
+    EXPECT_THROW(denigma::classify::classifyChordAssignments(assignments, nullptr, KeySignature::KeyContext::Written), std::invalid_argument);
+}

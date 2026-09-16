@@ -889,18 +889,17 @@ void processChords(MusicXmlMusxMapping& context, mx::api::StaffData& staff, cons
     }
 
     const auto keyContext = enumConvert<KeySignature::KeyContext>(pitchContext);
-    for (const auto& assignment : assignments) {
-        if (!assignment->showRoot) {
+    for (const auto& [assignment, position, classification] : classify::classifyChordAssignments(assignments, keySignature, keyContext)) {
+        if (!classification.showRoot) {
             continue;
         }
 
-        const auto root = keySignature->calcPitch(assignment->rootScaleNum, assignment->rootAlter, keyContext);
         auto chord = mx::api::ChordData{};
-        chord.root = enumConvert<mx::api::Step>(root.noteName);
-        chord.rootAlter = root.alteration;
-        const auto suffix = assignment->showSuffix ? classify::classifyChordSuffix(assignment->getChordSuffix()) : classify::classifyChordSuffix();
+        chord.root = enumConvert<mx::api::Step>(classification.root.step);
+        chord.rootAlter = classification.root.alteration;
+        const auto& suffix = classification.suffix;
         chord.chordKind = suffix.quality ? enumConvert<mx::api::ChordKind>(*suffix.quality) : mx::api::ChordKind::other;
-        if (assignment->showSuffix) {
+        if (classification.showSuffix) {
             chord.text = suffix.calcText();
             for (const auto& degree : suffix.degrees) {
                 auto extension = mx::api::Extension{};
@@ -943,10 +942,9 @@ void processChords(MusicXmlMusxMapping& context, mx::api::StaffData& staff, cons
                     MessageSeverity::Warning);
             }
         }
-        if (assignment->showAltBass) {
-            const auto bass = keySignature->calcPitch(assignment->bassScaleNum, assignment->bassAlter, keyContext);
-            chord.bass = enumConvert<mx::api::Step>(bass.noteName);
-            chord.bassAlter = bass.alteration;
+        if (classification.bass) {
+            chord.bass = enumConvert<mx::api::Step>(classification.bass->step);
+            chord.bassAlter = classification.bass->alteration;
         }
 
         // A font fretboard resolves to one character and has no fret positions to export. The
@@ -1014,7 +1012,7 @@ void processChords(MusicXmlMusxMapping& context, mx::api::StaffData& staff, cons
         }
 
         auto direction = mx::api::DirectionData{};
-        direction.tickTimePosition = context.timing.calcNearestMusicXmlDivisions(Fraction::fromEdu((std::max)(Edu{}, assignment->horzEdu)));
+        direction.tickTimePosition = context.timing.calcNearestMusicXmlDivisions(position);
         direction.chords.emplace_back(std::move(chord));
         staff.directions.emplace_back(std::move(direction));
     }
