@@ -555,16 +555,14 @@ std::optional<ChordSymbolClassification> classifyChordSymbol(const musx::dom::Mu
     if (!assignment || !keySignature) {
         return std::nullopt;
     }
-    const auto root = keySignature->calcPitch(assignment->rootScaleNum, assignment->rootAlter, keyContext);
     ChordSymbolClassification result;
-    result.root = {root.noteName, root.alteration};
+    result.root = keySignature->calcPitch(assignment->rootScaleNum, assignment->rootAlter, keyContext);
     result.rootLowerCase = assignment->rootLowerCase;
     result.showRoot = assignment->showRoot;
     result.suffix = assignment->showSuffix ? classifyChordSuffix(assignment->getChordSuffix()) : classifyChordSuffix();
     result.showSuffix = assignment->showSuffix;
     if (assignment->showAltBass) {
-        const auto bass = keySignature->calcPitch(assignment->bassScaleNum, assignment->bassAlter, keyContext);
-        result.bass = chord::Pitch{bass.noteName, bass.alteration};
+        result.bass = keySignature->calcPitch(assignment->bassScaleNum, assignment->bassAlter, keyContext);
         result.bassLowerCase = assignment->bassLowerCase;
         using BassPosition = musx::dom::details::ChordAssign::BassPosition;
         switch (assignment->bassPosition) {
@@ -647,21 +645,6 @@ std::string_view chordBassArrangementName(chord::BassArrangement arrangement)
     case chord::BassArrangement::Horizontal: return "horizontal";
     case chord::BassArrangement::Vertical: return "vertical";
     case chord::BassArrangement::Diagonal: return "diagonal";
-    }
-    return "unknown";
-}
-
-std::string_view chordPitchStepName(music_theory::NoteName step)
-{
-    using NoteName = music_theory::NoteName;
-    switch (step) {
-    case NoteName::A: return "A";
-    case NoteName::B: return "B";
-    case NoteName::C: return "C";
-    case NoteName::D: return "D";
-    case NoteName::E: return "E";
-    case NoteName::F: return "F";
-    case NoteName::G: return "G";
     }
     return "unknown";
 }

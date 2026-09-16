@@ -202,7 +202,15 @@ TEST(NoteheadClassification, ReturnsUnclassifiedForUnknownSymbol)
     EXPECT_FALSE(classification);
     EXPECT_EQ(classification.shape, notehead::Shape::Unclassified);
     EXPECT_EQ(classification.fill, notehead::Fill::Unspecified);
+    // classifyNoteheadSymbol has no note to resolve, so the source is the document default.
+    EXPECT_EQ(classification.noteheadInfo.source, NoteInfoPtr::NoteheadInfo::Source::Default);
     EXPECT_FALSE(classification.calcOverridesDefault(NoteType::Quarter));
+
+    // The same unrecognized glyph counts as an override once a customization supplied it.
+    classification.noteheadInfo.source = NoteInfoPtr::NoteheadInfo::Source::NoteAlteration;
+    EXPECT_TRUE(classification.calcOverridesDefault(NoteType::Quarter));
+    classification.noteheadInfo.source = NoteInfoPtr::NoteheadInfo::Source::ShapeNotes;
+    EXPECT_TRUE(classification.calcOverridesDefault(NoteType::Quarter));
 }
 
 TEST(NoteheadClassification, ReturnsOtherForRecognizedButUncatalogedNoteheadGlyph)

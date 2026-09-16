@@ -167,10 +167,10 @@ bool NoteheadClassification::calcFillOverridesDefault(musx::dom::NoteType noteTy
 
 bool NoteheadClassification::calcOverridesDefault(musx::dom::NoteType noteType) const noexcept
 {
-    // An unclassified notehead is usually a default notehead in a font with no glyph mapping,
-    // not a customized one, so it cannot be treated as an override.
+    // An unrecognized glyph overrides the default only when some setting other than the document's
+    // default notehead supplied it; otherwise it is the default notehead in a font with no glyph mapping.
     if (shape == notehead::Shape::Unclassified) {
-        return false;
+        return noteheadInfo.source != musx::dom::NoteInfoPtr::NoteheadInfo::Source::Default;
     }
     return shape != notehead::Shape::Regular || calcFillOverridesDefault(noteType);
 }

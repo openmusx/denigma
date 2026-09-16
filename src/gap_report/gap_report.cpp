@@ -18,6 +18,7 @@
  */
 #include "denigma/gap_report.h"
 
+#include <string>
 #include <type_traits>
 
 #include "nlohmann/json.hpp"
@@ -28,10 +29,10 @@ namespace {
 
 using json = nlohmann::ordered_json;
 
-json pitchJson(const classify::chord::Pitch& pitch)
+json pitchJson(const music_theory::Pitch& pitch)
 {
     return {
-        {"step", classify::chordPitchStepName(pitch.step)},
+        {"step", std::string(1, music_theory::calcNoteNameLetter(pitch.noteName))},
         {"alteration", pitch.alteration},
     };
 }
