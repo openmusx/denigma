@@ -895,7 +895,7 @@ void processChords(MusicXmlMusxMapping& context, mx::api::StaffData& staff, cons
         }
 
         auto chord = mx::api::ChordData{};
-        chord.root = enumConvert<mx::api::Step>(classification.root.step);
+        chord.root = enumConvert<mx::api::Step>(classification.root.noteName);
         chord.rootAlter = classification.root.alteration;
         const auto& suffix = classification.suffix;
         chord.chordKind = suffix.quality ? enumConvert<mx::api::ChordKind>(*suffix.quality) : mx::api::ChordKind::other;
@@ -943,7 +943,7 @@ void processChords(MusicXmlMusxMapping& context, mx::api::StaffData& staff, cons
             }
         }
         if (classification.bass) {
-            chord.bass = enumConvert<mx::api::Step>(classification.bass->step);
+            chord.bass = enumConvert<mx::api::Step>(classification.bass->noteName);
             chord.bassAlter = classification.bass->alteration;
         }
 

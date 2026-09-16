@@ -76,7 +76,7 @@ struct NoteheadClassification
     explicit operator bool() const noexcept { return shape != notehead::Shape::Unclassified; }
 
     /// Returns true when this classification changes the notehead a target would infer from the note duration.
-    /// Always false for #notehead::Shape::Unclassified.
+    /// An unrecognized glyph counts only when #noteheadInfo reports a source other than the document default.
     bool calcOverridesDefault(musx::dom::NoteType noteType) const noexcept;
 
     /// Returns true when the classified fill changes the fill inferred from the note duration.

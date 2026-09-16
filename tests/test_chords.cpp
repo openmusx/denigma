@@ -533,7 +533,7 @@ TEST(ChordAssignmentClassifierFixture, ClassifiesEveryAssignmentInMeasureOrder)
     for (size_t x = 0; x < classified.size(); x++) {
         EXPECT_EQ(classified[x].assignment, assignments[x]);
         EXPECT_EQ(classified[x].position, musx::util::Fraction::fromEdu(assignments[x]->horzEdu));
-        EXPECT_EQ(classified[x].classification.root.step, music_theory::NoteName::C);
+        EXPECT_EQ(classified[x].classification.root.noteName, music_theory::NoteName::C);
     }
     EXPECT_EQ(classified[0].position, musx::util::Fraction(0));
     EXPECT_EQ(classified[0].classification.suffix.quality, denigma::classify::chord::Quality::Major);

@@ -33,14 +33,6 @@ namespace classify {
 
 namespace chord {
 
-/// @struct Pitch
-/// @brief Diatonic pitch spelling used by a chord root or alternate bass.
-struct Pitch
-{
-    music_theory::NoteName step{music_theory::NoteName::C};
-    int alteration{};
-};
-
 /// @enum BassArrangement
 /// @brief Visual arrangement of an alternate bass relative to the chord root.
 enum class BassArrangement {
@@ -157,12 +149,14 @@ struct ChordSuffixClassification
 /// @brief Target-neutral musical and display semantics of a Finale chord assignment.
 struct ChordSymbolClassification
 {
-    chord::Pitch root;
+    /// The written root spelling. A chord symbol has no octave, so only the note name and alteration are meaningful.
+    music_theory::Pitch root;
     bool rootLowerCase{};
     bool showRoot{};
     ChordSuffixClassification suffix;
     bool showSuffix{};
-    std::optional<chord::Pitch> bass;
+    /// The written alternate-bass spelling, when the chord shows one. Its octave is not meaningful either.
+    std::optional<music_theory::Pitch> bass;
     bool bassLowerCase{};
     std::optional<chord::BassArrangement> bassArrangement;
 };
@@ -208,9 +202,6 @@ std::string_view chordDegreeTypeName(chord::Degree::Type type);
 
 /// @brief Returns the stable serialized name for an alternate-bass arrangement.
 std::string_view chordBassArrangementName(chord::BassArrangement arrangement);
-
-/// @brief Returns the stable serialized name for a diatonic chord pitch step.
-std::string_view chordPitchStepName(music_theory::NoteName step);
 
 /// @brief Returns the stable serialized name for a chord-suffix string position.
 std::string_view chordSuffixStringPositionName(chord::SuffixString::Position position);
