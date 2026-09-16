@@ -177,48 +177,48 @@ static void sortGroups(std::vector<details::StaffGroupInfo>& groups)
     });
 }
 
-void createLayouts(const MnxMusxMappingPtr& context)
+/// @brief Builds one layout for @p linkedPart from the staff list identified by @p staffListCmper,
+/// with staff groups as they stand at @p forMeas.
+static void createLayout(
+    const MnxMusxMappingPtr& context, const MusxInstance<others::PartDefinition>& linkedPart, Cmper staffListCmper, MeasCmper forMeas)
 {
     auto& mnxDocument = context->mnxDocument;
+    if (!mnxDocument->layouts()) {
+        mnxDocument->ensure_layouts();
+    }
+    auto layout = mnxDocument->layouts().value().append();
+    layout.set_id(calcSystemLayoutId(linkedPart, staffListCmper));
+
+    // Retrieve staff groups and staves in staff-list order.
+    const auto systemStaves = context->document->getOthers()->getArray<others::StaffUsed>(linkedPart->getCmper(), staffListCmper);
+    std::vector<details::StaffGroupInfo> groups = details::StaffGroupInfo::getGroupsAtMeasure(forMeas, linkedPart->getCmper(), systemStaves);
+    sortGroups(groups);
+    // Create a sequential content array.
+    auto meas = context->document->getOthers()->get<others::Measure>(linkedPart->getCmper(), forMeas);
+    if (!meas) {
+        throw std::logic_error(
+            "No Measure instance found for measure " + std::to_string(forMeas) + " in linked part " + std::to_string(linkedPart->getCmper()));
+    }
+    buildOrderedContent(layout.content(), context, groups, systemStaves, meas);
+}
+
+void createLayouts(const MnxMusxMappingPtr& context)
+{
     // Iterate over each linked part and generate layouts.
     for (const auto& linkedPart : context->musxParts) {
-        Cmper baseSystemIuList = linkedPart->calcScrollViewCmper();
-        auto staffSystems = context->document->getOthers()->getArray<others::StaffSystem>(linkedPart->getCmper());
-        const SystemCmper minSystem = BASE_SYSTEM_ID;
+        // The scroll-view layout derives from calcScrollViewCmper and measure 1, so it needs no page layout.
+        createLayout(context, linkedPart, linkedPart->calcScrollViewCmper(), 1);
         // Without a calculated layout, StaffSystem::startMeas is a zero placeholder, so per-system
-        // layouts cannot be built at all: the measure lookup below would find no measure 0. Emit only
-        // the scroll-view layout, which derives from calcScrollViewCmper and measure 1 and so needs no
-        // page layout. createScores omits this part's pages to match.
-        const bool layoutIsCalculated = linkedPart->isLayoutCalculated();
-        if (!layoutIsCalculated) {
+        // layouts cannot be built at all: the measure lookup would find no measure 0. Emit only
+        // the scroll-view layout. createScores omits this part's pages to match.
+        if (!linkedPart->isLayoutCalculated()) {
             context->denigmaContext->logMessage(LogMsg() << "Part \"" << calcLinkedPartDisplayName(linkedPart)
                                                          << "\" has an uncalculated page layout; omitting its per-system layouts and pages.",
                 MessageSeverity::Verbose);
+            continue;
         }
-        const SystemCmper maxSystem = layoutIsCalculated ? SystemCmper(staffSystems.size()) : BASE_SYSTEM_ID;
-        for (SystemCmper sysId = minSystem; sysId <= maxSystem; sysId++) { //NOTE: unusual loop limits are *on purpose*
-            Cmper systemIuList = sysId ? staffSystems[sysId - 1]->getCmper() : baseSystemIuList;
-            if (sysId != BASE_SYSTEM_ID && systemIuList == baseSystemIuList) {
-                continue;
-            }
-            if (!mnxDocument->layouts()) {
-                mnxDocument->ensure_layouts();
-            }
-            auto layout = mnxDocument->layouts().value().append();
-            layout.set_id(calcSystemLayoutId(linkedPart->getCmper(), sysId));
-
-            // Retrieve staff groups and staves in scroll view order.
-            const auto systemStaves = context->document->getOthers()->getArray<others::StaffUsed>(linkedPart->getCmper(), systemIuList);
-            const MeasCmper forMeas = sysId ? staffSystems[sysId - 1]->startMeas : 1;
-            std::vector<details::StaffGroupInfo> groups = details::StaffGroupInfo::getGroupsAtMeasure(forMeas, linkedPart->getCmper(), systemStaves);
-            sortGroups(groups);
-            // Create a sequential content array.
-            auto meas = context->document->getOthers()->get<others::Measure>(linkedPart->getCmper(), forMeas);
-            if (!meas) {
-                throw std::logic_error(
-                    "No Measure instance found for measure " + std::to_string(forMeas) + " in linked part " + std::to_string(linkedPart->getCmper()));
-            }
-            buildOrderedContent(layout.content(), context, groups, systemStaves, meas);
+        for (const auto& staffSystem : context->document->getOthers()->getArray<others::StaffSystem>(linkedPart->getCmper())) {
+            createLayout(context, linkedPart, staffSystem->getCmper(), staffSystem->startMeas);
         }
     }
 }

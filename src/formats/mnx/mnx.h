@@ -168,9 +168,10 @@ std::string mnxPartDisplayName(const MnxMusxMappingPtr& context, const std::stri
 std::string mnxPartDisplayName(const MnxMusxMappingPtr& context, const mnxdom::Part& part);
 std::string mnxPartDisplayList(const MnxMusxMappingPtr& context, const std::vector<std::string>& partIds);
 
-inline std::string calcSystemLayoutId(Cmper partId, Cmper systemId)
+inline std::string calcSystemLayoutId(const MusxInstance<others::PartDefinition>& linkedPart, Cmper systemId)
 {
-    if (systemId == BASE_SYSTEM_ID) {
+    const Cmper partId = linkedPart->getCmper();
+    if (linkedPart->getDocument()->isScrollViewCmper(partId, systemId)) {
         return "S" + std::to_string(partId) + "-ScrVw";
     }
     return "S" + std::to_string(partId) + "-Sys" + std::to_string(systemId);
