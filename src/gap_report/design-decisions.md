@@ -38,7 +38,7 @@ Some classification values keep `musxdom` instances whose accessors resolve thro
 
 ### A gap is anchored by the target object's id, not by a source locator
 
-A consumer of the report has the converted document and nothing else. A Finale record locator (`details/chordAssign cmper1=3 cmper2=12 inci=0`) is unusable without reimplementing `musxdom`, so a gap carries only the id of the target object it belongs to, plus a staff and a position within that object when the feature has no node of its own. The report never carries source coordinates or a copy of the source document.
+A consumer of the report has the converted document and nothing else. A Finale record locator (`details/chordAssign cmper1=3 cmper2=12 inci=0`) is unusable without reimplementing `musxdom`, so a gap carries only the id of the target object it belongs to, plus a staff and a position within that object when the feature has no node of its own. The report never carries source coordinates or a copy of the source document. This applies to every location a gap names, placements included: a Finale staff cmper never reaches the report. The exporter, which owns the mapping from Finale staves to target parts and staff numbers, performs the translation when it records the gap; the serializer only writes what it is given, so no payload can take a shortcut through a source identifier. A staff the exporter has no part for is left out of the report and logged.
 
 ### Ids come from `core::element_ids`, never from a counter
 
@@ -52,7 +52,7 @@ A tempo mark that MNX exported as a tempo is anchored to that tempo's id: the ob
 
 ### A feature drawn in several places is one gap with placements
 
-A Finale staff list draws one marking on several staves, one assignment per staff. Reporting each assignment would report one marking several times, and dropping all but one would lose where it is drawn. The gap is recorded once, anchored as above, and carries `placements`: the target-side places it would be drawn (`system-top`, `system-bottom`, or a part measure with a staff), for the members shown in the requested score or part. Placements name target ids, so the rule against source coordinates holds.
+A Finale staff list draws one marking on several staves, one assignment per staff. Reporting each assignment would report one marking several times, and dropping all but one would lose where it is drawn. The gap is recorded once, anchored as above, and carries `placements`: the target-side places it would be drawn (`system-top`, `system-bottom`, or a part measure with a staff), for the members shown in the requested score or part. Placements name target ids, translated by the exporter as the anchor rule requires.
 
 ## Serialization
 

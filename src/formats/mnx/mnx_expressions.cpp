@@ -67,6 +67,9 @@ std::vector<classify::GapPlacement> placementsForGroup(
         case classify::ExpressionScope::Staff: {
             const auto partIt = context->inst2Part.find(member->staffAssign);
             if (partIt == context->inst2Part.end()) {
+                context->logMessage(LogMsg() << "Staff " << member->staffAssign << " draws an expression in measure " << member->getCmper()
+                                             << " but is not part of any exported instrument, so the gap report cannot place it there.",
+                    MessageSeverity::Verbose);
                 break;
             }
             const auto& staves = context->part2Inst.at(partIt->second);
