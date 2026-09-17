@@ -250,8 +250,8 @@ static std::unique_ptr<mnxdom::Document> createMnxDocument(const CommandInputDat
     MusxLoggerScope mnxMusxLogger(makeMusxLogCallback(context));
 
     createMnx(context);
-    createGlobal(context);
     createParts(context);
+    createGlobal(context); // must come after createParts: global content refers to part ids
     finalizeArpeggios(context);
     finalizeJumpTies(context);
     // Split-instrument parts need time-varying layout sources; skip scores/layouts until MNX has a stable model for that.

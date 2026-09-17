@@ -21,7 +21,14 @@
  */
 
 #include "mnx_expressions.h"
+
+#include <map>
+#include <string>
+#include <vector>
+
+#include "core/element_ids.h"
 #include "denigma/classify/expressions.h"
+#include "denigma/classify/gaps.h"
 #include "mnx.h"
 #include "utils/stringutils.h"
 
@@ -31,6 +38,63 @@ namespace mnx {
 namespace detail {
 
 namespace {
+
+/// @brief The gap collector, or null when no report was requested.
+classify::GapCollector* gapCollectorFor(const MnxMusxMappingPtr& context)
+{
+    return context->denigmaContext->gapCollector;
+}
+
+classify::GapAnchor measureAnchor(const std::string& measureId, std::optional<int> mnxStaffNumber, Edu eduPosition)
+{
+    return {measureId, mnxStaffNumber, classify::gapPositionFromFraction(Fraction::fromEdu(eduPosition))};
+}
+
+/// @brief Where the target would draw each member of a staff-list group, in target ids.
+///
+/// A floating member names the system edge and the global measure. A concrete member names the
+/// part measure and, when the part has several staves, the staff. A staff that maps to no part
+/// (a staff outside every instrument) is left out.
+std::vector<classify::GapPlacement> placementsForGroup(
+    const MnxMusxMappingPtr& context, const classify::ExpressionAssignmentGroup& group, const std::string& globalMeasureId)
+{
+    using Kind = classify::GapPlacement::Kind;
+    std::vector<classify::GapPlacement> result;
+    for (const auto& member : group.members) {
+        switch (classify::classifyExpressionScope(member)) {
+        case classify::ExpressionScope::TopStaff: result.push_back({Kind::SystemTop, {globalMeasureId, std::nullopt, std::nullopt}}); break;
+        case classify::ExpressionScope::BottomStaff: result.push_back({Kind::SystemBottom, {globalMeasureId, std::nullopt, std::nullopt}}); break;
+        case classify::ExpressionScope::Staff: {
+            const auto partIt = context->inst2Part.find(member->staffAssign);
+            if (partIt == context->inst2Part.end()) {
+                break;
+            }
+            const auto& staves = context->part2Inst.at(partIt->second);
+            const auto staffIt = std::find(staves.begin(), staves.end(), member->staffAssign);
+            const auto staffNumber =
+                (staves.size() > 1 && staffIt != staves.end()) ? std::optional<int>(int(staffIt - staves.begin()) + 1) : std::nullopt;
+            result.push_back({Kind::Staff, {core::calcPartMeasureId(partIt->second, member->getCmper()), staffNumber, std::nullopt}});
+            break;
+        }
+        case classify::ExpressionScope::Unassigned: break;
+        }
+    }
+    return result;
+}
+
+/// @brief True for the expression types MNX exports as a global tempo.
+bool isTempoFamily(classify::ExpressionType type)
+{
+    return type == classify::ExpressionType::TempoMark || type == classify::ExpressionType::MetronomeMark;
+}
+
+/// @brief True for the expression types that belong to the global measure rather than to a staff.
+/// The choice is by type alone, whatever staff or staff list Finale assigned; see design-decisions.md.
+bool isGlobalExpressionType(classify::ExpressionType type)
+{
+    return isTempoFamily(type) || type == classify::ExpressionType::TempoAlteration || type == classify::ExpressionType::RehearsalMark;
+}
+
 struct ExpressionAttachmentContext
 {
     EntryInfoPtr entryInfo;
@@ -184,14 +248,22 @@ void appendDynamic(const MnxMusxMappingPtr& context, mnxdom::part::Measure& mnxM
     if (asgn->layer > 0 && context->current.cuePlan.isCueLayer(asgn->layer - 1)) {
         return;
     }
+    // A dynamic MNX cannot spell is a gap like any other expression it cannot represent.
+    const auto reportGap = [&]() {
+        if (auto* const gapCollector = gapCollectorFor(context)) {
+            gapCollector->add(measureAnchor(mnxMeasure.id_or(""), mnxStaffNumber, asgn->eduPosition), classification);
+        }
+    };
 
     auto dynamicClass = projectPrimaryDynamicForMnx(classification);
     if (!dynamicClass) {
+        reportGap();
         return;
     }
 
     const auto shape = calcDynamicShape(dynamicClass->composition);
     if (!shape.value && (dynamicClass->change == classify::dynamics::Change::Absolute || !dynamicClass->containsText())) {
+        reportGap();
         return;
     }
 
@@ -345,6 +417,7 @@ void processExpressions(const MnxMusxMappingPtr& context, const MusxInstance<oth
             }
             const auto classification = classify::classifyExpression(asgn);
             auto placement = asgn->calcVerticalPlacement();
+            const bool isCueLayer = asgn->layer > 0 && context->current.cuePlan.isCueLayer(asgn->layer - 1);
             switch (classification.type) {
             case classify::ExpressionType::Dynamic: appendDynamic(context, mnxMeasure, mnxStaffNumber, asgn, classification, placement); break;
             case classify::ExpressionType::Fermata: {
@@ -363,8 +436,146 @@ void processExpressions(const MnxMusxMappingPtr& context, const MusxInstance<oth
                 break;
             case classify::ExpressionType::PseudoTie: break;
             case classify::ExpressionType::Error: context->logMessage(LogMsg() << classification.error().message, MessageSeverity::Warning); break;
-            default: break;
+            // Handled by processGlobalExpressions; see isGlobalExpressionType.
+            case classify::ExpressionType::TempoMark: break;
+            case classify::ExpressionType::MetronomeMark: break;
+            case classify::ExpressionType::TempoAlteration: break;
+            case classify::ExpressionType::RehearsalMark: break;
+            case classify::ExpressionType::TechniqueText:
+            case classify::ExpressionType::GenericText:
+            case classify::ExpressionType::StringMute:
+            case classify::ExpressionType::HarpDiagram:
+            case classify::ExpressionType::AccordionRegistration:
+            case classify::ExpressionType::KeyboardPedal:
+            case classify::ExpressionType::MultimeasureRestNumber:
+                // Until MNX has an object for this expression on a staff, its export is a gap.
+                if (auto* const gapCollector = gapCollectorFor(context); gapCollector && !isCueLayer && asgn->textExprId) {
+                    gapCollector->add(measureAnchor(mnxMeasure.id_or(""), mnxStaffNumber, asgn->eduPosition), classification);
+                }
+                break;
+            case classify::ExpressionType::Suppress: break;
             }
+        }
+    }
+}
+
+namespace {
+
+/// @brief One tempo MNX will write for a position, with the source it came from.
+struct TempoCandidate
+{
+    mnxdom::global::Tempo::Required tempo;
+    std::string id;
+    /// @brief The expression group the tempo came from.
+    const classify::ExpressionAssignmentGroup* group{};
+};
+
+/// @brief Collects the tempo an expression group plays, if it plays one.
+///
+/// An MNX tempo is a playback instruction, so it takes the expression's playback settings; a
+/// metronome mark without them falls back to its displayed equation. See design-decisions.md.
+std::optional<mnxdom::global::Tempo::Required> calcExpressionTempo(const classify::ExpressionClassification& classification)
+{
+    const auto* tempoText = classification.as<classify::expression::TempoText>();
+    const auto* metronomeMark = classification.as<classify::expression::MetronomeMark>();
+    const classify::expression::TempoInfo* playback = nullptr;
+    if (metronomeMark) {
+        playback = &metronomeMark->tempo;
+    } else if (tempoText) {
+        playback = &tempoText->tempo;
+    }
+    if (playback && playback->beatsPerMinute > 0 && playback->beatUnitEdu > 0) {
+        return mnxTempoFromPlayback(playback->beatsPerMinute, Edu(playback->beatUnitEdu));
+    }
+    if (metronomeMark) {
+        return mnxTempoFromMetronomeMark(*metronomeMark);
+    }
+    return std::nullopt;
+}
+
+/// @brief Writes the tempos the measure's expressions play, one per position, in position order,
+/// and records what each expression lost on the way (see design-decisions.md).
+void appendTempos(
+    const MnxMusxMappingPtr& context, mnxdom::global::Measure& mnxMeasure, const std::vector<classify::ExpressionAssignmentGroup>& groups)
+{
+    auto* const gapCollector = gapCollectorFor(context);
+    const auto globalMeasureId = mnxMeasure.id_or("");
+    std::map<Edu, TempoCandidate> temposAtPositions;
+
+    // Search in order of decreasing precedence: text expressions before shape expressions. Using
+    // emplace keeps the first tempo at a position.
+    const auto addExpressionTempos = [&](bool textExpressions) {
+        for (const auto& group : groups) {
+            const auto& primary = group.primary;
+            if (!isTempoFamily(group.classification.type) || static_cast<bool>(primary->textExprId) != textExpressions) {
+                continue;
+            }
+            const auto tempo = calcExpressionTempo(group.classification);
+            const bool emitted =
+                tempo && temposAtPositions.emplace(primary->eduPosition, TempoCandidate{*tempo, core::calcExpressionId(primary), &group}).second;
+            if (emitted || !gapCollector || !textExpressions) {
+                continue;
+            }
+            gapCollector->add(measureAnchor(globalMeasureId, std::nullopt, primary->eduPosition), group.classification, classify::GapExtent::Complete,
+                placementsForGroup(context, group, globalMeasureId));
+        }
+    };
+    addExpressionTempos(true);
+    addExpressionTempos(false);
+
+    for (const auto& [position, candidate] : temposAtPositions) {
+        auto tempo = mnxMeasure.ensure_tempos().append(candidate.tempo.bpm, candidate.tempo.noteValue);
+        tempo.set_id(candidate.id);
+        if (position) {
+            tempo.ensure_location(mnxFractionFromFraction(Fraction::fromEdu(position)));
+        }
+        if (!gapCollector) {
+            continue;
+        }
+        const classify::GapAnchor anchor{candidate.id, std::nullopt, std::nullopt};
+        if (candidate.group->primary->hidden) {
+            /// @todo hide hidden expressions if MNX ever adds visibility to the tempo object.
+            gapCollector->add(anchor, classify::PlaybackOnly{}, classify::GapExtent::Partial);
+        }
+        // Reported whether or not Finale draws it; see design-decisions.md.
+        if (candidate.group->primary->textExprId) {
+            gapCollector->add(anchor, candidate.group->classification, classify::GapExtent::Partial,
+                placementsForGroup(context, *candidate.group, globalMeasureId));
+        }
+    }
+}
+
+} // namespace
+
+void processGlobalExpressions(const MnxMusxMappingPtr& context, mnxdom::global::Measure& mnxMeasure, const MusxInstance<others::Measure>& musxMeasure)
+{
+    if (!musxMeasure->hasExpression) {
+        return;
+    }
+    const auto groups = classify::groupExpressionAssignments(
+        musxMeasure->getDocument()->getOthers()->getArray<others::MeasureExprAssign>(SCORE_PARTID, musxMeasure->getCmper()));
+    appendTempos(context, mnxMeasure, groups);
+
+    auto* const gapCollector = gapCollectorFor(context);
+    const auto globalMeasureId = mnxMeasure.id_or("");
+    for (const auto& group : groups) {
+        const auto& primary = group.primary;
+        const auto& classification = group.classification;
+        if (!primary->textExprId || primary->hidden || !isGlobalExpressionType(classification.type)) {
+            continue;
+        }
+        switch (classification.type) {
+        case classify::ExpressionType::TempoMark: break; // appendTempos
+        case classify::ExpressionType::MetronomeMark: break; // appendTempos
+        case classify::ExpressionType::TempoAlteration:
+        case classify::ExpressionType::RehearsalMark:
+            // Until MNX has an object for this marking, its export is a gap.
+            if (gapCollector) {
+                gapCollector->add(measureAnchor(globalMeasureId, std::nullopt, primary->eduPosition), classification, classify::GapExtent::Complete,
+                    placementsForGroup(context, group, globalMeasureId));
+            }
+            break;
+        default: break; // not a global type; see isGlobalExpressionType
         }
     }
 }

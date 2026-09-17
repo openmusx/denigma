@@ -26,6 +26,8 @@
 #include <vector>
 
 #include "denigma/classify/chords.h"
+#include "denigma/classify/expressions.h"
+#include "denigma/classify/formatted_text.h"
 #include "denigma/classify/noteheads.h"
 
 namespace denigma {
@@ -39,6 +41,12 @@ struct GapPosition
     int denominator{1};
 };
 
+/// @brief Converts a musx fraction of a whole note into a gap position.
+inline GapPosition gapPositionFromFraction(const musx::util::Fraction& fraction)
+{
+    return {fraction.numerator(), fraction.denominator()};
+}
+
 /// @struct GapAnchor
 /// @brief Stable target object identity and optional location within that object.
 struct GapAnchor
@@ -48,13 +56,48 @@ struct GapAnchor
     std::optional<GapPosition> position;
 };
 
-using GapPayload = std::variant<ChordSymbolClassification, NoteheadClassification>;
+/// @enum GapExtent
+/// @brief How much of the feature the conversion target lacks.
+enum class GapExtent {
+    Complete, ///< Nothing in the target stands for the feature.
+    Partial ///< The anchored object stands for the feature but lost the reported payload.
+};
+
+/// @struct GapPlacement
+/// @brief One place the target document would draw a feature that is reported once.
+///
+/// A Finale staff list draws one marking on several staves. The gap for it is reported once, at
+/// the object the marking belongs to, and lists where the target would draw it.
+struct GapPlacement
+{
+    /// @enum Kind
+    /// @brief What the placement's anchor names.
+    enum class Kind {
+        Staff, ///< A staff of a part measure: the anchor is the part measure with a staff.
+        SystemTop, ///< The top staff of every system: the anchor is the global measure.
+        SystemBottom ///< The bottom staff of every system: the anchor is the global measure.
+    };
+
+    Kind kind{Kind::Staff};
+    GapAnchor anchor;
+};
+
+/// @struct PlaybackOnly
+/// @brief Marker payload: the anchored object sounds in the source without being drawn, and the
+/// target cannot hide it.
+struct PlaybackOnly
+{};
+
+using GapPayload = std::variant<ChordSymbolClassification, NoteheadClassification, ExpressionClassification, FormattedText, PlaybackOnly>;
 
 /// @struct Gap
-/// @brief One classified feature omitted from a conversion target.
+/// @brief One classified feature omitted, in whole or in part, from a conversion target.
 struct Gap
 {
     GapAnchor anchor;
+    GapExtent extent{GapExtent::Complete};
+    /// @brief Where the target would draw the feature. Empty when #anchor alone says so.
+    std::vector<GapPlacement> placements;
     GapPayload payload;
 };
 
@@ -68,9 +111,9 @@ class GapCollector
 public:
     /// Adds one typed gap.
     template <typename Payload>
-    void add(GapAnchor anchor, Payload payload)
+    void add(GapAnchor anchor, Payload payload, GapExtent extent = GapExtent::Complete, std::vector<GapPlacement> placements = {})
     {
-        m_gaps.push_back({std::move(anchor), GapPayload(std::move(payload))});
+        m_gaps.push_back({std::move(anchor), extent, std::move(placements), GapPayload(std::move(payload))});
     }
 
     /// Returns collected gaps in source traversal order.

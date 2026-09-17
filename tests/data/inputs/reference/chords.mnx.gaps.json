@@ -12,6 +12,7 @@
         "numerator": 0,
         "denominator": 1
       },
+      "extent": "complete",
       "type": "chord-symbol",
       "chord": {
         "root": {
@@ -39,6 +40,7 @@
         "numerator": 1,
         "denominator": 2
       },
+      "extent": "complete",
       "type": "chord-symbol",
       "chord": {
         "root": {
@@ -71,6 +73,7 @@
         "numerator": 0,
         "denominator": 1
       },
+      "extent": "complete",
       "type": "chord-symbol",
       "chord": {
         "root": {
@@ -103,6 +106,7 @@
         "numerator": 1,
         "denominator": 2
       },
+      "extent": "complete",
       "type": "chord-symbol",
       "chord": {
         "root": {
@@ -135,6 +139,7 @@
         "numerator": 0,
         "denominator": 1
       },
+      "extent": "complete",
       "type": "chord-symbol",
       "chord": {
         "root": {
@@ -167,6 +172,7 @@
         "numerator": 1,
         "denominator": 2
       },
+      "extent": "complete",
       "type": "chord-symbol",
       "chord": {
         "root": {
@@ -199,6 +205,7 @@
         "numerator": 0,
         "denominator": 1
       },
+      "extent": "complete",
       "type": "chord-symbol",
       "chord": {
         "root": {
@@ -231,6 +238,7 @@
         "numerator": 1,
         "denominator": 2
       },
+      "extent": "complete",
       "type": "chord-symbol",
       "chord": {
         "root": {
@@ -263,6 +271,7 @@
         "numerator": 0,
         "denominator": 1
       },
+      "extent": "complete",
       "type": "chord-symbol",
       "chord": {
         "root": {
@@ -307,6 +316,7 @@
         "numerator": 1,
         "denominator": 2
       },
+      "extent": "complete",
       "type": "chord-symbol",
       "chord": {
         "root": {
@@ -339,6 +349,7 @@
         "numerator": 0,
         "denominator": 1
       },
+      "extent": "complete",
       "type": "chord-symbol",
       "chord": {
         "root": {
@@ -371,6 +382,7 @@
         "numerator": 1,
         "denominator": 2
       },
+      "extent": "complete",
       "type": "chord-symbol",
       "chord": {
         "root": {
@@ -407,6 +419,7 @@
         "numerator": 0,
         "denominator": 1
       },
+      "extent": "complete",
       "type": "chord-symbol",
       "chord": {
         "root": {
@@ -462,6 +475,7 @@
         "numerator": 0,
         "denominator": 1
       },
+      "extent": "complete",
       "type": "chord-symbol",
       "chord": {
         "root": {
@@ -501,6 +515,7 @@
         "numerator": 1,
         "denominator": 2
       },
+      "extent": "complete",
       "type": "chord-symbol",
       "chord": {
         "root": {
@@ -554,6 +569,7 @@
         "numerator": 0,
         "denominator": 1
       },
+      "extent": "complete",
       "type": "chord-symbol",
       "chord": {
         "root": {
@@ -586,6 +602,7 @@
         "numerator": 1,
         "denominator": 2
       },
+      "extent": "complete",
       "type": "chord-symbol",
       "chord": {
         "root": {
@@ -618,6 +635,7 @@
         "numerator": 0,
         "denominator": 1
       },
+      "extent": "complete",
       "type": "chord-symbol",
       "chord": {
         "root": {
@@ -673,6 +691,7 @@
         "numerator": 1,
         "denominator": 2
       },
+      "extent": "complete",
       "type": "chord-symbol",
       "chord": {
         "root": {
@@ -746,6 +765,7 @@
         "numerator": 0,
         "denominator": 1
       },
+      "extent": "complete",
       "type": "chord-symbol",
       "chord": {
         "root": {
@@ -779,6 +799,7 @@
         "numerator": 3,
         "denominator": 4
       },
+      "extent": "complete",
       "type": "chord-symbol",
       "chord": {
         "root": {
@@ -817,6 +838,7 @@
         "numerator": 0,
         "denominator": 1
       },
+      "extent": "complete",
       "type": "chord-symbol",
       "chord": {
         "root": {
@@ -844,6 +866,7 @@
         "numerator": 1,
         "denominator": 2
       },
+      "extent": "complete",
       "type": "chord-symbol",
       "chord": {
         "root": {
@@ -876,6 +899,7 @@
         "numerator": 0,
         "denominator": 1
       },
+      "extent": "complete",
       "type": "chord-symbol",
       "chord": {
         "root": {
@@ -908,6 +932,7 @@
         "numerator": 1,
         "denominator": 2
       },
+      "extent": "complete",
       "type": "chord-symbol",
       "chord": {
         "root": {
@@ -940,6 +965,7 @@
         "numerator": 0,
         "denominator": 1
       },
+      "extent": "complete",
       "type": "chord-symbol",
       "chord": {
         "root": {
@@ -972,6 +998,7 @@
         "numerator": 1,
         "denominator": 2
       },
+      "extent": "complete",
       "type": "chord-symbol",
       "chord": {
         "root": {
@@ -1004,6 +1031,7 @@
         "numerator": 0,
         "denominator": 1
       },
+      "extent": "complete",
       "type": "chord-symbol",
       "chord": {
         "root": {
@@ -1036,6 +1064,7 @@
         "numerator": 1,
         "denominator": 2
       },
+      "extent": "complete",
       "type": "chord-symbol",
       "chord": {
         "root": {
@@ -1068,6 +1097,7 @@
         "numerator": 0,
         "denominator": 1
       },
+      "extent": "complete",
       "type": "chord-symbol",
       "chord": {
         "root": {
@@ -1112,6 +1142,7 @@
         "numerator": 1,
         "denominator": 2
       },
+      "extent": "complete",
       "type": "chord-symbol",
       "chord": {
         "root": {
@@ -1144,6 +1175,7 @@
         "numerator": 0,
         "denominator": 1
       },
+      "extent": "complete",
       "type": "chord-symbol",
       "chord": {
         "root": {
@@ -1176,6 +1208,7 @@
         "numerator": 1,
         "denominator": 2
       },
+      "extent": "complete",
       "type": "chord-symbol",
       "chord": {
         "root": {
@@ -1212,6 +1245,7 @@
         "numerator": 0,
         "denominator": 1
       },
+      "extent": "complete",
       "type": "chord-symbol",
       "chord": {
         "root": {
@@ -1267,6 +1301,7 @@
         "numerator": 0,
         "denominator": 1
       },
+      "extent": "complete",
       "type": "chord-symbol",
       "chord": {
         "root": {
@@ -1306,6 +1341,7 @@
         "numerator": 1,
         "denominator": 2
       },
+      "extent": "complete",
       "type": "chord-symbol",
       "chord": {
         "root": {
@@ -1359,6 +1395,7 @@
         "numerator": 0,
         "denominator": 1
       },
+      "extent": "complete",
       "type": "chord-symbol",
       "chord": {
         "root": {
@@ -1391,6 +1428,7 @@
         "numerator": 1,
         "denominator": 2
       },
+      "extent": "complete",
       "type": "chord-symbol",
       "chord": {
         "root": {
@@ -1423,6 +1461,7 @@
         "numerator": 0,
         "denominator": 1
       },
+      "extent": "complete",
       "type": "chord-symbol",
       "chord": {
         "root": {
@@ -1478,6 +1517,7 @@
         "numerator": 1,
         "denominator": 2
       },
+      "extent": "complete",
       "type": "chord-symbol",
       "chord": {
         "root": {
@@ -1551,6 +1591,7 @@
         "numerator": 0,
         "denominator": 1
       },
+      "extent": "complete",
       "type": "chord-symbol",
       "chord": {
         "root": {
@@ -1584,6 +1625,7 @@
         "numerator": 3,
         "denominator": 4
       },
+      "extent": "complete",
       "type": "chord-symbol",
       "chord": {
         "root": {
@@ -1622,6 +1664,7 @@
         "numerator": 1,
         "denominator": 4
       },
+      "extent": "complete",
       "type": "chord-symbol",
       "chord": {
         "root": {
@@ -1661,6 +1704,7 @@
         "numerator": 0,
         "denominator": 1
       },
+      "extent": "complete",
       "type": "chord-symbol",
       "chord": {
         "root": {
@@ -1712,6 +1756,7 @@
         "numerator": 3,
         "denominator": 4
       },
+      "extent": "complete",
       "type": "chord-symbol",
       "chord": {
         "root": {
@@ -1767,6 +1812,7 @@
         "numerator": 0,
         "denominator": 1
       },
+      "extent": "complete",
       "type": "chord-symbol",
       "chord": {
         "root": {
@@ -1822,6 +1868,7 @@
         "numerator": 1,
         "denominator": 2
       },
+      "extent": "complete",
       "type": "chord-symbol",
       "chord": {
         "root": {
@@ -1877,6 +1924,7 @@
         "numerator": 0,
         "denominator": 1
       },
+      "extent": "complete",
       "type": "chord-symbol",
       "chord": {
         "root": {
@@ -1942,6 +1990,7 @@
         "numerator": 1,
         "denominator": 2
       },
+      "extent": "complete",
       "type": "chord-symbol",
       "chord": {
         "root": {
@@ -1985,6 +2034,7 @@
         "numerator": 0,
         "denominator": 1
       },
+      "extent": "complete",
       "type": "chord-symbol",
       "chord": {
         "root": {
@@ -2017,6 +2067,7 @@
         "numerator": 1,
         "denominator": 2
       },
+      "extent": "complete",
       "type": "chord-symbol",
       "chord": {
         "root": {
@@ -2072,6 +2123,7 @@
         "numerator": 0,
         "denominator": 1
       },
+      "extent": "complete",
       "type": "chord-symbol",
       "chord": {
         "root": {
@@ -2111,6 +2163,7 @@
         "numerator": 1,
         "denominator": 2
       },
+      "extent": "complete",
       "type": "chord-symbol",
       "chord": {
         "root": {
@@ -2166,6 +2219,7 @@
         "numerator": 0,
         "denominator": 1
       },
+      "extent": "complete",
       "type": "chord-symbol",
       "chord": {
         "root": {

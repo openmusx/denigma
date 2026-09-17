@@ -76,6 +76,22 @@ enum class ClassificationBasis {
     FallbackToGenericText ///< No specialized classification matched the expression.
 };
 
+/// @enum ExpressionScope
+/// @brief Where a Finale measure-expression assignment draws its expression.
+///
+/// Staff-list membership is orthogonal to the scope: a staff list produces one assignment per
+/// staff it names, each with its own scope, and the members share a Finale staff group. See
+/// @ref ExpressionAssignmentGroup.
+enum class ExpressionScope {
+    Unassigned, ///< Classified from a definition alone; no assignment says where it is drawn.
+    Staff, ///< Drawn on the one staff it is assigned to.
+    TopStaff, ///< Floating assignment drawn on the top staff of every system.
+    BottomStaff ///< Floating assignment drawn on the bottom staff of every system.
+};
+
+/// @brief True for the scopes that float to a system edge rather than naming a staff.
+bool isFloatingScope(ExpressionScope scope);
+
 namespace expression {
 
 /// @struct TechniqueText
@@ -324,6 +340,8 @@ struct ExpressionClassification
     ExpressionType type{ExpressionType::GenericText};
     /// @brief Evidence used to select #type and #value.
     ClassificationBasis basis{ClassificationBasis::FallbackToGenericText};
+    /// @brief Where the classified assignment draws the expression. Unassigned when no assignment was given.
+    ExpressionScope scope{ExpressionScope::Unassigned};
     /// @brief Parsing context retained when the source contains Enigma text commands.
     std::optional<musx::util::EnigmaParsingContext> enigmaCtx;
     /// @brief Semantic payload associated with #type.
@@ -456,14 +474,55 @@ struct ExpressionAssignmentClassification
     ExpressionClassification classification;
 };
 
+/// @struct ExpressionAssignmentGroup
+/// @brief The assignments Finale created together from one staff list, or a lone assignment as a group of one.
+///
+/// A staff list places one assignment on each staff it names, and Finale numbers the set with a
+/// staff group so that it can edit them together. The group is one marking: it has one expression,
+/// one position, and one classification, and the member on the lowest inci (usually the floating
+/// top-staff member) names it. Where Finale left the group number off, a floating top-staff
+/// assignment gathers the ungrouped assignments of the same expression at the same position and
+/// names the group itself.
+struct ExpressionAssignmentGroup
+{
+    /// @brief Finale staff group shared by the members, or zero for a lone assignment.
+    int staffGroup{};
+    /// @brief The member that names the group: the lowest inci, or the floating top-staff member of an ungrouped set.
+    musx::dom::MusxInstance<musx::dom::others::MeasureExprAssign> primary;
+    /// @brief Every member shown in the requested score or part, #primary first.
+    std::vector<musx::dom::MusxInstance<musx::dom::others::MeasureExprAssign>> members;
+    /// @brief The group's classification. A floating top-staff member's classification wins.
+    ExpressionClassification classification;
+
+    /// @brief True when the group came from a staff list rather than from a single assignment.
+    [[nodiscard]] bool isStaffListGroup() const noexcept { return staffGroup != 0; }
+};
+
+/// @brief Determines where a Finale measure-expression assignment draws its expression.
+ExpressionScope classifyExpressionScope(const musx::dom::MusxInstance<musx::dom::others::MeasureExprAssign>& assignment);
+
 /// @brief Classifies the expression referenced by a Finale measure-expression assignment.
 /// @param assignment Source assignment whose expression definition is resolved and classified.
 /// @return Exporter-neutral expression classification.
 ExpressionClassification classifyExpression(const musx::dom::MusxInstance<musx::dom::others::MeasureExprAssign>& assignment);
 
+/// @brief Groups one measure's assignments by Finale staff group and classifies each group once.
+///
+/// Assignments not shown in the requested score or part are left out, so a part sees only the
+/// members it draws. Hidden assignments are kept, because Finale still plays them; a caller that
+/// draws decides from the primary member's `hidden` flag. Groups are returned in order of their
+/// primary member.
+/// @param assignments One measure's assignments, as read for the requested score or part.
+std::vector<ExpressionAssignmentGroup> groupExpressionAssignments(
+    const musx::dom::MusxInstanceList<musx::dom::others::MeasureExprAssign>& assignments);
+
 /// @brief Classifies a list of Finale measure-expression assignments.
+///
+/// Every member of a staff-list group receives the group's classification (see
+/// #groupExpressionAssignments) with its own #ExpressionClassification::scope. Unlike the grouping
+/// function, this one keeps assignments not shown in the requested part.
 /// @param assignments Source assignments to classify.
-/// @return One assignment/classification pair for each input assignment.
+/// @return One assignment/classification pair for each input assignment, in input order.
 std::vector<ExpressionAssignmentClassification> classifyExpressionAssignments(
     const musx::dom::MusxInstanceList<musx::dom::others::MeasureExprAssign>& assignments);
 

@@ -393,8 +393,7 @@ bool processSlur(
 
 void processArpeggiatedTie(MusicXmlMusxMapping& context, const classify::smartshape::ArpeggiatedTie& arpeggiatedTie)
 {
-    ASSERT_IF(!arpeggiatedTie.tiedFrom || !arpeggiatedTie.tiedTo)
-    {
+    ASSERT_IF (!arpeggiatedTie.tiedFrom || !arpeggiatedTie.tiedTo) {
         return;
     }
 
@@ -718,8 +717,7 @@ mx::api::GlissandoType glissandoTypeForShape(const MusxInstance<others::SmartSha
     case others::SmartShape::ShapeType::TabSlide: return mx::api::GlissandoType::slide;
     default: break;
     }
-    ASSERT_IF(true)
-    {
+    ASSERT_IF (true) {
         throw std::logic_error("Glissando classification from unexpected smart shape type.");
     }
     return mx::api::GlissandoType::glissando;
@@ -914,16 +912,14 @@ void processSmartShapesForStaff(
     const auto assigns =
         context.document->getOthers()->getArray<others::SmartShapeMeasureAssign>(musxMeasure->getRequestedPartId(), musxMeasure->getCmper());
     for (const auto& assign : assigns) {
-        MUSX_ASSERT_IF(!assign)
-        {
+        ASSERT_IF (!assign) {
             continue;
         }
         if (assign->centerShapeNum != 0) {
             continue;
         }
         const auto shape = context.document->getOthers()->get<others::SmartShape>(musxMeasure->getRequestedPartId(), assign->shapeNum);
-        ASSERT_IF(!shape)
-        {
+        ASSERT_IF (!shape) {
             continue;
         }
         if (shape->startTermSeg->endPoint->staffId != staffId || shape->startTermSeg->endPoint->measId != musxMeasure->getCmper()) {

@@ -8,6 +8,7 @@
   "gaps": [
     {
       "anchor": "ev25n1",
+      "extent": "complete",
       "type": "notehead",
       "notehead": {
         "shape": "other",
@@ -17,6 +18,7 @@
     },
     {
       "anchor": "ev28n1",
+      "extent": "complete",
       "type": "notehead",
       "notehead": {
         "shape": "other",
@@ -26,6 +28,7 @@
     },
     {
       "anchor": "ev29n1",
+      "extent": "complete",
       "type": "notehead",
       "notehead": {
         "shape": "regular",
@@ -35,6 +38,7 @@
     },
     {
       "anchor": "ev30n1",
+      "extent": "complete",
       "type": "notehead",
       "notehead": {
         "shape": "regular",
@@ -44,6 +48,7 @@
     },
     {
       "anchor": "ev31n1",
+      "extent": "complete",
       "type": "notehead",
       "notehead": {
         "shape": "regular",
@@ -53,6 +58,7 @@
     },
     {
       "anchor": "ev32n1",
+      "extent": "complete",
       "type": "notehead",
       "notehead": {
         "shape": "regular",
@@ -62,6 +68,7 @@
     },
     {
       "anchor": "ev33n1",
+      "extent": "complete",
       "type": "notehead",
       "notehead": {
         "shape": "other",
@@ -71,6 +78,7 @@
     },
     {
       "anchor": "ev36n1",
+      "extent": "complete",
       "type": "notehead",
       "notehead": {
         "shape": "other",
@@ -80,6 +88,7 @@
     },
     {
       "anchor": "ev38n1",
+      "extent": "complete",
       "type": "notehead",
       "notehead": {
         "shape": "other",
@@ -89,6 +98,7 @@
     },
     {
       "anchor": "ev39n1",
+      "extent": "complete",
       "type": "notehead",
       "notehead": {
         "shape": "other",
@@ -98,6 +108,7 @@
     },
     {
       "anchor": "ev46n1",
+      "extent": "complete",
       "type": "notehead",
       "notehead": {
         "shape": "other",
@@ -107,6 +118,7 @@
     },
     {
       "anchor": "ev47n1",
+      "extent": "complete",
       "type": "notehead",
       "notehead": {
         "shape": "other",

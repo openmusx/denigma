@@ -8,9 +8,6 @@
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -19,31 +16,26 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#include "core/element_ids.h"
-#include "gtest/gtest.h"
+#pragma once
 
-using namespace denigma;
+#include "denigma/classify/chords.h"
+#include "denigma/classify/expressions.h"
+#include "denigma/classify/formatted_text.h"
+#include "denigma/classify/noteheads.h"
+#include "nlohmann/json.hpp"
 
-TEST(ElementIdsTest, CalcEventId)
-{
-    EXPECT_EQ(core::calcEventId(125), "ev125");
-    EXPECT_EQ(core::calcEventId(0), "ev0");
-}
+// Internal to the gap report library: one serializer per classification type, each in its own
+// translation unit, assembled by gap_report.cpp.
 
-TEST(ElementIdsTest, CalcGlobalMeasureId)
-{
-    EXPECT_EQ(core::calcGlobalMeasureId(1), "m1");
-    EXPECT_EQ(core::calcGlobalMeasureId(42), "m42");
-}
+namespace denigma {
+namespace gap_report {
 
-TEST(ElementIdsTest, CalcPartMeasureId)
-{
-    EXPECT_EQ(core::calcPartMeasureId("P1", 1), "P1.m1");
-    EXPECT_EQ(core::calcPartMeasureId("P2", 42), "P2.m42");
-}
+using json = nlohmann::ordered_json;
 
-TEST(ElementIdsTest, CalcTempoDefId)
-{
-    EXPECT_EQ(core::calcTempoDefId(3, 0), "m3.tempoDef.inci0");
-    EXPECT_EQ(core::calcTempoDefId(12, 4), "m12.tempoDef.inci4");
-}
+json chordJson(const classify::ChordSymbolClassification& chord);
+json noteheadJson(const classify::NoteheadClassification& notehead);
+json expressionJson(const classify::ExpressionClassification& expression);
+json formattedTextJson(const classify::FormattedText& text);
+
+} // namespace gap_report
+} // namespace denigma

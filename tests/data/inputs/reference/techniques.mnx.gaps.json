@@ -1,0 +1,395 @@
+{
+  "schemaVersion": 1,
+  "producer": {
+    "name": "denigma",
+    "version": "TEST",
+    "commit": "<commit>"
+  },
+  "gaps": [
+    {
+      "anchor": "P1.m1",
+      "position": {
+        "numerator": 0,
+        "denominator": 1
+      },
+      "extent": "complete",
+      "type": "expression",
+      "expression": {
+        "type": "technique-text",
+        "basis": "finale-category-confirmed",
+        "scope": "staff",
+        "text": {
+          "plain": "pizz.",
+          "runs": [
+            {
+              "text": "pizz.",
+              "font": {
+                "name": "Times",
+                "size": 14,
+                "sizeIsPercent": false,
+                "bold": false,
+                "italic": true,
+                "underline": false,
+                "strikeout": false,
+                "absolute": false,
+                "hidden": false,
+                "isSymbolFont": false,
+                "isSmufl": false
+              }
+            }
+          ]
+        },
+        "technique": {
+          "type": "pizzicato",
+          "text": "pizz."
+        }
+      }
+    },
+    {
+      "anchor": "P1.m2",
+      "position": {
+        "numerator": 0,
+        "denominator": 1
+      },
+      "extent": "complete",
+      "type": "expression",
+      "expression": {
+        "type": "technique-text",
+        "basis": "finale-category-confirmed",
+        "scope": "staff",
+        "text": {
+          "plain": "arco",
+          "runs": [
+            {
+              "text": "arco",
+              "font": {
+                "name": "Times",
+                "size": 14,
+                "sizeIsPercent": false,
+                "bold": false,
+                "italic": true,
+                "underline": false,
+                "strikeout": false,
+                "absolute": false,
+                "hidden": false,
+                "isSymbolFont": false,
+                "isSmufl": false
+              }
+            }
+          ]
+        },
+        "technique": {
+          "type": "arco",
+          "text": "arco"
+        }
+      }
+    },
+    {
+      "anchor": "P1.m4",
+      "position": {
+        "numerator": 0,
+        "denominator": 1
+      },
+      "extent": "complete",
+      "type": "expression",
+      "expression": {
+        "type": "generic-text",
+        "basis": "finale-category",
+        "scope": "staff",
+        "text": {
+          "plain": "mute",
+          "runs": [
+            {
+              "text": "mute",
+              "font": {
+                "name": "Times",
+                "size": 14,
+                "sizeIsPercent": false,
+                "bold": false,
+                "italic": true,
+                "underline": false,
+                "strikeout": false,
+                "absolute": false,
+                "hidden": false,
+                "isSymbolFont": false,
+                "isSmufl": false
+              }
+            }
+          ]
+        },
+        "genericText": {
+          "text": "mute"
+        }
+      }
+    },
+    {
+      "anchor": "P1.m4",
+      "position": {
+        "numerator": 0,
+        "denominator": 1
+      },
+      "extent": "complete",
+      "type": "expression",
+      "expression": {
+        "type": "technique-text",
+        "basis": "finale-category-confirmed",
+        "scope": "staff",
+        "text": {
+          "plain": "arco",
+          "runs": [
+            {
+              "text": "arco",
+              "font": {
+                "name": "Times",
+                "size": 14,
+                "sizeIsPercent": false,
+                "bold": false,
+                "italic": true,
+                "underline": false,
+                "strikeout": false,
+                "absolute": false,
+                "hidden": false,
+                "isSymbolFont": false,
+                "isSmufl": false
+              }
+            }
+          ]
+        },
+        "technique": {
+          "type": "arco",
+          "text": "arco"
+        }
+      }
+    },
+    {
+      "anchor": "P1.m5",
+      "position": {
+        "numerator": 0,
+        "denominator": 1
+      },
+      "extent": "complete",
+      "type": "expression",
+      "expression": {
+        "type": "generic-text",
+        "basis": "finale-category",
+        "scope": "staff",
+        "text": {
+          "plain": "senza sord.",
+          "runs": [
+            {
+              "text": "senza sord.",
+              "font": {
+                "name": "Times",
+                "size": 14,
+                "sizeIsPercent": false,
+                "bold": false,
+                "italic": true,
+                "underline": false,
+                "strikeout": false,
+                "absolute": false,
+                "hidden": false,
+                "isSymbolFont": false,
+                "isSmufl": false
+              }
+            }
+          ]
+        },
+        "genericText": {
+          "text": "senza sord."
+        }
+      }
+    },
+    {
+      "anchor": "P1.m9",
+      "position": {
+        "numerator": 0,
+        "denominator": 1
+      },
+      "extent": "complete",
+      "type": "expression",
+      "expression": {
+        "type": "generic-text",
+        "basis": "finale-category",
+        "scope": "staff",
+        "text": {
+          "plain": "mute",
+          "runs": [
+            {
+              "text": "mute",
+              "font": {
+                "name": "Times",
+                "size": 14,
+                "sizeIsPercent": false,
+                "bold": false,
+                "italic": true,
+                "underline": false,
+                "strikeout": false,
+                "absolute": false,
+                "hidden": false,
+                "isSymbolFont": false,
+                "isSmufl": false
+              }
+            }
+          ]
+        },
+        "genericText": {
+          "text": "mute"
+        }
+      }
+    },
+    {
+      "anchor": "P1.m10",
+      "position": {
+        "numerator": 0,
+        "denominator": 1
+      },
+      "extent": "complete",
+      "type": "expression",
+      "expression": {
+        "type": "generic-text",
+        "basis": "finale-category",
+        "scope": "staff",
+        "text": {
+          "plain": "open",
+          "runs": [
+            {
+              "text": "open",
+              "font": {
+                "name": "Times",
+                "size": 14,
+                "sizeIsPercent": false,
+                "bold": false,
+                "italic": true,
+                "underline": false,
+                "strikeout": false,
+                "absolute": false,
+                "hidden": false,
+                "isSymbolFont": false,
+                "isSmufl": false
+              }
+            }
+          ]
+        },
+        "genericText": {
+          "text": "open"
+        }
+      }
+    },
+    {
+      "anchor": "P1.m11",
+      "position": {
+        "numerator": 0,
+        "denominator": 1
+      },
+      "extent": "complete",
+      "type": "expression",
+      "expression": {
+        "type": "technique-text",
+        "basis": "finale-category-confirmed",
+        "scope": "staff",
+        "text": {
+          "plain": "harmon mute",
+          "runs": [
+            {
+              "text": "harmon mute",
+              "font": {
+                "name": "Times",
+                "size": 14,
+                "sizeIsPercent": false,
+                "bold": false,
+                "italic": true,
+                "underline": false,
+                "strikeout": false,
+                "absolute": false,
+                "hidden": false,
+                "isSymbolFont": false,
+                "isSmufl": false
+              }
+            }
+          ]
+        },
+        "technique": {
+          "type": "harmon-mute",
+          "text": "harmon mute"
+        }
+      }
+    },
+    {
+      "anchor": "P1.m12",
+      "position": {
+        "numerator": 0,
+        "denominator": 1
+      },
+      "extent": "complete",
+      "type": "expression",
+      "expression": {
+        "type": "technique-text",
+        "basis": "finale-category-confirmed",
+        "scope": "staff",
+        "text": {
+          "plain": "stopped",
+          "runs": [
+            {
+              "text": "stopped",
+              "font": {
+                "name": "Times",
+                "size": 14,
+                "sizeIsPercent": false,
+                "bold": false,
+                "italic": true,
+                "underline": false,
+                "strikeout": false,
+                "absolute": false,
+                "hidden": false,
+                "isSymbolFont": false,
+                "isSmufl": false
+              }
+            }
+          ]
+        },
+        "technique": {
+          "type": "stopped",
+          "text": "stopped"
+        }
+      }
+    },
+    {
+      "anchor": "P1.m13",
+      "position": {
+        "numerator": 0,
+        "denominator": 1
+      },
+      "extent": "complete",
+      "type": "expression",
+      "expression": {
+        "type": "generic-text",
+        "basis": "finale-category",
+        "scope": "staff",
+        "text": {
+          "plain": "open",
+          "runs": [
+            {
+              "text": "open",
+              "font": {
+                "name": "Times",
+                "size": 14,
+                "sizeIsPercent": false,
+                "bold": false,
+                "italic": true,
+                "underline": false,
+                "strikeout": false,
+                "absolute": false,
+                "hidden": false,
+                "isSymbolFont": false,
+                "isSmufl": false
+              }
+            }
+          ]
+        },
+        "genericText": {
+          "text": "open"
+        }
+      }
+    }
+  ]
+}

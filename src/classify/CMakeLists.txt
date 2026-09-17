@@ -7,6 +7,7 @@ set(DENIGMA_CLASSIFY_SOURCES
     ${CMAKE_CURRENT_LIST_DIR}/dynamics.cpp
     ${CMAKE_CURRENT_LIST_DIR}/entries.cpp
     ${CMAKE_CURRENT_LIST_DIR}/expressions.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/formatted_text.cpp
     ${CMAKE_CURRENT_LIST_DIR}/general_lines.cpp
     ${CMAKE_CURRENT_LIST_DIR}/jumps.cpp
     ${CMAKE_CURRENT_LIST_DIR}/keyboard_pedals.cpp

@@ -85,6 +85,11 @@ AllowShortBlocksOnASingleLine: Empty
 AllowShortEnumsOnASingleLine: false
 AllowShortCompoundRequirementOnASingleLine: true
 
+# Macros that expand to an if statement, so their block brace is placed as an if's would be
+IfMacros:
+  - ASSERT_IF
+  - MUSX_ASSERT_IF
+
 # Alignment (MuseScore aligns nothing)
 AlignConsecutiveAssignments: None
 AlignConsecutiveDeclarations: None

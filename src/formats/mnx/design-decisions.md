@@ -16,11 +16,25 @@ Finale's "Match Playback to Metronome Marking Text" setting is not consulted. It
 
 The displayed equation is not lost by this. MusicXML has room for both numbers and writes both: `<per-minute>` takes the printed equation and `<sound tempo>` takes the playback tempo. Only MNX, having one field, has to choose.
 
+### Every tempo carries a provenance id
+
+A tempo is written with the id of the Finale object it came from, `m<cmper>.textExp<def>.inci<n>` (or `shapeExp`) for an expression and `m<cmper>.tempoDef.inci<n>` for a Tempo Tool record, whether or not a gap report was requested. The gap report anchors a tempo's lost text to this id, and an output that changed shape depending on whether a report was wanted would make the report describe a different document from the one the user has. Several expressions can share a position, so the id names the assignment rather than the position.
+
+### A Tempo Tool change that loses its position is dropped, not reported
+
+Expressions take precedence over Tempo Tool changes at the same position. A Tempo Tool change that loses is dropped silently and never becomes a gap: it is implicitly playback only, so nothing that could be drawn is lost with it, and Finale files routinely carry a Tempo Tool record beside a tempo expression, so the drop is the ordinary case rather than a finding worth a diagnostic. One that is exported is reported as a partial `playback-only` gap, because MNX cannot mark a tempo as hidden and a reader will draw it. A hidden expression assignment, which Finale also plays without drawing, gets the same `playback-only` gap and, when it has text, the text gap as well: the two say different things, that Finale shows nothing and what it would show, and a client that decides to display the tempo anyway needs the second.
+
 ### A playback beat unit that is not a note value is restated in quarter notes
 
 MNX states a tempo as a count of one note value per minute, so the beat unit has to be a note value: a base with some number of augmentation dots. Finale's beat unit is a raw EDU duration and need not be either. `calcDurationInfoFromEdu` answers with the closest base and dot count for any duration in range rather than refusing, so the exporter spells its answer back out and compares it against the original before trusting it.
 
 A beat unit that does not survive that comparison is restated as a count of quarter notes. Nothing is lost by the restatement: MNX `bpm` is a real number as of schema version 34, and dividing by the EDUs in a quarter note divides by a power of two, which is exact in binary floating point. The same path takes a beat unit outside the range of a note value, which `calcDurationInfoFromEdu` would otherwise throw on.
+
+## Expressions
+
+### Which expressions belong to the global measure is decided by type
+
+The classifier says what a marking is; whether it attaches to the global measure or to a part measure is MNX's decision, made by expression type in `processGlobalExpressions`. Tempo marks, metronome marks, tempo alterations and rehearsal marks are one marking of the whole score however Finale distributes them, so the global pass handles them once per staff-list assignment group (`classify::groupExpressionAssignments`), whichever staff the assignment sits on. Everything else is a staff marking even when a staff list copies it onto several staves or a category staff list distributes it: a technique text or a multimeasure-rest number on three staves is three staff expressions, and `processExpressions` handles each with its part measure. The presence of a staff group or a floating staff value therefore never routes an expression on its own.
 
 ## Sequences
 

@@ -566,8 +566,7 @@ void appendEntryNotes(MusicXmlMusxMapping& context, mx::api::StaffData& staff, m
         note.durationData = createDurationData(context, entryInfo, entryIt.getEffectiveActualDuration(/*global*/ true));
         note.pitchData = createPitchData(context, noteInfo, pitchContext);
         if (const auto stavesIt = context.partIdToStaves.find(context.currentPart->uniqueId); stavesIt != context.partIdToStaves.end()) {
-            ASSERT_IF(staffIndex >= stavesIt->second.size())
-            {
+            ASSERT_IF (staffIndex >= stavesIt->second.size()) {
                 throw std::logic_error("Containing staff index is outside the current MusicXML part staff list.");
             }
             const auto containingStaffId = stavesIt->second[staffIndex];
@@ -690,8 +689,7 @@ void createNotesForMeasureStaff(MusicXmlMusxMapping& context, mx::api::MeasureDa
         const bool isCue = cuePlan.isCueLayer(layer);
         const int maxVoice = numVoice2Entries ? 2 : 1;
         const auto entryFrame = staffMeasureContext.createEntryFrame(layer);
-        ASSERT_IF(!entryFrame)
-        {
+        ASSERT_IF (!entryFrame) {
             continue;
         }
         const bool usesV1V2 = numVoice2Entries && entryFrame->getFirstInterpretedIterator(2);
@@ -733,8 +731,7 @@ int syntheticRestVoiceNumber(const mx::api::PartData& part, size_t staffIndex)
 void finalizeEmptyMeasureRests(MusicXmlMusxMapping& context, mx::api::PartData& part, const std::vector<StaffCmper>& staffIds)
 {
     const auto musxMeasures = context.document->getOthers()->getArray<others::Measure>(context.forPartId);
-    ASSERT_IF(part.measures.size() != musxMeasures.size())
-    {
+    ASSERT_IF (part.measures.size() != musxMeasures.size()) {
         throw std::logic_error("MusicXML and Finale measure counts differ while finalizing empty measure rests.");
     }
 
@@ -746,8 +743,7 @@ void finalizeEmptyMeasureRests(MusicXmlMusxMapping& context, mx::api::PartData& 
 
     for (size_t measureIndex = 0; measureIndex < part.measures.size(); ++measureIndex) {
         auto& measure = part.measures[measureIndex];
-        ASSERT_IF(measure.staves.size() != staffIds.size())
-        {
+        ASSERT_IF (measure.staves.size() != staffIds.size()) {
             throw std::logic_error("MusicXML staff count changed while finalizing empty measure rests.");
         }
         for (size_t staffIndex = 0; staffIndex < staffIds.size(); ++staffIndex) {

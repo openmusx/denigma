@@ -29,4 +29,6 @@ Rules:
 - A comment is not correspondence. Do not address a reviewer, answer a question that was raised
   in review, or carry over the wording of a conversation.
 
-The `/// @todo` rule in `AGENTS.md` applies to comments as well.
+The `/// @todo` rule in `AGENTS.md` applies to comments as well: a `@todo` marks the site where a
+specific, local limitation would be lifted, including a third-party limitation when the comment sits
+where the code would change once it lifts. It never points at a roadmap item.

@@ -144,8 +144,7 @@ void createFontData(const MusicXmlMusxMapping& context)
 
     const auto addFirstLyricFont = [&](const auto& lyricTexts) {
         for (const auto& lyricText : lyricTexts) {
-            ASSERT_IF(!lyricText)
-            {
+            ASSERT_IF (!lyricText) {
                 continue;
             }
             if (const auto fontInfo = lyricText->getRawTextCtx(lyricText, context.forPartId).parseFirstFontInfo()) {

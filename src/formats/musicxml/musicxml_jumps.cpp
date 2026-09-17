@@ -78,7 +78,7 @@ std::vector<mx::api::WordsData> createJumpWords(
         return {};
     }
 
-    EnigmaTextChunk chunk{repeatText->text, EnigmaStyles(context.document)};
+    EnigmaTextChunk chunk{repeatText->text, EnigmaStyles(context.document), std::nullopt};
     chunk.styles.font = repeatDef->font;
     auto words = musicXmlWordsFromEnigmaTextChunk(context, chunk);
     if (!words) {

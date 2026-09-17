@@ -28,6 +28,7 @@
 #include <vector>
 
 #include "classify.h"
+#include "core/denigma.h"
 #include "denigma/classify/octaves.h"
 #include "utils/utf8_iterator.h"
 
@@ -536,8 +537,7 @@ SmartShapeClassification classifySmartShape(const musx::dom::MusxInstance<musx::
 
     if (startEntry) {
         if (const auto tiedTo = shape->calcArpeggiatedTieToNote(startEntry)) {
-            MUSX_ASSERT_IF(startEntry->getEntry()->notes.size() != 1)
-            {
+            ASSERT_IF (startEntry->getEntry()->notes.size() != 1) {
                 throw std::logic_error("musxdom classified an arpeggiated tie on an entry with note count other than 1.");
             }
             result.value = ArpeggiatedTie{musx::dom::NoteInfoPtr(startEntry, 0), tiedTo, contour};

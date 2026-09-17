@@ -19,111 +19,85 @@
 #include "denigma/gap_report.h"
 
 #include <string>
+#include <string_view>
 #include <type_traits>
+#include <utility>
 
-#include "nlohmann/json.hpp"
+#include "gap_report_json.h"
 
 namespace denigma {
 
 namespace {
 
-using json = nlohmann::ordered_json;
+using gap_report::json;
 
-json pitchJson(const music_theory::Pitch& pitch)
+std::string_view gapExtentName(classify::GapExtent extent)
 {
-    return {
-        {"step", std::string(1, music_theory::calcNoteNameLetter(pitch.noteName))},
-        {"alteration", pitch.alteration},
-    };
+    switch (extent) {
+    case classify::GapExtent::Complete: return "complete";
+    case classify::GapExtent::Partial: return "partial";
+    }
+    return "unknown";
 }
 
-json suffixJson(const classify::ChordSuffixClassification& suffix)
+std::string_view gapPlacementKindName(classify::GapPlacement::Kind kind)
 {
-    auto strings = json::array();
-    for (const auto& string : suffix.strings) {
-        strings.push_back({
-            {"text", string.text},
-            {"position", classify::chordSuffixStringPositionName(string.position)},
-        });
+    using Kind = classify::GapPlacement::Kind;
+    switch (kind) {
+    case Kind::Staff: return "staff";
+    case Kind::SystemTop: return "system-top";
+    case Kind::SystemBottom: return "system-bottom";
     }
-    auto degrees = json::array();
-    for (const auto& degree : suffix.degrees) {
-        degrees.push_back({
-            {"value", degree.value},
-            {"alteration", degree.alteration},
-            {"type", classify::chordDegreeTypeName(degree.type)},
-            {"impliedByText", degree.impliedByText},
-        });
-    }
-    json result{
-        {"strings", std::move(strings)},
-        {"suffixText", suffix.calcText()},
-        {"degrees", std::move(degrees)},
-        {"parenthesizeDegrees", suffix.parenthesizeDegrees},
-        {"stackDegrees", suffix.stackDegrees},
-        {"hasOuterParentheses", suffix.hasOuterParentheses},
-        {"hasUnrecognizedGlyphs", suffix.hasUnrecognizedGlyphs},
-    };
-    if (suffix.quality) {
-        result["quality"] = classify::chordQualityName(*suffix.quality);
-    }
-    return result;
+    return "unknown";
 }
 
-json chordJson(const classify::ChordSymbolClassification& chord)
+json anchorJson(const classify::GapAnchor& anchor)
 {
     json result{
-        {"root", pitchJson(chord.root)},
-        {"rootLowerCase", chord.rootLowerCase},
-        {"showRoot", chord.showRoot},
-        {"showSuffix", chord.showSuffix},
-        {"suffix", suffixJson(chord.suffix)},
+        {"anchor", anchor.id},
     };
-    if (chord.bass) {
-        result["bass"] = pitchJson(*chord.bass);
-        result["bassLowerCase"] = chord.bassLowerCase;
+    if (anchor.staff) {
+        result["staff"] = *anchor.staff;
     }
-    if (chord.bassArrangement) {
-        result["bassArrangement"] = classify::chordBassArrangementName(*chord.bassArrangement);
-    }
-    return result;
-}
-
-json noteheadJson(const classify::NoteheadClassification& notehead)
-{
-    json result{
-        {"shape", classify::noteheadShapeName(notehead.shape)},
-        {"fill", classify::noteheadFillName(notehead.fill)},
-    };
-    if (notehead.glyphName) {
-        result["glyph"] = *notehead.glyphName;
+    if (anchor.position) {
+        result["position"] = {
+            {"numerator", anchor.position->numerator},
+            {"denominator", anchor.position->denominator},
+        };
     }
     return result;
 }
 
 json gapJson(const classify::Gap& gap)
 {
-    json result{
-        {"anchor", gap.anchor.id},
-    };
-    if (gap.anchor.staff) {
-        result["staff"] = *gap.anchor.staff;
-    }
-    if (gap.anchor.position) {
-        result["position"] = {
-            {"numerator", gap.anchor.position->numerator},
-            {"denominator", gap.anchor.position->denominator},
-        };
+    json result = anchorJson(gap.anchor);
+    result["extent"] = gapExtentName(gap.extent);
+    if (!gap.placements.empty()) {
+        auto placements = json::array();
+        for (const auto& placement : gap.placements) {
+            json item{{"kind", gapPlacementKindName(placement.kind)}};
+            item.update(anchorJson(placement.anchor));
+            placements.push_back(std::move(item));
+        }
+        result["placements"] = std::move(placements);
     }
     std::visit(
         [&](const auto& payload) {
             using Payload = std::decay_t<decltype(payload)>;
             if constexpr (std::is_same_v<Payload, classify::ChordSymbolClassification>) {
                 result["type"] = "chord-symbol";
-                result["chord"] = chordJson(payload);
+                result["chord"] = gap_report::chordJson(payload);
             } else if constexpr (std::is_same_v<Payload, classify::NoteheadClassification>) {
                 result["type"] = "notehead";
-                result["notehead"] = noteheadJson(payload);
+                result["notehead"] = gap_report::noteheadJson(payload);
+            } else if constexpr (std::is_same_v<Payload, classify::ExpressionClassification>) {
+                result["type"] = "expression";
+                result["expression"] = gap_report::expressionJson(payload);
+            } else if constexpr (std::is_same_v<Payload, classify::FormattedText>) {
+                result["type"] = "formatted-text";
+                result["text"] = gap_report::formattedTextJson(payload);
+            } else if constexpr (std::is_same_v<Payload, classify::PlaybackOnly>) {
+                result["type"] = "playback-only";
             }
         },
         gap.payload);

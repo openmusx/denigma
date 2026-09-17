@@ -80,8 +80,7 @@ int MusicXmlTimingPlan::calcNearestMusicXmlDivisions(const musx::util::Fraction&
     }
 
     const auto rounded = std::llround(static_cast<double>(result.numerator()) / static_cast<double>(result.denominator()));
-    ASSERT_IF(rounded < (std::numeric_limits<int>::min)() || rounded > (std::numeric_limits<int>::max)())
-    {
+    ASSERT_IF (rounded < (std::numeric_limits<int>::min)() || rounded > (std::numeric_limits<int>::max)()) {
         throw std::overflow_error("MusicXML position is outside the supported integer range.");
     }
     return static_cast<int>(rounded);

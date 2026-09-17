@@ -94,8 +94,7 @@ mx::api::FontData MusicXmlMusxMapping::musicXmlFontDataFromFontInfo(
                 scaling = finaleOptions.effectivePageFormat->calcPageScaling().toDouble();
             } else {
                 const bool hasInitializedScaling = musicXmlScore && musicXmlScore->defaults.scalingMillimeters > 0.0;
-                ASSERT_IF(!hasInitializedScaling)
-                {
+                ASSERT_IF (!hasInitializedScaling) {
                     throw std::logic_error("MusicXML font conversion requires initialized score scaling for non-absolute font sizes.");
                 }
                 scaling = musicXmlScore->defaults.scalingMillimeters / kUnscaledMmPerStaff;
@@ -120,8 +119,7 @@ void parseMusicXmlFormattedText(
     const musx::util::EnigmaString::EnigmaParsingOptions parsingOptions(options.accidentalStyle);
     text.parseEnigmaText(
         [&](const std::string& chunk, const musx::util::EnigmaStyles& styles) -> bool {
-            ASSERT_IF(!styles.font)
-            {
+            ASSERT_IF (!styles.font) {
                 throw std::logic_error("MusicXML formatted text chunk has no font data.");
             }
             if (options.onChunk) {
@@ -135,8 +133,7 @@ void parseMusicXmlFormattedText(
 std::optional<mx::api::WordsData> musicXmlWordsFromEnigmaTextChunk(
     const MusicXmlMusxMapping& context, const musx::util::EnigmaTextChunk& chunk, const MusicXmlFormattedTextOptions& options)
 {
-    ASSERT_IF(!chunk.styles.font)
-    {
+    ASSERT_IF (!chunk.styles.font) {
         throw std::logic_error("MusicXML formatted text chunk has no font data.");
     }
     if (chunk.styles.font->hidden) {
@@ -169,8 +166,7 @@ mx::api::LyricSyllabic lyricSyllabicForRun(bool hasHyphenBefore, bool hasHyphenA
 mx::api::LyricData musicXmlLyricFromSyllable(const MusicXmlMusxMapping& context, const musx::dom::texts::LyricsTextBase& lyricText,
     size_t syllableIndex, const MusicXmlFormattedTextOptions& options)
 {
-    ASSERT_IF(syllableIndex >= lyricText.syllables.size())
-    {
+    ASSERT_IF (syllableIndex >= lyricText.syllables.size()) {
         throw std::out_of_range("MusicXML lyric syllable index is out of range.");
     }
 
@@ -190,8 +186,7 @@ mx::api::LyricData musicXmlLyricFromSyllable(const MusicXmlMusxMapping& context,
     };
 
     const auto runs = syllable->calcElisionRuns();
-    ASSERT_IF(runs.empty())
-    {
+    ASSERT_IF (runs.empty()) {
         throw std::logic_error("MusicXML lyric syllable produced no elision runs.");
     }
 
@@ -201,8 +196,7 @@ mx::api::LyricData musicXmlLyricFromSyllable(const MusicXmlMusxMapping& context,
     // mx::api::LyricData carries one font for the whole lyric (continuations have no font field
     // of their own), so only the first run's own first style chunk is consulted here.
     runs.front().iterateStyles([&](const std::string&, const musx::util::EnigmaStyles& styles) -> bool {
-        ASSERT_IF(!styles.font)
-        {
+        ASSERT_IF (!styles.font) {
             throw std::logic_error("MusicXML lyric syllable chunk has no font data.");
         }
         const auto fontData = context.musicXmlFontDataFromFontInfo(*styles.font, options.fallback);
@@ -301,21 +295,33 @@ namespace {
 void appendChunkToWordsRun(std::vector<mx::api::WordsChoice>& run, const mx::api::WordsData& sourceWords,
     const musx::dom::MusxInstance<musx::dom::FontInfo>& font, utils::SmuflSymbolPolicy policy)
 {
+    // Adjacent words with identical formatting become one item. The parser delivers an insert's
+    // substitution as its own chunk, and MusicXML has no use for that boundary.
     const auto appendWords = [&](std::string text) {
         auto words = sourceWords;
         words.text = std::move(text);
+        if (!run.empty() && run.back().isWords()) {
+            auto previous = run.back().words();
+            auto comparable = previous;
+            comparable.text = words.text;
+            if (comparable == words) {
+                previous.text += words.text;
+                run.back() = mx::api::WordsChoice(std::move(previous));
+                return;
+            }
+        }
         run.emplace_back(std::move(words));
     };
 
     if (policy == utils::SmuflSymbolPolicy::PreserveText) {
-        run.emplace_back(sourceWords);
+        appendWords(sourceWords.text);
         return;
     }
 
     if (policy == utils::SmuflSymbolPolicy::PreferSmufl) {
         auto glyphs = utils::smuflGlyphNamesForText(font, sourceWords.text);
         if (glyphs.empty()) {
-            run.emplace_back(sourceWords);
+            appendWords(sourceWords.text);
             return;
         }
         for (auto& glyphName : glyphs) {
@@ -344,7 +350,7 @@ std::vector<mx::api::WordsChoice> musicXmlWordsFromEnigmaText(
     const auto symbolPolicy = context.denigmaContext->allFontsAvailable ? utils::SmuflSymbolPolicy::PreserveText : options.symbolPolicy;
     text.parseEnigmaText(
         [&](const std::string& chunkText, const musx::util::EnigmaStyles& styles) -> bool {
-            musx::util::EnigmaTextChunk chunk{chunkText, styles};
+            musx::util::EnigmaTextChunk chunk{chunkText, styles, std::nullopt};
             auto words = musicXmlWordsFromEnigmaTextChunk(context, chunk, options);
             if (!words) {
                 return true;
@@ -420,8 +426,7 @@ std::optional<MusicXmlPageTextContent> musicXmlPageTextContentFromEnigmaText(
 
     text.parseEnigmaText(
         [&](const std::string& chunk, const musx::util::EnigmaStyles& styles) -> bool {
-            ASSERT_IF(!styles.font)
-            {
+            ASSERT_IF (!styles.font) {
                 throw std::logic_error("MusicXML page text chunk has no font data.");
             }
             if (styles.font->hidden) {

@@ -1,0 +1,843 @@
+{
+  "schemaVersion": 1,
+  "producer": {
+    "name": "denigma",
+    "version": "TEST",
+    "commit": "<commit>"
+  },
+  "gaps": [
+    {
+      "anchor": "m2",
+      "position": {
+        "numerator": 0,
+        "denominator": 1
+      },
+      "extent": "complete",
+      "placements": [
+        {
+          "kind": "system-top",
+          "anchor": "m2"
+        }
+      ],
+      "type": "expression",
+      "expression": {
+        "type": "rehearsal-mark",
+        "basis": "finale-category",
+        "scope": "top-staff",
+        "text": {
+          "plain": "A",
+          "runs": [
+            {
+              "text": "A",
+              "font": {
+                "name": "Garamond",
+                "size": 30,
+                "sizeIsPercent": false,
+                "bold": true,
+                "italic": false,
+                "underline": false,
+                "strikeout": false,
+                "absolute": false,
+                "hidden": false,
+                "isSymbolFont": false,
+                "isSmufl": false
+              },
+              "insert": {
+                "kind": "rehearsal-mark",
+                "command": "rehearsal",
+                "parameters": []
+              }
+            }
+          ]
+        },
+        "rehearsalMark": {
+          "text": "A"
+        }
+      }
+    },
+    {
+      "anchor": "m2",
+      "position": {
+        "numerator": 1,
+        "denominator": 2
+      },
+      "extent": "complete",
+      "placements": [
+        {
+          "kind": "system-top",
+          "anchor": "m2"
+        }
+      ],
+      "type": "expression",
+      "expression": {
+        "type": "rehearsal-mark",
+        "basis": "finale-category",
+        "scope": "top-staff",
+        "text": {
+          "plain": "A",
+          "runs": [
+            {
+              "text": "A",
+              "font": {
+                "name": "Garamond",
+                "size": 30,
+                "sizeIsPercent": false,
+                "bold": true,
+                "italic": false,
+                "underline": false,
+                "strikeout": false,
+                "absolute": false,
+                "hidden": false,
+                "isSymbolFont": false,
+                "isSmufl": false
+              },
+              "insert": {
+                "kind": "rehearsal-mark",
+                "command": "rehearsal",
+                "parameters": []
+              }
+            }
+          ]
+        },
+        "rehearsalMark": {
+          "text": "A"
+        }
+      }
+    },
+    {
+      "anchor": "m2",
+      "position": {
+        "numerator": 3,
+        "denominator": 4
+      },
+      "extent": "complete",
+      "placements": [
+        {
+          "kind": "system-top",
+          "anchor": "m2"
+        }
+      ],
+      "type": "expression",
+      "expression": {
+        "type": "rehearsal-mark",
+        "basis": "finale-category",
+        "scope": "top-staff",
+        "text": {
+          "plain": "A",
+          "runs": [
+            {
+              "text": "A",
+              "font": {
+                "name": "Garamond",
+                "size": 30,
+                "sizeIsPercent": false,
+                "bold": true,
+                "italic": false,
+                "underline": false,
+                "strikeout": false,
+                "absolute": false,
+                "hidden": false,
+                "isSymbolFont": false,
+                "isSmufl": false
+              },
+              "insert": {
+                "kind": "rehearsal-mark",
+                "command": "rehearsal",
+                "parameters": []
+              }
+            }
+          ]
+        },
+        "rehearsalMark": {
+          "text": "A"
+        }
+      }
+    },
+    {
+      "anchor": "m2",
+      "position": {
+        "numerator": 1,
+        "denominator": 4
+      },
+      "extent": "complete",
+      "placements": [
+        {
+          "kind": "system-top",
+          "anchor": "m2"
+        }
+      ],
+      "type": "expression",
+      "expression": {
+        "type": "rehearsal-mark",
+        "basis": "finale-category",
+        "scope": "top-staff",
+        "text": {
+          "plain": "1",
+          "runs": [
+            {
+              "text": "1",
+              "font": {
+                "name": "Garamond",
+                "size": 30,
+                "sizeIsPercent": false,
+                "bold": true,
+                "italic": false,
+                "underline": false,
+                "strikeout": false,
+                "absolute": false,
+                "hidden": false,
+                "isSymbolFont": false,
+                "isSmufl": false
+              },
+              "insert": {
+                "kind": "rehearsal-mark",
+                "command": "rehearsal",
+                "parameters": []
+              }
+            }
+          ]
+        },
+        "rehearsalMark": {
+          "text": "1"
+        }
+      }
+    },
+    {
+      "anchor": "m3",
+      "position": {
+        "numerator": 1,
+        "denominator": 4
+      },
+      "extent": "complete",
+      "placements": [
+        {
+          "kind": "system-top",
+          "anchor": "m3"
+        }
+      ],
+      "type": "expression",
+      "expression": {
+        "type": "rehearsal-mark",
+        "basis": "finale-category",
+        "scope": "top-staff",
+        "text": {
+          "plain": "A",
+          "runs": [
+            {
+              "text": "A",
+              "font": {
+                "name": "Garamond",
+                "size": 30,
+                "sizeIsPercent": false,
+                "bold": true,
+                "italic": false,
+                "underline": false,
+                "strikeout": false,
+                "absolute": false,
+                "hidden": false,
+                "isSymbolFont": false,
+                "isSmufl": false
+              },
+              "insert": {
+                "kind": "rehearsal-mark",
+                "command": "rehearsal",
+                "parameters": []
+              }
+            }
+          ]
+        },
+        "rehearsalMark": {
+          "text": "A"
+        }
+      }
+    },
+    {
+      "anchor": "m3",
+      "position": {
+        "numerator": 1,
+        "denominator": 1
+      },
+      "extent": "complete",
+      "placements": [
+        {
+          "kind": "system-top",
+          "anchor": "m3"
+        }
+      ],
+      "type": "expression",
+      "expression": {
+        "type": "rehearsal-mark",
+        "basis": "finale-category",
+        "scope": "top-staff",
+        "text": {
+          "plain": "A",
+          "runs": [
+            {
+              "text": "A",
+              "font": {
+                "name": "Garamond",
+                "size": 30,
+                "sizeIsPercent": false,
+                "bold": true,
+                "italic": false,
+                "underline": false,
+                "strikeout": false,
+                "absolute": false,
+                "hidden": false,
+                "isSymbolFont": false,
+                "isSmufl": false
+              },
+              "insert": {
+                "kind": "rehearsal-mark",
+                "command": "rehearsal",
+                "parameters": []
+              }
+            }
+          ]
+        },
+        "rehearsalMark": {
+          "text": "A"
+        }
+      }
+    },
+    {
+      "anchor": "m4",
+      "position": {
+        "numerator": 1,
+        "denominator": 2
+      },
+      "extent": "complete",
+      "placements": [
+        {
+          "kind": "system-top",
+          "anchor": "m4"
+        }
+      ],
+      "type": "expression",
+      "expression": {
+        "type": "rehearsal-mark",
+        "basis": "finale-category",
+        "scope": "top-staff",
+        "text": {
+          "plain": "B",
+          "runs": [
+            {
+              "text": "B",
+              "font": {
+                "name": "Garamond",
+                "size": 30,
+                "sizeIsPercent": false,
+                "bold": true,
+                "italic": false,
+                "underline": false,
+                "strikeout": false,
+                "absolute": false,
+                "hidden": false,
+                "isSymbolFont": false,
+                "isSmufl": false
+              },
+              "insert": {
+                "kind": "rehearsal-mark",
+                "command": "rehearsal",
+                "parameters": []
+              }
+            }
+          ]
+        },
+        "rehearsalMark": {
+          "text": "B"
+        }
+      }
+    },
+    {
+      "anchor": "m5",
+      "position": {
+        "numerator": 1,
+        "denominator": 2
+      },
+      "extent": "complete",
+      "placements": [
+        {
+          "kind": "system-top",
+          "anchor": "m5"
+        }
+      ],
+      "type": "expression",
+      "expression": {
+        "type": "rehearsal-mark",
+        "basis": "finale-category",
+        "scope": "top-staff",
+        "text": {
+          "plain": "C",
+          "runs": [
+            {
+              "text": "C",
+              "font": {
+                "name": "Garamond",
+                "size": 30,
+                "sizeIsPercent": false,
+                "bold": true,
+                "italic": false,
+                "underline": false,
+                "strikeout": false,
+                "absolute": false,
+                "hidden": false,
+                "isSymbolFont": false,
+                "isSmufl": false
+              },
+              "insert": {
+                "kind": "rehearsal-mark",
+                "command": "rehearsal",
+                "parameters": []
+              }
+            }
+          ]
+        },
+        "rehearsalMark": {
+          "text": "C"
+        }
+      }
+    },
+    {
+      "anchor": "m6",
+      "position": {
+        "numerator": 1,
+        "denominator": 2
+      },
+      "extent": "complete",
+      "placements": [
+        {
+          "kind": "system-top",
+          "anchor": "m6"
+        }
+      ],
+      "type": "expression",
+      "expression": {
+        "type": "rehearsal-mark",
+        "basis": "finale-category",
+        "scope": "top-staff",
+        "text": {
+          "plain": "2",
+          "runs": [
+            {
+              "text": "2",
+              "font": {
+                "name": "Garamond",
+                "size": 30,
+                "sizeIsPercent": false,
+                "bold": true,
+                "italic": false,
+                "underline": false,
+                "strikeout": false,
+                "absolute": false,
+                "hidden": false,
+                "isSymbolFont": false,
+                "isSmufl": false
+              },
+              "insert": {
+                "kind": "rehearsal-mark",
+                "command": "rehearsal",
+                "parameters": []
+              }
+            }
+          ]
+        },
+        "rehearsalMark": {
+          "text": "2"
+        }
+      }
+    },
+    {
+      "anchor": "m7",
+      "position": {
+        "numerator": 1,
+        "denominator": 4
+      },
+      "extent": "complete",
+      "placements": [
+        {
+          "kind": "system-top",
+          "anchor": "m7"
+        }
+      ],
+      "type": "expression",
+      "expression": {
+        "type": "rehearsal-mark",
+        "basis": "finale-category",
+        "scope": "top-staff",
+        "text": {
+          "plain": "D",
+          "runs": [
+            {
+              "text": "D",
+              "font": {
+                "name": "Garamond",
+                "size": 30,
+                "sizeIsPercent": false,
+                "bold": true,
+                "italic": false,
+                "underline": false,
+                "strikeout": false,
+                "absolute": false,
+                "hidden": false,
+                "isSymbolFont": false,
+                "isSmufl": false
+              },
+              "insert": {
+                "kind": "rehearsal-mark",
+                "command": "rehearsal",
+                "parameters": []
+              }
+            }
+          ]
+        },
+        "rehearsalMark": {
+          "text": "D"
+        }
+      }
+    },
+    {
+      "anchor": "m10",
+      "position": {
+        "numerator": 0,
+        "denominator": 1
+      },
+      "extent": "complete",
+      "placements": [
+        {
+          "kind": "system-top",
+          "anchor": "m10"
+        }
+      ],
+      "type": "expression",
+      "expression": {
+        "type": "rehearsal-mark",
+        "basis": "finale-category",
+        "scope": "top-staff",
+        "text": {
+          "plain": "E",
+          "runs": [
+            {
+              "text": "E",
+              "font": {
+                "name": "Garamond",
+                "size": 30,
+                "sizeIsPercent": false,
+                "bold": true,
+                "italic": false,
+                "underline": false,
+                "strikeout": false,
+                "absolute": false,
+                "hidden": false,
+                "isSymbolFont": false,
+                "isSmufl": false
+              },
+              "insert": {
+                "kind": "rehearsal-mark",
+                "command": "rehearsal",
+                "parameters": []
+              }
+            }
+          ]
+        },
+        "rehearsalMark": {
+          "text": "E"
+        }
+      }
+    },
+    {
+      "anchor": "m11",
+      "position": {
+        "numerator": 1,
+        "denominator": 4
+      },
+      "extent": "complete",
+      "placements": [
+        {
+          "kind": "system-top",
+          "anchor": "m11"
+        }
+      ],
+      "type": "expression",
+      "expression": {
+        "type": "rehearsal-mark",
+        "basis": "finale-category",
+        "scope": "top-staff",
+        "text": {
+          "plain": "3",
+          "runs": [
+            {
+              "text": "3",
+              "font": {
+                "name": "Garamond",
+                "size": 30,
+                "sizeIsPercent": false,
+                "bold": true,
+                "italic": false,
+                "underline": false,
+                "strikeout": false,
+                "absolute": false,
+                "hidden": false,
+                "isSymbolFont": false,
+                "isSmufl": false
+              },
+              "insert": {
+                "kind": "rehearsal-mark",
+                "command": "rehearsal",
+                "parameters": []
+              }
+            }
+          ]
+        },
+        "rehearsalMark": {
+          "text": "3"
+        }
+      }
+    },
+    {
+      "anchor": "m15",
+      "position": {
+        "numerator": 1,
+        "denominator": 4
+      },
+      "extent": "complete",
+      "placements": [
+        {
+          "kind": "system-top",
+          "anchor": "m15"
+        }
+      ],
+      "type": "expression",
+      "expression": {
+        "type": "rehearsal-mark",
+        "basis": "finale-category",
+        "scope": "top-staff",
+        "text": {
+          "plain": "137",
+          "runs": [
+            {
+              "text": "137",
+              "font": {
+                "name": "Garamond",
+                "size": 30,
+                "sizeIsPercent": false,
+                "bold": true,
+                "italic": false,
+                "underline": false,
+                "strikeout": false,
+                "absolute": false,
+                "hidden": false,
+                "isSymbolFont": false,
+                "isSmufl": false
+              },
+              "insert": {
+                "kind": "rehearsal-mark",
+                "command": "rehearsal",
+                "parameters": []
+              }
+            }
+          ]
+        },
+        "rehearsalMark": {
+          "text": "137"
+        }
+      }
+    },
+    {
+      "anchor": "m19",
+      "position": {
+        "numerator": 1,
+        "denominator": 4
+      },
+      "extent": "complete",
+      "placements": [
+        {
+          "kind": "system-top",
+          "anchor": "m19"
+        }
+      ],
+      "type": "expression",
+      "expression": {
+        "type": "rehearsal-mark",
+        "basis": "finale-category",
+        "scope": "top-staff",
+        "text": {
+          "plain": "4",
+          "runs": [
+            {
+              "text": "4",
+              "font": {
+                "name": "Garamond",
+                "size": 30,
+                "sizeIsPercent": false,
+                "bold": true,
+                "italic": false,
+                "underline": false,
+                "strikeout": false,
+                "absolute": false,
+                "hidden": false,
+                "isSymbolFont": false,
+                "isSmufl": false
+              },
+              "insert": {
+                "kind": "rehearsal-mark",
+                "command": "rehearsal",
+                "parameters": []
+              }
+            }
+          ]
+        },
+        "rehearsalMark": {
+          "text": "4"
+        }
+      }
+    },
+    {
+      "anchor": "m22",
+      "position": {
+        "numerator": 1,
+        "denominator": 2
+      },
+      "extent": "complete",
+      "placements": [
+        {
+          "kind": "system-top",
+          "anchor": "m22"
+        }
+      ],
+      "type": "expression",
+      "expression": {
+        "type": "rehearsal-mark",
+        "basis": "finale-category",
+        "scope": "top-staff",
+        "text": {
+          "plain": "F",
+          "runs": [
+            {
+              "text": "F",
+              "font": {
+                "name": "Garamond",
+                "size": 30,
+                "sizeIsPercent": false,
+                "bold": true,
+                "italic": false,
+                "underline": false,
+                "strikeout": false,
+                "absolute": false,
+                "hidden": false,
+                "isSymbolFont": false,
+                "isSmufl": false
+              },
+              "insert": {
+                "kind": "rehearsal-mark",
+                "command": "rehearsal",
+                "parameters": []
+              }
+            }
+          ]
+        },
+        "rehearsalMark": {
+          "text": "F"
+        }
+      }
+    },
+    {
+      "anchor": "m26",
+      "position": {
+        "numerator": 1,
+        "denominator": 2
+      },
+      "extent": "complete",
+      "placements": [
+        {
+          "kind": "system-top",
+          "anchor": "m26"
+        }
+      ],
+      "type": "expression",
+      "expression": {
+        "type": "rehearsal-mark",
+        "basis": "finale-category",
+        "scope": "top-staff",
+        "text": {
+          "plain": "26",
+          "runs": [
+            {
+              "text": "26",
+              "font": {
+                "name": "Garamond",
+                "size": 30,
+                "sizeIsPercent": false,
+                "bold": true,
+                "italic": false,
+                "underline": false,
+                "strikeout": false,
+                "absolute": false,
+                "hidden": false,
+                "isSymbolFont": false,
+                "isSmufl": false
+              },
+              "insert": {
+                "kind": "rehearsal-mark",
+                "command": "rehearsal",
+                "parameters": []
+              }
+            }
+          ]
+        },
+        "rehearsalMark": {
+          "text": "26"
+        }
+      }
+    },
+    {
+      "anchor": "m31",
+      "position": {
+        "numerator": 1,
+        "denominator": 4
+      },
+      "extent": "complete",
+      "placements": [
+        {
+          "kind": "system-top",
+          "anchor": "m31"
+        }
+      ],
+      "type": "expression",
+      "expression": {
+        "type": "rehearsal-mark",
+        "basis": "finale-category",
+        "scope": "top-staff",
+        "text": {
+          "plain": "3",
+          "runs": [
+            {
+              "text": "3",
+              "font": {
+                "name": "Garamond",
+                "size": 30,
+                "sizeIsPercent": false,
+                "bold": true,
+                "italic": false,
+                "underline": false,
+                "strikeout": false,
+                "absolute": false,
+                "hidden": false,
+                "isSymbolFont": false,
+                "isSmufl": false
+              },
+              "insert": {
+                "kind": "rehearsal-mark",
+                "command": "rehearsal",
+                "parameters": []
+              }
+            }
+          ]
+        },
+        "rehearsalMark": {
+          "text": "3"
+        }
+      }
+    }
+  ]
+}

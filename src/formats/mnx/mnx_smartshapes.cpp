@@ -58,8 +58,7 @@ void processSmartShapes(const MnxMusxMappingPtr& context, const MusxInstance<oth
         const auto assigns =
             context->document->getOthers()->getArray<others::SmartShapeMeasureAssign>(musxMeasure->getRequestedPartId(), musxMeasure->getCmper());
         for (const auto& assign : assigns) {
-            MUSX_ASSERT_IF(!assign)
-            {
+            ASSERT_IF (!assign) {
                 context->logMessage(
                     LogMsg() << "skipping empty smart shape assignment for measure " << musxMeasure->getCmper(), MessageSeverity::Warning);
                 continue;
@@ -120,8 +119,7 @@ void processSlurs(const MnxMusxMappingPtr&, mnxdom::sequence::Event& mnxEvent, c
                     // pseudotie and arpeggio tie classifications are handled elsewhere
                     continue;
                 }
-                MUSX_ASSERT_IF(!slur->startEntry || !slur->endEntry)
-                {
+                ASSERT_IF (!slur->startEntry || !slur->endEntry) {
                     continue;
                 }
                 const auto startEntryNumber = slur->startEntry->getEntry()->getEntryNumber();

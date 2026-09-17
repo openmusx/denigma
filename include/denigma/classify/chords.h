@@ -194,17 +194,5 @@ std::optional<ChordSymbolClassification> classifyChordSymbol(const musx::dom::Mu
 std::vector<ChordAssignmentClassification> classifyChordAssignments(const musx::dom::MusxInstanceList<musx::dom::details::ChordAssign>& assignments,
     const musx::dom::MusxInstance<musx::dom::KeySignature>& keySignature, musx::dom::KeySignature::KeyContext keyContext);
 
-/// @brief Returns the stable serialized name for a classified chord quality.
-std::string_view chordQualityName(chord::Quality quality);
-
-/// @brief Returns the stable serialized name for a chord-degree operation.
-std::string_view chordDegreeTypeName(chord::Degree::Type type);
-
-/// @brief Returns the stable serialized name for an alternate-bass arrangement.
-std::string_view chordBassArrangementName(chord::BassArrangement arrangement);
-
-/// @brief Returns the stable serialized name for a chord-suffix string position.
-std::string_view chordSuffixStringPositionName(chord::SuffixString::Position position);
-
 } // namespace classify
 } // namespace denigma

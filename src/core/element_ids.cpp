@@ -19,6 +19,8 @@
 
 #include "core/element_ids.h"
 
+#include "core/denigma.h"
+
 namespace denigma {
 namespace core {
 
@@ -40,6 +42,26 @@ std::string calcGlobalMeasureId(musx::dom::Cmper cmperValue)
 std::string calcPartMeasureId(const std::string& partId, musx::dom::Cmper cmperValue)
 {
     return partId + "." + calcGlobalMeasureId(cmperValue);
+}
+
+std::string calcExpressionId(const musx::dom::MusxInstance<musx::dom::others::MeasureExprAssign>& assignment)
+{
+    ASSERT_IF (!assignment) {
+        return {};
+    }
+    const auto inci = ".inci" + std::to_string(assignment->getInci().value_or(0));
+    if (assignment->textExprId) {
+        return calcGlobalMeasureId(assignment->getCmper()) + ".textExp" + std::to_string(assignment->textExprId) + inci;
+    }
+    if (assignment->shapeExprId) {
+        return calcGlobalMeasureId(assignment->getCmper()) + ".shapeExp" + std::to_string(assignment->shapeExprId) + inci;
+    }
+    return {};
+}
+
+std::string calcTempoDefId(musx::dom::Cmper measureCmper, musx::dom::Inci inci)
+{
+    return calcGlobalMeasureId(measureCmper) + ".tempoDef.inci" + std::to_string(inci);
 }
 
 } // namespace core

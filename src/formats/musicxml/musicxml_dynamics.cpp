@@ -98,8 +98,7 @@ const std::map<std::string, mx::api::StandardDynamic, std::less<>>& standardDyna
         for (auto dynamic = std::optional{mx::api::StandardDynamic::p}; dynamic; dynamic = nextStandardDynamic(*dynamic)) {
             // Hoisted out of ASSERT_IF, which evaluates its test twice.
             const bool inserted = result.emplace(mx::api::toString(*dynamic), *dynamic).second;
-            ASSERT_IF(!inserted)
-            {
+            ASSERT_IF (!inserted) {
                 break; // nextStandardDynamic cycled, so the walk would never end
             }
         }

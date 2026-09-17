@@ -21,6 +21,8 @@
  */
 #include "denigma/classify/barlines.h"
 
+#include "core/denigma.h"
+
 namespace denigma::classify {
 
 using namespace barline;
@@ -64,8 +66,7 @@ BarlineClassification classifyBarline(const musx::dom::MusxInstance<musx::dom::o
     const musx::dom::MusxInstance<musx::dom::others::Measure>& measure, bool isFinalMeasure,
     const musx::dom::MusxInstance<musx::dom::options::BarlineOptions>& barlineOptions)
 {
-    MUSX_ASSERT_IF(!measure || !barlineOptions || !staff)
-    {
+    ASSERT_IF (!measure || !barlineOptions || !staff) {
         return {};
     }
 

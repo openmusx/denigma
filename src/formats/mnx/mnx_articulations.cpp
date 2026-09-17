@@ -159,8 +159,7 @@ static void appendArpeggio(const NoteInfoPtr& topNote, const NoteInfoPtr& bottom
         case musx::util::ArpeggioDirection::Auto:
         case musx::util::ArpeggioDirection::Up: return core::calcNoteId(bottomNote);
         }
-        ASSERT_IF(true)
-        {
+        ASSERT_IF (true) {
             throw std::logic_error("Unhandled arpeggio direction.");
         }
         return {};
@@ -171,8 +170,7 @@ static void appendArpeggio(const NoteInfoPtr& topNote, const NoteInfoPtr& bottom
         case musx::util::ArpeggioDirection::Auto:
         case musx::util::ArpeggioDirection::Up: return core::calcNoteId(topNote);
         }
-        ASSERT_IF(true)
-        {
+        ASSERT_IF (true) {
             throw std::logic_error("Unhandled arpeggio direction.");
         }
         return {};
@@ -373,8 +371,7 @@ void processArticulations(const MnxMusxMappingPtr& context, mnxdom::sequence::Ev
 {
     const auto musxEntry = musxEntryInfo->getEntry();
     auto mnxPartMeasure = mnxEvent.getEnclosingElement<mnxdom::part::Measure>();
-    ASSERT_IF(!mnxPartMeasure)
-    {
+    ASSERT_IF (!mnxPartMeasure) {
         context->logMessage(LogMsg() << "no part measure exists for " << mnxEvent.dump(4), MessageSeverity::Warning);
         return;
     }
