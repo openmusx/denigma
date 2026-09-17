@@ -28,7 +28,9 @@
 #include "core/element_ids.h"
 #include "denigma/classify/barlines.h"
 #include "denigma/classify/expressions.h"
+#include "denigma/classify/gaps.h"
 #include "mnx.h"
+#include "mnx_expressions.h"
 #include "utils/smufl_support.h"
 
 namespace denigma {
@@ -203,72 +205,59 @@ static void createSegno(mnxdom::global::Measure& mnxMeasure, const MusxInstance<
     }
 }
 
-static void createTempos(const MnxMusxMappingPtr& context, mnxdom::global::Measure& mnxMeasure, const MusxInstance<others::Measure>& musxMeasure)
+/// @brief Appends the Tempo Tool changes requested by the user, at positions no expression already claimed.
+///
+/// Must run after processGlobalExpressions, because an expression takes precedence over a Tempo Tool
+/// change at the same position. The precedence and the playback-only gap are design decisions; see
+/// design-decisions.md.
+static void createTempoToolTempos(
+    const MnxMusxMappingPtr& context, mnxdom::global::Measure& mnxMeasure, const MusxInstance<others::Measure>& musxMeasure)
 {
-    auto createTempo = [&mnxMeasure](const mnxdom::global::Tempo::Required& tempoData, Edu eduPosition) {
-        auto mnxTempos = mnxMeasure.ensure_tempos();
-        auto tempo = mnxTempos.append(tempoData.bpm, tempoData.noteValue);
-        if (eduPosition) {
-            auto pos = Fraction::fromEdu(eduPosition);
-            tempo.ensure_location(mnxFractionFromFraction(pos));
+    if (!context->denigmaContext->includeTempoTool) {
+        return;
+    }
+    const auto tempoChanges = musxMeasure->getDocument()->getOthers()->getArray<others::TempoChange>(SCORE_PARTID, musxMeasure->getCmper());
+    if (tempoChanges.empty()) {
+        return;
+    }
+    const auto isPositionTaken = [&](Edu eduPosition) {
+        const auto position = mnxFractionFromEdu(eduPosition);
+        const auto tempos = mnxMeasure.tempos();
+        if (!tempos) {
+            return false;
         }
+        for (const auto tempo : tempos.value()) {
+            const auto location = tempo.location();
+            if ((location ? location.value().fraction() : mnxdom::FractionValue{}) == position) {
+                return true;
+            }
+        }
+        return false;
     };
-    std::map<Edu, mnxdom::global::Tempo::Required> temposAtPositions;
-    if (musxMeasure->hasExpression) {
-        // Search in order of decreasing precedence. Using emplace keeps the first tempo at a beat location.
-        const auto expAssigns = musxMeasure->getDocument()->getOthers()->getArray<others::MeasureExprAssign>(SCORE_PARTID, musxMeasure->getCmper());
-        const auto expAssignClassifications = classify::classifyExpressionAssignments(expAssigns);
-        const auto addExpressionTempos = [&](bool textExpressions) {
-            for (const auto& expAssignClassification : expAssignClassifications) {
-                const auto& expAssign = expAssignClassification.assignment;
-                if (!expAssign->calcIsAssignedInRequestedPart()) {
-                    continue;
-                }
-                const bool isSelectedExpressionType =
-                    textExpressions ? static_cast<bool>(expAssign->textExprId) : static_cast<bool>(expAssign->shapeExprId);
-                if (!isSelectedExpressionType) {
-                    continue;
-                }
-                const auto& classification = expAssignClassification.classification;
-                const auto* tempoText = classification.as<classify::expression::TempoText>();
-                const auto* metronomeMark = classification.as<classify::expression::MetronomeMark>();
-                // An MNX tempo is a playback instruction, so it takes the expression's playback
-                // settings. See design-decisions.md.
-                const classify::expression::TempoInfo* playback = nullptr;
-                if (metronomeMark) {
-                    playback = &metronomeMark->tempo;
-                } else if (tempoText) {
-                    playback = &tempoText->tempo;
-                }
-                if (playback && playback->beatsPerMinute > 0 && playback->beatUnitEdu > 0) {
-                    temposAtPositions.emplace(expAssign->eduPosition, mnxTempoFromPlayback(playback->beatsPerMinute, Edu(playback->beatUnitEdu)));
-                } else if (metronomeMark) {
-                    temposAtPositions.emplace(expAssign->eduPosition, mnxTempoFromMetronomeMark(*metronomeMark));
-                }
-            }
-        };
-        addExpressionTempos(true);
-        addExpressionTempos(false);
-    }
     std::optional<NoteType> tempoUnit;
-    if (context->denigmaContext->includeTempoTool) {
-        const auto tempoChanges = musxMeasure->getDocument()->getOthers()->getArray<others::TempoChange>(SCORE_PARTID, musxMeasure->getCmper());
-        for (const auto& tempoChange : tempoChanges) {
-            if (!tempoChange->isRelative) {
-                if (!tempoUnit) {
-                    auto [count, unit] = musxMeasure->createTimeSignature()->calcSimplified();
-                    tempoUnit = std::min(unit, NoteType::Quarter);
-                }
-                const auto noteType = tempoUnit.value_or(NoteType::Quarter);
-                temposAtPositions.emplace(tempoChange->eduPosition,
-                    mnxdom::global::Tempo::make(tempoChange->getAbsoluteTempo(noteType), mnxNoteValueFromEdu(Edu(noteType))));
-            }
+    for (const auto& tempoChange : tempoChanges) {
+        if (tempoChange->isRelative) {
+            continue;
+        }
+        if (isPositionTaken(tempoChange->eduPosition)) {
+            continue; // the expression wins; see design-decisions.md
+        }
+        const auto id = core::calcTempoDefId(musxMeasure->getCmper(), tempoChange->getInci().value_or(0));
+        if (!tempoUnit) {
+            auto [count, unit] = musxMeasure->createTimeSignature()->calcSimplified();
+            tempoUnit = (std::min)(unit, NoteType::Quarter);
+        }
+        const auto noteType = tempoUnit.value_or(NoteType::Quarter);
+        auto tempo = mnxMeasure.ensure_tempos().append(tempoChange->getAbsoluteTempo(noteType), mnxNoteValueFromEdu(Edu(noteType)));
+        tempo.set_id(id);
+        if (tempoChange->eduPosition) {
+            tempo.ensure_location(mnxFractionFromEdu(tempoChange->eduPosition));
+        }
+        /// @todo hide tempo tool changes if MNX ever adds visibility to the tempo object.
+        if (auto* const gapCollector = context->denigmaContext->gapCollector) {
+            gapCollector->add({id, std::nullopt, std::nullopt}, classify::PlaybackOnly{}, classify::GapExtent::Partial);
         }
     }
-    for (const auto& [position, tempo] : temposAtPositions) {
-        createTempo(tempo, position);
-    }
-    /// @todo hide tempo tool changes if MNX ever adds visibility to the tempo object.
 }
 
 static void assignTimeSignature(const MnxMusxMappingPtr& context, mnxdom::global::Measure& mnxMeasure,
@@ -359,7 +348,8 @@ static void createGlobalMeasures(const MnxMusxMappingPtr& context)
         assignDisplayNumber(mnxMeasure, musxMeasure);
         assignRepeats(mnxMeasure, musxMeasure);
         createSegno(mnxMeasure, musxMeasure);
-        createTempos(context, mnxMeasure, musxMeasure);
+        processGlobalExpressions(context, mnxMeasure, musxMeasure);
+        createTempoToolTempos(context, mnxMeasure, musxMeasure); // after the expressions, which take precedence
         assignTimeSignature(context, mnxMeasure, musxMeasure, prevTimeSig, prevTimeSigDisplay);
     }
 }

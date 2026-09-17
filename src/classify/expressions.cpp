@@ -614,7 +614,7 @@ static std::optional<ExpressionClassification> classifyRehearsalMarkText(std::st
 
 static bool assignmentUsesTopStaff(const musx::dom::MusxInstance<musx::dom::others::MeasureExprAssign>& assignment)
 {
-    return assignment && assignment->staffAssign == static_cast<musx::dom::StaffCmper>(musx::dom::others::StaffList::FloatingValues::TopStaff);
+    return classifyExpressionScope(assignment) == ExpressionScope::TopStaff;
 }
 
 static ExpressionClassification classifySystemTextExpression(const musx::dom::MusxInstance<musx::dom::others::TextExpressionDef>& def,
@@ -1211,7 +1211,7 @@ static musx::dom::CurveContourDirection calcShapeExpressionContour(const musx::d
 static std::optional<ExpressionClassification> classifyPseudoTieExpression(const musx::dom::MusxInstance<musx::dom::others::ShapeDef>& shape,
     const musx::dom::MusxInstance<musx::dom::others::MeasureExprAssign>& assignment)
 {
-    if (!assignment) {
+    ASSERT_IF (!assignment) {
         return std::nullopt;
     }
     const auto entryInfo = assignment->calcAssociatedEntry();
@@ -1271,13 +1271,38 @@ static ExpressionClassification classifyAssignedShapeExpression(const musx::dom:
     return suppressExpression();
 }
 
+static ExpressionClassification withScope(
+    ExpressionClassification result, const musx::dom::MusxInstance<musx::dom::others::MeasureExprAssign>& assignment)
+{
+    result.scope = classifyExpressionScope(assignment);
+    return result;
+}
+
 } // namespace
+
+bool isFloatingScope(ExpressionScope scope)
+{
+    return scope == ExpressionScope::TopStaff || scope == ExpressionScope::BottomStaff;
+}
+
+ExpressionScope classifyExpressionScope(const musx::dom::MusxInstance<musx::dom::others::MeasureExprAssign>& assignment)
+{
+    ASSERT_IF (!assignment) {
+        return ExpressionScope::Unassigned;
+    }
+    using FloatingValues = musx::dom::others::StaffList::FloatingValues;
+    switch (static_cast<FloatingValues>(assignment->staffAssign)) {
+    case FloatingValues::TopStaff: return ExpressionScope::TopStaff;
+    case FloatingValues::BottomStaff: return ExpressionScope::BottomStaff;
+    }
+    return ExpressionScope::Staff;
+}
 
 ExpressionClassification classifyExpression(const musx::dom::MusxInstance<musx::dom::others::TextExpressionDef>& def,
     const musx::dom::MusxInstance<musx::dom::others::MeasureExprAssign>& assignment)
 {
     if (assignment) {
-        return classifyAssignedTextExpression(def, assignment);
+        return withScope(classifyAssignedTextExpression(def, assignment), assignment);
     }
     return classifyTextExpressionDefinition(def);
 }
@@ -1286,14 +1311,14 @@ ExpressionClassification classifyExpression(const musx::dom::MusxInstance<musx::
     const musx::dom::MusxInstance<musx::dom::others::MeasureExprAssign>& assignment)
 {
     if (assignment) {
-        return classifyAssignedShapeExpression(def, assignment);
+        return withScope(classifyAssignedShapeExpression(def, assignment), assignment);
     }
     return classifyShapeExpressionDefinition(def);
 }
 
 ExpressionClassification classifyExpression(const musx::dom::MusxInstance<musx::dom::others::MeasureExprAssign>& assignment)
 {
-    if (!assignment) {
+    ASSERT_IF (!assignment) {
         return {};
     }
     if (const auto textExpression = assignment->getTextExpression()) {
@@ -1302,7 +1327,87 @@ ExpressionClassification classifyExpression(const musx::dom::MusxInstance<musx::
     if (const auto shapeExpression = assignment->getShapeExpression()) {
         return classifyExpression(shapeExpression, assignment);
     }
-    return suppressExpression();
+    return withScope(suppressExpression(), assignment);
+}
+
+namespace {
+
+/// @brief Collects the assignments into groups, in order of each group's first assignment.
+///
+/// A staff group number identifies the members Finale created from one staff list. An assignment
+/// outside any staff group is a group of one. Classification is left to the caller.
+static std::vector<ExpressionAssignmentGroup> collectAssignmentGroups(
+    const musx::dom::MusxInstanceList<musx::dom::others::MeasureExprAssign>& assignments, bool includeUnshown)
+{
+    std::vector<ExpressionAssignmentGroup> groups;
+    std::unordered_map<int, size_t> groupIndexByStaffGroup;
+    for (const auto& assignment : assignments) {
+        ASSERT_IF (!assignment) {
+            continue;
+        }
+        if (!includeUnshown && !assignment->calcIsAssignedInRequestedPart()) {
+            continue;
+        }
+        if (assignment->staffGroup != 0) {
+            const auto [it, inserted] = groupIndexByStaffGroup.try_emplace(assignment->staffGroup, groups.size());
+            if (!inserted) {
+                groups[it->second].members.push_back(assignment);
+                continue;
+            }
+        }
+        ExpressionAssignmentGroup group;
+        group.staffGroup = assignment->staffGroup;
+        group.primary = assignment;
+        group.members.push_back(assignment);
+        groups.push_back(std::move(group));
+    }
+
+    // A floating top-staff assignment outside any staff group still speaks for the same expression
+    // assigned at the same position to real staves without a group: Finale leaves the group number
+    // off some staff-list members, and the marking is one either way.
+    for (size_t topIndex = 0; topIndex < groups.size(); ++topIndex) {
+        const auto& top = groups[topIndex];
+        if (top.staffGroup != 0 || !assignmentUsesTopStaff(top.primary)) {
+            continue;
+        }
+        for (size_t otherIndex = 0; otherIndex < groups.size(); ++otherIndex) {
+            const auto& other = groups[otherIndex];
+            if (otherIndex == topIndex || other.staffGroup != 0 || other.members.size() != 1 || assignmentUsesTopStaff(other.primary)
+                || other.primary->eduPosition != top.primary->eduPosition || !top.primary->calcIsSameDefinition(*other.primary)) {
+                continue;
+            }
+            groups[topIndex].members.push_back(other.primary);
+            groups.erase(groups.begin() + static_cast<std::ptrdiff_t>(otherIndex));
+            if (otherIndex < topIndex) {
+                --topIndex;
+            }
+            --otherIndex;
+        }
+    }
+    return groups;
+}
+
+/// @brief Classifies a group from its floating top-staff member when it has one, else from its primary.
+static ExpressionClassification classifyAssignmentGroup(const ExpressionAssignmentGroup& group)
+{
+    for (const auto& member : group.members) {
+        if (assignmentUsesTopStaff(member)) {
+            return classifyExpression(member);
+        }
+    }
+    return classifyExpression(group.primary);
+}
+
+} // namespace
+
+std::vector<ExpressionAssignmentGroup> groupExpressionAssignments(
+    const musx::dom::MusxInstanceList<musx::dom::others::MeasureExprAssign>& assignments)
+{
+    auto groups = collectAssignmentGroups(assignments, false);
+    for (auto& group : groups) {
+        group.classification = classifyAssignmentGroup(group);
+    }
+    return groups;
 }
 
 std::vector<ExpressionAssignmentClassification> classifyExpressionAssignments(
@@ -1310,21 +1415,17 @@ std::vector<ExpressionAssignmentClassification> classifyExpressionAssignments(
 {
     std::vector<ExpressionAssignmentClassification> results;
     results.reserve(assignments.size());
-    for (const auto& assignment : assignments) {
-        results.push_back({assignment, classifyExpression(assignment)});
-    }
-
-    for (const auto& topStaffResult : results) {
-        if (!assignmentUsesTopStaff(topStaffResult.assignment)) {
-            continue;
-        }
-        for (auto& result : results) {
-            if (result.assignment && topStaffResult.assignment->calcIsSameDefinition(*result.assignment)) {
-                result.classification = topStaffResult.classification;
-            }
+    for (const auto& group : collectAssignmentGroups(assignments, true)) {
+        const auto classification = classifyAssignmentGroup(group);
+        for (const auto& member : group.members) {
+            results.push_back({member, classification});
+            results.back().classification.scope = classifyExpressionScope(member);
         }
     }
-
+    std::stable_sort(
+        results.begin(), results.end(), [](const ExpressionAssignmentClassification& lhs, const ExpressionAssignmentClassification& rhs) {
+            return lhs.assignment->getInci().value_or(0) < rhs.assignment->getInci().value_or(0);
+        });
     return results;
 }
 

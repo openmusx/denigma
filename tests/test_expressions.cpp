@@ -29,6 +29,7 @@
 
 #include "core/musx_reader.h"
 #include "denigma/classify/expressions.h"
+#include "denigma/classify/formatted_text.h"
 #include "musx/musx.h"
 #include "utils/stringutils.h"
 
@@ -1163,4 +1164,149 @@ TEST(ExpressionClassification, ClassifiesMeasureRepeatCountBeforeSystemTextRehea
 
     ASSERT_EQ(result.type, ExpressionType::MeasureRepeatCount);
     EXPECT_EQ(result.measureRepeatCount().count, 2);
+}
+
+TEST(ExpressionClassification, ScopeFollowsTheAssignment)
+{
+    const auto context = makeTextExpressionContext("Allegro", ExpressionCategoryType::TempoMarks, tempoPlaybackXml(), true);
+    EXPECT_EQ(classifyExpressionScope(context.assignment), ExpressionScope::TopStaff);
+    EXPECT_TRUE(isFloatingScope(ExpressionScope::TopStaff));
+    EXPECT_TRUE(isFloatingScope(ExpressionScope::BottomStaff));
+    EXPECT_FALSE(isFloatingScope(ExpressionScope::Staff));
+    EXPECT_EQ(classifyExpression(context.assignment).scope, ExpressionScope::TopStaff);
+
+    const auto staffAssignment = makeStaffTextAssignment(context.document, 1, 1);
+    EXPECT_EQ(classifyExpressionScope(staffAssignment), ExpressionScope::Staff);
+    EXPECT_EQ(classifyExpression(staffAssignment).scope, ExpressionScope::Staff);
+
+    const auto bottomAssignment =
+        makeStaffTextAssignment(context.document, 1, static_cast<StaffCmper>(others::StaffList::FloatingValues::BottomStaff));
+    EXPECT_EQ(classifyExpressionScope(bottomAssignment), ExpressionScope::BottomStaff);
+
+    EXPECT_EQ(classifyExpression(context.def).scope, ExpressionScope::Unassigned);
+}
+
+TEST(ExpressionClassification, GroupsAssignmentsByStaffGroupAndNamesThemByLowestInci)
+{
+    const auto context = makeTextExpressionContext("Allegro", ExpressionCategoryType::TempoMarks, tempoPlaybackXml(), true);
+    const auto makeGroupMember = [&](StaffCmper staff, Inci inci, int staffGroup, bool partOnly = false) {
+        auto member = std::make_shared<others::MeasureExprAssign>(context.document, SCORE_PARTID, EnigmaBase::ShareMode::All, Cmper{1}, inci);
+        member->textExprId = 1;
+        member->staffAssign = staff;
+        member->staffGroup = staffGroup;
+        if (partOnly) {
+            member->showStaffList = others::MeasureExprAssign::ShowStaffList::PartOnly;
+        }
+        return MusxInstance<others::MeasureExprAssign>(member);
+    };
+    const auto top = makeGroupMember(static_cast<StaffCmper>(others::StaffList::FloatingValues::TopStaff), Inci{0}, 1);
+    const auto first = makeGroupMember(1, Inci{1}, 1);
+    const auto second = makeGroupMember(2, Inci{2}, 1, true);
+    const auto lone = makeGroupMember(3, Inci{3}, 0);
+    MusxInstanceList<others::MeasureExprAssign> assignments(context.document, SCORE_PARTID);
+    assignments.push_back(top);
+    assignments.push_back(first);
+    assignments.push_back(second);
+    assignments.push_back(lone);
+
+    const auto groups = groupExpressionAssignments(assignments);
+    ASSERT_EQ(groups.size(), 2);
+    EXPECT_TRUE(groups[0].isStaffListGroup());
+    EXPECT_EQ(groups[0].staffGroup, 1);
+    EXPECT_EQ(groups[0].primary, top);
+    // The part-only member is not shown in the score, so the score's group does not draw it.
+    ASSERT_EQ(groups[0].members.size(), 2);
+    EXPECT_EQ(groups[0].members[1], first);
+    EXPECT_EQ(groups[0].classification.type, ExpressionType::TempoMark);
+    EXPECT_EQ(groups[0].classification.scope, ExpressionScope::TopStaff);
+    EXPECT_FALSE(groups[1].isStaffListGroup());
+    EXPECT_EQ(groups[1].primary, lone);
+    EXPECT_EQ(groups[1].classification.scope, ExpressionScope::Staff);
+
+    // The flat form keeps every assignment, in input order, with the group's classification and each member's own scope.
+    const auto flat = classifyExpressionAssignments(assignments);
+    ASSERT_EQ(flat.size(), 4);
+    EXPECT_EQ(flat[2].assignment, second);
+    EXPECT_EQ(flat[2].classification.type, ExpressionType::TempoMark);
+    EXPECT_EQ(flat[2].classification.scope, ExpressionScope::Staff);
+}
+
+TEST(FormattedTextClassification, SplitsGlyphAndTextRunsAndSnapshotsFonts)
+{
+    const auto context = makeTextExpressionContext(
+        "^fontid(0)^size(12)^nfx(1)Tempo (^fontid(0)^size(24)^nfx(0)" + makeGlyphText(u8"\uECA5") + "^fontid(0)^size(12)^nfx(1)=120)",
+        ExpressionCategoryType::TempoMarks, {}, false, "Bravura");
+    const auto text = classifyFormattedText(context.def->getRawTextCtx(SCORE_PARTID));
+
+    EXPECT_EQ(text.plainText, "Tempo (" + makeGlyphText(u8"\uECA5") + "=120)");
+    ASSERT_EQ(text.runs.size(), 3);
+    EXPECT_EQ(text.runs[0].text, "Tempo (");
+    EXPECT_FALSE(text.runs[0].isGlyphRun());
+    EXPECT_EQ(text.runs[0].font.name, "Bravura");
+    EXPECT_EQ(text.runs[0].font.size, 12);
+    EXPECT_TRUE(text.runs[0].font.bold);
+    EXPECT_TRUE(text.runs[1].isGlyphRun());
+    ASSERT_EQ(text.runs[1].glyphNames.size(), 1);
+    EXPECT_EQ(text.runs[1].glyphNames[0], "metNoteQuarterUp");
+    EXPECT_EQ(text.runs[1].font.size, 24);
+    EXPECT_FALSE(text.runs[1].font.bold);
+    EXPECT_TRUE(text.runs[1].font.isSmufl);
+    EXPECT_EQ(text.runs[2].text, "=120)");
+    EXPECT_TRUE(text.runs[2].font.bold);
+}
+
+TEST(FormattedTextClassification, DropsHiddenTextAndSplitsWithinAChunk)
+{
+    const auto context = makeTextExpressionContext("^fontid(0)^size(12)^nfx(0)a" + makeGlyphText(u8"\uECA5") + "b^fontid(0)^size(12)^nfx(128)hidden",
+        ExpressionCategoryType::Misc, {}, false, "Bravura");
+    const auto text = classifyFormattedText(context.def->getRawTextCtx(SCORE_PARTID));
+
+    EXPECT_EQ(text.plainText, "a" + makeGlyphText(u8"\uECA5") + "b");
+    ASSERT_EQ(text.runs.size(), 3);
+    EXPECT_EQ(text.runs[0].text, "a");
+    EXPECT_TRUE(text.runs[1].isGlyphRun());
+    EXPECT_EQ(text.runs[2].text, "b");
+}
+
+TEST(FormattedTextClassification, ReportsInsertsAsTheirOwnRuns)
+{
+    const auto context = makeTextExpressionContext(
+        "^fontid(0)^size(12)^nfx(0)B^flat() = ^value()", ExpressionCategoryType::TempoMarks, tempoPlaybackXml(120, 1024), false, "Bravura");
+    const auto text = classifyFormattedText(context.def->getRawTextCtx(SCORE_PARTID));
+
+    EXPECT_EQ(text.plainText, "B" + makeGlyphText(u8"\u266D") + " = 120");
+    ASSERT_EQ(text.runs.size(), 4);
+    EXPECT_EQ(text.runs[0].text, "B");
+    EXPECT_FALSE(text.runs[0].insert);
+
+    // An accidental insert keeps musxdom's Unicode text and names the SMuFL glyph that draws it.
+    EXPECT_EQ(text.runs[1].text, makeGlyphText(u8"\u266D"));
+    ASSERT_TRUE(text.runs[1].insert);
+    EXPECT_EQ(text.runs[1].insert->kind, text::Insert::Kind::Accidental);
+    EXPECT_EQ(text.runs[1].insert->command, "flat");
+    EXPECT_TRUE(text.runs[1].insert->parameters.empty());
+    ASSERT_TRUE(text.runs[1].isGlyphRun());
+    EXPECT_EQ(text.runs[1].glyphNames[0], "accidentalFlat");
+
+    EXPECT_EQ(text.runs[2].text, " = ");
+    EXPECT_FALSE(text.runs[2].insert);
+
+    EXPECT_EQ(text.runs[3].text, "120");
+    ASSERT_TRUE(text.runs[3].insert);
+    EXPECT_EQ(text.runs[3].insert->kind, text::Insert::Kind::PlaybackValue);
+    EXPECT_EQ(text.runs[3].insert->command, "value");
+    EXPECT_FALSE(text.runs[3].isGlyphRun());
+}
+
+TEST(FormattedTextClassification, KeepsUnnamedInsertsWithTheirCommand)
+{
+    const auto context = makeTextExpressionContext("^fontid(0)^size(12)^nfx(0)p. ^page(3)", ExpressionCategoryType::Misc, {}, false, "Bravura");
+    const auto text = classifyFormattedText(context.def->getRawTextCtx(SCORE_PARTID));
+
+    ASSERT_EQ(text.runs.size(), 2);
+    ASSERT_TRUE(text.runs[1].insert);
+    EXPECT_EQ(text.runs[1].insert->kind, text::Insert::Kind::Other);
+    EXPECT_EQ(text.runs[1].insert->command, "page");
+    ASSERT_EQ(text.runs[1].insert->parameters.size(), 1);
+    EXPECT_EQ(text.runs[1].insert->parameters[0], "3");
 }

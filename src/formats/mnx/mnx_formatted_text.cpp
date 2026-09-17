@@ -21,6 +21,7 @@
  */
 #include "mnx_formatted_text.h"
 
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -154,12 +155,27 @@ void setFormattedText(mnxdom::FormattedText dst, const EnigmaParsingContext& src
         parsingOptions.ignoreStyleTags = true;
     }
 
+    // Adjacent chunks in the same font are converted as one. The parser delivers an insert's
+    // substitution as its own chunk, and MNX has no use for that boundary.
+    std::optional<EnigmaTextChunk> pending;
+    const auto flush = [&]() {
+        if (pending) {
+            appendConvertedChunk(dst, pending->text, pending->styles, options);
+            pending.reset();
+        }
+    };
     src.parseEnigmaText(
         [&](const std::string& chunk, const EnigmaStyles& styles) -> bool {
-            appendConvertedChunk(dst, chunk, styles, options);
+            if (pending && sameFont(pending->styles.font, styles.font)) {
+                pending->text += chunk;
+                return true;
+            }
+            flush();
+            pending = EnigmaTextChunk{chunk, styles.createDeepCopy(), std::nullopt};
             return true;
         },
         parsingOptions);
+    flush();
 }
 
 mnxdom::FormattedText makeFormattedText(const EnigmaParsingContext& src, const MnxFormattedTextOptions& options)

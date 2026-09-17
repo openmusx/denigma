@@ -1,0 +1,396 @@
+{
+  "schemaVersion": 1,
+  "producer": {
+    "name": "denigma",
+    "version": "TEST",
+    "commit": "<commit>"
+  },
+  "gaps": [
+    {
+      "anchor": "m1.textExp24.inci0",
+      "extent": "partial",
+      "placements": [
+        {
+          "kind": "system-top",
+          "anchor": "m1"
+        },
+        {
+          "kind": "staff",
+          "anchor": "P33.m1"
+        },
+        {
+          "kind": "staff",
+          "anchor": "P15.m1"
+        }
+      ],
+      "type": "expression",
+      "expression": {
+        "type": "tempo-mark",
+        "basis": "finale-category-confirmed",
+        "scope": "top-staff",
+        "text": {
+          "plain": "Tempo (∞=120)",
+          "runs": [
+            {
+              "text": "Tempo (",
+              "font": {
+                "name": "Patmm",
+                "size": 14,
+                "sizeIsPercent": false,
+                "bold": false,
+                "italic": false,
+                "underline": false,
+                "strikeout": false,
+                "absolute": false,
+                "hidden": false,
+                "isSymbolFont": false,
+                "isSmufl": false
+              }
+            },
+            {
+              "text": "∞",
+              "font": {
+                "name": "Patmm",
+                "size": 14,
+                "sizeIsPercent": false,
+                "bold": false,
+                "italic": false,
+                "underline": false,
+                "strikeout": false,
+                "absolute": false,
+                "hidden": false,
+                "isSymbolFont": false,
+                "isSmufl": false
+              },
+              "glyphs": [
+                "metNoteQuarterUp"
+              ]
+            },
+            {
+              "text": "=",
+              "font": {
+                "name": "Patmm",
+                "size": 14,
+                "sizeIsPercent": false,
+                "bold": false,
+                "italic": false,
+                "underline": false,
+                "strikeout": false,
+                "absolute": false,
+                "hidden": false,
+                "isSymbolFont": false,
+                "isSmufl": false
+              }
+            },
+            {
+              "text": "120",
+              "font": {
+                "name": "Patmm",
+                "size": 14,
+                "sizeIsPercent": false,
+                "bold": false,
+                "italic": false,
+                "underline": false,
+                "strikeout": false,
+                "absolute": false,
+                "hidden": false,
+                "isSymbolFont": false,
+                "isSmufl": false
+              },
+              "insert": {
+                "kind": "playback-value",
+                "command": "value",
+                "parameters": []
+              }
+            },
+            {
+              "text": ")",
+              "font": {
+                "name": "Patmm",
+                "size": 14,
+                "sizeIsPercent": false,
+                "bold": false,
+                "italic": false,
+                "underline": false,
+                "strikeout": false,
+                "absolute": false,
+                "hidden": false,
+                "isSymbolFont": false,
+                "isSmufl": false
+              }
+            }
+          ]
+        },
+        "tempo": {
+          "text": "Tempo (∞=120)",
+          "beatsPerMinute": 120,
+          "beatUnitEdu": 1024
+        }
+      }
+    },
+    {
+      "anchor": "m1.textExp54.inci3",
+      "extent": "partial",
+      "placements": [
+        {
+          "kind": "system-top",
+          "anchor": "m1"
+        },
+        {
+          "kind": "staff",
+          "anchor": "P33.m1"
+        }
+      ],
+      "type": "expression",
+      "expression": {
+        "type": "tempo-mark",
+        "basis": "finale-category-corrected",
+        "scope": "top-staff",
+        "text": {
+          "plain": "accel.",
+          "runs": [
+            {
+              "text": "accel.",
+              "font": {
+                "name": "Times",
+                "size": 14,
+                "sizeIsPercent": false,
+                "bold": false,
+                "italic": true,
+                "underline": false,
+                "strikeout": false,
+                "absolute": false,
+                "hidden": false,
+                "isSymbolFont": false,
+                "isSmufl": false
+              }
+            }
+          ]
+        },
+        "tempo": {
+          "text": "accel.",
+          "beatsPerMinute": 132,
+          "beatUnitEdu": 1024
+        }
+      }
+    },
+    {
+      "anchor": "m4",
+      "position": {
+        "numerator": 0,
+        "denominator": 1
+      },
+      "extent": "complete",
+      "placements": [
+        {
+          "kind": "system-top",
+          "anchor": "m4"
+        },
+        {
+          "kind": "staff",
+          "anchor": "P33.m4"
+        }
+      ],
+      "type": "expression",
+      "expression": {
+        "type": "tempo-alteration",
+        "basis": "finale-category-confirmed",
+        "scope": "top-staff",
+        "text": {
+          "plain": "rit.",
+          "runs": [
+            {
+              "text": "rit.",
+              "font": {
+                "name": "Times",
+                "size": 14,
+                "sizeIsPercent": false,
+                "bold": false,
+                "italic": true,
+                "underline": false,
+                "strikeout": false,
+                "absolute": false,
+                "hidden": false,
+                "isSymbolFont": false,
+                "isSmufl": false
+              }
+            }
+          ]
+        },
+        "tempoAlteration": {
+          "text": "rit.",
+          "beatsPerMinute": 0,
+          "beatUnitEdu": 0
+        }
+      }
+    },
+    {
+      "anchor": "m6.textExp24.inci0",
+      "extent": "partial",
+      "placements": [
+        {
+          "kind": "system-top",
+          "anchor": "m6"
+        },
+        {
+          "kind": "staff",
+          "anchor": "P15.m6"
+        },
+        {
+          "kind": "staff",
+          "anchor": "P33.m6"
+        }
+      ],
+      "type": "expression",
+      "expression": {
+        "type": "tempo-mark",
+        "basis": "finale-category-confirmed",
+        "scope": "top-staff",
+        "text": {
+          "plain": "Tempo (∞=120)",
+          "runs": [
+            {
+              "text": "Tempo (",
+              "font": {
+                "name": "Patmm",
+                "size": 14,
+                "sizeIsPercent": false,
+                "bold": false,
+                "italic": false,
+                "underline": false,
+                "strikeout": false,
+                "absolute": false,
+                "hidden": false,
+                "isSymbolFont": false,
+                "isSmufl": false
+              }
+            },
+            {
+              "text": "∞",
+              "font": {
+                "name": "Patmm",
+                "size": 14,
+                "sizeIsPercent": false,
+                "bold": false,
+                "italic": false,
+                "underline": false,
+                "strikeout": false,
+                "absolute": false,
+                "hidden": false,
+                "isSymbolFont": false,
+                "isSmufl": false
+              },
+              "glyphs": [
+                "metNoteQuarterUp"
+              ]
+            },
+            {
+              "text": "=",
+              "font": {
+                "name": "Patmm",
+                "size": 14,
+                "sizeIsPercent": false,
+                "bold": false,
+                "italic": false,
+                "underline": false,
+                "strikeout": false,
+                "absolute": false,
+                "hidden": false,
+                "isSymbolFont": false,
+                "isSmufl": false
+              }
+            },
+            {
+              "text": "120",
+              "font": {
+                "name": "Patmm",
+                "size": 14,
+                "sizeIsPercent": false,
+                "bold": false,
+                "italic": false,
+                "underline": false,
+                "strikeout": false,
+                "absolute": false,
+                "hidden": false,
+                "isSymbolFont": false,
+                "isSmufl": false
+              },
+              "insert": {
+                "kind": "playback-value",
+                "command": "value",
+                "parameters": []
+              }
+            },
+            {
+              "text": ")",
+              "font": {
+                "name": "Patmm",
+                "size": 14,
+                "sizeIsPercent": false,
+                "bold": false,
+                "italic": false,
+                "underline": false,
+                "strikeout": false,
+                "absolute": false,
+                "hidden": false,
+                "isSymbolFont": false,
+                "isSmufl": false
+              }
+            }
+          ]
+        },
+        "tempo": {
+          "text": "Tempo (∞=120)",
+          "beatsPerMinute": 120,
+          "beatUnitEdu": 1024
+        }
+      }
+    },
+    {
+      "anchor": "m6.textExp54.inci3",
+      "extent": "partial",
+      "placements": [
+        {
+          "kind": "system-top",
+          "anchor": "m6"
+        },
+        {
+          "kind": "staff",
+          "anchor": "P33.m6"
+        }
+      ],
+      "type": "expression",
+      "expression": {
+        "type": "tempo-mark",
+        "basis": "finale-category-corrected",
+        "scope": "top-staff",
+        "text": {
+          "plain": "accel.",
+          "runs": [
+            {
+              "text": "accel.",
+              "font": {
+                "name": "Times",
+                "size": 14,
+                "sizeIsPercent": false,
+                "bold": false,
+                "italic": true,
+                "underline": false,
+                "strikeout": false,
+                "absolute": false,
+                "hidden": false,
+                "isSymbolFont": false,
+                "isSmufl": false
+              }
+            }
+          ]
+        },
+        "tempo": {
+          "text": "accel.",
+          "beatsPerMinute": 132,
+          "beatUnitEdu": 1024
+        }
+      }
+    }
+  ]
+}

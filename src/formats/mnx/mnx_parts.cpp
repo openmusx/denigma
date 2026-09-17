@@ -100,8 +100,7 @@ static void createBeams(const MnxMusxMappingPtr& context, mnxdom::part::Measure 
                 }
                 if (auto sourceEntry = entryInfo.findHiddenSourceForBeamOverBarline()) {
                     const auto sourceMeasureId = static_cast<size_t>(sourceEntry.getMeasure());
-                    ASSERT_IF(sourceMeasureId >= mnxMeasures.size() || sourceMeasureId == 0)
-                    {
+                    ASSERT_IF (sourceMeasureId >= mnxMeasures.size() || sourceMeasureId == 0) {
                         throw std::logic_error("Source entry's measure " + std::to_string(sourceMeasureId) + " is not a valid measure.");
                     }
                     mnxMeasure = mnxMeasures.at(sourceMeasureId - 1);
@@ -130,8 +129,7 @@ static void createBeams(const MnxMusxMappingPtr& context, mnxdom::part::Measure 
 static std::optional<ClefIndex> createClef(const MnxMusxMappingPtr& context, mnxdom::part::Measure& mnxMeasure, std::optional<int> mnxStaffNumber,
     ClefIndex clefIndex, musx::util::Fraction location, const MusxInstance<others::Staff>& musxStaff)
 {
-    MUSX_ASSERT_IF(!musxStaff)
-    {
+    ASSERT_IF (!musxStaff) {
         context->logMessage(LogMsg() << "invalid or unmapped staff passed to createClef", MessageSeverity::Warning);
         return std::nullopt;
     }

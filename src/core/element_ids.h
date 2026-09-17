@@ -44,5 +44,15 @@ std::string calcGlobalMeasureId(musx::dom::Cmper cmperValue);
 /// a part-measure id is the measure id prefixed with its owning part's id.
 std::string calcPartMeasureId(const std::string& partId, musx::dom::Cmper cmperValue);
 
+/// @brief Computes a stable id for an object derived from one measure-expression assignment.
+///
+/// The id records the assignment's full Finale provenance: the measure, the expression definition
+/// it assigns, and the assignment's inci within the measure, as `m<cmper>.textExp<def>.inci<n>` or
+/// `m<cmper>.shapeExp<def>.inci<n>`. An assignment with no definition yields an empty string.
+std::string calcExpressionId(const musx::dom::MusxInstance<musx::dom::others::MeasureExprAssign>& assignment);
+
+/// @brief Computes a stable id for an object derived from one Tempo Tool record (`tempoDef`).
+std::string calcTempoDefId(musx::dom::Cmper measureCmper, musx::dom::Inci inci);
+
 } // namespace core
 } // namespace denigma

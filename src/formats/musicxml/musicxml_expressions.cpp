@@ -103,7 +103,7 @@ std::optional<mx::api::AccordionRegistrationData> musicXmlAccordionRegistration(
 
 bool isTopStaffAssignment(const MusxInstance<others::MeasureExprAssign>& assignment)
 {
-    return assignment->staffAssign == static_cast<StaffCmper>(others::StaffList::FloatingValues::TopStaff);
+    return classify::classifyExpressionScope(assignment) == classify::ExpressionScope::TopStaff;
 }
 
 mx::api::HorizontalAlignment musicXmlHorizontalAlignmentForTextExpression(const MusxInstance<others::MeasureExprAssign>& assignment)
@@ -495,14 +495,12 @@ void processExpressions(MusicXmlMusxMapping& context, mx::api::MeasureData& meas
         const auto& location = locationIt->second;
         const auto voiceIndex = static_cast<size_t>(location.userVoiceNumber - 1);
         const auto voiceIt = staff.voices.find(int(voiceIndex));
-        ASSERT_IF(voiceIt == staff.voices.end())
-        {
+        ASSERT_IF (voiceIt == staff.voices.end()) {
             return nullptr;
         }
 
         auto& voice = voiceIt->second;
-        ASSERT_IF(location.noteIndex >= voice.notes.size())
-        {
+        ASSERT_IF (location.noteIndex >= voice.notes.size()) {
             return nullptr;
         }
         return &voice.notes[location.noteIndex];

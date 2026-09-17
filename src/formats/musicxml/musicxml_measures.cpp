@@ -155,8 +155,7 @@ void assignRepeatEndings(const MusicXmlMusxMapping& context, mx::api::PartData& 
     const auto endingStarts = context.document->getOthers()->getArray<others::RepeatEndingStart>(context.forPartId);
     for (const auto& ending : endingStarts) {
         const auto measureIndex = static_cast<size_t>(ending->getCmper() - 1);
-        ASSERT_IF(measureIndex >= part.measures.size())
-        {
+        ASSERT_IF (measureIndex >= part.measures.size()) {
             continue;
         }
         /// @todo Carry the ending's appearance, above all its hidden state, when mx::api exposes the
@@ -186,8 +185,7 @@ void assignRepeatEndings(const MusicXmlMusxMapping& context, mx::api::PartData& 
         ensureBarlineData(part.measures[measureIndex], mx::api::HorizontalAlignment::left).ending = endingData;
 
         const auto endMeasureIndex = static_cast<size_t>(ending->getCmper() + ending->calcEndingLength() - 2);
-        ASSERT_IF(endMeasureIndex >= part.measures.size())
-        {
+        ASSERT_IF (endMeasureIndex >= part.measures.size()) {
             continue;
         }
         // The closing bracket repeats the numbers so that both barlines identify the same ending,
@@ -550,8 +548,7 @@ mx::api::ClefData musicXmlClefFromMusxClef(
 void assignTimeSignature(const MusicXmlMusxMapping& context, mx::api::MeasureData& measure, const MusxInstance<others::Measure>& musxMeasure,
     const std::vector<StaffCmper>& staves, std::vector<std::optional<mx::api::TimeChoice>>& prevTimeSigs)
 {
-    ASSERT_IF(staves.empty())
-    {
+    ASSERT_IF (staves.empty()) {
         return;
     }
 
@@ -682,8 +679,7 @@ void assignClefs(MusicXmlMusxMapping& context, mx::api::StaffData& staff, StaffC
 void assignStaffAttributes(MusicXmlMusxMapping& context, mx::api::PartData& part, const MusxInstanceList<others::Measure>& musxMeasures,
     const std::vector<StaffCmper>& staves)
 {
-    ASSERT_IF(part.measures.size() != musxMeasures.size() || musxMeasures.empty())
-    {
+    ASSERT_IF (part.measures.size() != musxMeasures.size() || musxMeasures.empty()) {
         context.logMessage(LogMsg() << "Cannot assign MusicXML staff attributes for part " << part.uniqueId
                                     << ": measure count mismatch or empty MUSX measure list (MusicXML measures=" << part.measures.size()
                                     << ", MUSX measures=" << musxMeasures.size() << ").",
@@ -725,8 +721,7 @@ void assignStaffAttributes(MusicXmlMusxMapping& context, mx::api::PartData& part
 
             const auto pointStaff = others::StaffComposite::createCurrent(
                 context.document, context.forPartId, staffId, point.measureId, point.position.calcEduDuration());
-            ASSERT_IF(!pointStaff)
-            {
+            ASSERT_IF (!pointStaff) {
                 context.logMessage(LogMsg() << "No staff composite found for staff " << staffId << " at measure " << point.measureId << ", edu "
                                             << point.position.calcEduDuration() << " while assigning MusicXML staff attributes.",
                     MessageSeverity::Warning);
@@ -747,8 +742,7 @@ void assignStaffAttributes(MusicXmlMusxMapping& context, mx::api::PartData& part
                 // items here can only be changed at start of measure in musicxml/mx::api
                 const auto measureId = measureStartStaff->getMeasureId();
                 auto& measure = part.measures[size_t(measureId - 1)];
-                ASSERT_IF(measure.staves.size() != staves.size())
-                {
+                ASSERT_IF (measure.staves.size() != staves.size()) {
                     context.logMessage(LogMsg() << "Measure " << measureId << " in part " << part.uniqueId << " has " << measure.staves.size()
                                                 << " staves, expected " << staves.size()
                                                 << " while assigning MusicXML measure-start staff attributes.",
@@ -759,8 +753,7 @@ void assignStaffAttributes(MusicXmlMusxMapping& context, mx::api::PartData& part
                 // than an anomaly, so only a calculated layout missing a system is worth reporting.
                 // Warning here unconditionally would fire once per change point per staff.
                 const auto system = context.systemForMeasure(measureId);
-                ASSERT_IF(context.partLayoutIsCalculated && !system)
-                {
+                ASSERT_IF (context.partLayoutIsCalculated && !system) {
                     context.logMessage(LogMsg() << "No staff system found for measure " << measureId
                                                 << " while assigning MusicXML staff attributes for staff " << staffId << ".",
                         MessageSeverity::Warning);
@@ -785,8 +778,7 @@ void assignStaffAttributes(MusicXmlMusxMapping& context, mx::api::PartData& part
                     point == MusicPoint{} && transposeDataEqualIgnoringStaffAndTick(currentTransposition, part.transposition);
                 if (!initialPointCoveredByPart) {
                     auto& measure = part.measures[size_t(point.measureId - 1)];
-                    ASSERT_IF(measure.staves.size() != staves.size())
-                    {
+                    ASSERT_IF (measure.staves.size() != staves.size()) {
                         context.logMessage(LogMsg()
                                                << "Measure " << point.measureId << " in part " << part.uniqueId << " has " << measure.staves.size()
                                                << " staves, expected " << staves.size() << " while assigning MusicXML transposition attributes.",

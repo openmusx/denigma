@@ -53,8 +53,7 @@ void processChords(const MnxMusxMappingPtr& context, mnxdom::part::Measure& mnxM
     }
     const auto measureId = mnxMeasure.id_or("");
     for (auto& chord : classify::classifyChordAssignments(assignments, keySignature, KeySignature::KeyContext::Written)) {
-        gapCollector->add({measureId, mnxStaffNumber, classify::GapPosition{chord.position.numerator(), chord.position.denominator()}},
-            std::move(chord.classification));
+        gapCollector->add({measureId, mnxStaffNumber, classify::gapPositionFromFraction(chord.position)}, std::move(chord.classification));
     }
 }
 

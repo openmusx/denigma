@@ -42,8 +42,7 @@ static void appendMeasureRemainderSpaces(
 {
     const auto remaining = measureDuration - elapsedInVoice;
     const int denom = remaining.denominator();
-    ASSERT_IF(denom <= 0)
-    {
+    ASSERT_IF (denom <= 0) {
         throw std::logic_error("Remaining duration has non-positive denominator.");
     }
     if (remaining <= 0 || (EDU_PER_WHOLE_NOTE % denom) != 0) {
@@ -287,8 +286,7 @@ static void createNote(const MnxMusxMappingPtr& context, mnxdom::sequence::Event
         if constexpr (std::is_same_v<MnxNoteType, mnxdom::sequence::Note>) {
             return createNormalNote(context, mnxEvent, musxNote);
         } else {
-            MUSX_ASSERT_IF(!percNoteInfo)
-            {
+            ASSERT_IF (!percNoteInfo) {
                 throw std::logic_error("Kit note requested without PercussionNoteInfo instance.");
             }
             return createKitNote(context, mnxEvent, percNoteInfo, musxStaff);
@@ -513,8 +511,7 @@ static EntryInfoPtr::InterpretedIterator addEntryToContent(const MnxMusxMappingP
             }
         }
 
-        ASSERT_IF(currElapsedDuration < elapsedInSequence)
-        {
+        ASSERT_IF (currElapsedDuration < elapsedInSequence) {
             throw std::logic_error("Next entry's elapsed duration value is smaller than tracked duration for sequence.");
         }
         if (currElapsedDuration > elapsedInSequence) {
