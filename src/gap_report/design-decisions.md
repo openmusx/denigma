@@ -30,9 +30,15 @@ There are no `report…Gaps` functions. `appendTempos` writes tempos and, while 
 
 Every expression is classified whether or not a report is wanted, and most classifications never become gaps. The text runs with their fonts and glyph names are therefore built by the serializer from the classification's parsing context, through `classify::classifyFormattedText`, and not stored on `ExpressionClassification`. The cost is that the source document must still be alive when the report is written, which the next entry already requires.
 
-### Classifications are consumed before the source document is released
+### The collector keeps the source document alive
 
-Some classification values keep `musxdom` instances whose accessors resolve through the document (a `FontInfo` name, or the parsing context that formatted text is resolved from). A collector is therefore serialized, or otherwise read, while the `DocumentPtr` is alive. Making the classification types document-independent is future work; until then the rule is stated on `GapCollector`.
+Some classification values keep `musxdom` instances whose accessors resolve through the document (a `FontInfo` name, the parsing context that formatted text is resolved from, the `ShapeDef` an arrowhead is drawn from), and every instance holds the document weakly. The exporter therefore hands its `DocumentPtr` to the collector (`GapCollector::retainDocument`) when it starts, and the collector owns the document until it is destroyed. A front end can then serialize after the converter has returned, which is what the CLI and the WebAssembly wrapper do. Asking front ends to serialize before the document is released was the earlier rule; it held only by accident, because the expression parsing context happened to capture a strong document reference, and the first payload without such a capture broke it. Making the classification types document-independent remains future work.
+
+### A smart shape is a gap where the exporter would emit it, split by attachment
+
+Finale gives every smart shape a measure assignment and gives an entry-attached one an entry assignment as well. The MNX exporter already walks both lists, the measure list once per staff measure and the entry list once per event, and each walk records the gaps for the shapes it owns: the measure walk takes the beat-attached shapes and the event walk takes the entry-attached ones (`SmartShape::entryBased`), so no shape is reported twice. An entry-attached gap is held until every part has been exported, because its end must name an event that exists in the output, and the entry it ends on may not have been reached yet, or may never be exported (a cue layer). Those gaps therefore follow the others in the report rather than sitting in traversal order.
+
+A hidden shape is not reported: Finale draws nothing for it, so the target loses nothing by omitting it. (A hidden built-in ottava that carries the octave semantics for a visible custom line is exported as an ottava and is not a gap either.) The lyric hyphen and word-extension shape types belong to the lyrics and are never reported as smart shapes.
 
 ## Anchors
 
@@ -50,6 +56,10 @@ An id records Finale provenance, not target semantics; the semantics are already
 
 A tempo mark that MNX exported as a tempo is anchored to that tempo's id: the object exists, and the gap is what it lacks. An expression of a type MNX treats as global (tempo family, tempo alteration, rehearsal mark; see the MNX design decisions) is anchored to the global measure with a position, once per staff-list assignment group. Any other expression is a staff marking and is anchored to the part measure with its staff and position, one gap per staff it is assigned to. The choice follows the exporter's own routing of the type, not how Finale distributed the assignment.
 
+### A spanning feature has an end anchor
+
+A smart shape runs from one place to another, and a consumer that draws it needs both. A gap therefore carries an optional `end`, an anchor like the first: for an entry-attached shape the event, or the note when the shape names one, that it ends on; for a beat-attached shape the part measure, staff and position of its end point. An end whose entry the target did not export falls back to the measure form, so the report never names an id the document lacks. The end is a second anchor rather than a placement because a placement says where one feature is drawn again, while an end says where the same drawing stops.
+
 ### A feature drawn in several places is one gap with placements
 
 A Finale staff list draws one marking on several staves, one assignment per staff. Reporting each assignment would report one marking several times, and dropping all but one would lose where it is drawn. The gap is recorded once, anchored as above, and carries `placements`: the target-side places it would be drawn (`system-top`, `system-bottom`, or a part measure with a staff), for the members shown in the requested score or part. Placements name target ids, translated by the exporter as the anchor rule requires.
@@ -63,6 +73,14 @@ Gaps carry a `type` string and an `extent` and nothing else by way of taxonomy. 
 ### A gap states its extent
 
 A gap is `complete` when nothing in the target stands for the feature, and `partial` when the anchored object stands for it but lost the reported payload: a tempo without its text, a tempo that should not be displayed. A consumer that renders gaps needs the distinction to know whether to draw something new or to decorate something already there, and the anchor alone does not tell it, since both kinds can anchor to an object.
+
+### Arrowheads are embedded once, as SVG, keyed by a report-internal reference
+
+A custom line's cap may be a Shape Designer arrowhead, which a consumer could not draw from Finale's instruction list without reimplementing Shape Designer. The report therefore embeds the arrowhead as SVG, rendered by `musxdom`'s `SvgConvert` at serialization time, in a report-level `arrowheads` table that each cap references by key. The same shape caps many lines in a typical document, so the table holds each once. Preset arrowheads are embedded the same way so that a consumer needs no knowledge of Finale's presets either.
+
+The key (`custom-<cmper>`, `preset-<name>`) is minted by the serializer from the arrowhead's identity in the source and is the one place the report carries a source identifier. It names nothing in the target document, so the anchor rule does not apply to it; it exists only so that caps can share an image, and a consumer treats it as opaque.
+
+The image's coordinates are staff spaces at 100% staff size (`SvgConvert::toSvg` with a scaling of `1 / EVPU_PER_SPACE` and no unit suffix), because a notation renderer thinks in spaces and scales a marking with its staff. The `viewBox` is the shape's own bounds in that space, so the shape's origin, which Finale places at the end of the line, stays recoverable; the entry states `unit` and `origin` so a consumer need not know this. Text drawn inside an arrowhead shape is measured through the `GlyphMetricsFn` the front end passes in `GapReportOptions`, or sized heuristically when there is none.
 
 ### Reference fixtures are named per conversion
 

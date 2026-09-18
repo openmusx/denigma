@@ -1,0 +1,766 @@
+{
+  "schemaVersion": 1,
+  "producer": {
+    "name": "denigma",
+    "version": "TEST",
+    "commit": "<commit>"
+  },
+  "gaps": [
+    {
+      "anchor": "P1.m1",
+      "position": {
+        "numerator": 3,
+        "denominator": 4
+      },
+      "end": {
+        "anchor": "P1.m2",
+        "position": {
+          "numerator": 3,
+          "denominator": 4
+        }
+      },
+      "extent": "complete",
+      "type": "smart-shape",
+      "smartShape": {
+        "shapeType": "solid-line-down-both",
+        "kind": "general-line",
+        "generalLine": {
+          "lineStyle": "solid",
+          "lineVisible": true,
+          "lineWidth": 118,
+          "horizontal": false,
+          "startCap": {
+            "type": "hook",
+            "hookLength": -1280
+          },
+          "endCap": {
+            "type": "hook",
+            "hookLength": -1280
+          }
+        }
+      }
+    },
+    {
+      "anchor": "P1.m10",
+      "position": {
+        "numerator": 1,
+        "denominator": 4
+      },
+      "end": {
+        "anchor": "P1.m11",
+        "position": {
+          "numerator": 1,
+          "denominator": 2
+        }
+      },
+      "extent": "complete",
+      "type": "smart-shape",
+      "smartShape": {
+        "shapeType": "dash-line",
+        "kind": "general-line",
+        "generalLine": {
+          "lineStyle": "dashed",
+          "lineVisible": true,
+          "lineWidth": 118,
+          "dashOn": 1152,
+          "dashOff": 1152,
+          "horizontal": false,
+          "startCap": {
+            "type": "none"
+          },
+          "endCap": {
+            "type": "none"
+          }
+        }
+      }
+    },
+    {
+      "anchor": "P1.m12",
+      "position": {
+        "numerator": 0,
+        "denominator": 1
+      },
+      "extent": "complete",
+      "type": "expression",
+      "expression": {
+        "type": "generic-text",
+        "basis": "finale-category",
+        "scope": "staff",
+        "text": {
+          "plain": "ignored because note-attached",
+          "runs": [
+            {
+              "text": "ignored because note-attached",
+              "font": {
+                "name": "Times",
+                "size": 14,
+                "sizeIsPercent": false,
+                "bold": false,
+                "italic": true,
+                "underline": false,
+                "strikeout": false,
+                "absolute": false,
+                "hidden": false,
+                "isSymbolFont": false,
+                "isSmufl": false
+              }
+            }
+          ]
+        },
+        "genericText": {
+          "text": "ignored because note-attached"
+        }
+      }
+    },
+    {
+      "anchor": "P2.m1",
+      "position": {
+        "numerator": 1,
+        "denominator": 4
+      },
+      "end": {
+        "anchor": "P2.m2",
+        "position": {
+          "numerator": 3,
+          "denominator": 4
+        }
+      },
+      "extent": "complete",
+      "type": "smart-shape",
+      "smartShape": {
+        "shapeType": "custom-line",
+        "kind": "general-line",
+        "generalLine": {
+          "lineStyle": "solid",
+          "lineVisible": true,
+          "lineWidth": 141,
+          "horizontal": true,
+          "startCap": {
+            "type": "none"
+          },
+          "endCap": {
+            "type": "hook",
+            "hookLength": 1536
+          }
+        }
+      }
+    },
+    {
+      "anchor": "P2.m4",
+      "position": {
+        "numerator": 0,
+        "denominator": 1
+      },
+      "end": {
+        "anchor": "P2.m6",
+        "position": {
+          "numerator": 3,
+          "denominator": 4
+        }
+      },
+      "extent": "complete",
+      "type": "smart-shape",
+      "smartShape": {
+        "shapeType": "solid-line-down",
+        "kind": "general-line",
+        "generalLine": {
+          "lineStyle": "solid",
+          "lineVisible": true,
+          "lineWidth": 118,
+          "horizontal": false,
+          "startCap": {
+            "type": "none"
+          },
+          "endCap": {
+            "type": "hook",
+            "hookLength": -1280
+          }
+        }
+      }
+    },
+    {
+      "anchor": "P2.m7",
+      "position": {
+        "numerator": 0,
+        "denominator": 1
+      },
+      "end": {
+        "anchor": "P2.m8",
+        "position": {
+          "numerator": 1,
+          "denominator": 2
+        }
+      },
+      "extent": "complete",
+      "type": "smart-shape",
+      "smartShape": {
+        "shapeType": "solid-line",
+        "kind": "general-line",
+        "generalLine": {
+          "lineStyle": "solid",
+          "lineVisible": true,
+          "lineWidth": 118,
+          "horizontal": false,
+          "startCap": {
+            "type": "none"
+          },
+          "endCap": {
+            "type": "none"
+          }
+        }
+      }
+    },
+    {
+      "anchor": "P2.m10",
+      "position": {
+        "numerator": 1,
+        "denominator": 4
+      },
+      "end": {
+        "anchor": "P2.m10",
+        "position": {
+          "numerator": 3,
+          "denominator": 4
+        }
+      },
+      "extent": "complete",
+      "type": "smart-shape",
+      "smartShape": {
+        "shapeType": "dash-line-up",
+        "kind": "general-line",
+        "generalLine": {
+          "lineStyle": "dashed",
+          "lineVisible": true,
+          "lineWidth": 118,
+          "dashOn": 1152,
+          "dashOff": 1152,
+          "horizontal": false,
+          "startCap": {
+            "type": "none"
+          },
+          "endCap": {
+            "type": "hook",
+            "hookLength": 1280
+          }
+        }
+      }
+    },
+    {
+      "anchor": "P3.m3",
+      "position": {
+        "numerator": 1,
+        "denominator": 4
+      },
+      "end": {
+        "anchor": "P3.m6",
+        "position": {
+          "numerator": 1,
+          "denominator": 4
+        }
+      },
+      "extent": "complete",
+      "type": "smart-shape",
+      "smartShape": {
+        "shapeType": "trill-extension",
+        "kind": "trill-line",
+        "trillLine": {
+          "includesTrSymbol": false
+        }
+      }
+    },
+    {
+      "anchor": "P3.m5",
+      "position": {
+        "numerator": 1,
+        "denominator": 4
+      },
+      "end": {
+        "anchor": "P3.m6",
+        "position": {
+          "numerator": 3,
+          "denominator": 4
+        }
+      },
+      "extent": "complete",
+      "type": "smart-shape",
+      "smartShape": {
+        "shapeType": "dash-line-up-both",
+        "kind": "general-line",
+        "generalLine": {
+          "lineStyle": "dashed",
+          "lineVisible": true,
+          "lineWidth": 118,
+          "dashOn": 1152,
+          "dashOff": 1152,
+          "horizontal": false,
+          "startCap": {
+            "type": "hook",
+            "hookLength": 1280
+          },
+          "endCap": {
+            "type": "hook",
+            "hookLength": 1280
+          }
+        }
+      }
+    },
+    {
+      "anchor": "P3.m11",
+      "position": {
+        "numerator": 1,
+        "denominator": 4
+      },
+      "end": {
+        "anchor": "P3.m13",
+        "position": {
+          "numerator": 3,
+          "denominator": 4
+        }
+      },
+      "extent": "complete",
+      "type": "smart-shape",
+      "smartShape": {
+        "shapeType": "trill",
+        "kind": "trill-line",
+        "trillLine": {
+          "includesTrSymbol": true
+        }
+      }
+    },
+    {
+      "anchor": "P4.m1",
+      "position": {
+        "numerator": 3,
+        "denominator": 4
+      },
+      "end": {
+        "anchor": "P4.m3",
+        "position": {
+          "numerator": 1,
+          "denominator": 2
+        }
+      },
+      "extent": "complete",
+      "type": "smart-shape",
+      "smartShape": {
+        "shapeType": "dash-line-down-both",
+        "kind": "general-line",
+        "generalLine": {
+          "lineStyle": "dashed",
+          "lineVisible": true,
+          "lineWidth": 118,
+          "dashOn": 1152,
+          "dashOff": 1152,
+          "horizontal": false,
+          "startCap": {
+            "type": "hook",
+            "hookLength": -1280
+          },
+          "endCap": {
+            "type": "hook",
+            "hookLength": -1280
+          }
+        }
+      }
+    },
+    {
+      "anchor": "P4.m6",
+      "position": {
+        "numerator": 0,
+        "denominator": 1
+      },
+      "end": {
+        "anchor": "P4.m7",
+        "position": {
+          "numerator": 1,
+          "denominator": 4
+        }
+      },
+      "extent": "complete",
+      "type": "smart-shape",
+      "smartShape": {
+        "shapeType": "dash-line-down",
+        "kind": "general-line",
+        "generalLine": {
+          "lineStyle": "dashed",
+          "lineVisible": true,
+          "lineWidth": 118,
+          "dashOn": 1152,
+          "dashOff": 1152,
+          "horizontal": false,
+          "startCap": {
+            "type": "none"
+          },
+          "endCap": {
+            "type": "hook",
+            "hookLength": -1280
+          }
+        }
+      }
+    },
+    {
+      "anchor": "P5.m2",
+      "position": {
+        "numerator": 1,
+        "denominator": 2
+      },
+      "end": {
+        "anchor": "P5.m3",
+        "position": {
+          "numerator": 1,
+          "denominator": 1
+        }
+      },
+      "extent": "complete",
+      "type": "smart-shape",
+      "smartShape": {
+        "shapeType": "solid-line-up-both",
+        "kind": "general-line",
+        "generalLine": {
+          "lineStyle": "solid",
+          "lineVisible": true,
+          "lineWidth": 118,
+          "horizontal": false,
+          "startCap": {
+            "type": "hook",
+            "hookLength": 1280
+          },
+          "endCap": {
+            "type": "hook",
+            "hookLength": 1280
+          }
+        }
+      }
+    },
+    {
+      "anchor": "P5.m7",
+      "position": {
+        "numerator": 0,
+        "denominator": 1
+      },
+      "end": {
+        "anchor": "P5.m7",
+        "position": {
+          "numerator": 1,
+          "denominator": 2
+        }
+      },
+      "extent": "complete",
+      "type": "smart-shape",
+      "smartShape": {
+        "shapeType": "solid-line-up",
+        "kind": "general-line",
+        "generalLine": {
+          "lineStyle": "solid",
+          "lineVisible": true,
+          "lineWidth": 118,
+          "horizontal": false,
+          "startCap": {
+            "type": "none"
+          },
+          "endCap": {
+            "type": "hook",
+            "hookLength": 1280
+          }
+        }
+      }
+    },
+    {
+      "anchor": "P5.m9",
+      "position": {
+        "numerator": 1,
+        "denominator": 4
+      },
+      "end": {
+        "anchor": "P5.m11",
+        "position": {
+          "numerator": 1,
+          "denominator": 2
+        }
+      },
+      "extent": "complete",
+      "type": "smart-shape",
+      "smartShape": {
+        "shapeType": "custom-line",
+        "kind": "general-line",
+        "generalLine": {
+          "lineStyle": "char",
+          "lineVisible": true,
+          "lineChar": {
+            "codePoint": 60096,
+            "glyph": "wiggleCircularConstant",
+            "font": {
+              "name": "Bravura",
+              "size": 28,
+              "sizeIsPercent": false,
+              "bold": false,
+              "italic": false,
+              "underline": false,
+              "strikeout": false,
+              "absolute": false,
+              "hidden": false,
+              "isSymbolFont": false,
+              "isSmufl": true
+            }
+          },
+          "horizontal": false,
+          "startCap": {
+            "type": "none"
+          },
+          "endCap": {
+            "type": "none"
+          }
+        }
+      }
+    },
+    {
+      "anchor": "m1.textExp24.inci0",
+      "extent": "partial",
+      "placements": [
+        {
+          "kind": "system-top",
+          "anchor": "m1"
+        }
+      ],
+      "type": "expression",
+      "expression": {
+        "type": "tempo-mark",
+        "basis": "finale-category-confirmed",
+        "scope": "top-staff",
+        "text": {
+          "plain": "Tempo (∞=120)",
+          "runs": [
+            {
+              "text": "Tempo (",
+              "font": {
+                "name": "Patmm",
+                "size": 14,
+                "sizeIsPercent": false,
+                "bold": false,
+                "italic": false,
+                "underline": false,
+                "strikeout": false,
+                "absolute": false,
+                "hidden": false,
+                "isSymbolFont": false,
+                "isSmufl": false
+              }
+            },
+            {
+              "text": "∞",
+              "font": {
+                "name": "Patmm",
+                "size": 14,
+                "sizeIsPercent": false,
+                "bold": false,
+                "italic": false,
+                "underline": false,
+                "strikeout": false,
+                "absolute": false,
+                "hidden": false,
+                "isSymbolFont": false,
+                "isSmufl": false
+              },
+              "glyphs": [
+                "metNoteQuarterUp"
+              ]
+            },
+            {
+              "text": "=",
+              "font": {
+                "name": "Patmm",
+                "size": 14,
+                "sizeIsPercent": false,
+                "bold": false,
+                "italic": false,
+                "underline": false,
+                "strikeout": false,
+                "absolute": false,
+                "hidden": false,
+                "isSymbolFont": false,
+                "isSmufl": false
+              }
+            },
+            {
+              "text": "120",
+              "font": {
+                "name": "Patmm",
+                "size": 14,
+                "sizeIsPercent": false,
+                "bold": false,
+                "italic": false,
+                "underline": false,
+                "strikeout": false,
+                "absolute": false,
+                "hidden": false,
+                "isSymbolFont": false,
+                "isSmufl": false
+              },
+              "insert": {
+                "kind": "playback-value",
+                "command": "value",
+                "parameters": []
+              }
+            },
+            {
+              "text": ")",
+              "font": {
+                "name": "Patmm",
+                "size": 14,
+                "sizeIsPercent": false,
+                "bold": false,
+                "italic": false,
+                "underline": false,
+                "strikeout": false,
+                "absolute": false,
+                "hidden": false,
+                "isSymbolFont": false,
+                "isSmufl": false
+              }
+            }
+          ]
+        },
+        "tempo": {
+          "text": "Tempo (∞=120)",
+          "beatsPerMinute": 120,
+          "beatUnitEdu": 1024
+        }
+      }
+    },
+    {
+      "anchor": "ev345n1",
+      "end": {
+        "anchor": "ev366n1"
+      },
+      "extent": "complete",
+      "type": "smart-shape",
+      "smartShape": {
+        "shapeType": "glissando",
+        "kind": "glissando",
+        "glissando": {
+          "line": {
+            "lineStyle": "dashed",
+            "lineVisible": true,
+            "lineWidth": 118,
+            "dashOn": 1152,
+            "dashOff": 1152,
+            "horizontal": false,
+            "startCap": {
+              "type": "none"
+            },
+            "endCap": {
+              "type": "none"
+            },
+            "startText": {
+              "plain": "",
+              "runs": [
+                {
+                  "text": "",
+                  "font": {
+                    "name": "Finale Maestro",
+                    "size": 24,
+                    "sizeIsPercent": false,
+                    "bold": false,
+                    "italic": false,
+                    "underline": false,
+                    "strikeout": false,
+                    "absolute": false,
+                    "hidden": false,
+                    "isSymbolFont": false,
+                    "isSmufl": true
+                  },
+                  "glyphs": [
+                    "ottavaAlta"
+                  ]
+                }
+              ]
+            },
+            "continuationText": {
+              "plain": "",
+              "runs": [
+                {
+                  "text": "",
+                  "font": {
+                    "name": "Finale Maestro",
+                    "size": 24,
+                    "sizeIsPercent": false,
+                    "bold": false,
+                    "italic": false,
+                    "underline": false,
+                    "strikeout": false,
+                    "absolute": false,
+                    "hidden": false,
+                    "isSymbolFont": false,
+                    "isSmufl": true
+                  },
+                  "glyphs": [
+                    "octaveParensLeft"
+                  ]
+                },
+                {
+                  "text": "",
+                  "font": {
+                    "name": "Finale Maestro",
+                    "size": 24,
+                    "sizeIsPercent": false,
+                    "bold": false,
+                    "italic": false,
+                    "underline": false,
+                    "strikeout": false,
+                    "absolute": false,
+                    "hidden": false,
+                    "isSymbolFont": false,
+                    "isSmufl": true
+                  },
+                  "glyphs": [
+                    "ottavaAlta"
+                  ]
+                },
+                {
+                  "text": "",
+                  "font": {
+                    "name": "Finale Maestro",
+                    "size": 24,
+                    "sizeIsPercent": false,
+                    "bold": false,
+                    "italic": false,
+                    "underline": false,
+                    "strikeout": false,
+                    "absolute": false,
+                    "hidden": false,
+                    "isSymbolFont": false,
+                    "isSmufl": true
+                  },
+                  "glyphs": [
+                    "octaveParensRight"
+                  ]
+                }
+              ]
+            },
+            "endText": {
+              "plain": "|",
+              "runs": [
+                {
+                  "text": "|",
+                  "font": {
+                    "name": "Geneva",
+                    "size": 8,
+                    "sizeIsPercent": false,
+                    "bold": false,
+                    "italic": false,
+                    "underline": false,
+                    "strikeout": false,
+                    "absolute": false,
+                    "hidden": false,
+                    "isSymbolFont": false,
+                    "isSmufl": false
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  ]
+}

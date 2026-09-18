@@ -15,7 +15,8 @@ target_link_libraries(denigma_export PUBLIC
     denigma_svg
 )
 if(denigma_BUILD_GAP_REPORT)
-    target_link_libraries(denigma_export PUBLIC denigma_gap_report)
+    # The gap report embeds SVG images whose text the CLI measures with the same backend as the SVG converter.
+    target_link_libraries(denigma_export PUBLIC denigma_gap_report PRIVATE denigma_textmetrics)
 endif()
 
 if(denigma_BUILD_TESTING)
@@ -30,5 +31,5 @@ if(denigma_BUILD_TESTING)
     )
 endif()
 if(denigma_BUILD_TESTING AND denigma_BUILD_GAP_REPORT)
-    target_link_libraries(denigma_export_test PUBLIC denigma_gap_report)
+    target_link_libraries(denigma_export_test PUBLIC denigma_gap_report PRIVATE denigma_textmetrics)
 endif()

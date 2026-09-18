@@ -40,6 +40,7 @@
 #include "export/export.h"
 #include "formats/enigmaxml/enigmaxml.h"
 #include "utils/stringutils.h"
+#include "utils/textmetrics.h"
 
 namespace denigma {
 
@@ -157,7 +158,8 @@ void exportMnxJsonWithAdapter(const std::filesystem::path& outputPath, const Com
                 std::ofstream gapReport;
                 gapReport.exceptions(std::ofstream::failbit | std::ofstream::badbit);
                 gapReport.open(gapReportPath, std::ios::out | std::ios::binary);
-                gapReport << writer.serialize({DENIGMA_NAME, DENIGMA_VERSION, gitCommit()});
+                gapReport << writer.serialize(
+                    {{DENIGMA_NAME, DENIGMA_VERSION, gitCommit()}, textmetrics::makeSvgGlyphMetricsCallback(denigmaContext)});
             }
         });
         if (!written) {

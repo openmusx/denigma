@@ -1,0 +1,491 @@
+{
+  "schemaVersion": 1,
+  "producer": {
+    "name": "denigma",
+    "version": "TEST",
+    "commit": "<commit>"
+  },
+  "gaps": [
+    {
+      "anchor": "P1.m1",
+      "position": {
+        "numerator": 0,
+        "denominator": 1
+      },
+      "end": {
+        "anchor": "P1.m1",
+        "position": {
+          "numerator": 1,
+          "denominator": 1
+        }
+      },
+      "extent": "complete",
+      "type": "smart-shape",
+      "smartShape": {
+        "shapeType": "custom-line",
+        "kind": "general-line",
+        "generalLine": {
+          "lineStyle": "char",
+          "lineVisible": true,
+          "lineChar": {
+            "codePoint": 60079,
+            "glyph": "wiggleGlissando",
+            "font": {
+              "name": "Finale Maestro",
+              "size": 24,
+              "sizeIsPercent": false,
+              "bold": false,
+              "italic": false,
+              "underline": false,
+              "strikeout": false,
+              "absolute": false,
+              "hidden": false,
+              "isSymbolFont": false,
+              "isSmufl": true
+            }
+          },
+          "horizontal": false,
+          "startCap": {
+            "type": "none"
+          },
+          "endCap": {
+            "type": "none"
+          },
+          "centerFullText": {
+            "plain": "Glissando",
+            "runs": [
+              {
+                "text": "Glissando",
+                "font": {
+                  "name": "Times New Roman",
+                  "size": 12,
+                  "sizeIsPercent": false,
+                  "bold": false,
+                  "italic": true,
+                  "underline": false,
+                  "strikeout": false,
+                  "absolute": false,
+                  "hidden": false,
+                  "isSymbolFont": false,
+                  "isSmufl": false
+                }
+              }
+            ]
+          },
+          "centerAbbrText": {
+            "plain": "Gliss.",
+            "runs": [
+              {
+                "text": "Gliss.",
+                "font": {
+                  "name": "Times",
+                  "size": 12,
+                  "sizeIsPercent": false,
+                  "bold": false,
+                  "italic": true,
+                  "underline": false,
+                  "strikeout": false,
+                  "absolute": false,
+                  "hidden": false,
+                  "isSymbolFont": false,
+                  "isSmufl": false
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "anchor": "P1.m2",
+      "position": {
+        "numerator": 0,
+        "denominator": 1
+      },
+      "end": {
+        "anchor": "P1.m2",
+        "position": {
+          "numerator": 1,
+          "denominator": 1
+        }
+      },
+      "extent": "complete",
+      "type": "smart-shape",
+      "smartShape": {
+        "shapeType": "custom-line",
+        "kind": "keyboard-pedal",
+        "keyboardPedal": {
+          "line": {
+            "lineStyle": "char",
+            "lineVisible": false,
+            "lineChar": {
+              "codePoint": 32,
+              "font": {
+                "name": "Finale Maestro",
+                "size": 24,
+                "sizeIsPercent": false,
+                "bold": false,
+                "italic": false,
+                "underline": false,
+                "strikeout": false,
+                "absolute": false,
+                "hidden": false,
+                "isSymbolFont": false,
+                "isSmufl": true
+              }
+            },
+            "horizontal": true,
+            "startCap": {
+              "type": "none"
+            },
+            "endCap": {
+              "type": "none"
+            },
+            "startText": {
+              "plain": "",
+              "runs": [
+                {
+                  "text": "",
+                  "font": {
+                    "name": "Finale Maestro",
+                    "size": 24,
+                    "sizeIsPercent": false,
+                    "bold": false,
+                    "italic": false,
+                    "underline": false,
+                    "strikeout": false,
+                    "absolute": false,
+                    "hidden": false,
+                    "isSymbolFont": false,
+                    "isSmufl": true
+                  },
+                  "glyphs": [
+                    "keyboardPedalPed"
+                  ]
+                }
+              ]
+            },
+            "endText": {
+              "plain": "",
+              "runs": [
+                {
+                  "text": "",
+                  "font": {
+                    "name": "Finale Maestro",
+                    "size": 24,
+                    "sizeIsPercent": false,
+                    "bold": false,
+                    "italic": false,
+                    "underline": false,
+                    "strikeout": false,
+                    "absolute": false,
+                    "hidden": false,
+                    "isSymbolFont": false,
+                    "isSmufl": true
+                  },
+                  "glyphs": [
+                    "keyboardPedalUp"
+                  ]
+                }
+              ]
+            }
+          },
+          "startText": {
+            "type": "pedal-one",
+            "fromGlyph": true
+          },
+          "endText": {
+            "type": "pedal-up",
+            "fromGlyph": true
+          },
+          "startCap": "none",
+          "endCap": "none"
+        }
+      }
+    },
+    {
+      "anchor": "P1.m2",
+      "position": {
+        "numerator": 0,
+        "denominator": 1
+      },
+      "end": {
+        "anchor": "P1.m2",
+        "position": {
+          "numerator": 3,
+          "denominator": 4
+        }
+      },
+      "extent": "complete",
+      "type": "smart-shape",
+      "smartShape": {
+        "shapeType": "solid-line",
+        "kind": "general-line",
+        "generalLine": {
+          "lineStyle": "solid",
+          "lineVisible": true,
+          "lineWidth": 141,
+          "horizontal": false,
+          "startCap": {
+            "type": "none"
+          },
+          "endCap": {
+            "type": "none"
+          }
+        }
+      }
+    },
+    {
+      "anchor": "P1.m3",
+      "position": {
+        "numerator": 0,
+        "denominator": 1
+      },
+      "end": {
+        "anchor": "P1.m3",
+        "position": {
+          "numerator": 1,
+          "denominator": 4
+        }
+      },
+      "extent": "complete",
+      "type": "smart-shape",
+      "smartShape": {
+        "shapeType": "solid-line",
+        "kind": "general-line",
+        "generalLine": {
+          "lineStyle": "solid",
+          "lineVisible": true,
+          "lineWidth": 141,
+          "horizontal": false,
+          "startCap": {
+            "type": "none"
+          },
+          "endCap": {
+            "type": "none"
+          }
+        }
+      }
+    },
+    {
+      "anchor": "P1.m4",
+      "position": {
+        "numerator": 0,
+        "denominator": 1
+      },
+      "end": {
+        "anchor": "P1.m4",
+        "position": {
+          "numerator": 1,
+          "denominator": 1
+        }
+      },
+      "extent": "complete",
+      "type": "smart-shape",
+      "smartShape": {
+        "shapeType": "custom-line",
+        "kind": "general-line",
+        "generalLine": {
+          "lineStyle": "dashed",
+          "lineVisible": true,
+          "lineWidth": 141,
+          "dashOn": 1152,
+          "dashOff": 1152,
+          "horizontal": true,
+          "startCap": {
+            "type": "none"
+          },
+          "endCap": {
+            "type": "none"
+          },
+          "startText": {
+            "plain": "rit.",
+            "runs": [
+              {
+                "text": "rit.",
+                "font": {
+                  "name": "Times New Roman",
+                  "size": 12,
+                  "sizeIsPercent": false,
+                  "bold": false,
+                  "italic": true,
+                  "underline": false,
+                  "strikeout": false,
+                  "absolute": false,
+                  "hidden": false,
+                  "isSymbolFont": false,
+                  "isSmufl": false
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "anchor": "P1.m5",
+      "position": {
+        "numerator": 0,
+        "denominator": 1
+      },
+      "end": {
+        "anchor": "P1.m5",
+        "position": {
+          "numerator": 1,
+          "denominator": 2
+        }
+      },
+      "extent": "complete",
+      "type": "smart-shape",
+      "smartShape": {
+        "shapeType": "custom-line",
+        "kind": "general-line",
+        "generalLine": {
+          "lineStyle": "dashed",
+          "lineVisible": true,
+          "lineWidth": 141,
+          "dashOn": 1152,
+          "dashOff": 1152,
+          "horizontal": true,
+          "startCap": {
+            "type": "none"
+          },
+          "endCap": {
+            "type": "none"
+          },
+          "startText": {
+            "plain": "accel.",
+            "runs": [
+              {
+                "text": "accel.",
+                "font": {
+                  "name": "Times New Roman",
+                  "size": 12,
+                  "sizeIsPercent": false,
+                  "bold": false,
+                  "italic": true,
+                  "underline": false,
+                  "strikeout": false,
+                  "absolute": false,
+                  "hidden": false,
+                  "isSymbolFont": false,
+                  "isSmufl": false
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "anchor": "P1.m5",
+      "position": {
+        "numerator": 1,
+        "denominator": 2
+      },
+      "end": {
+        "anchor": "P1.m5",
+        "position": {
+          "numerator": 1,
+          "denominator": 1
+        }
+      },
+      "extent": "complete",
+      "type": "smart-shape",
+      "smartShape": {
+        "shapeType": "custom-line",
+        "kind": "general-line",
+        "generalLine": {
+          "lineStyle": "dashed",
+          "lineVisible": true,
+          "lineWidth": 141,
+          "dashOn": 1152,
+          "dashOff": 1152,
+          "horizontal": true,
+          "startCap": {
+            "type": "none"
+          },
+          "endCap": {
+            "type": "none"
+          },
+          "startText": {
+            "plain": "cresc.",
+            "runs": [
+              {
+                "text": "cresc.",
+                "font": {
+                  "name": "Times New Roman",
+                  "size": 12,
+                  "sizeIsPercent": false,
+                  "bold": false,
+                  "italic": true,
+                  "underline": false,
+                  "strikeout": false,
+                  "absolute": false,
+                  "hidden": false,
+                  "isSymbolFont": false,
+                  "isSmufl": false
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "anchor": "P1.m6",
+      "position": {
+        "numerator": 0,
+        "denominator": 1
+      },
+      "end": {
+        "anchor": "P1.m6",
+        "position": {
+          "numerator": 1,
+          "denominator": 1
+        }
+      },
+      "extent": "complete",
+      "type": "smart-shape",
+      "smartShape": {
+        "shapeType": "custom-line",
+        "kind": "general-line",
+        "generalLine": {
+          "lineStyle": "dashed",
+          "lineVisible": true,
+          "lineWidth": 141,
+          "dashOn": 1152,
+          "dashOff": 1152,
+          "horizontal": true,
+          "startCap": {
+            "type": "none"
+          },
+          "endCap": {
+            "type": "none"
+          },
+          "startText": {
+            "plain": "dim.\n\n\n",
+            "runs": [
+              {
+                "text": "dim.\n\n\n",
+                "font": {
+                  "name": "Times New Roman",
+                  "size": 12,
+                  "sizeIsPercent": false,
+                  "bold": false,
+                  "italic": true,
+                  "underline": false,
+                  "strikeout": false,
+                  "absolute": false,
+                  "hidden": false,
+                  "isSymbolFont": false,
+                  "isSmufl": false
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

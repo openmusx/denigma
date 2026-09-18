@@ -28,6 +28,7 @@
 #include "core/element_ids.h"
 #include "core/musx_reader.h"
 #include "mnx.h"
+#include "mnx_smartshapes.h"
 #include "utils/stringutils.h"
 
 using namespace musx::dom;
@@ -244,6 +245,9 @@ static void createScores(const MnxMusxMappingPtr& context)
 static std::unique_ptr<mnxdom::Document> createMnxDocument(const CommandInputData& inputData, const DenigmaContext& denigmaContext)
 {
     auto document = denigma::createMusxDocument<MusxReader>(inputData, denigmaContext);
+    if (auto* const gapCollector = denigmaContext.gapCollector) {
+        gapCollector->retainDocument(document);
+    }
     auto context = std::make_shared<MnxMusxMapping>(denigmaContext, document);
     context->mnxDocument = std::make_unique<mnxdom::Document>();
     context->musxParts = others::PartDefinition::getInUserOrder(document);
@@ -254,6 +258,7 @@ static std::unique_ptr<mnxdom::Document> createMnxDocument(const CommandInputDat
     createGlobal(context); // must come after createParts: global content refers to part ids
     finalizeArpeggios(context);
     finalizeJumpTies(context);
+    finalizeSmartShapeGaps(context);
     // Split-instrument parts need time-varying layout sources; skip scores/layouts until MNX has a stable model for that.
     if (!denigmaContext.mnxSplitInstruments) {
         createLayouts(context); // must come after createParts

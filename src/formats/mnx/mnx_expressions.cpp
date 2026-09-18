@@ -30,6 +30,7 @@
 #include "denigma/classify/expressions.h"
 #include "denigma/classify/gaps.h"
 #include "mnx.h"
+#include "mnx_gaps.h"
 #include "utils/stringutils.h"
 
 namespace denigma {
@@ -38,17 +39,6 @@ namespace mnx {
 namespace detail {
 
 namespace {
-
-/// @brief The gap collector, or null when no report was requested.
-classify::GapCollector* gapCollectorFor(const MnxMusxMappingPtr& context)
-{
-    return context->denigmaContext->gapCollector;
-}
-
-classify::GapAnchor measureAnchor(const std::string& measureId, std::optional<int> mnxStaffNumber, Edu eduPosition)
-{
-    return {measureId, mnxStaffNumber, classify::gapPositionFromFraction(Fraction::fromEdu(eduPosition))};
-}
 
 /// @brief Where the target would draw each member of a staff-list group, in target ids.
 ///
@@ -64,21 +54,11 @@ std::vector<classify::GapPlacement> placementsForGroup(
         switch (classify::classifyExpressionScope(member)) {
         case classify::ExpressionScope::TopStaff: result.push_back({Kind::SystemTop, {globalMeasureId, std::nullopt, std::nullopt}}); break;
         case classify::ExpressionScope::BottomStaff: result.push_back({Kind::SystemBottom, {globalMeasureId, std::nullopt, std::nullopt}}); break;
-        case classify::ExpressionScope::Staff: {
-            const auto partIt = context->inst2Part.find(member->staffAssign);
-            if (partIt == context->inst2Part.end()) {
-                context->logMessage(LogMsg() << "Staff " << member->staffAssign << " draws an expression in measure " << member->getCmper()
-                                             << " but is not part of any exported instrument, so the gap report cannot place it there.",
-                    MessageSeverity::Verbose);
-                break;
+        case classify::ExpressionScope::Staff:
+            if (auto anchor = partMeasureAnchor(context, member->staffAssign, member->getCmper(), std::nullopt)) {
+                result.push_back({Kind::Staff, std::move(*anchor)});
             }
-            const auto& staves = context->part2Inst.at(partIt->second);
-            const auto staffIt = std::find(staves.begin(), staves.end(), member->staffAssign);
-            const auto staffNumber =
-                (staves.size() > 1 && staffIt != staves.end()) ? std::optional<int>(int(staffIt - staves.begin()) + 1) : std::nullopt;
-            result.push_back({Kind::Staff, {core::calcPartMeasureId(partIt->second, member->getCmper()), staffNumber, std::nullopt}});
             break;
-        }
         case classify::ExpressionScope::Unassigned: break;
         }
     }

@@ -19,43 +19,36 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#include "mnx_chords.h"
+#pragma once
 
+#include <optional>
 #include <string>
 
-#include "denigma/classify/chords.h"
+#include "core/denigma.h"
 #include "denigma/classify/gaps.h"
-#include "mnx.h"
+#include "musx/musx.h"
+
+#include "mnx_fwd.h"
+
+using namespace musx::dom;
+using namespace musx::util;
 
 namespace denigma {
 namespace formats {
 namespace mnx {
 namespace detail {
 
-void processChords(const MnxMusxMappingPtr& context, mnxdom::part::Measure& mnxMeasure, std::optional<int> mnxStaffNumber,
-    const MusxInstance<others::Measure>& musxMeasure, StaffCmper staffId)
-{
-    auto* const gapCollector = context->denigmaContext->gapCollector;
-    if (!gapCollector) {
-        return;
-    }
-    const auto assignments =
-        context->document->getDetails()->getArray<details::ChordAssign>(musxMeasure->getRequestedPartId(), staffId, musxMeasure->getCmper());
-    if (assignments.empty()) {
-        return;
-    }
-    const auto keySignature = musxMeasure->createKeySignature(staffId);
-    if (!keySignature) {
-        context->logMessage(
-            LogMsg() << "Skipping chord symbols in measure " << musxMeasure->getCmper() << " because no effective key signature was found.",
-            MessageSeverity::Warning);
-        return;
-    }
-    const auto measureId = mnxMeasure.id_or("");
-    for (auto& chord : classify::classifyChordAssignments(assignments, keySignature, KeySignature::KeyContext::Written)) {
-        gapCollector->add({measureId, mnxStaffNumber, chord.position}, std::move(chord.classification));
-    }
-}
+/// @brief The gap collector, or null when no report was requested.
+classify::GapCollector* gapCollectorFor(const MnxMusxMappingPtr& context);
+
+/// @brief An anchor within a part measure already known by its id.
+classify::GapAnchor measureAnchor(const std::string& measureId, std::optional<int> mnxStaffNumber, Edu eduPosition);
+
+/// @brief An anchor for a place on a Finale staff, in target ids: the part measure, the staff number when
+/// the part has several staves, and the position when one is given.
+/// @return std::nullopt, after a verbose log, when the staff belongs to no exported instrument.
+std::optional<classify::GapAnchor> partMeasureAnchor(
+    const MnxMusxMappingPtr& context, StaffCmper staff, MeasCmper measure, std::optional<Fraction> position);
 
 } // namespace detail
 } // namespace mnx

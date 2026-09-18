@@ -61,16 +61,19 @@ json anchorJson(const classify::GapAnchor& anchor)
     }
     if (anchor.position) {
         result["position"] = {
-            {"numerator", anchor.position->numerator},
-            {"denominator", anchor.position->denominator},
+            {"numerator", anchor.position->numerator()},
+            {"denominator", anchor.position->denominator()},
         };
     }
     return result;
 }
 
-json gapJson(const classify::Gap& gap)
+json gapJson(const classify::Gap& gap, gap_report::ArrowheadTable& arrowheads)
 {
     json result = anchorJson(gap.anchor);
+    if (gap.end) {
+        result["end"] = anchorJson(*gap.end);
+    }
     result["extent"] = gapExtentName(gap.extent);
     if (!gap.placements.empty()) {
         auto placements = json::array();
@@ -98,6 +101,9 @@ json gapJson(const classify::Gap& gap)
                 result["text"] = gap_report::formattedTextJson(payload);
             } else if constexpr (std::is_same_v<Payload, classify::PlaybackOnly>) {
                 result["type"] = "playback-only";
+            } else if constexpr (std::is_same_v<Payload, classify::SmartShapeClassification>) {
+                result["type"] = "smart-shape";
+                result["smartShape"] = gap_report::smartShapeJson(payload, arrowheads);
             }
         },
         gap.payload);
@@ -106,18 +112,23 @@ json gapJson(const classify::Gap& gap)
 
 } // namespace
 
-std::string serializeGapReport(const classify::GapCollector& collector, const GapReportProducer& producer)
+std::string serializeGapReport(const classify::GapCollector& collector, const GapReportOptions& options)
 {
+    gap_report::ArrowheadTable arrowheads(options.glyphMetrics);
     auto gaps = json::array();
     for (const auto& gap : collector.gaps()) {
-        gaps.push_back(gapJson(gap));
+        gaps.push_back(gapJson(gap, arrowheads));
     }
-    return json{
+    const auto& producer = options.producer;
+    json result{
         {"schemaVersion", 1},
         {"producer", {{"name", producer.name}, {"version", producer.version}, {"commit", producer.commit}}},
         {"gaps", std::move(gaps)},
+    };
+    if (auto arrowheadJson = arrowheads.toJson(); !arrowheadJson.empty()) {
+        result["arrowheads"] = std::move(arrowheadJson);
     }
-        .dump(2);
+    return result.dump(2);
 }
 
 } // namespace denigma

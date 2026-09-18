@@ -22,6 +22,7 @@
 #include <utility>
 
 #include "denigma/classify/gaps.h"
+#include "musx/util/SvgConvert.h"
 
 namespace denigma {
 
@@ -34,12 +35,26 @@ struct GapReportProducer
     std::string commit;
 };
 
+/// @brief Measures text for the SVG images a report embeds: given a font and the glyphs to measure, returns
+/// their advance, ascent and descent in EVPU, or std::nullopt to fall back to heuristic metrics.
+using GlyphMetricsFn = musx::util::SvgConvert::GlyphMetricsFn;
+
+/// @struct GapReportOptions
+/// @brief What a gap report serialization needs beyond the gaps.
+struct GapReportOptions
+{
+    GapReportProducer producer;
+    /// @brief Measures glyphs for the SVG images the report embeds (custom arrowheads). Text inside such a
+    /// shape is sized heuristically when this is empty.
+    GlyphMetricsFn glyphMetrics;
+};
+
 #if DENIGMA_HAS_GAP_REPORT
 /// True when this build includes the gap report serializer (`denigma::gap-report`).
 inline constexpr bool GAP_REPORT_AVAILABLE = true;
 
 /// Serializes a collector as JSON, including an empty `gaps` array when no gaps were collected.
-std::string serializeGapReport(const classify::GapCollector& collector, const GapReportProducer& producer);
+std::string serializeGapReport(const classify::GapCollector& collector, const GapReportOptions& options);
 
 /// @class GapReportWriter
 /// @brief Serialization handle passed to a #withGapReport callback.
@@ -52,7 +67,7 @@ public:
     {}
 
     /// @brief Serializes the wrapped collector as JSON. (See #serializeGapReport.)
-    [[nodiscard]] std::string serialize(const GapReportProducer& producer) const { return serializeGapReport(m_collector, producer); }
+    [[nodiscard]] std::string serialize(const GapReportOptions& options) const { return serializeGapReport(m_collector, options); }
 
 private:
     const classify::GapCollector& m_collector;

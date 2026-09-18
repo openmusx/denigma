@@ -32,14 +32,14 @@
 TEST(GapReport, SerializesEmptyAndStructuredReports)
 {
     denigma::classify::GapCollector collector;
-    const denigma::GapReportProducer producer{"denigma", "TEST", "abc123"};
+    const denigma::GapReportOptions producer{{"denigma", "TEST", "abc123"}, {}};
     const auto empty = denigma::serializeGapReport(collector, producer);
     EXPECT_NE(empty.find("\"gaps\": []"), std::string::npos);
 
     denigma::classify::ChordSymbolClassification chord;
     chord.suffix.strings.push_back({"6", denigma::classify::chord::SuffixString::Position::Above});
     chord.suffix.strings.push_back({"9", denigma::classify::chord::SuffixString::Position::Below});
-    collector.add({"P1.m1", std::nullopt, denigma::classify::GapPosition{0, 1}}, std::move(chord));
+    collector.add({"P1.m1", std::nullopt, musx::util::Fraction{0, 1}}, std::move(chord));
 
     const auto report = denigma::serializeGapReport(collector, producer);
     EXPECT_NE(report.find("\"position\": \"above\""), std::string::npos);
@@ -50,7 +50,7 @@ TEST(GapReport, SerializesEmptyAndStructuredReports)
 TEST(GapReport, SerializesExtentPlacementsAndExpressionPayloads)
 {
     denigma::classify::GapCollector collector;
-    const denigma::GapReportProducer producer{"denigma", "TEST", "abc123"};
+    const denigma::GapReportOptions producer{{"denigma", "TEST", "abc123"}, {}};
 
     denigma::classify::ExpressionClassification tempo;
     tempo.type = denigma::classify::ExpressionType::TempoMark;
@@ -67,7 +67,7 @@ TEST(GapReport, SerializesExtentPlacementsAndExpressionPayloads)
     text.runs.push_back({"x", {}, {"metNoteQuarterUp"}, std::nullopt});
     text.runs.push_back({"7", {}, {}, denigma::classify::text::Insert{denigma::classify::text::Insert::Kind::Other, "page", {"1"}}});
     text.plainText = "x7";
-    collector.add({"m2", std::nullopt, denigma::classify::GapPosition{1, 4}}, text);
+    collector.add({"m2", std::nullopt, musx::util::Fraction{1, 4}}, text);
 
     const auto report = nlohmann::json::parse(denigma::serializeGapReport(collector, producer));
     ASSERT_EQ(report["gaps"].size(), 3);
@@ -99,4 +99,72 @@ TEST(GapReport, SerializesExtentPlacementsAndExpressionPayloads)
     EXPECT_EQ(textGap["text"]["runs"][1]["insert"]["kind"], "other");
     EXPECT_EQ(textGap["text"]["runs"][1]["insert"]["command"], "page");
     EXPECT_EQ(textGap["text"]["runs"][1]["insert"]["parameters"][0], "1");
+}
+
+TEST(GapReport, SerializesSmartShapeSpansAndPresetArrowheads)
+{
+    using namespace denigma::classify;
+    GapCollector collector;
+
+    smartshape::GeneralLine line;
+    line.lineStyle = smartshape::GeneralLine::LineStyle::Dashed;
+    line.lineVisible = true;
+    line.lineWidth = 118;
+    line.dashOn = 1152;
+    line.dashOff = 576;
+    line.startCap.type = smartshape::LineCap::Type::Hook;
+    line.startCap.hookLength = -768;
+    line.endCap.type = smartshape::LineCap::Type::ArrowheadPreset;
+    line.endCap.preset = musx::dom::ArrowheadPreset::MediumCurved;
+    SmartShapeClassification classification;
+    classification.shapeType = musx::dom::others::SmartShape::ShapeType::CustomLine;
+    classification.value = line;
+    collector.addSpan({"P1.m3", 2, musx::util::Fraction{1, 4}}, {"P1.m5", 2, musx::util::Fraction{0, 1}}, classification);
+
+    SmartShapeClassification bend;
+    bend.shapeType = musx::dom::others::SmartShape::ShapeType::BendHat;
+    collector.addSpan({"ev12n1", std::nullopt, std::nullopt}, {"ev13n1", std::nullopt, std::nullopt}, bend);
+
+    // The same preset on a second line adds nothing to the table.
+    SmartShapeClassification another = classification;
+    collector.add({"P2.m1", std::nullopt, musx::util::Fraction{0, 1}}, another);
+
+    const auto report = nlohmann::json::parse(denigma::serializeGapReport(collector, {{"denigma", "TEST", "abc123"}, {}}));
+    ASSERT_EQ(report["gaps"].size(), 3);
+    const auto& lineGap = report["gaps"][0];
+    EXPECT_EQ(lineGap["anchor"], "P1.m3");
+    EXPECT_EQ(lineGap["staff"], 2);
+    EXPECT_EQ(lineGap["position"]["denominator"], 4);
+    EXPECT_EQ(lineGap["end"]["anchor"], "P1.m5");
+    EXPECT_EQ(lineGap["end"]["staff"], 2);
+    EXPECT_EQ(lineGap["end"]["position"]["numerator"], 0);
+    EXPECT_EQ(lineGap["extent"], "complete");
+    EXPECT_EQ(lineGap["type"], "smart-shape");
+    EXPECT_EQ(lineGap["smartShape"]["shapeType"], "custom-line");
+    EXPECT_EQ(lineGap["smartShape"]["kind"], "general-line");
+    const auto& generalLine = lineGap["smartShape"]["generalLine"];
+    EXPECT_EQ(generalLine["lineStyle"], "dashed");
+    EXPECT_EQ(generalLine["dashOff"], 576);
+    EXPECT_FALSE(generalLine.contains("lineChar"));
+    EXPECT_FALSE(generalLine.contains("startText"));
+    EXPECT_EQ(generalLine["startCap"]["type"], "hook");
+    EXPECT_EQ(generalLine["startCap"]["hookLength"], -768);
+    EXPECT_EQ(generalLine["endCap"]["type"], "arrowhead-preset");
+    EXPECT_EQ(generalLine["endCap"]["preset"], "medium-curved");
+    EXPECT_EQ(generalLine["endCap"]["arrowhead"], "preset-medium-curved");
+
+    const auto& bendGap = report["gaps"][1];
+    EXPECT_EQ(bendGap["anchor"], "ev12n1");
+    EXPECT_FALSE(bendGap.contains("position"));
+    EXPECT_EQ(bendGap["end"]["anchor"], "ev13n1");
+    EXPECT_EQ(bendGap["smartShape"]["shapeType"], "bend-hat");
+    EXPECT_EQ(bendGap["smartShape"]["kind"], "unclassified");
+
+    EXPECT_FALSE(report["gaps"][2].contains("end"));
+
+    ASSERT_EQ(report["arrowheads"].size(), 1);
+    const auto& arrowhead = report["arrowheads"]["preset-medium-curved"];
+    EXPECT_EQ(arrowhead["unit"], "staff-space");
+    EXPECT_EQ(arrowhead["origin"], "line-end");
+    EXPECT_NE(arrowhead["svg"].get<std::string>().find("<svg "), std::string::npos);
 }
