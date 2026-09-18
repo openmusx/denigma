@@ -38,7 +38,13 @@ Some classification values keep `musxdom` instances whose accessors resolve thro
 
 Finale gives every smart shape a measure assignment and gives an entry-attached one an entry assignment as well. The MNX exporter already walks both lists, the measure list once per staff measure and the entry list once per event, and each walk records the gaps for the shapes it owns: the measure walk takes the beat-attached shapes and the event walk takes the entry-attached ones (`SmartShape::entryBased`), so no shape is reported twice. An entry-attached gap is held until every part has been exported, because its end must name an event that exists in the output, and the entry it ends on may not have been reached yet, or may never be exported (a cue layer). Those gaps therefore follow the others in the report rather than sitting in traversal order.
 
-A hidden shape is not reported: Finale draws nothing for it, so the target loses nothing by omitting it. (A hidden built-in ottava that carries the octave semantics for a visible custom line is exported as an ottava and is not a gap either.) The lyric hyphen and word-extension shape types belong to the lyrics and are never reported as smart shapes.
+A hidden shape is not reported: Finale draws nothing for it, so the target loses nothing by omitting it. (A hidden built-in ottava that carries the octave semantics for a visible custom line is exported as an ottava and is not a gap either.) The lyric hyphen and word-extension shape types belong to the lyrics and are never reported as smart shapes; a word extension is reported from its lyric line instead (next entry).
+
+### A lyric word extension is a gap on its lyric line
+
+Finale records a word extension on the syllable assignment (`LyricAssign::wext`), and the lyric line the exporter writes for that syllable is the object that stands for it, so the gap is anchored to the line's provenance id (`ev<entry>.<verse|chorus|section><n>.inci<n>`, see `core::calcLyricAssignId`) with a partial extent: the syllable is there and the extension is what it lost. The payload is `classify::LyricWordExtension`, recorded by `createLyrics` and finalized after every part has been exported, for the same reason entry-attached smart shapes are.
+
+The extension's end is an `end` anchor when it is known. With smart word extensions on, the word-extension smart shape names the entry the extension reaches, and the end is that entry's event, or the part measure it falls in when the entry was not exported. Finale stores a held final syllable's extension with both ends on the syllable's own entry, so such a gap ends on the event it starts from: the extension runs through that event. With smart word extensions off, `wext` is the drawn length in EVPU, a layout quantity with no counterpart in the target, so the gap has no end and the payload states `reach: unknown`; the length is not reported.
 
 ## Anchors
 

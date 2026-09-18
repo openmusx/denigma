@@ -102,9 +102,11 @@ Denigma previously encoded the pair in `number` alone, as `v1`, `c1`, `s1`. That
 
 `name` is emitted always, including for a verse-only document, where Finale omits it. Emitting it costs a few bytes, avoids pre-scanning a document to decide whether the type is needed, and makes a file easier to analyze when one arrives for diagnosis. The consequence is that a verse-only export does not match Finale's byte for byte.
 
-### A word extension needs a span, not just a flag
+### A smart word extension needs a span, not just a flag; a legacy one is a bare `<extend/>`
 
-`details::LyricAssign::wext` marks a syllable as having a word extension, but it does not say how far the extension reaches. Finale stores most of these shapes with both termination segments on the syllable's own entry and resolves the length at layout time, so `calcWordExtensionEndpoint` frequently returns the entry it started from. Denigma emits `<extend>` only when that endpoint is a different entry.
+`details::LyricAssign::wext` marks a syllable as having a word extension, but it does not say how far the extension reaches. With smart word extensions on, Finale stores most of these shapes with both termination segments on the syllable's own entry and resolves the length at layout time, so the end `classify::classifyLyricWordExtension` reports is frequently the entry it started from. Denigma emits a start/stop `<extend>` pair only when that end is a different entry.
+
+With smart word extensions off, `wext` is a drawn length in EVPU and there is no end to find. Finale exports each such syllable with a bare `<extend/>`, the same element it writes for a syllable that types its extension as underscores, and Denigma does the same (`lyric_legacy_wext.musx` and its reference). The underscores themselves stay in the syllable text in that mode, as they do in Finale's export.
 
 Both halves of the rule are visible in the fixtures. `zwei_gesange.musx` has two assignments carrying `wext` and exactly two `wordExt` shapes that reach another entry, and Finale exports two extension pairs. `for_health_and_strength.musx` has one assignment carrying `wext` and not one of its 27 shapes spans, and Finale exports none: the syllable at the end of the first ending continues into the second, so no extension is wanted.
 

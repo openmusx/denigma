@@ -116,6 +116,9 @@ TEST(MnxGapReport, CliWritesReferenceGapReports)
     checkFixture("pedal_custom_lines.musx");
     checkFixture("glissando.musx");
     checkFixture("smartshape_lines.musx");
+    checkFixture("verse_chorus_section.musx");
+    checkFixture("for_health_and_strength.musx");
+    checkFixture("lyric_legacy_wext.musx");
 }
 
 TEST(MnxGapReport, MusxToMnxJsonReportsStaffListTempoMarksOncePerGroup)
@@ -417,4 +420,114 @@ TEST(MnxGapReport, CliEmbedsCustomArrowheadsOnce)
         EXPECT_NE(svg.find("<svg "), std::string::npos) << key;
         EXPECT_NE(svg.find("viewBox=\"-0.545898"), std::string::npos) << key << ": coordinates in staff spaces";
     }
+}
+
+namespace {
+
+// Converts a fixture with a gap collector and returns the MNX document and the gaps of one type.
+struct ConvertedGaps
+{
+    nlohmann::json mnx;
+    std::vector<nlohmann::json> gaps;
+};
+
+ConvertedGaps convertWithGaps(const std::string& fileName, const std::string& gapType)
+{
+    denigma::FileRandomAccessReader input(getInputPath() / fileName);
+    std::ostringstream output;
+    denigma::formats::mnx::Options options;
+    options.common.sourceName = fileName;
+    options.common.validate = false;
+    denigma::classify::GapCollector collector;
+    options.common.gapCollector = &collector;
+    EXPECT_TRUE(denigma::formats::mnx::MusxToMnxJsonConverter{}.convert(input, output, options));
+
+    ConvertedGaps result;
+    result.mnx = nlohmann::json::parse(output.str());
+    const auto report = nlohmann::json::parse(denigma::serializeGapReport(collector, {{"denigma", "TEST", "abc123"}, {}}));
+    for (const auto& gap : report["gaps"]) {
+        if (gap.value("type", "") == gapType) {
+            result.gaps.push_back(gap);
+        }
+    }
+    return result;
+}
+
+// The lyric lines of the event with @p eventId, or an empty object when the event has none.
+nlohmann::json lyricLinesOf(const nlohmann::json& mnx, const std::string& eventId)
+{
+    for (const auto& part : mnx["parts"]) {
+        for (const auto& measure : part["measures"]) {
+            for (const auto& sequence : measure["sequences"]) {
+                for (const auto& content : sequence["content"]) {
+                    if (content.value("id", "") == eventId) {
+                        return content.contains("lyrics") ? content["lyrics"].value("lines", nlohmann::json::object()) : nlohmann::json::object();
+                    }
+                }
+            }
+        }
+    }
+    return nlohmann::json::object();
+}
+
+} // namespace
+
+TEST(MnxGapReport, MusxToMnxJsonReportsSpanningWordExtensionsOnTheLyricLine)
+{
+    setupTestDataPaths();
+
+    const auto converted = convertWithGaps("verse_chorus_section.musx", "lyric-word-extension");
+    ASSERT_EQ(converted.gaps.size(), 2);
+    for (const auto& gap : converted.gaps) {
+        EXPECT_EQ(gap["extent"], "partial");
+        EXPECT_EQ(gap["end"]["anchor"], "ev24");
+        EXPECT_EQ(gap["wordExtension"]["kind"], "smart");
+        EXPECT_EQ(gap["wordExtension"]["reach"], "event");
+    }
+    EXPECT_EQ(converted.gaps[0]["anchor"], "ev20.section1.inci0");
+    EXPECT_EQ(converted.gaps[1]["anchor"], "ev20.section2.inci1");
+
+    // The lines the gaps anchor to carry their ids; a syllable without a word extension has none.
+    const auto extended = lyricLinesOf(converted.mnx, "ev20");
+    EXPECT_EQ(extended["s1"]["id"], "ev20.section1.inci0");
+    EXPECT_EQ(extended["s2"]["id"], "ev20.section2.inci1");
+    const auto plain = lyricLinesOf(converted.mnx, "ev19");
+    ASSERT_TRUE(plain.contains("s1"));
+    EXPECT_FALSE(plain["s1"].contains("id"));
+}
+
+TEST(MnxGapReport, MusxToMnxJsonReportsHeldSyllableWordExtensionEndingOnItsOwnEvent)
+{
+    setupTestDataPaths();
+
+    const auto converted = convertWithGaps("for_health_and_strength.musx", "lyric-word-extension");
+    ASSERT_EQ(converted.gaps.size(), 1);
+    const auto& gap = converted.gaps[0];
+    EXPECT_EQ(gap["anchor"], "ev137.verse2.inci1");
+    EXPECT_EQ(gap["end"]["anchor"], "ev137");
+    EXPECT_EQ(gap["wordExtension"]["reach"], "event");
+    EXPECT_EQ(lyricLinesOf(converted.mnx, "ev137")["v2"]["id"], "ev137.verse2.inci1");
+}
+
+TEST(MnxGapReport, MusxToMnxJsonReportsLegacyWordExtensionsWithoutAnEnd)
+{
+    setupTestDataPaths();
+
+    // Smart word extensions are off, so each extension is a drawn length with no endpoint entry.
+    const auto converted = convertWithGaps("lyric_legacy_wext.musx", "lyric-word-extension");
+    ASSERT_EQ(converted.gaps.size(), 3);
+    for (const auto& gap : converted.gaps) {
+        EXPECT_EQ(gap["extent"], "partial");
+        EXPECT_FALSE(gap.contains("end"));
+        EXPECT_EQ(gap["wordExtension"]["kind"], "legacy");
+        EXPECT_EQ(gap["wordExtension"]["reach"], "unknown");
+    }
+    EXPECT_EQ(converted.gaps[0]["anchor"], "ev23.verse1.inci0");
+    EXPECT_EQ(lyricLinesOf(converted.mnx, "ev23")["v1"]["id"], "ev23.verse1.inci0");
+
+    // The chorus on the same entries types its extensions as underscores, which stay in the text
+    // and are neither a gap nor a reason for an id.
+    const auto chorus = lyricLinesOf(converted.mnx, "ev23")["c1"];
+    EXPECT_EQ(chorus["text"], "strength_");
+    EXPECT_FALSE(chorus.contains("id"));
 }

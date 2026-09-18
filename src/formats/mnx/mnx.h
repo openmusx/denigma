@@ -122,6 +122,16 @@ struct MnxMusxMapping
 
     std::vector<DeferredSmartShapeGap> deferredSmartShapeGaps;
 
+    /// @brief A lyric word extension, held until every entry has been exported so its end can be
+    /// anchored to an exported event or, failing that, a measure.
+    struct DeferredLyricExtensionGap
+    {
+        classify::LyricWordExtension classification;
+        classify::GapAnchor start;
+    };
+
+    std::vector<DeferredLyricExtensionGap> deferredLyricExtensionGaps;
+
     std::optional<std::string> currSplitInstrumentUuid;
     std::vector<StaffCmper> currPartStaves;
     std::unordered_set<EntryNumber> beamedEntries;
@@ -223,6 +233,7 @@ void createParts(const MnxMusxMappingPtr& context);
 void createSequences(const MnxMusxMappingPtr& context, mnxdom::part::Measure& mnxMeasure, std::optional<int> mnxStaffNumber,
     const MusxInstance<others::Measure>& musxMeasure);
 void finalizeJumpTies(const MnxMusxMappingPtr& context);
+void finalizeLyricExtensionGaps(const MnxMusxMappingPtr& context);
 
 void exportJson(const std::filesystem::path& outputPath, const CommandInputData& inputData, const DenigmaContext& denigmaContext);
 void exportJson(std::ostream& output, const CommandInputData& inputData, const DenigmaContext& denigmaContext);

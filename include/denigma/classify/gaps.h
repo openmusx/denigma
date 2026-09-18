@@ -28,6 +28,7 @@
 #include "denigma/classify/chords.h"
 #include "denigma/classify/expressions.h"
 #include "denigma/classify/formatted_text.h"
+#include "denigma/classify/lyrics.h"
 #include "denigma/classify/noteheads.h"
 #include "denigma/classify/smartshapes.h"
 
@@ -76,8 +77,8 @@ struct GapPlacement
 struct PlaybackOnly
 {};
 
-using GapPayload =
-    std::variant<ChordSymbolClassification, NoteheadClassification, ExpressionClassification, FormattedText, PlaybackOnly, SmartShapeClassification>;
+using GapPayload = std::variant<ChordSymbolClassification, NoteheadClassification, ExpressionClassification, FormattedText, PlaybackOnly,
+    SmartShapeClassification, LyricWordExtension>;
 
 /// @struct Gap
 /// @brief One classified feature omitted, in whole or in part, from a conversion target.

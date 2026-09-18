@@ -168,3 +168,24 @@ TEST(GapReport, SerializesSmartShapeSpansAndPresetArrowheads)
     EXPECT_EQ(arrowhead["origin"], "line-end");
     EXPECT_NE(arrowhead["svg"].get<std::string>().find("<svg "), std::string::npos);
 }
+
+TEST(GapReport, SerializesLyricWordExtensionWithoutEnd)
+{
+    using namespace denigma::classify;
+    GapCollector collector;
+
+    // A legacy extension has no end entry; a smart one with an end is covered by the fixture reports.
+    LyricWordExtension legacy;
+    legacy.kind = lyric::WordExtensionKind::Legacy;
+    collector.add({"ev20.verse1.inci0", std::nullopt, std::nullopt}, legacy, GapExtent::Partial);
+
+    const auto report = nlohmann::json::parse(denigma::serializeGapReport(collector, {{"denigma", "TEST", "abc123"}, {}}));
+    ASSERT_EQ(report["gaps"].size(), 1);
+    const auto& gap = report["gaps"][0];
+    EXPECT_EQ(gap["type"], "lyric-word-extension");
+    EXPECT_EQ(gap["anchor"], "ev20.verse1.inci0");
+    EXPECT_EQ(gap["extent"], "partial");
+    EXPECT_FALSE(gap.contains("end"));
+    EXPECT_EQ(gap["wordExtension"]["kind"], "legacy");
+    EXPECT_EQ(gap["wordExtension"]["reach"], "unknown");
+}
