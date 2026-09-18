@@ -19,6 +19,7 @@
 #pragma once
 
 #include <string>
+#include <type_traits>
 
 #include "musx/musx.h"
 
@@ -53,6 +54,20 @@ std::string calcExpressionId(const musx::dom::MusxInstance<musx::dom::others::Me
 
 /// @brief Computes a stable id for an object derived from one Tempo Tool record (`tempoDef`).
 std::string calcTempoDefId(musx::dom::Cmper measureCmper, musx::dom::Inci inci);
+
+/// @brief Computes a stable id for an object derived from one lyric syllable assignment.
+///
+/// The id records the assignment's full Finale provenance: the event, the lyric block type and
+/// number it assigns, and the assignment's inci on the entry, as
+/// `ev<entry>.<verse|chorus|section><number>.inci<n>`.
+/// @tparam T A subtype of musx::dom::details::LyricAssign.
+template <typename T>
+std::string calcLyricAssignId(const musx::dom::MusxInstance<T>& assignment)
+{
+    static_assert(std::is_base_of_v<musx::dom::details::LyricAssign, T>, "T must be a subtype of LyricAssign");
+    return calcEventId(assignment->getEntryNumber()) + "." + std::string(T::TextType::XmlNodeName) + std::to_string(assignment->lyricNumber) + ".inci"
+           + std::to_string(assignment->getInci().value_or(0));
+}
 
 } // namespace core
 } // namespace denigma

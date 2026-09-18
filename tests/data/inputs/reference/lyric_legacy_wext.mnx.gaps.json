@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "producer": {
+    "name": "denigma",
+    "version": "TEST",
+    "commit": "<commit>"
+  },
+  "gaps": [
+    {
+      "anchor": "ev23.verse1.inci0",
+      "extent": "partial",
+      "type": "lyric-word-extension",
+      "wordExtension": {
+        "kind": "legacy",
+        "reach": "unknown"
+      }
+    },
+    {
+      "anchor": "ev25.verse1.inci0",
+      "extent": "partial",
+      "type": "lyric-word-extension",
+      "wordExtension": {
+        "kind": "legacy",
+        "reach": "unknown"
+      }
+    },
+    {
+      "anchor": "ev27.verse1.inci0",
+      "extent": "partial",
+      "type": "lyric-word-extension",
+      "wordExtension": {
+        "kind": "legacy",
+        "reach": "unknown"
+      }
+    }
+  ]
+}

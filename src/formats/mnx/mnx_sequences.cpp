@@ -27,7 +27,9 @@
 #include <unordered_set>
 
 #include "core/element_ids.h"
+#include "denigma/classify/lyrics.h"
 #include "mnx.h"
+#include "mnx_gaps.h"
 #include "mnx_noteheads.h"
 #include "mnx_smartshapes.h"
 #include "utils/smufl_support.h"
@@ -384,6 +386,15 @@ static void createLyrics(const MnxMusxMappingPtr& context, mnxdom::sequence::Eve
                     auto mnxLyricLine = mnxLyricsLines.append(
                         calcLyricLineId(std::string(T::TextType::XmlNodeName), lyr->lyricNumber), lyrText->syllables[sylIndex]->syllable);
                     mnxLyricLine.set_type(mnxLineTypeFromLyric(lyrText->syllables[sylIndex]));
+                    if (const auto wordExtension = classify::classifyLyricWordExtension(lyr)) {
+                        // MNX has no word extension yet, so the line takes the id the gap anchors to. The id is
+                        // written whether or not a report was requested; see design-decisions.md.
+                        mnxLyricLine.set_id(core::calcLyricAssignId(lyr));
+                        if (gapCollectorFor(context)) {
+                            context->deferredLyricExtensionGaps.push_back(
+                                {wordExtension, classify::GapAnchor{mnxLyricLine.id_or(""), std::nullopt, std::nullopt}});
+                        }
+                    }
                 }
             }
         }
@@ -391,6 +402,38 @@ static void createLyrics(const MnxMusxMappingPtr& context, mnxdom::sequence::Eve
     createLyricsType(musxEntry->getDocument()->getDetails()->getArray<details::LyricAssignVerse>(SCORE_PARTID, musxEntry->getEntryNumber()));
     createLyricsType(musxEntry->getDocument()->getDetails()->getArray<details::LyricAssignChorus>(SCORE_PARTID, musxEntry->getEntryNumber()));
     createLyricsType(musxEntry->getDocument()->getDetails()->getArray<details::LyricAssignSection>(SCORE_PARTID, musxEntry->getEntryNumber()));
+}
+
+void finalizeLyricExtensionGaps(const MnxMusxMappingPtr& context)
+{
+    auto* const gapCollector = gapCollectorFor(context);
+    if (!gapCollector) {
+        context->deferredLyricExtensionGaps.clear();
+        return;
+    }
+    for (auto& deferred : context->deferredLyricExtensionGaps) {
+        const auto& endEntry = deferred.classification.endEntry;
+        if (!endEntry) {
+            gapCollector->add(std::move(deferred.start), std::move(deferred.classification), classify::GapExtent::Partial);
+            continue;
+        }
+        const auto endEntryNumber = endEntry->getEntry()->getEntryNumber();
+        std::optional<classify::GapAnchor> end;
+        const auto targetIt = context->entryTargetByNumber.find(endEntryNumber);
+        if (targetIt != context->entryTargetByNumber.end() && targetIt->second.kind == EntryTargetKind::Event) {
+            end = classify::GapAnchor{core::calcEventId(endEntryNumber), std::nullopt, std::nullopt};
+        } else {
+            // The end entry was not exported (a cue layer, or a full-measure rest with no event id), so
+            // the end names the measure it falls in.
+            end = partMeasureAnchor(context, endEntry.getStaff(), endEntry.getMeasure(), endEntry->elapsedDuration);
+        }
+        if (end) {
+            gapCollector->addSpan(std::move(deferred.start), std::move(*end), std::move(deferred.classification), classify::GapExtent::Partial);
+        } else {
+            gapCollector->add(std::move(deferred.start), std::move(deferred.classification), classify::GapExtent::Partial);
+        }
+    }
+    context->deferredLyricExtensionGaps.clear();
 }
 
 static std::optional<mnxdom::sequence::Event> createEvent(const MnxMusxMappingPtr& context, mnxdom::sequence::SequenceContent content,

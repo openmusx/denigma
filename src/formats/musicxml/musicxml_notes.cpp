@@ -29,6 +29,7 @@
 
 #include "core/cue_plan.h"
 #include "core/element_ids.h"
+#include "denigma/classify/lyrics.h"
 #include "musicxml_formatted_text.h"
 #include "mx/api/DurationData.h"
 #include "mx/api/MarkData.h"
@@ -356,14 +357,17 @@ void applyLyrics(MusicXmlMusxMapping& context, mx::api::NoteData& note, const En
             // Chorus 1 stay distinct while both keep the plain number readers place lines by.
             lyric.verseNumber = std::to_string(assignment->lyricNumber);
             lyric.verseName = std::string(T::TextType::XmlNodeName);
-            // Finale stores most word extensions with both ends on the syllable's own entry and
-            // works out how far to draw them at layout time, so `wext` marks a candidate rather
-            // than a span. Only a shape that reaches a different entry is an extension MusicXML
-            // can express, and only those are what Finale itself exports: of 27 such shapes in
-            // for_health_and_strength.musx none spans, and Finale writes no extension there.
-            const auto endpoint = assignment->calcWordExtensionEndpoint();
-            const bool extensionSpansEntries = endpoint && endpoint->getEntry()->getEntryNumber() != entryInfo->getEntry()->getEntryNumber();
-            lyric.hasExtend = (assignment->wext != 0 && extensionSpansEntries) || lyricText->syllables[syllableIndex]->strippedUnderscores > 0;
+            // Finale stores most smart word extensions with both ends on the syllable's own entry
+            // and works out how far to draw them at layout time, so the classified end marks a
+            // candidate rather than a span. Only an extension that reaches a different entry is
+            // one MusicXML can express as a span, and only those are what Finale itself exports:
+            // of 27 such shapes in for_health_and_strength.musx none spans, and Finale writes no
+            // extension there. A legacy extension has no end at all, and Finale writes it as a
+            // bare <extend/>, as it does the underscores of a syllable.
+            const auto wordExtension = classify::classifyLyricWordExtension(assignment);
+            const bool extensionSpansEntries = wordExtension.endEntry && wordExtension.endEntry->getEntry()->getEntryNumber() != entryNumber;
+            lyric.hasExtend = extensionSpansEntries || wordExtension.kind == classify::lyric::WordExtensionKind::Legacy
+                              || lyricText->syllables[syllableIndex]->strippedUnderscores > 0;
             if (extensionSpansEntries) {
                 lyric.extendType = mx::api::LyricExtendType::start;
                 auto stopLyric = mx::api::LyricData{};
@@ -371,7 +375,7 @@ void applyLyrics(MusicXmlMusxMapping& context, mx::api::NoteData& note, const En
                 stopLyric.verseName = lyric.verseName;
                 stopLyric.hasExtend = true;
                 stopLyric.extendType = mx::api::LyricExtendType::stop;
-                context.pendingLyricStops[endpoint->getEntry()->getEntryNumber()].emplace_back(std::move(stopLyric));
+                context.pendingLyricStops[wordExtension.endEntry->getEntry()->getEntryNumber()].emplace_back(std::move(stopLyric));
             }
             if (assignment->horzOffset != 0) {
                 lyric.positionData.relativeX = context.musicXmlTenthsFromEvpu(assignment->horzOffset);

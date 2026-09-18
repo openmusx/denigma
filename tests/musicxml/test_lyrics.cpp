@@ -320,6 +320,9 @@ TEST(MusicXmlLyrics, WordExtensionsRequireASpanAndMatchFinale)
     // for_health_and_strength.musx is the case that proves it: one assignment carries wext, all 27
     // of its wordExt shapes are degenerate, and Finale writes no extension. The syllable continues
     // past the first ending into the second, so none is needed.
+    //
+    // lyric_legacy_wext.musx has smart word extensions off, so each extension is a length rather
+    // than a span, and Finale writes it as a bare <extend/>.
     struct Expected
     {
         const char* fixture;
@@ -329,6 +332,7 @@ TEST(MusicXmlLyrics, WordExtensionsRequireASpanAndMatchFinale)
         {"for_health_and_strength.musx", "for_health_and_strength-ref.musicxml"},
         {"zwei_gesange.musx", "zwei_gesange-ref.musicxml"},
         {"verse_chorus_section.musx", "verse_chorus_section-ref.musicxml"},
+        {"lyric_legacy_wext.musx", "lyric_legacy_wext-ref.musicxml"},
     };
 
     for (const auto& entry : fixtures) {

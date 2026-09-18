@@ -19,10 +19,14 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+#include <memory>
+
 #include "core/element_ids.h"
+#include "musx/musx.h"
 #include "gtest/gtest.h"
 
 using namespace denigma;
+using namespace musx::dom;
 
 TEST(ElementIdsTest, CalcEventId)
 {
@@ -46,4 +50,24 @@ TEST(ElementIdsTest, CalcTempoDefId)
 {
     EXPECT_EQ(core::calcTempoDefId(3, 0), "m3.tempoDef.inci0");
     EXPECT_EQ(core::calcTempoDefId(12, 4), "m12.tempoDef.inci4");
+}
+
+namespace {
+
+// The assignment records provenance without consulting its document, so a detached one suffices.
+template <typename T>
+MusxInstance<T> makeLyricAssign(EntryNumber entry, Cmper lyricNumber, Inci inci)
+{
+    auto assign = std::make_shared<T>(DocumentWeakPtr{}, SCORE_PARTID, CommonClassBase::ShareMode::All, entry, inci);
+    assign->lyricNumber = lyricNumber;
+    return assign;
+}
+
+} // namespace
+
+TEST(ElementIdsTest, CalcLyricAssignId)
+{
+    EXPECT_EQ(core::calcLyricAssignId(makeLyricAssign<details::LyricAssignVerse>(20, 1, 0)), "ev20.verse1.inci0");
+    EXPECT_EQ(core::calcLyricAssignId(makeLyricAssign<details::LyricAssignChorus>(137, 2, 1)), "ev137.chorus2.inci1");
+    EXPECT_EQ(core::calcLyricAssignId(makeLyricAssign<details::LyricAssignSection>(5, 3, 2)), "ev5.section3.inci2");
 }

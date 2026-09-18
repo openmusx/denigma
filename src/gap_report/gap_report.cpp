@@ -104,6 +104,9 @@ json gapJson(const classify::Gap& gap, gap_report::ArrowheadTable& arrowheads)
             } else if constexpr (std::is_same_v<Payload, classify::SmartShapeClassification>) {
                 result["type"] = "smart-shape";
                 result["smartShape"] = gap_report::smartShapeJson(payload, arrowheads);
+            } else if constexpr (std::is_same_v<Payload, classify::LyricWordExtension>) {
+                result["type"] = "lyric-word-extension";
+                result["wordExtension"] = gap_report::lyricWordExtensionJson(payload);
             }
         },
         gap.payload);

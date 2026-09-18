@@ -44,6 +44,12 @@ MNX has slurs, ties, ottavas, dynamic wedges, arpeggios and non-arpeggio bracket
 
 A beat-attached slur is a gap as well. The MNX slur path hosts the entry-attached slurs Finale normally creates, whose endpoints name their events; a beat-attached slur names positions, and hosting it would mean choosing the events those positions coincide with. That is roadmap work, and until it is done the slur is reported rather than dropped, as is an entry-attached slur whose other end coincides with no event.
 
+## Lyrics
+
+### A lyric line carries a provenance id only when it has a word extension
+
+The gap report anchors a lost word extension to the lyric line it belongs to, and, as with tempos, the id is written whether or not a report was requested, so that the report never describes a different document from the one the user has. Unlike a tempo, a syllable is not an object anything else points at, and lyric-heavy scores have thousands of them; an id on every line would outweigh the lyrics. So a line takes its id (`core::calcLyricAssignId`) exactly when its assignment has a word extension, the one case a gap anchors to it, and no other line has one.
+
 ## Sequences
 
 ### An empty staff measure is written as a full-measure rest

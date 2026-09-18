@@ -26,6 +26,7 @@
 #include "denigma/classify/chords.h"
 #include "denigma/classify/expressions.h"
 #include "denigma/classify/formatted_text.h"
+#include "denigma/classify/lyrics.h"
 #include "denigma/classify/noteheads.h"
 #include "denigma/classify/smartshapes.h"
 #include "denigma/gap_report.h"
@@ -69,6 +70,7 @@ json expressionJson(const classify::ExpressionClassification& expression);
 json formattedTextJson(const classify::FormattedText& text);
 json fontJson(const musx::dom::ResolvedFontInfo& font);
 json smartShapeJson(const classify::SmartShapeClassification& smartShape, ArrowheadTable& arrowheads);
+json lyricWordExtensionJson(const classify::LyricWordExtension& wordExtension);
 
 // Reporting names shared by more than one serializer.
 std::string_view keyboardPedalTypeName(classify::keyboardpedal::Type value);

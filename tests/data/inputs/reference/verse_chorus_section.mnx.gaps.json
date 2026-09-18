@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "producer": {
+    "name": "denigma",
+    "version": "TEST",
+    "commit": "<commit>"
+  },
+  "gaps": [
+    {
+      "anchor": "ev20.section1.inci0",
+      "end": {
+        "anchor": "ev24"
+      },
+      "extent": "partial",
+      "type": "lyric-word-extension",
+      "wordExtension": {
+        "kind": "smart",
+        "reach": "event"
+      }
+    },
+    {
+      "anchor": "ev20.section2.inci1",
+      "end": {
+        "anchor": "ev24"
+      },
+      "extent": "partial",
+      "type": "lyric-word-extension",
+      "wordExtension": {
+        "kind": "smart",
+        "reach": "event"
+      }
+    }
+  ]
+}
