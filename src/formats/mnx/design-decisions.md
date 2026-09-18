@@ -61,3 +61,9 @@ Whether the rest appears is decided from the staff as it stands at the start of 
 Cue entries are skipped by the exporter and have no MNX representation yet, so a measure holding only cues counts as empty and gets the rest its staff settings call for. Revisit this when MNX gains a cue encoding.
 
 A staff-attached fermata over an empty measure attaches to that staff's full-measure rest. A staff whose settings suppressed the rest gets one created for the fermata anyway, because MNX has nowhere else to put it.
+
+### The entries of a zero-length tuplet are omitted
+
+A Finale tuplet with a reference count of zero takes no time, and its entries are phantoms: a user or a plugin such as Beam Over Barline puts a note there so that a beam or a tie can reach across a barline, and the note that actually sounds sits at the same position. MNX has nowhere to put such an entry. A tuplet's ratio must be positive, an event outside a tuplet always takes its written duration, and a `grace` container would draw the note small. So the tuplet and its entries are omitted, and nothing else may refer to them: a beam skips them, a tie into one is written as `lv`, and a slur ending on one is a gap. The one form `musxdom` interprets, a singleton beam with the phantom's notehead and stem hidden, never reaches this path.
+
+The count of omitted tuplets is logged once per conversion as a warning. Each occurrence is logged only at verbose level, because a document that carries the workaround carries it many times.

@@ -270,6 +270,8 @@ json keyboardPedalJson(const KeyboardPedal& pedal, ArrowheadTable& arrowheads)
 }
 
 /// @brief Names the classified value and writes its fields under a key of the same name.
+///
+/// A Suppress shape belongs to another feature and is never collected, so it has no serialization.
 void appendValue(json& result, const SmartShapeValue& value, ArrowheadTable& arrowheads)
 {
     std::visit(

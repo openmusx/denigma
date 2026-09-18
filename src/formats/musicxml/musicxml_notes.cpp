@@ -303,11 +303,11 @@ void applyMusicXmlTies(MusicXmlMusxMapping& context, mx::api::NoteData& note, co
         note.isTieStop = true;
     }
 
-    if (!noteInfo->tieStart) {
+    if (!noteInfo.calcHasTieStart()) {
         return;
     }
     const auto tiedTo = noteInfo.calcTieTo();
-    if (!tiedTo || !tiedTo->tieEnd || tiedTo.getEntryInfo()->getEntry()->isHidden) {
+    if (!tiedTo || !tiedTo.calcHasTieEnd() || tiedTo.getEntryInfo()->getEntry()->isHidden) {
         note.tieLetRing = mx::api::TieLetRing{};
         applyTieAlterStart(context, *note.tieLetRing, noteInfo);
         return;
@@ -639,7 +639,7 @@ void applyPseudoLvTies(MusicXmlMusxMapping& context, const EntryInfoPtr& entryIn
             continue;
         }
         auto* note = noteDataAt(context, locationIt->second);
-        if (!note || note->isTieStart || note->tieLetRing || noteInfo->tieStart || noteInfo.calcArpeggiatedTieInfo()) {
+        if (!note || note->isTieStart || note->tieLetRing || noteInfo.calcHasTieStart() || noteInfo.calcArpeggiatedTieInfo()) {
             continue;
         }
 

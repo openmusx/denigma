@@ -424,7 +424,7 @@ void appendHairpin(MusicXmlMusxMapping& context, mx::api::StaffData& staff, Staf
     if (!startPoint->calcIsAssigned() || !endPoint->calcIsAssigned()) {
         return;
     }
-    if (endPoint->staffId != staffId) {
+    if (endPoint->calcStaff() != staffId) {
         return;
     }
 
@@ -537,7 +537,7 @@ void appendKeyboardPedal(MusicXmlMusxMapping& context, mx::api::StaffData& staff
     if (!stopStaff) {
         return;
     }
-    auto stopDirection = createSmartShapeDirection(context, endPoint, endPoint->staffId, staffIndex, placement);
+    auto stopDirection = createSmartShapeDirection(context, endPoint, endPoint->calcStaff(), staffIndex, placement);
 
     if (!pedal.line.lineVisible) {
         if (pedal.isSostPedal()) {
@@ -644,7 +644,7 @@ void appendGeneralLine(MusicXmlMusxMapping& context, mx::api::StaffData& staff, 
 
     const auto placement = shape->calcVerticalPlacementForBeatAttached();
     auto startDirection = createSmartShapeDirection(context, startPoint, staffId, staffIndex, placement);
-    auto stopDirection = createSmartShapeDirection(context, endPoint, endPoint->staffId, staffIndex, placement);
+    auto stopDirection = createSmartShapeDirection(context, endPoint, endPoint->calcStaff(), staffIndex, placement);
     auto startWords = musicXmlWordsFromEnigmaText(context, line.startText);
     auto stopWords = musicXmlWordsFromEnigmaText(context, line.endText);
     const bool startHasWords = !startWords.empty();
@@ -793,8 +793,8 @@ bool shapeSpansMusic(const MusxInstance<others::SmartShape>& shape)
 {
     const auto& startPoint = shape->startTermSeg->endPoint;
     const auto& endPoint = shape->endTermSeg->endPoint;
-    if (startPoint->measId != endPoint->measId) {
-        return endPoint->measId > startPoint->measId;
+    if (startPoint->calcMeasure() != endPoint->calcMeasure()) {
+        return endPoint->calcMeasure() > startPoint->calcMeasure();
     }
     return endPoint->calcGlobalPosition() > startPoint->calcGlobalPosition();
 }
@@ -922,6 +922,8 @@ void processSmartShapesForStaff(
         ASSERT_IF (!shape) {
             continue;
         }
+        // The recorded staff and measure, not calcStaff/calcMeasure: this is the measure whose
+        // assignment names the shape, and Finale keeps the assignment where the endpoint was recorded.
         if (shape->startTermSeg->endPoint->staffId != staffId || shape->startTermSeg->endPoint->measId != musxMeasure->getCmper()) {
             continue;
         }
@@ -963,10 +965,12 @@ void processSmartShapesForStaff(
                     }
                 } else if constexpr (std::is_same_v<Value, classify::smartshape::NonArpeggio>) {
                     appendArpeggioCandidate(context, value.candidate);
+                } else if constexpr (std::is_same_v<Value, classify::smartshape::Suppress>) {
+                    // Belongs to another feature, which exports it.
                 } else if constexpr (std::is_same_v<Value, std::monostate>) {
-                // A silent omission is indistinguishable from a shape Denigma never saw.
-                    context.logMessage(
-                        LogMsg() << "Omitting smart shape " << shape->getCmper() << " of unclassified type " << int(classification.shapeType) << ".",
+                    // A silent omission is indistinguishable from a shape Denigma never saw.
+                    context.logMessage(LogMsg() << "Omitting " << (shape->calcIsValid() ? "unclassified" : "invalid") << " smart shape "
+                                                << shape->getCmper() << " of type " << int(classification.shapeType) << ".",
                         MessageSeverity::Verbose);
                 }
             },

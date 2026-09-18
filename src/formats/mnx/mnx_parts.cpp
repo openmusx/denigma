@@ -59,6 +59,9 @@ static void createBeams(const MnxMusxMappingPtr& context, mnxdom::part::Measure 
                     const auto entry = next->getEntry();
                     const EntryNumber entryNumber = entry->getEntryNumber();
                     context->beamedEntries.emplace(entryNumber);
+                    if (isInOmittedZeroLengthTuplet(next)) {
+                        continue; // the entry has no event to beam
+                    }
                     beam.events().push_back(core::calcEventId(entryNumber));
                     if (unsigned lowestBeamStart = next.calcLowestBeamStart(/*considerBeamOverBarlines*/ true)) {
                         unsigned nextBeamNumber = beamNumber + 1;

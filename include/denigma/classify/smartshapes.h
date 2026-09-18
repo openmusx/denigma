@@ -180,23 +180,31 @@ struct Glissando
     GeneralLine line;                   ///< Appearance of the line.
 };
 
+/// @struct Suppress
+/// @brief Marker payload for a shape that vanishes from the shape paths without export, gap, or log,
+/// because it belongs to another feature: a lyric hyphen or word extension is part of the lyric that
+/// owns it, and that lyric exports or reports it.
+struct Suppress
+{};
+
 } // namespace smartshape
 
 /// @brief The semantic payload of a classified smart shape.
 ///
 /// std::monostate means the shape was not classified: it is invalid, or its type carries no
 /// semantics Denigma models. A @ref smartshape::GeneralLine is the fallback for a line-type shape
-/// that no more specific classification claimed.
+/// that no more specific classification claimed. A @ref smartshape::Suppress is neither exported
+/// nor reported, and an exporter should say nothing about it.
 using SmartShapeValue = std::variant<std::monostate, smartshape::Ottava, smartshape::Crescendo, smartshape::Decrescendo, smartshape::Slur,
     smartshape::ArpeggiatedTie, PseudoTie, smartshape::NonArpeggio, smartshape::KeyboardPedal, smartshape::TrillLine, smartshape::VibratoLine,
-    smartshape::Glissando, smartshape::GeneralLine>;
+    smartshape::Glissando, smartshape::GeneralLine, smartshape::Suppress>;
 
 /// @struct SmartShapeClassification
 /// @brief Result returned by smart-shape classification.
 struct SmartShapeClassification
 {
-    /// The source shape's type. Meaningful for any valid shape, including one whose #value is
-    /// std::monostate, but left at its default when the shape itself was null or invalid.
+    /// The source shape's type. Meaningful for any shape, including an invalid one or one whose
+    /// #value is std::monostate, but left at its default when the shape itself was null.
     musx::dom::others::SmartShape::ShapeType shapeType{};
     /// What the shape means. (See @ref SmartShapeValue.)
     SmartShapeValue value{};

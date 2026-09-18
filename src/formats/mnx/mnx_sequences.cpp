@@ -22,6 +22,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <map>
 #include <optional>
 #include <unordered_map>
 #include <unordered_set>
@@ -133,15 +134,31 @@ static mnxdom::sequence::Tuplet createTuplet(mnxdom::sequence::SequenceContent c
     return mnxTuplet;
 }
 
+bool isOmittedZeroLengthTuplet(const EntryFrame::TupletInfo& tupletInfo)
+{
+    return tupletInfo.tuplet->calcRatio() == 0 && !tupletInfo.calcCreatesSingletonBeamLeft() && !tupletInfo.calcCreatesSingletonBeamRight();
+}
+
+bool isInOmittedZeroLengthTuplet(const EntryInfoPtr& entryInfo)
+{
+    for (size_t tupletIndex : entryInfo.findTupletInfo()) {
+        if (isOmittedZeroLengthTuplet(entryInfo.getFrame()->tupletInfo[tupletIndex])) {
+            return true;
+        }
+    }
+    return false;
+}
+
 static void createTies(const MnxMusxMappingPtr& context, mnxdom::sequence::NoteBase& mnxNote, const NoteInfoPtr& musxNote)
 {
     bool tieCreated = false;
-    if (musxNote->tieStart) {
+    if (musxNote.calcHasTieStart()) {
         auto mnxTies = mnxNote.ensure_ties();
         auto tiedTo = musxNote.calcTieTo();
         auto mnxTie = mnxTies.append();
-        if (tiedTo && tiedTo->tieEnd && !tiedTo.getEntryInfo()->getEntry()->isHidden) {
+        if (tiedTo && tiedTo.calcHasTieEnd() && !tiedTo.getEntryInfo()->getEntry()->isHidden) {
             mnxTie.set_target(core::calcNoteId(tiedTo));
+            context->deferredTieTargets.push_back({mnxTie.pointer(), tiedTo.getEntryInfo()->getEntry()->getEntryNumber()});
         } else {
             mnxTie.set_lv(true);
         }
@@ -166,6 +183,7 @@ static void createTies(const MnxMusxMappingPtr& context, mnxdom::sequence::NoteB
         auto mnxTie = mnxTies.append();
         mnxTie.set_target(core::calcNoteId(musxTargetNote));
         mnxTie.set_targetType(mnxdom::TieTargetType::Arpeggio);
+        context->deferredTieTargets.push_back({mnxTie.pointer(), tiedToInfo->targetEntry->getEntry()->getEntryNumber()});
         if (tiedToInfo->direction != Curve::Unspecified) {
             mnxTie.set_side(tiedToInfo->direction == Curve::Up ? mnxdom::SlurTieSide::Up : mnxdom::SlurTieSide::Down);
         }
@@ -589,6 +607,16 @@ static EntryInfoPtr::InterpretedIterator addEntryToContent(const MnxMusxMappingP
             auto thisTupletIndex = next.getEntryInfo().calcNextTupletIndex(tupletIndex);
             if (thisTupletIndex != tupletIndex && thisTupletIndex) {
                 auto tuplInfo = next.getEntryInfo().getFrame()->tupletInfo[thisTupletIndex.value()];
+                if (isOmittedZeroLengthTuplet(tuplInfo)) {
+                    context->discardedZeroLengthTuplets++;
+                    context->logMessage(LogMsg() << "Entry " << entry->getEntryNumber()
+                                                 << " starts a zero-length tuplet, which MNX cannot represent; its entries are omitted.",
+                        MessageSeverity::Verbose);
+                    while (next && next.getEntryInfo().getIndexInFrame() <= tuplInfo.endIndex) {
+                        next = next.getNext();
+                    }
+                    continue;
+                }
                 if (tuplInfo.calcIsTremolo()) {
                     const auto numBeams = next.getEntryInfo().calcNumberOfBeams();
                     const auto numFlagsInRef = calcNumberOfBeamsInEdu(tuplInfo.tuplet->calcReferenceDuration().calcEduDuration());
@@ -706,6 +734,64 @@ void createSequences(const MnxMusxMappingPtr& context, mnxdom::part::Measure& mn
     createEntrySequences(context, mnxMeasure, mnxStaffNumber, musxMeasure);
     if (mnxMeasure.sequences().size() == sequenceCountBefore) {
         appendEmptyMeasureRest(context, mnxMeasure, mnxStaffNumber, musxMeasure);
+    }
+}
+
+void finalizeEntryTargets(const MnxMusxMappingPtr& context)
+{
+    const auto isExported = [&](EntryNumber entryNumber) {
+        const auto it = context->entryTargetByNumber.find(entryNumber);
+        return it != context->entryTargetByNumber.end() && it->second.kind == EntryTargetKind::Event;
+    };
+    size_t releasedTies = 0;
+    for (const auto& deferred : context->deferredTieTargets) {
+        if (isExported(deferred.targetEntry)) {
+            continue;
+        }
+        // The tied-to note is not in the document, so the tie hangs from its start the way Finale draws it.
+        mnxdom::sequence::Tie tie(context->mnxDocument->root(), deferred.pointer);
+        tie.clear_target();
+        tie.clear_targetType();
+        tie.set_lv(true);
+        releasedTies++;
+    }
+    context->deferredTieTargets.clear();
+
+    // Removing a slur shifts the later slurs of the same event, so each event's slurs are removed from the back.
+    std::map<mnxdom::json_pointer, std::vector<size_t>> danglingSlurs;
+    for (auto& deferred : context->deferredSlurTargets) {
+        if (isExported(deferred.target.targetEntry)) {
+            continue;
+        }
+        mnxdom::sequence::Slur slur(context->mnxDocument->root(), deferred.target.pointer);
+        danglingSlurs[deferred.target.pointer.parent_pointer()].push_back(slur.calcArrayIndex());
+        // Reported like any other slur MNX cannot carry; finalizeSmartShapeGaps anchors its end.
+        if (gapCollectorFor(context) && !deferred.shape->hidden) {
+            const auto startNote = deferred.shape->calcStartNote();
+            classify::GapAnchor start{
+                startNote ? core::calcNoteId(startNote) : core::calcEventId(deferred.shape->startTermSeg->endPoint->entryNumber), std::nullopt,
+                std::nullopt};
+            context->deferredSmartShapeGaps.push_back({std::move(deferred.shape), std::move(deferred.classification), std::move(start)});
+        }
+    }
+    context->deferredSlurTargets.clear();
+    size_t removedSlurs = 0;
+    for (auto& [slursPointer, indices] : danglingSlurs) {
+        mnxdom::Array<mnxdom::sequence::Slur> slurs(context->mnxDocument->root(), slursPointer);
+        std::sort(indices.begin(), indices.end(), std::greater<size_t>());
+        for (const size_t index : indices) {
+            slurs.erase(index);
+            removedSlurs++;
+        }
+        if (slurs.size() == 0) {
+            slurs.parent<mnxdom::sequence::Event>().clear_slurs();
+        }
+    }
+
+    if (releasedTies > 0 || removedSlurs > 0) {
+        context->logMessage(
+            LogMsg() << "Released " << releasedTies << " ties and removed " << removedSlurs << " slurs whose target entry was not exported.",
+            MessageSeverity::Verbose);
     }
 }
 
