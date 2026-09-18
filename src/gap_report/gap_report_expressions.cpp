@@ -260,25 +260,6 @@ std::string_view accordionDotPositionName(AccordionRegistration::DotPosition val
     return "unknown";
 }
 
-std::string_view keyboardPedalTypeName(classify::keyboardpedal::Type value)
-{
-    using Enum = classify::keyboardpedal::Type;
-    switch (value) {
-    case Enum::PedalOne: return "pedal-one";
-    case Enum::PedalTwo: return "pedal-two";
-    case Enum::PedalThree: return "pedal-three";
-    case Enum::PedalUp: return "pedal-up";
-    case Enum::HalfPedal: return "half-pedal";
-    case Enum::PedalUpNotch: return "pedal-up-notch";
-    case Enum::PedalUpSpecial: return "pedal-up-special";
-    case Enum::HookStart: return "hook-start";
-    case Enum::HookEnd: return "hook-end";
-    case Enum::Hyphen: return "hyphen";
-    case Enum::PedalChange: return "pedal-change";
-    }
-    return "unknown";
-}
-
 std::string_view glyphStylePlacementName(GlyphStyle::Placement value)
 {
     using Enum = GlyphStyle::Placement;
@@ -401,6 +382,25 @@ void appendValue(json& result, const classify::ExpressionValue& value)
 }
 
 } // namespace
+
+std::string_view keyboardPedalTypeName(classify::keyboardpedal::Type value)
+{
+    using Enum = classify::keyboardpedal::Type;
+    switch (value) {
+    case Enum::PedalOne: return "pedal-one";
+    case Enum::PedalTwo: return "pedal-two";
+    case Enum::PedalThree: return "pedal-three";
+    case Enum::PedalUp: return "pedal-up";
+    case Enum::HalfPedal: return "half-pedal";
+    case Enum::PedalUpNotch: return "pedal-up-notch";
+    case Enum::PedalUpSpecial: return "pedal-up-special";
+    case Enum::HookStart: return "hook-start";
+    case Enum::HookEnd: return "hook-end";
+    case Enum::Hyphen: return "hyphen";
+    case Enum::PedalChange: return "pedal-change";
+    }
+    return "unknown";
+}
 
 json expressionJson(const classify::ExpressionClassification& expression)
 {

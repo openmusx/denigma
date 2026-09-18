@@ -71,12 +71,12 @@ denigma::formats::mnx::Options options;
 options.common.gapCollector = &gaps;
 
 auto result = denigma::formats::mnx::MusxToMnxJsonConverter{}.convert(input, output, options);
-auto report = denigma::serializeGapReport(gaps, { "my-app", "1.0", "abc123" });
+auto report = denigma::serializeGapReport(gaps, { { "my-app", "1.0", "abc123" }, {} });
 ```
 
-When `gapCollector` is null, no gaps are classified or stored. Consume or serialize a collector before releasing the parsed source document because classification values may retain document-backed source objects. Serialization always produces a report, including an empty `gaps` array when nothing was collected.
+When `gapCollector` is null, no gaps are classified or stored. The exporter hands the collector its parsed source document, which the collector keeps alive until it is destroyed, so a report can be serialized after the conversion returns. Serialization always produces a report, including an empty `gaps` array when nothing was collected. The second member of `GapReportOptions` is an optional `denigma::GlyphMetricsFn`; the CLI passes its FreeType-backed text measurer so that text inside an embedded arrowhead image is sized exactly, and a front end without one (the WebAssembly module) gets heuristic sizing.
 
-Chord symbols and notehead shapes are the first two gap types. Chords anchor to a part-measure ID plus position and optional staff. Noteheads anchor directly to the stable note ID already present in MNX.
+Chord symbols, notehead shapes, expressions, and smart shapes are the gap types so far. Chords anchor to a part-measure ID plus position and optional staff. Noteheads anchor directly to the stable note ID already present in MNX. A smart shape MNX cannot carry (a custom line, a glissando, a trill or vibrato line, a keyboard pedal line, a beat-attached slur, a bend) spans from its `anchor` to an `end`: an entry-attached shape names the events or notes it runs between, and a beat-attached shape names part measures with positions. Its payload is the classified shape, and the caps of a line that carry an arrowhead reference a report-level `arrowheads` table of SVG images drawn in staff spaces with the shape's origin at the line end.
 
 ```json
 {
@@ -107,6 +107,8 @@ Serialized reports use these compatibility rules:
 - Consumers should dispatch on `type` and ignore unknown fields and gap types.
 - Anchors are MNX object IDs and remain valid as consumers modify surrounding arrays.
 - Consumers should resolve chord positions before changing measure timing.
+- A gap with an `end` spans from its anchor to that end; `end` has the same shape as the anchor fields.
+- `arrowheads` keys are report-internal references, not MNX object IDs.
 - Split-instrument export reports a chord once in each generated MNX part that contains its source staff, with the corresponding part-measure anchor.
 
 The WebAssembly API opts into collection and exposes serialized report bytes through `denigma_result_gap_report_data` and `denigma_result_gap_report_size`. CLI users can pass `--gap-report` with MNX output to write `<output>.gaps.json` beside the score.

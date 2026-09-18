@@ -42,6 +42,8 @@ std::string_view insertKindName(classify::text::Insert::Kind kind)
     return "unknown";
 }
 
+} // namespace
+
 json fontJson(const musx::dom::ResolvedFontInfo& font)
 {
     return {
@@ -58,8 +60,6 @@ json fontJson(const musx::dom::ResolvedFontInfo& font)
         {"isSmufl", font.isSmufl},
     };
 }
-
-} // namespace
 
 json formattedTextJson(const classify::FormattedText& text)
 {

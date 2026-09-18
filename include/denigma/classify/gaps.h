@@ -29,23 +29,10 @@
 #include "denigma/classify/expressions.h"
 #include "denigma/classify/formatted_text.h"
 #include "denigma/classify/noteheads.h"
+#include "denigma/classify/smartshapes.h"
 
 namespace denigma {
 namespace classify {
-
-/// @struct GapPosition
-/// @brief Position within an anchored measure as a whole-note fraction.
-struct GapPosition
-{
-    int numerator{};
-    int denominator{1};
-};
-
-/// @brief Converts a musx fraction of a whole note into a gap position.
-inline GapPosition gapPositionFromFraction(const musx::util::Fraction& fraction)
-{
-    return {fraction.numerator(), fraction.denominator()};
-}
 
 /// @struct GapAnchor
 /// @brief Stable target object identity and optional location within that object.
@@ -53,7 +40,8 @@ struct GapAnchor
 {
     std::string id;
     std::optional<int> staff;
-    std::optional<GapPosition> position;
+    /// @brief Position within the anchored measure as a fraction of a whole note.
+    std::optional<musx::util::Fraction> position;
 };
 
 /// @enum GapExtent
@@ -88,13 +76,16 @@ struct GapPlacement
 struct PlaybackOnly
 {};
 
-using GapPayload = std::variant<ChordSymbolClassification, NoteheadClassification, ExpressionClassification, FormattedText, PlaybackOnly>;
+using GapPayload =
+    std::variant<ChordSymbolClassification, NoteheadClassification, ExpressionClassification, FormattedText, PlaybackOnly, SmartShapeClassification>;
 
 /// @struct Gap
 /// @brief One classified feature omitted, in whole or in part, from a conversion target.
 struct Gap
 {
     GapAnchor anchor;
+    /// @brief Where a spanning feature ends. Empty for a feature that occupies one place.
+    std::optional<GapAnchor> end;
     GapExtent extent{GapExtent::Complete};
     /// @brief Where the target would draw the feature. Empty when #anchor alone says so.
     std::vector<GapPlacement> placements;
@@ -104,16 +95,27 @@ struct Gap
 /// @class GapCollector
 /// @brief Collects typed conversion gaps for inspection or later serialization.
 ///
-/// Serialize or otherwise consume the collected gaps before releasing the parsed source document.
-/// Some classification values may retain non-owning access to document-backed source objects.
+/// Classification values keep non-owning access to document-backed source objects, so the exporter
+/// that records gaps hands the collector its source document with #retainDocument, and the collector
+/// keeps the document alive until the collector itself is destroyed.
 class GapCollector
 {
 public:
+    /// Keeps @p document alive for the collector's lifetime.
+    void retainDocument(musx::dom::DocumentPtr document) { m_documents.push_back(std::move(document)); }
+
     /// Adds one typed gap.
     template <typename Payload>
     void add(GapAnchor anchor, Payload payload, GapExtent extent = GapExtent::Complete, std::vector<GapPlacement> placements = {})
     {
-        m_gaps.push_back({std::move(anchor), extent, std::move(placements), GapPayload(std::move(payload))});
+        m_gaps.push_back({std::move(anchor), std::nullopt, extent, std::move(placements), GapPayload(std::move(payload))});
+    }
+
+    /// Adds one typed gap for a feature that spans from @p anchor to @p end.
+    template <typename Payload>
+    void addSpan(GapAnchor anchor, GapAnchor end, Payload payload, GapExtent extent = GapExtent::Complete)
+    {
+        m_gaps.push_back({std::move(anchor), std::move(end), extent, {}, GapPayload(std::move(payload))});
     }
 
     /// Returns collected gaps in source traversal order.
@@ -121,6 +123,7 @@ public:
 
 private:
     std::vector<Gap> m_gaps;
+    std::vector<musx::dom::DocumentPtr> m_documents;
 };
 
 } // namespace classify

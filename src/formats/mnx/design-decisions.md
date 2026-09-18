@@ -36,6 +36,14 @@ A beat unit that does not survive that comparison is restated as a count of quar
 
 The classifier says what a marking is; whether it attaches to the global measure or to a part measure is MNX's decision, made by expression type in `processGlobalExpressions`. Tempo marks, metronome marks, tempo alterations and rehearsal marks are one marking of the whole score however Finale distributes them, so the global pass handles them once per staff-list assignment group (`classify::groupExpressionAssignments`), whichever staff the assignment sits on. Everything else is a staff marking even when a staff list copies it onto several staves or a category staff list distributes it: a technique text or a multimeasure-rest number on three staves is three staff expressions, and `processExpressions` handles each with its part measure. The presence of a staff group or a floating staff value therefore never routes an expression on its own.
 
+## Smart shapes
+
+### A smart shape MNX cannot carry is a gap from its emission site, and a beat-attached slur is one of them
+
+MNX has slurs, ties, ottavas, dynamic wedges, arpeggios and non-arpeggio brackets and nothing else that spans. Every other smart shape (a custom or built-in line, a glissando or tab slide, a trill or vibrato line, a keyboard pedal line, a bend, an entry-attached trill) is recorded as a gap by the function that would emit it: `processSmartShapes` for beat-attached shapes and `processEntrySmartShapes` for entry-attached ones, following the exporter's existing split of the two assignment lists. The gap report's design decisions say how the two are anchored.
+
+A beat-attached slur is a gap as well. The MNX slur path hosts the entry-attached slurs Finale normally creates, whose endpoints name their events; a beat-attached slur names positions, and hosting it would mean choosing the events those positions coincide with. That is roadmap work, and until it is done the slur is reported rather than dropped, as is an entry-attached slur whose other end coincides with no event.
+
 ## Sequences
 
 ### An empty staff measure is written as a full-measure rest

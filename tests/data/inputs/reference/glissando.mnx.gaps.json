@@ -1,0 +1,747 @@
+{
+  "schemaVersion": 1,
+  "producer": {
+    "name": "denigma",
+    "version": "TEST",
+    "commit": "<commit>"
+  },
+  "gaps": [
+    {
+      "anchor": "ev45n1",
+      "end": {
+        "anchor": "ev46n1"
+      },
+      "extent": "complete",
+      "type": "smart-shape",
+      "smartShape": {
+        "shapeType": "glissando",
+        "kind": "glissando",
+        "glissando": {
+          "line": {
+            "lineStyle": "char",
+            "lineVisible": true,
+            "lineChar": {
+              "codePoint": 60079,
+              "glyph": "wiggleGlissando",
+              "font": {
+                "name": "Finale Maestro",
+                "size": 24,
+                "sizeIsPercent": false,
+                "bold": false,
+                "italic": false,
+                "underline": false,
+                "strikeout": false,
+                "absolute": false,
+                "hidden": false,
+                "isSymbolFont": false,
+                "isSmufl": true
+              }
+            },
+            "horizontal": false,
+            "startCap": {
+              "type": "none"
+            },
+            "endCap": {
+              "type": "none"
+            }
+          }
+        }
+      }
+    },
+    {
+      "anchor": "ev49n1",
+      "end": {
+        "anchor": "ev50n1"
+      },
+      "extent": "complete",
+      "type": "smart-shape",
+      "smartShape": {
+        "shapeType": "glissando",
+        "kind": "glissando",
+        "glissando": {
+          "line": {
+            "lineStyle": "solid",
+            "lineVisible": true,
+            "lineWidth": 115,
+            "horizontal": false,
+            "startCap": {
+              "type": "none"
+            },
+            "endCap": {
+              "type": "none"
+            }
+          }
+        }
+      }
+    },
+    {
+      "anchor": "ev77n1",
+      "end": {
+        "anchor": "ev79n1"
+      },
+      "extent": "complete",
+      "type": "smart-shape",
+      "smartShape": {
+        "shapeType": "glissando",
+        "kind": "glissando",
+        "glissando": {
+          "line": {
+            "lineStyle": "char",
+            "lineVisible": true,
+            "lineChar": {
+              "codePoint": 60079,
+              "glyph": "wiggleGlissando",
+              "font": {
+                "name": "Finale Maestro",
+                "size": 24,
+                "sizeIsPercent": false,
+                "bold": false,
+                "italic": false,
+                "underline": false,
+                "strikeout": false,
+                "absolute": false,
+                "hidden": false,
+                "isSymbolFont": false,
+                "isSmufl": true
+              }
+            },
+            "horizontal": false,
+            "startCap": {
+              "type": "none"
+            },
+            "endCap": {
+              "type": "none"
+            }
+          }
+        }
+      }
+    },
+    {
+      "anchor": "ev53n1",
+      "end": {
+        "anchor": "ev54n1"
+      },
+      "extent": "complete",
+      "type": "smart-shape",
+      "smartShape": {
+        "shapeType": "tab-slide",
+        "kind": "glissando",
+        "glissando": {
+          "line": {
+            "lineStyle": "solid",
+            "lineVisible": true,
+            "lineWidth": 115,
+            "horizontal": false,
+            "startCap": {
+              "type": "none"
+            },
+            "endCap": {
+              "type": "none"
+            }
+          }
+        }
+      }
+    },
+    {
+      "anchor": "ev57n1",
+      "end": {
+        "anchor": "ev58n1"
+      },
+      "extent": "complete",
+      "type": "smart-shape",
+      "smartShape": {
+        "shapeType": "tab-slide",
+        "kind": "glissando",
+        "glissando": {
+          "line": {
+            "lineStyle": "char",
+            "lineVisible": true,
+            "lineChar": {
+              "codePoint": 60079,
+              "glyph": "wiggleGlissando",
+              "font": {
+                "name": "Finale Maestro",
+                "size": 24,
+                "sizeIsPercent": false,
+                "bold": false,
+                "italic": false,
+                "underline": false,
+                "strikeout": false,
+                "absolute": false,
+                "hidden": false,
+                "isSymbolFont": false,
+                "isSmufl": true
+              }
+            },
+            "horizontal": false,
+            "startCap": {
+              "type": "none"
+            },
+            "endCap": {
+              "type": "none"
+            }
+          }
+        }
+      }
+    },
+    {
+      "anchor": "ev61n1",
+      "end": {
+        "anchor": "ev62n1"
+      },
+      "extent": "complete",
+      "type": "smart-shape",
+      "smartShape": {
+        "shapeType": "tab-slide",
+        "kind": "glissando",
+        "glissando": {
+          "line": {
+            "lineStyle": "char",
+            "lineVisible": true,
+            "lineChar": {
+              "codePoint": 60079,
+              "glyph": "wiggleGlissando",
+              "font": {
+                "name": "Finale Maestro",
+                "size": 24,
+                "sizeIsPercent": false,
+                "bold": false,
+                "italic": false,
+                "underline": false,
+                "strikeout": false,
+                "absolute": false,
+                "hidden": false,
+                "isSymbolFont": false,
+                "isSmufl": true
+              }
+            },
+            "horizontal": false,
+            "startCap": {
+              "type": "none"
+            },
+            "endCap": {
+              "type": "none"
+            },
+            "centerFullText": {
+              "plain": "rip!",
+              "runs": [
+                {
+                  "text": "rip!",
+                  "font": {
+                    "name": "Times New Roman",
+                    "size": 12,
+                    "sizeIsPercent": false,
+                    "bold": false,
+                    "italic": false,
+                    "underline": false,
+                    "strikeout": false,
+                    "absolute": false,
+                    "hidden": false,
+                    "isSymbolFont": false,
+                    "isSmufl": false
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "anchor": "ev65n1",
+      "end": {
+        "anchor": "ev66n1"
+      },
+      "extent": "complete",
+      "type": "smart-shape",
+      "smartShape": {
+        "shapeType": "glissando",
+        "kind": "glissando",
+        "glissando": {
+          "line": {
+            "lineStyle": "solid",
+            "lineVisible": true,
+            "lineWidth": 115,
+            "horizontal": false,
+            "startCap": {
+              "type": "none"
+            },
+            "endCap": {
+              "type": "none"
+            },
+            "centerFullText": {
+              "plain": "port.",
+              "runs": [
+                {
+                  "text": "port.",
+                  "font": {
+                    "name": "Times New Roman",
+                    "size": 12,
+                    "sizeIsPercent": false,
+                    "bold": false,
+                    "italic": false,
+                    "underline": false,
+                    "strikeout": false,
+                    "absolute": false,
+                    "hidden": false,
+                    "isSymbolFont": false,
+                    "isSmufl": false
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "anchor": "ev73n1",
+      "end": {
+        "anchor": "ev74n1"
+      },
+      "extent": "complete",
+      "type": "smart-shape",
+      "smartShape": {
+        "shapeType": "glissando",
+        "kind": "glissando",
+        "glissando": {
+          "line": {
+            "lineStyle": "char",
+            "lineVisible": true,
+            "lineChar": {
+              "codePoint": 60079,
+              "glyph": "wiggleGlissando",
+              "font": {
+                "name": "Finale Maestro",
+                "size": 24,
+                "sizeIsPercent": false,
+                "bold": false,
+                "italic": false,
+                "underline": false,
+                "strikeout": false,
+                "absolute": false,
+                "hidden": false,
+                "isSymbolFont": false,
+                "isSmufl": true
+              }
+            },
+            "horizontal": false,
+            "startCap": {
+              "type": "none"
+            },
+            "endCap": {
+              "type": "none"
+            }
+          }
+        }
+      }
+    },
+    {
+      "anchor": "ev67n1",
+      "end": {
+        "anchor": "ev68n1"
+      },
+      "extent": "complete",
+      "type": "smart-shape",
+      "smartShape": {
+        "shapeType": "glissando",
+        "kind": "glissando",
+        "glissando": {
+          "line": {
+            "lineStyle": "char",
+            "lineVisible": true,
+            "lineChar": {
+              "codePoint": 60087,
+              "glyph": "wiggleSquareWaveNarrow",
+              "font": {
+                "name": "Finale Maestro",
+                "size": 24,
+                "sizeIsPercent": false,
+                "bold": false,
+                "italic": false,
+                "underline": false,
+                "strikeout": false,
+                "absolute": false,
+                "hidden": false,
+                "isSymbolFont": false,
+                "isSmufl": true
+              }
+            },
+            "horizontal": false,
+            "startCap": {
+              "type": "none"
+            },
+            "endCap": {
+              "type": "none"
+            }
+          }
+        }
+      }
+    },
+    {
+      "anchor": "ev70n1",
+      "end": {
+        "anchor": "ev71n1"
+      },
+      "extent": "complete",
+      "type": "smart-shape",
+      "smartShape": {
+        "shapeType": "tab-slide",
+        "kind": "glissando",
+        "glissando": {
+          "line": {
+            "lineStyle": "solid",
+            "lineVisible": true,
+            "lineWidth": 115,
+            "horizontal": false,
+            "startCap": {
+              "type": "none"
+            },
+            "endCap": {
+              "type": "none"
+            }
+          }
+        }
+      }
+    },
+    {
+      "anchor": "ev80n1",
+      "end": {
+        "anchor": "ev81n1"
+      },
+      "extent": "complete",
+      "type": "smart-shape",
+      "smartShape": {
+        "shapeType": "tab-slide",
+        "kind": "glissando",
+        "glissando": {
+          "line": {
+            "lineStyle": "solid",
+            "lineVisible": true,
+            "lineWidth": 115,
+            "horizontal": false,
+            "startCap": {
+              "type": "none"
+            },
+            "endCap": {
+              "type": "none"
+            }
+          }
+        }
+      }
+    },
+    {
+      "anchor": "ev83n1",
+      "end": {
+        "anchor": "ev84n1"
+      },
+      "extent": "complete",
+      "type": "smart-shape",
+      "smartShape": {
+        "shapeType": "tab-slide",
+        "kind": "glissando",
+        "glissando": {
+          "line": {
+            "lineStyle": "char",
+            "lineVisible": true,
+            "lineChar": {
+              "codePoint": 60079,
+              "glyph": "wiggleGlissando",
+              "font": {
+                "name": "Finale Maestro",
+                "size": 24,
+                "sizeIsPercent": false,
+                "bold": false,
+                "italic": false,
+                "underline": false,
+                "strikeout": false,
+                "absolute": false,
+                "hidden": false,
+                "isSymbolFont": false,
+                "isSmufl": true
+              }
+            },
+            "horizontal": false,
+            "startCap": {
+              "type": "none"
+            },
+            "endCap": {
+              "type": "none"
+            },
+            "centerFullText": {
+              "plain": "rip!",
+              "runs": [
+                {
+                  "text": "rip!",
+                  "font": {
+                    "name": "Times New Roman",
+                    "size": 12,
+                    "sizeIsPercent": false,
+                    "bold": false,
+                    "italic": false,
+                    "underline": false,
+                    "strikeout": false,
+                    "absolute": false,
+                    "hidden": false,
+                    "isSymbolFont": false,
+                    "isSmufl": false
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "anchor": "ev85n1",
+      "end": {
+        "anchor": "ev86n1"
+      },
+      "extent": "complete",
+      "type": "smart-shape",
+      "smartShape": {
+        "shapeType": "glissando",
+        "kind": "glissando",
+        "glissando": {
+          "line": {
+            "lineStyle": "char",
+            "lineVisible": true,
+            "lineChar": {
+              "codePoint": 60079,
+              "glyph": "wiggleGlissando",
+              "font": {
+                "name": "Finale Maestro",
+                "size": 24,
+                "sizeIsPercent": false,
+                "bold": false,
+                "italic": false,
+                "underline": false,
+                "strikeout": false,
+                "absolute": false,
+                "hidden": false,
+                "isSymbolFont": false,
+                "isSmufl": true
+              }
+            },
+            "horizontal": false,
+            "startCap": {
+              "type": "none"
+            },
+            "endCap": {
+              "type": "none"
+            },
+            "centerFullText": {
+              "plain": "rip!",
+              "runs": [
+                {
+                  "text": "rip!",
+                  "font": {
+                    "name": "Times New Roman",
+                    "size": 12,
+                    "sizeIsPercent": false,
+                    "bold": false,
+                    "italic": false,
+                    "underline": false,
+                    "strikeout": false,
+                    "absolute": false,
+                    "hidden": false,
+                    "isSymbolFont": false,
+                    "isSmufl": false
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "anchor": "ev88n1",
+      "end": {
+        "anchor": "ev88n1"
+      },
+      "extent": "complete",
+      "type": "smart-shape",
+      "smartShape": {
+        "shapeType": "glissando",
+        "kind": "glissando",
+        "glissando": {
+          "line": {
+            "lineStyle": "char",
+            "lineVisible": true,
+            "lineChar": {
+              "codePoint": 60079,
+              "glyph": "wiggleGlissando",
+              "font": {
+                "name": "Finale Maestro",
+                "size": 24,
+                "sizeIsPercent": false,
+                "bold": false,
+                "italic": false,
+                "underline": false,
+                "strikeout": false,
+                "absolute": false,
+                "hidden": false,
+                "isSymbolFont": false,
+                "isSmufl": true
+              }
+            },
+            "horizontal": false,
+            "startCap": {
+              "type": "none"
+            },
+            "endCap": {
+              "type": "none"
+            },
+            "centerFullText": {
+              "plain": "rip!",
+              "runs": [
+                {
+                  "text": "rip!",
+                  "font": {
+                    "name": "Times New Roman",
+                    "size": 12,
+                    "sizeIsPercent": false,
+                    "bold": false,
+                    "italic": false,
+                    "underline": false,
+                    "strikeout": false,
+                    "absolute": false,
+                    "hidden": false,
+                    "isSymbolFont": false,
+                    "isSmufl": false
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "anchor": "ev90n1",
+      "end": {
+        "anchor": "ev91n1"
+      },
+      "extent": "complete",
+      "type": "smart-shape",
+      "smartShape": {
+        "shapeType": "tab-slide",
+        "kind": "glissando",
+        "glissando": {
+          "line": {
+            "lineStyle": "solid",
+            "lineVisible": true,
+            "lineWidth": 115,
+            "horizontal": true,
+            "startCap": {
+              "type": "none"
+            },
+            "endCap": {
+              "type": "none"
+            }
+          }
+        }
+      }
+    },
+    {
+      "anchor": "ev92n1",
+      "end": {
+        "anchor": "ev93n1"
+      },
+      "extent": "complete",
+      "type": "smart-shape",
+      "smartShape": {
+        "shapeType": "tab-slide",
+        "kind": "glissando",
+        "glissando": {
+          "line": {
+            "lineStyle": "solid",
+            "lineVisible": true,
+            "lineWidth": 154,
+            "horizontal": false,
+            "startCap": {
+              "type": "none"
+            },
+            "endCap": {
+              "type": "arrowhead-preset",
+              "preset": "small-filled",
+              "arrowhead": "preset-small-filled"
+            }
+          }
+        }
+      }
+    },
+    {
+      "anchor": "ev94n1",
+      "end": {
+        "anchor": "ev95n1"
+      },
+      "extent": "complete",
+      "type": "smart-shape",
+      "smartShape": {
+        "shapeType": "glissando",
+        "kind": "glissando",
+        "glissando": {
+          "line": {
+            "lineStyle": "char",
+            "lineVisible": true,
+            "lineChar": {
+              "codePoint": 60079,
+              "glyph": "wiggleGlissando",
+              "font": {
+                "name": "Finale Maestro",
+                "size": 24,
+                "sizeIsPercent": false,
+                "bold": false,
+                "italic": false,
+                "underline": false,
+                "strikeout": false,
+                "absolute": false,
+                "hidden": false,
+                "isSymbolFont": false,
+                "isSmufl": true
+              }
+            },
+            "horizontal": false,
+            "startCap": {
+              "type": "none"
+            },
+            "endCap": {
+              "type": "none"
+            },
+            "centerFullText": {
+              "plain": "rip!",
+              "runs": [
+                {
+                  "text": "rip!",
+                  "font": {
+                    "name": "Times New Roman",
+                    "size": 12,
+                    "sizeIsPercent": false,
+                    "bold": false,
+                    "italic": false,
+                    "underline": false,
+                    "strikeout": false,
+                    "absolute": false,
+                    "hidden": false,
+                    "isSymbolFont": false,
+                    "isSmufl": false
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  ],
+  "arrowheads": {
+    "preset-small-filled": {
+      "unit": "staff-space",
+      "origin": "line-end",
+      "svg": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 1.1//EN\" \"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd\">\n<!-- Generator: MusxDom -->\n<svg version=\"1.1\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" viewBox=\"-0.833333 -0.416667 0.833333 0.833333\" width=\"0.833333\" height=\"0.833333\" xml:space=\"preserve\">\n    <g id=\"MusxDom\"><g transform=\"matrix(0.0416667 0 0 0.0416667 0 0)\"><path d=\"M 0 0 L -20 10 L -20 -10 Z\" stroke=\"none\" fill=\"rgb(0,0,0)\"/></g></g>\n</svg>\n"
+    }
+  }
+}

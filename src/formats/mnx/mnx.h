@@ -37,6 +37,7 @@
 #include "mnxdom.h"
 #include "musx/musx.h"
 
+#include "denigma/classify/gaps.h"
 #include "denigma/classify/jumps.h"
 #include "mnx_articulations.h"
 #include "mnx_fwd.h"
@@ -109,6 +110,17 @@ struct MnxMusxMapping
     std::unordered_set<std::string> deferredJumpTieKeys;
     std::vector<musx::util::ArpeggioSpanCandidate> deferredArpeggios;
     std::unordered_set<std::string> deferredArpeggioKeys;
+
+    /// @brief An entry-attached smart shape MNX does not export, held until every entry has been
+    /// exported so its end can be anchored to an exported event or, failing that, a measure.
+    struct DeferredSmartShapeGap
+    {
+        MusxInstance<others::SmartShape> shape;
+        classify::SmartShapeClassification classification;
+        classify::GapAnchor start;
+    };
+
+    std::vector<DeferredSmartShapeGap> deferredSmartShapeGaps;
 
     std::optional<std::string> currSplitInstrumentUuid;
     std::vector<StaffCmper> currPartStaves;

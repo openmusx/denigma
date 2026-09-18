@@ -14,6 +14,7 @@ import { pathToFileURL } from 'node:url';
 const defaultSample = resolve(import.meta.dirname, '..', 'data', 'inputs', 'voiced_parts.musx');
 const chordSample = resolve(import.meta.dirname, '..', 'data', 'inputs', 'chords.musx');
 const noteheadSample = resolve(import.meta.dirname, '..', 'data', 'inputs', 'note_shapes.musx');
+const arrowheadSample = resolve(import.meta.dirname, '..', 'data', 'inputs', 'custom_arrowheads.enigmaxml.zip');
 const [, , moduleArg, wasmArg, musxArg = defaultSample] = process.argv;
 if (!moduleArg || !wasmArg) {
   console.error('usage: node tests/wasm/smoke.mjs <denigma.js> <denigma.wasm> [sample.musx]');
@@ -264,6 +265,44 @@ withInput(noteheadInput, 'note_shapes.musx', (dataPointer, namePointer) => {
     }
     console.log(`MNX gap report: ${noteheadGaps.length} notehead gaps.`);
     console.log(`MNX notehead gap example:\n${JSON.stringify(noteheadGaps[0], null, 2)}`);
+  } finally {
+    Module._denigma_result_destroy(result);
+  }
+});
+
+// Smart shapes span between anchors, and custom arrowheads are embedded as SVG rendered without
+// a text-metrics backend (the module has none, so shape text is sized heuristically).
+const arrowheadInput = await readFile(arrowheadSample);
+withInput(arrowheadInput, 'custom_arrowheads.enigmaxml.zip', (dataPointer, namePointer) => {
+  const result = convert(dataPointer, arrowheadInput.byteLength, namePointer, FORMAT_MNX);
+  try {
+    if (!Module._denigma_result_success(result)) throw new Error(`Smart shape MNX conversion failed:\n${messages(result)}`);
+    const report = gapReport(result);
+    const shapeGaps = report.gaps.filter((gap) => gap.type === 'smart-shape');
+    if (!shapeGaps.length || shapeGaps.some((gap) => !gap.anchor
+      || !gap.end?.anchor
+      || !gap.smartShape.shapeType
+      || !gap.smartShape.kind
+      || 'source' in gap)) {
+      throw new Error('Smart shape gap report does not contain target-anchored spans.');
+    }
+    const glissando = shapeGaps.find((gap) => gap.smartShape.kind === 'glissando');
+    if (!glissando || !glissando.anchor.startsWith('ev') || !glissando.end.anchor.startsWith('ev')) {
+      throw new Error('Entry-attached glissando gap is not anchored to events.');
+    }
+    const arrowheads = report.arrowheads ?? {};
+    const references = shapeGaps
+      .map((gap) => gap.smartShape.keyboardPedal?.line)
+      .filter(Boolean)
+      .flatMap((line) => [line.startCap, line.endCap])
+      .filter((cap) => cap.type === 'arrowhead-custom')
+      .map((cap) => cap.arrowhead);
+    if (!references.length || references.some((key) => !arrowheads[key]
+      || arrowheads[key].unit !== 'staff-space'
+      || !arrowheads[key].svg.includes('<svg '))) {
+      throw new Error('Custom arrowheads are not embedded as staff-space SVG images.');
+    }
+    console.log(`MNX gap report: ${shapeGaps.length} smart shape gaps, ${Object.keys(arrowheads).length} arrowheads.`);
   } finally {
     Module._denigma_result_destroy(result);
   }

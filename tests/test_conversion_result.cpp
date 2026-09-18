@@ -108,7 +108,7 @@ TEST(GapCollector, PreservesTypedGaps)
 {
     denigma::classify::GapCollector collector;
     denigma::classify::ChordSymbolClassification chord;
-    collector.add({"P1.m1", 1, denigma::classify::GapPosition{1, 4}}, chord);
+    collector.add({"P1.m1", 1, musx::util::Fraction{1, 4}}, chord);
 
     ASSERT_EQ(collector.gaps().size(), 1u);
     EXPECT_EQ(collector.gaps().front().anchor.id, "P1.m1");

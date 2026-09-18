@@ -35,7 +35,7 @@ namespace formats {
 namespace mnx {
 namespace detail {
 
-// all smart shapes except ottavas and slurs
+// all beat-attached smart shapes except ottavas; records gaps for the ones MNX does not export
 void processSmartShapes(const MnxMusxMappingPtr& context, const MusxInstance<others::Measure>& musxMeasure, mnxdom::part::Measure& mnxMeasure,
     std::optional<int> mnxStaffNumber);
 
@@ -43,8 +43,12 @@ void processSmartShapes(const MnxMusxMappingPtr& context, const MusxInstance<oth
 void createOttavas(const MnxMusxMappingPtr& context, const MusxInstance<others::Measure>& musxMeasure, mnxdom::part::Measure& mnxMeasure,
     std::optional<int> mnxStaffNumber);
 
-// called separately from the event loop
-void processSlurs(const MnxMusxMappingPtr& context, mnxdom::sequence::Event& mnxEvent, const EntryInfoPtr& musxEntryInfo);
+// called separately from the event loop: exports the slurs starting at the event and defers gaps for the
+// other entry-attached shapes starting there
+void processEntrySmartShapes(const MnxMusxMappingPtr& context, mnxdom::sequence::Event& mnxEvent, const EntryInfoPtr& musxEntryInfo);
+
+// records the deferred entry-attached gaps; must run after every part has been exported
+void finalizeSmartShapeGaps(const MnxMusxMappingPtr& context);
 
 } // namespace detail
 } // namespace mnx

@@ -369,7 +369,7 @@ void convertMnx(OnlineResult& result, std::span<const std::byte> bytes, const ch
     denigma::formats::mnx::detail::exportJson(output, input, context);
     if (gapCollector) {
         denigma::withGapReport(*gapCollector, [&]<typename Writer>(const Writer& writer) {
-            result.gapReport = writer.serialize({DENIGMA_NAME, DENIGMA_VERSION, denigma::gitCommit()});
+            result.gapReport = writer.serialize({{DENIGMA_NAME, DENIGMA_VERSION, denigma::gitCommit()}, {}});
         });
     }
     if (!conversionResult.hasError()) {

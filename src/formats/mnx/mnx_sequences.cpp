@@ -437,7 +437,7 @@ static std::optional<mnxdom::sequence::Event> createEvent(const MnxMusxMappingPt
     createLyrics(context, mnxEvent, musxEntryInfo);
     processArticulations(context, mnxEvent, musxEntryInfo);
     /// @todo orient
-    processSlurs(context, mnxEvent, musxEntryInfo);
+    processEntrySmartShapes(context, mnxEvent, musxEntryInfo);
     if (const auto& crossedStaffId = musxEntryInfo.calcCrossedStaffForAll()) {
         if (const auto& mnxPartStaff = context->mnxPartStaffFromStaff(crossedStaffId.value())) {
             mnxEvent.set_staff(mnxPartStaff.value());

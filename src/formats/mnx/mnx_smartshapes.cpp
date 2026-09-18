@@ -26,6 +26,7 @@
 #include "denigma/classify/smartshapes.h"
 #include "mnx.h"
 #include "mnx_articulations.h"
+#include "mnx_gaps.h"
 #include "mnx_smartshapes.h"
 
 namespace denigma {
@@ -49,6 +50,43 @@ void appendHairpin(const MnxMusxMappingPtr&, mnxdom::part::Measure& mnxMeasure, 
         mnxDynamic.set_staff(mnxStaffNumber.value());
     }
 }
+
+/// @brief A hidden shape draws nothing, so losing it loses nothing; a lyric shape belongs to the lyrics.
+bool isReportable(const MusxInstance<others::SmartShape>& shape)
+{
+    return !shape->hidden && !shape->calcIsLyricShape();
+}
+
+/// @brief The anchor of a shape endpoint that reaches a part measure: the measure, staff and position.
+std::optional<classify::GapAnchor> endPointAnchor(const MnxMusxMappingPtr& context, const MusxInstance<smartshape::EndPoint>& endPoint)
+{
+    return partMeasureAnchor(context, endPoint->staffId, endPoint->measId, endPoint->calcGlobalPosition());
+}
+
+/// @brief Records the gap for a beat-attached shape MNX does not export, spanning its endpoints.
+void addMeasureShapeGap(const MnxMusxMappingPtr& context, mnxdom::part::Measure& mnxMeasure, std::optional<int> mnxStaffNumber,
+    const MusxInstance<others::SmartShape>& shape, const classify::SmartShapeClassification& classification)
+{
+    auto* const gapCollector = gapCollectorFor(context);
+    if (!gapCollector || !isReportable(shape)) {
+        return;
+    }
+    classify::GapAnchor start{mnxMeasure.id_or(""), mnxStaffNumber, shape->startTermSeg->endPoint->calcGlobalPosition()};
+    if (auto end = endPointAnchor(context, shape->endTermSeg->endPoint)) {
+        gapCollector->addSpan(std::move(start), std::move(*end), classification);
+    } else {
+        gapCollector->add(std::move(start), classification);
+    }
+}
+
+/// @brief Logs a shape whose type carries no meaning Denigma models, so a new kind of source
+/// document announces itself.
+void logUnclassifiedShape(const MnxMusxMappingPtr& context, const MusxInstance<others::SmartShape>& shape)
+{
+    context->logMessage(LogMsg() << "smart shape " << shape->getCmper() << " of type " << static_cast<int>(shape->shapeType)
+                                 << " has no classification and is reported as a gap.",
+        MessageSeverity::Verbose);
+}
 } // namespace
 
 void processSmartShapes(const MnxMusxMappingPtr& context, const MusxInstance<others::Measure>& musxMeasure, mnxdom::part::Measure& mnxMeasure,
@@ -71,6 +109,10 @@ void processSmartShapes(const MnxMusxMappingPtr& context, const MusxInstance<oth
             if (!shape || !shape->calcIsValid()) {
                 continue;
             }
+            if (shape->entryBased) {
+                // Entry-attached shapes are exported or reported from their start entry. (See processEntrySmartShapes.)
+                continue;
+            }
             if (shape->startTermSeg->endPoint->staffId != context->current.staff
                 || shape->startTermSeg->endPoint->measId != musxMeasure->getCmper()) {
                 continue;
@@ -85,11 +127,18 @@ void processSmartShapes(const MnxMusxMappingPtr& context, const MusxInstance<oth
                         appendHairpin(context, mnxMeasure, mnxStaffNumber, shape, mnxdom::DynamicWedgeType::Decreasing);
                     } else if constexpr (std::is_same_v<Value, denigma::classify::smartshape::NonArpeggio>) {
                         appendArpeggioCandidate(context, mnxMeasure, value.candidate);
-                    } else if constexpr (std::is_same_v<Value, denigma::classify::smartshape::Slur>
-                                         || std::is_same_v<Value, denigma::classify::smartshape::Ottava>
+                    } else if constexpr (std::is_same_v<Value, denigma::classify::smartshape::Ottava>
                                          || std::is_same_v<Value, denigma::classify::PseudoTie>
                                          || std::is_same_v<Value, denigma::classify::smartshape::ArpeggiatedTie>) {
-                    // Processed by the dedicated slur, ottava, or note-level tie paths.
+                        // Processed by the dedicated ottava or note-level tie paths. A visual proxy of a hidden
+                        // ottava is represented by the ottava its carrier exports.
+                    } else {
+                        // Until MNX has an object for this shape, its export is a gap. A beat-attached slur is
+                        // one of them: the slur path hosts only entry-attached slurs.
+                        if constexpr (std::is_same_v<Value, std::monostate>) {
+                            logUnclassifiedShape(context, shape);
+                        }
+                        addMeasureShapeGap(context, mnxMeasure, mnxStaffNumber, shape, classification);
                     }
                 },
                 classification.value);
@@ -97,48 +146,89 @@ void processSmartShapes(const MnxMusxMappingPtr& context, const MusxInstance<oth
     }
 }
 
-void processSlurs(const MnxMusxMappingPtr&, mnxdom::sequence::Event& mnxEvent, const EntryInfoPtr& musxEntryInfo)
+void processEntrySmartShapes(const MnxMusxMappingPtr& context, mnxdom::sequence::Event& mnxEvent, const EntryInfoPtr& musxEntryInfo)
 {
     const auto musxEntry = musxEntryInfo->getEntry();
     const auto currentEntryNumber = musxEntry->getEntryNumber();
+    if (!musxEntry->smartShapeDetail) {
+        return;
+    }
     auto createOneSlur = [&](const EntryNumber targetEntry) -> mnxdom::sequence::Slur {
         auto mnxSlurs = mnxEvent.ensure_slurs();
         return mnxSlurs.append(core::calcEventId(targetEntry));
     };
-    if (musxEntry->smartShapeDetail) {
-        auto shapeAssigns =
-            musxEntry->getDocument()->getDetails()->getArray<details::SmartShapeEntryAssign>(SCORE_PARTID, musxEntry->getEntryNumber());
-        for (const auto& assign : shapeAssigns) {
-            if (auto shape = musxEntry->getDocument()->getOthers()->get<others::SmartShape>(SCORE_PARTID, assign->shapeNum)) {
-                if (!shape->calcIsSlur()) {
-                    continue;
-                }
-                const auto classification = denigma::classify::classifySmartShape(shape);
-                const auto* slur = classification.as<denigma::classify::smartshape::Slur>();
-                if (!slur) {
-                    // pseudotie and arpeggio tie classifications are handled elsewhere
-                    continue;
-                }
-                ASSERT_IF (!slur->startEntry || !slur->endEntry) {
-                    continue;
-                }
-                const auto startEntryNumber = slur->startEntry->getEntry()->getEntryNumber();
-                if (currentEntryNumber != startEntryNumber) {
-                    continue;
-                }
-                const auto targetEntryNumber = slur->endEntry->getEntry()->getEntryNumber();
-                if (targetEntryNumber == currentEntryNumber) {
-                    continue;
-                }
-
-                auto mnxSlur = createOneSlur(targetEntryNumber);
-                mnxSlur.set_lineType(shape->calcIsDashed() ? mnxdom::LineType::Dashed : mnxdom::LineType::Solid);
-                if (slur->contour != CurveContourDirection::Unspecified) {
-                    mnxSlur.set_side(slur->contour == CurveContourDirection::Up ? mnxdom::SlurTieSide::Up : mnxdom::SlurTieSide::Down);
-                }
+    // A shape that MNX does not export is reported from its start entry, anchored to the note it
+    // starts from when it names one and to the event otherwise; its end is resolved in finalizeSmartShapeGaps.
+    auto deferGap = [&](const MusxInstance<others::SmartShape>& shape, const classify::SmartShapeClassification& classification) {
+        if (!gapCollectorFor(context) || !isReportable(shape)) {
+            return;
+        }
+        const auto startNote = shape->calcStartNote();
+        classify::GapAnchor start{startNote ? core::calcNoteId(startNote) : core::calcEventId(currentEntryNumber), std::nullopt, std::nullopt};
+        context->deferredSmartShapeGaps.push_back({shape, classification, std::move(start)});
+    };
+    auto shapeAssigns = musxEntry->getDocument()->getDetails()->getArray<details::SmartShapeEntryAssign>(SCORE_PARTID, musxEntry->getEntryNumber());
+    for (const auto& assign : shapeAssigns) {
+        const auto shape = musxEntry->getDocument()->getOthers()->get<others::SmartShape>(SCORE_PARTID, assign->shapeNum);
+        if (!shape || !shape->calcIsValid()) {
+            continue;
+        }
+        if (shape->startTermSeg->endPoint->entryNumber != currentEntryNumber) {
+            // The end entry carries an assignment too; the shape belongs to its start.
+            continue;
+        }
+        const auto classification = denigma::classify::classifySmartShape(shape);
+        if (classification.as<denigma::classify::PseudoTie>() || classification.as<denigma::classify::smartshape::ArpeggiatedTie>()) {
+            // Handled by the note-level tie paths.
+            continue;
+        }
+        const auto* slur = classification.as<denigma::classify::smartshape::Slur>();
+        if (!slur) {
+            if (classification.as<std::monostate>()) {
+                logUnclassifiedShape(context, shape);
             }
+            deferGap(shape, classification);
+            continue;
+        }
+        if (!slur->startEntry || !slur->endEntry || slur->endEntry->getEntry()->getEntryNumber() == currentEntryNumber) {
+            // MNX slurs run between two events, so a slur with a floating or coinciding endpoint is a gap.
+            deferGap(shape, classification);
+            continue;
+        }
+        auto mnxSlur = createOneSlur(slur->endEntry->getEntry()->getEntryNumber());
+        mnxSlur.set_lineType(shape->calcIsDashed() ? mnxdom::LineType::Dashed : mnxdom::LineType::Solid);
+        if (slur->contour != CurveContourDirection::Unspecified) {
+            mnxSlur.set_side(slur->contour == CurveContourDirection::Up ? mnxdom::SlurTieSide::Up : mnxdom::SlurTieSide::Down);
         }
     }
+}
+
+void finalizeSmartShapeGaps(const MnxMusxMappingPtr& context)
+{
+    auto* const gapCollector = gapCollectorFor(context);
+    if (!gapCollector) {
+        context->deferredSmartShapeGaps.clear();
+        return;
+    }
+    for (auto& deferred : context->deferredSmartShapeGaps) {
+        const auto& endPoint = deferred.shape->endTermSeg->endPoint;
+        std::optional<classify::GapAnchor> end;
+        const auto targetIt = context->entryTargetByNumber.find(endPoint->entryNumber);
+        if (targetIt != context->entryTargetByNumber.end() && targetIt->second.kind == EntryTargetKind::Event) {
+            const auto endNote = deferred.shape->calcEndNote();
+            end = classify::GapAnchor{endNote ? core::calcNoteId(endNote) : core::calcEventId(endPoint->entryNumber), std::nullopt, std::nullopt};
+        } else {
+            // The end entry was not exported (a cue layer, or a full-measure rest with no event id), so
+            // the end names the measure it falls in.
+            end = endPointAnchor(context, endPoint);
+        }
+        if (end) {
+            gapCollector->addSpan(std::move(deferred.start), std::move(*end), std::move(deferred.classification));
+        } else {
+            gapCollector->add(std::move(deferred.start), std::move(deferred.classification));
+        }
+    }
+    context->deferredSmartShapeGaps.clear();
 }
 
 void createOttavas(const MnxMusxMappingPtr& context, const MusxInstance<others::Measure>& musxMeasure, mnxdom::part::Measure& mnxMeasure,
