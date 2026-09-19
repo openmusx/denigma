@@ -55,6 +55,8 @@ struct ResolvedTextExpression
     std::string text;
     std::string normalizedText;
     std::string errorMessage;
+    /// @brief The text block names no text, so the expression draws nothing.
+    bool emptyText{};
 };
 
 static std::string normalizeExpressionText(std::string_view text)
@@ -702,6 +704,11 @@ static ResolvedTextExpression resolveTextExpression(const musx::dom::MusxInstanc
     if (const auto textBlock = def->getTextBlock(); !textBlock) {
         result.errorMessage = (LogMsg() << "Text expression " << def->getCmper() << " has non-existent text block " << def->textIdKey).str();
         return result;
+    } else if (textBlock->textId == 0) {
+        // Finale's Human Playback authors expressions of this shape for its MIDI data, so they are
+        // routine rather than a defect.
+        result.emptyText = true;
+        return result;
     }
     result.rawTextCtx = assignment ? assignment->getRawTextCtx(musx::dom::SCORE_PARTID) : def->getRawTextCtx(musx::dom::SCORE_PARTID);
     if (!result.rawTextCtx) {
@@ -1108,6 +1115,9 @@ static std::optional<ExpressionClassification> classifyResolvedTextExpressionBef
     const CategoryType categoryType = resolved.categoryType;
     const std::string_view normalizedText = resolved.normalizedText;
 
+    if (resolved.emptyText) {
+        return suppressExpression();
+    }
     if (const auto error = classifyTextExpressionError(resolved)) {
         return error;
     }

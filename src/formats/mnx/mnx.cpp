@@ -256,6 +256,7 @@ static std::unique_ptr<mnxdom::Document> createMnxDocument(const CommandInputDat
     createMnx(context);
     createParts(context);
     createGlobal(context); // must come after createParts: global content refers to part ids
+    finalizeEntryTargets(context); // must precede finalizeJumpTies, which reads the ties
     finalizeArpeggios(context);
     finalizeJumpTies(context);
     finalizeSmartShapeGaps(context);
@@ -269,6 +270,11 @@ static std::unique_ptr<mnxdom::Document> createMnxDocument(const CommandInputDat
         denigmaContext.logMessage(
             LogMsg() << "discarded " << context->discardedCueFrames << " cue frames because MNX does not currently support cues.",
             MessageSeverity::Verbose);
+    }
+    if (context->discardedZeroLengthTuplets > 0) {
+        denigmaContext.logMessage(LogMsg() << "discarded the entries of " << context->discardedZeroLengthTuplets
+                                           << " zero-length tuplets because MNX cannot represent them.",
+            MessageSeverity::Warning);
     }
     return std::move(context->mnxDocument);
 }

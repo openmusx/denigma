@@ -47,9 +47,6 @@ std::optional<classify::GapAnchor> partMeasureAnchor(
 {
     const auto partIt = context->inst2Part.find(staff);
     if (partIt == context->inst2Part.end()) {
-        context->logMessage(LogMsg() << "Staff " << staff << " is not part of any exported instrument, so the gap report cannot place a feature "
-                                     << "in its measure " << measure << ".",
-            MessageSeverity::Verbose);
         return std::nullopt;
     }
     const auto& staves = context->part2Inst.at(partIt->second);
