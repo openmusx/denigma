@@ -817,7 +817,7 @@ std::optional<MusicXmlNoteLocation> findSoundingNoteLocation(MusicXmlMusxMapping
     for (const auto& [voiceIndex, voice] : staff.voices) {
         for (size_t noteIndex = 0; noteIndex < voice.notes.size(); ++noteIndex) {
             const auto& note = voice.notes[noteIndex];
-            if (note.isRest || note.isChord) {
+            if (note.isRest || note.isChord || note.printData.printObject == mx::api::Bool::no) {
                 continue;
             }
             const auto noteEnd = note.tickTimePosition + (std::max)(0, note.durationData.durationTimeTicks);
@@ -838,10 +838,17 @@ std::optional<MusicXmlNoteLocation> findSoundingNoteLocation(MusicXmlMusxMapping
 void appendWavyLine(MusicXmlMusxMapping& context, const MusxInstance<others::SmartShape>& shape, const std::optional<std::string>& glyphName)
 {
     // An endpoint that coincides with no entry still belongs to whatever is sounding under it, so
-    // unlike a curve this looks for a spanning note before resorting to an anchor rest.
+    // unlike a curve this looks for a spanning note before resorting to an anchor rest. The same
+    // goes for an endpoint whose entry is hidden: plugins realize a trill as hidden playback
+    // entries in another layer and attach the line to them, but an ornament on a note nobody sees
+    // is an ornament on nothing, and a reader that draws the line from the visible notes can
+    // trip over it (OpenSheetMusicDisplay does).
     const auto resolveEnd = [&context](const std::shared_ptr<smartshape::EndPoint>& endpoint, const EntryInfoPtr& entry, NoteNumber noteId) {
         if (auto location = findEntryNoteLocation(context, entry, noteId)) {
-            return location;
+            const auto* note = noteDataAt(context, *location);
+            if (note && note->printData.printObject != mx::api::Bool::no) {
+                return location;
+            }
         }
         if (auto location = findSoundingNoteLocation(context, endpoint)) {
             return location;

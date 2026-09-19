@@ -204,6 +204,8 @@ A wavy line's endpoint may fall where no entry begins, since these shapes are be
 
 An ornament belongs to a note in a way a curve does not. A slur may legitimately begin in empty space, and its anchor rest carries a real position that the curve is drawn from. A trill beginning halfway through a whole note is still that whole note's trill, and MusicXML has no way to express an ornament floating between notes: `<wavy-line>` lives inside a note's `<ornaments>` or nowhere. Anchoring it to a hidden rest in a reserved voice would technically place it while leaving readers to render an ornament on a rest, or ignore it.
 
+A hidden entry never hosts an ornament, whether it is the endpoint's own entry or the one sounding under it. Legacy Finale realized a trill as hidden playback entries in another layer with the line attached to them, and modern Finale keeps such data while re-anchoring the shape to a visible position. An ornament on a note nobody sees is an ornament on nothing, and a reader that draws the line from the visible notes can fail on it (OpenSheetMusicDisplay does). The endpoint falls through to the visible note sounding at its tick, then to the anchor rest. No checked-in fixture exercises this, because modern Finale discards the legacy playback entries when such music is copied; the case was verified against a legacy score.
+
 The anchor rest remains the last resort, for an endpoint with no sounding note under it at all.
 
 ### A glissando's printed label comes from the line's center text
