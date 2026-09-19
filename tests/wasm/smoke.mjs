@@ -60,10 +60,11 @@ function withSelection(indices, callback) {
 }
 
 function convert(dataPointer, size, namePointer, format, options = {}) {
-  const { includeTempo = 0, allFonts = 0, finaleRestPosition = 0, splitInstruments = 0, cueLayer = 0, selection = [] } = options;
+  const { includeTempo = 0, allFonts = 0, finaleRestPosition = 0, splitInstruments = 0, cueLayer = 0, selection = [],
+    writeGapReport = 1 } = options;
   return withSelection(selection, (selectionPointer, selectionCount) =>
     Module._denigma_convert(dataPointer, size, namePointer, format, includeTempo, allFonts, finaleRestPosition,
-      splitInstruments, MNX_INDENT_SPACES, cueLayer, selectionCount ? selectionPointer : 0, selectionCount));
+      splitInstruments, MNX_INDENT_SPACES, cueLayer, selectionCount ? selectionPointer : 0, selectionCount, writeGapReport));
 }
 
 function assertResult(result, label, marker, { outputCount = 1, verbose = false, indices } = {}) {
@@ -246,6 +247,16 @@ withInput(chordInput, 'chords.musx', (dataPointer, namePointer) => {
     console.log(`MNX gap example:\n${JSON.stringify(chordGaps[0], null, 2)}`);
   } finally {
     Module._denigma_result_destroy(result);
+  }
+  const skipped = convert(dataPointer, chordInput.byteLength, namePointer, FORMAT_MNX, { writeGapReport: 0 });
+  try {
+    if (!Module._denigma_result_success(skipped)) throw new Error(`Chord MNX conversion without gap report failed:\n${messages(skipped)}`);
+    if (Module._denigma_result_gap_report_data(skipped) || Module._denigma_result_gap_report_size(skipped)) {
+      throw new Error('MNX conversion returned a gap report although writeGapReport was 0.');
+    }
+    console.log('MNX without gap report: no report returned.');
+  } finally {
+    Module._denigma_result_destroy(skipped);
   }
 });
 
