@@ -76,6 +76,7 @@ The repository builds a CLI plus reusable libraries for classification, massage,
 
 ## Editing Rules
 
+- Never commit on your own initiative. Leave changes in the working tree until the user asks for a commit; a request to make, fix, or verify something is not a request to commit it. The same goes for pushing and opening pull requests.
 - Keep changes localized to the narrowest relevant library or test area.
 - Do not modify generated artifacts unless the task explicitly requires regenerating expected outputs.
 - If a change affects converter behavior, update the corresponding reference fixtures under `tests/data/inputs/reference` and verify the diff carefully.

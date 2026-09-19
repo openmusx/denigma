@@ -18,17 +18,22 @@
  */
 
 #include <algorithm>
+#include <cstddef>
 #include <filesystem>
 #include <map>
 #include <optional>
 #include <set>
+#include <span>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <tuple>
 #include <utility>
 #include <vector>
 
 #include "denigma/classify/articulations.h"
+#include "denigma/formats/musicxml.h"
+#include "denigma/io/random_access_reader.h"
 #include "formats/musicxml/musicxml.h"
 #include "musicxml_test.h"
 #include "musx/util/Fraction.h"
@@ -1587,4 +1592,96 @@ TEST(MusicXmlNotes, NoteAndMeasureIdsUseMnxScheme)
             }
         }
     }
+}
+
+TEST(MusicXmlNotes, NotesShorterThan1024thExportWithoutType)
+{
+    setupTestDataPaths();
+
+    // Layer 4 holds hidden 4096th notes (a trill-playback trick), layer 1 a visible triplet of
+    // 2048ths. MusicXML's note-type-value stops at 1024th, so both export without <type>, as
+    // Finale's own export in musicxml/note-4096th-ref.musicxml does. The hidden entries deserve
+    // no warning, so they log at Info; the visible ones and their tuplet log at Warning.
+    denigma::ConverterRegistry registry;
+    denigma::formats::musicxml::registerConverters(registry);
+    const auto* converter = registry.findReaderMultiOutput(denigma::FormatId::Musx, denigma::FormatId::MusicXml);
+    ASSERT_NE(converter, nullptr);
+
+    denigma::FileRandomAccessReader input(getInputPath() / "note-4096th.musx");
+    std::string xmlText;
+    denigma::formats::musicxml::Options options;
+    options.common.sourceName = "note-4096th.musx";
+    // Only warnings and errors reach the conversion result; the log callback sees every level.
+    std::vector<denigma::Diagnostic> diagnostics;
+    options.common.logCallback = [&](denigma::MessageSeverity severity, std::string_view message) {
+        diagnostics.push_back({severity, std::string(message)});
+    };
+    const auto result = converter->convert(
+        input, [&](std::string_view, std::span<const std::byte> data) { xmlText.assign(reinterpret_cast<const char*>(data.data()), data.size()); },
+        denigma::ConversionRequest{&options});
+    ASSERT_FALSE(result.hasError());
+
+    size_t infoCount = 0;
+    size_t warningCount = 0;
+    size_t tupletWarningCount = 0;
+    for (const auto& diagnostic : diagnostics) {
+        if (diagnostic.message.find("MusicXML cannot name") == std::string::npos) {
+            continue;
+        }
+        const bool isTuplet = diagnostic.message.find("starts a tuplet") != std::string::npos;
+        if (diagnostic.severity == denigma::MessageSeverity::Info) {
+            EXPECT_FALSE(isTuplet) << diagnostic.message;
+            EXPECT_NE(diagnostic.message.find("Layer 4"), std::string::npos) << diagnostic.message;
+            EXPECT_NE(diagnostic.message.find("4096th"), std::string::npos) << diagnostic.message;
+            ++infoCount;
+        } else {
+            EXPECT_EQ(diagnostic.severity, denigma::MessageSeverity::Warning) << diagnostic.message;
+            EXPECT_NE(diagnostic.message.find("Layer 1"), std::string::npos) << diagnostic.message;
+            if (isTuplet) {
+                ++tupletWarningCount;
+            } else {
+                EXPECT_NE(diagnostic.message.find("2048th"), std::string::npos) << diagnostic.message;
+                ++warningCount;
+            }
+        }
+    }
+    EXPECT_EQ(infoCount, 8u);
+    EXPECT_EQ(warningCount, 3u);
+    EXPECT_EQ(tupletWarningCount, 1u);
+
+    pugi::xml_document document;
+    ASSERT_TRUE(document.load_string(xmlText.c_str()));
+    const auto part = document.child("score-partwise").child("part");
+    ASSERT_TRUE(part);
+    const int divisions = part.child("measure").child("attributes").child("divisions").text().as_int();
+    ASSERT_GT(divisions, 0);
+    const int ticksPer1024th = divisions * 4 / 1024;
+    ASSERT_GT(ticksPer1024th, 0);
+
+    size_t typelessCount = 0;
+    size_t typelessInTuplet = 0;
+    size_t tupletNotations = 0;
+    for (const auto measure : part.children("measure")) {
+        for (const auto note : measure.children("note")) {
+            tupletNotations += note.child("notations").child("tuplet") ? 1 : 0;
+            const bool hasType = bool(note.child("type"));
+            const int duration = note.child("duration").text().as_int();
+            const bool inTuplet = bool(note.child("time-modification"));
+            // A tuplet member's <duration> is scaled by the ratio, so compare the nominal length.
+            const int nominalDuration = inTuplet ? duration * note.child("time-modification").child("actual-notes").text().as_int()
+                                                       / note.child("time-modification").child("normal-notes").text().as_int()
+                                                 : duration;
+            EXPECT_EQ(hasType, nominalDuration >= ticksPer1024th) << measure.attribute("number").value() << ": " << nominalDuration;
+            if (!hasType) {
+                EXPECT_FALSE(note.child("dot"));
+                ++typelessCount;
+                typelessInTuplet += inTuplet ? 1 : 0;
+            }
+        }
+    }
+    EXPECT_EQ(typelessCount, 11u);
+    EXPECT_EQ(typelessInTuplet, 3u);
+    // mx cannot write <tuplet> without naming its durations, so the 2048th triplet keeps only its
+    // <time-modification>.
+    EXPECT_EQ(tupletNotations, 0u);
 }

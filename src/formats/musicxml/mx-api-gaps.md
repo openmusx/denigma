@@ -230,6 +230,14 @@ Needed API shape: direction-level playback or technical modeling for the remaini
 
 Needed API shape: `SpannerNumber` on `TupletStart`/`TupletStop` with resolver support, extending the writer-side assignment that the other families received in MX PR #320. Denigma's current part-scope exposure is recorded in [roadmap.md](roadmap.md).
 
+### Tuplet portions cannot omit their type
+
+`<tuplet-actual>` and `<tuplet-normal>` are optional in `<tuplet>`, and `<tuplet-type>` is optional within each, so a tuplet of durations MusicXML cannot name (Finale's 2048th and 4096th, below the 1024th floor of `note-type-value`) is fully expressible with the numbers alone: `<tuplet-actual><tuplet-number>3</tuplet-number></tuplet-actual>` and its normal counterpart draw the bracket and the number exactly as for any other triplet, since the type only feeds `show-type`, whose default is `none`. Finale's own export writes a bare `<tuplet type="start"/>`, which is also valid.
+
+`mx::core` can write this: `TupletPortion` holds its type as `std::optional<TupletType>`. The gap is in `mx::impl`: `NotationsWriter` writes both portions from `TupletStart` and sets each type unconditionally from `Converter::convert(DurationName)`, which maps `unspecified` to `maxima`, so passing `unspecified` would name a wrong type rather than none. Denigma therefore drops the `<tuplet>` notation for such a tuplet and keeps its `<time-modification>`, logging the loss; see `applyTupletData` in [musicxml_notes.cpp](musicxml_notes.cpp).
+
+Needed change: `NotationsWriter` should leave a portion's `<tuplet-type>` unset when its `DurationName` is `unspecified`, as `NoteWriter` already guards `<normal-type>`. No new api field is needed. Once that is in, `createTupletStart` can leave the names `unspecified` for sub-1024th durations and keep the notation.
+
 ## Tablature
 
 ### Per-note string and fret

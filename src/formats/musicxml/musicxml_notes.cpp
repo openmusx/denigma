@@ -55,7 +55,18 @@ namespace {
 // a fact imported from musx data - and may change independently as MusicXML itself evolves.
 constexpr char32_t kDisplayNumberJoinMarker = char32_t(0x00A0);
 
-mx::api::DurationData createDurationData(const MusicXmlMusxMapping& context, const EntryInfoPtr& entryInfo, const Fraction& actualDuration)
+// MusicXML's note-type-value stops at 1024th, two steps short of Finale's 4096th. An entry
+// shorter than that exports without <type>, as Finale's own export does: <duration> still carries
+// its length. Such entries are mostly hidden playback tricks (a plugin's trill), which lose nothing.
+constexpr NoteType kShortestMusicXmlNoteType = NoteType::Note1024th;
+
+bool hasMusicXmlNoteType(NoteType noteType)
+{
+    return Edu(noteType) >= Edu(kShortestMusicXmlNoteType);
+}
+
+mx::api::DurationData createDurationData(
+    const MusicXmlMusxMapping& context, const EntryInfoPtr& entryInfo, const Fraction& actualDuration, bool hidden)
 {
     auto duration = mx::api::DurationData{};
     const auto [durationName, dots] = [&]() {
@@ -67,8 +78,17 @@ mx::api::DurationData createDurationData(const MusicXmlMusxMapping& context, con
         }
         return entryInfo->getEntry()->calcDurationInfo();
     }();
-    duration.durationName = enumConvert<mx::api::DurationName>(durationName);
-    duration.durationDots = int(dots);
+    if (hasMusicXmlNoteType(durationName)) {
+        duration.durationName = enumConvert<mx::api::DurationName>(durationName);
+        duration.durationDots = int(dots);
+    } else {
+        // A dot without a type would have nothing to augment, so the dots go with the type.
+        duration.isDurationNameSpecified = false;
+        context.logMessage(LogMsg() << "Layer " << entryInfo.getLayerIndex() + 1 << " entry index " << entryInfo.getIndexInFrame() << " is a "
+                                    << Edu(NoteType::Whole) / Edu(durationName)
+                                    << "th note, which MusicXML cannot name; exporting it without a type.",
+            hidden ? MessageSeverity::Info : MessageSeverity::Warning);
+    }
     duration.durationTimeTicks = context.timing.calcMusicXmlDivisions(actualDuration);
     for (size_t tupletIndex : entryInfo.findTupletInfo()) {
         const auto& tupletInfo = entryInfo.getFrame()->tupletInfo[tupletIndex];
@@ -171,7 +191,7 @@ mx::api::TupletStart createTupletStart(const EntryFrame::TupletInfo& tupletInfo,
     return result;
 }
 
-void applyTupletData(mx::api::NoteData& note, const EntryInfoPtr& entryInfo)
+void applyTupletData(const MusicXmlMusxMapping& context, mx::api::NoteData& note, const EntryInfoPtr& entryInfo)
 {
     if (entryInfo->getEntry()->graceNote) {
         return;
@@ -198,7 +218,7 @@ void applyTupletData(mx::api::NoteData& note, const EntryInfoPtr& entryInfo)
                 const auto& tupletDef = entryInfo.getFrame()->tupletInfo[activeTuplets.front()].tuplet;
                 const auto [normalDurationName, normalDots] = calcDurationInfoFromEdu(tupletDef->referenceDuration);
                 const auto [entryDurationName, entryDots] = entryInfo->getEntry()->calcDurationInfo();
-                if (normalDurationName != entryDurationName || normalDots != entryDots) {
+                if ((normalDurationName != entryDurationName || normalDots != entryDots) && hasMusicXmlNoteType(normalDurationName)) {
                     note.durationData.timeModificationNormalType = enumConvert<mx::api::DurationName>(normalDurationName);
                     note.durationData.timeModificationNormalTypeDots = int(normalDots);
                 }
@@ -208,7 +228,23 @@ void applyTupletData(mx::api::NoteData& note, const EntryInfoPtr& entryInfo)
 
     for (size_t tupletIndex : activeTuplets) {
         const auto& tupletInfo = entryInfo.getFrame()->tupletInfo[tupletIndex];
+        const auto& tupletDef = tupletInfo.tuplet;
         const int numberLevel = int(tupletIndex) + 1;
+        // <tuplet-actual> and <tuplet-normal> name their durations, and mx writes both with a
+        // type whenever it writes <tuplet> (see mx-api-gaps.md). A tuplet of durations MusicXML
+        // cannot name keeps its <time-modification>, which carries the timing, and loses the
+        // <tuplet> notation.
+        const bool hasMusicXmlTypes = hasMusicXmlNoteType(calcDurationInfoFromEdu(tupletDef->displayDuration).first)
+                                      && hasMusicXmlNoteType(calcDurationInfoFromEdu(tupletDef->referenceDuration).first);
+        if (!hasMusicXmlTypes) {
+            if (tupletInfo.startIndex == entryInfo.getIndexInFrame()) {
+                context.logMessage(LogMsg() << "Layer " << entryInfo.getLayerIndex() + 1 << " entry index " << entryInfo.getIndexInFrame()
+                                            << " starts a tuplet of notes shorter than a 1024th, which MusicXML cannot name; "
+                                            << "exporting its time modification without the tuplet notation.",
+                    tupletDef->hidden ? MessageSeverity::Info : MessageSeverity::Warning);
+            }
+            continue;
+        }
         if (tupletInfo.startIndex == entryInfo.getIndexInFrame()) {
             note.noteAttachmentData.tupletStarts.emplace_back(createTupletStart(tupletInfo, numberLevel));
         }
@@ -473,7 +509,7 @@ mx::api::NoteData createRestData(MusicXmlMusxMapping& context, mx::api::StaffDat
     if (entryInfo) {
         const auto entry = entryInfo->getEntry();
         rest.isGrace = entry->graceNote;
-        rest.durationData = createDurationData(context, entryInfo, entryIt.getEffectiveActualDuration(/*global*/ true));
+        rest.durationData = createDurationData(context, entryInfo, entryIt.getEffectiveActualDuration(/*global*/ true), entryIt.getEffectiveHidden());
         rest.id = mx::api::Id{core::calcEventId(entry->getEntryNumber())};
     } else {
         rest.durationData.durationName = mx::api::DurationName::whole;
@@ -490,7 +526,7 @@ mx::api::NoteData createRestData(MusicXmlMusxMapping& context, mx::api::StaffDat
     const auto effectiveStaff = entryInfo ? entryInfo.createCurrentStaff() : measureStartStaff;
     if (entryInfo) {
         rest.beams = createBeamData(context, entryInfo);
-        applyTupletData(rest, entryInfo);
+        applyTupletData(context, rest, entryInfo);
         applyRestPositionIfNeeded(context, rest, entryInfo);
         processArticulations(context, staff, rest, entryInfo, isStaffValueSpecified);
         if (entryIt.getEffectiveHidden() || (effectiveStaff && effectiveStaff->hideRests)) {
@@ -567,7 +603,7 @@ void appendEntryNotes(MusicXmlMusxMapping& context, mx::api::StaffData& staff, m
         }
         note.userRequestedVoiceNumber = userVoiceNumber;
         note.tickTimePosition = context.timing.calcMusicXmlDivisions(entryIt.getEffectiveElapsedDuration(/*global*/ true));
-        note.durationData = createDurationData(context, entryInfo, entryIt.getEffectiveActualDuration(/*global*/ true));
+        note.durationData = createDurationData(context, entryInfo, entryIt.getEffectiveActualDuration(/*global*/ true), entryIt.getEffectiveHidden());
         note.pitchData = createPitchData(context, noteInfo, pitchContext);
         if (const auto stavesIt = context.partIdToStaves.find(context.currentPart->uniqueId); stavesIt != context.partIdToStaves.end()) {
             ASSERT_IF (staffIndex >= stavesIt->second.size()) {
@@ -589,7 +625,7 @@ void appendEntryNotes(MusicXmlMusxMapping& context, mx::api::StaffData& staff, m
         applyNoteheadData(note, noteInfo, entryNoteheads);
         if (includedPosition == 0) {
             note.beams = createBeamData(context, entryInfo);
-            applyTupletData(note, entryInfo);
+            applyTupletData(context, note, entryInfo);
             applyLyrics(context, note, entryInfo);
             processArticulations(context, staff, note, entryInfo, isStaffValueSpecified);
             applyTremoloData(note, entryInfo);
