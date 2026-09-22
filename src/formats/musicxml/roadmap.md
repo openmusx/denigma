@@ -83,11 +83,11 @@ nothing currently prevents it.
 No fixture demonstrates this yet, so it is a latent risk rather than a known defect; a two-layer
 measure with a tuplet in each layer would settle it. The fix is a number allocated per part and
 released when a tuplet ends, which is what `mx::impl::SpannerResolver` already does for every other
-spanner family. Tuplets are excluded from it because `TupletStart` and `TupletStop` carry a raw
-`numberLevel` int rather than an `api::SpannerNumber`, so either Denigma allocates part-scoped
-levels itself or MX extends the resolver to tuplets. Note that MusicXML makes `number` optional and
-defaults it to 1, and MX omits the attribute when the level is unspecified, so a measure with no
-overlapping tuplets needs no numbering at all.
+spanner family. `TupletStart` and `TupletStop` now carry an `api::SpannerNumber`, so giving a start
+and its stop a shared identity hands the allocation to the resolver, as `musicxml_smartshapes.cpp`
+already does for smart shapes; Denigma still assigns an explicit frame-scoped level instead. Note
+that MusicXML makes `number` optional and defaults it to 1, and MX omits the attribute when the
+level is unspecified, so a measure with no overlapping tuplets needs no numbering at all.
 
 Two neighbouring tuplet defects were MX's and are now fixed upstream: `<normal-type>` written from
 a sibling search rather than from the API field ([webern/mx#428](https://github.com/webern/mx/issues/428)),
@@ -95,6 +95,18 @@ and a single-note tuplet writing its stop before its start
 ([webern/mx#429](https://github.com/webern/mx/issues/429)). `MusicXmlTuplets` in
 `tests/musicxml/test_tuplets.cpp` guards both, along with what Denigma asks for on a nested
 tuplet.
+
+## Tuplets of unnameable durations
+
+A tuplet whose displayed or reference duration is shorter than a 1024th - Finale's 2048th and
+4096th, below the floor of MusicXML's `note-type-value` - is exported as a bare
+`<time-modification>` with no `<tuplet>` notation, so the bracket and the number are lost
+(`applyTupletData` in `musicxml_notes.cpp`). MX used to force that: `NotationsWriter` named a type
+on every portion it wrote, and an unspecified `DurationName` would have been named `maxima`.
+
+MX now leaves `<tuplet-type>` unset when the name is unspecified, so the notation is expressible
+with the numbers alone, which is what Finale's own export writes. `createTupletStart` can leave the
+names unspecified for these durations and keep the notation.
 
 ## Tablature staves
 

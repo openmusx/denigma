@@ -36,6 +36,7 @@
 #include "mx/api/NoteData.h"
 #include "mx/api/PitchData.h"
 #include "mx/api/PrintData.h"
+#include "mx/api/SpannerNumber.h"
 #include "mx/api/VoiceData.h"
 
 using namespace musx::dom;
@@ -155,7 +156,7 @@ mx::api::TupletStart createTupletStart(const EntryFrame::TupletInfo& tupletInfo,
     const auto [normalDurationName, normalDots] = calcDurationInfoFromEdu(tupletDef->referenceDuration);
 
     auto result = mx::api::TupletStart{};
-    result.numberLevel = numberLevel;
+    result.number = mx::api::SpannerNumber(numberLevel);
     result.actualNumber = tupletDef->displayNumber;
     result.actualDurationName = enumConvert<mx::api::DurationName>(actualDurationName);
     result.actualDots = int(actualDots);
@@ -230,10 +231,8 @@ void applyTupletData(const MusicXmlMusxMapping& context, mx::api::NoteData& note
         const auto& tupletInfo = entryInfo.getFrame()->tupletInfo[tupletIndex];
         const auto& tupletDef = tupletInfo.tuplet;
         const int numberLevel = int(tupletIndex) + 1;
-        // <tuplet-actual> and <tuplet-normal> name their durations, and mx writes both with a
-        // type whenever it writes <tuplet> (see mx-api-gaps.md). A tuplet of durations MusicXML
-        // cannot name keeps its <time-modification>, which carries the timing, and loses the
-        // <tuplet> notation.
+        // A tuplet of durations MusicXML cannot name keeps its <time-modification>, which carries
+        // the timing, and loses the <tuplet> notation; see roadmap.md.
         const bool hasMusicXmlTypes = hasMusicXmlNoteType(calcDurationInfoFromEdu(tupletDef->displayDuration).first)
                                       && hasMusicXmlNoteType(calcDurationInfoFromEdu(tupletDef->referenceDuration).first);
         if (!hasMusicXmlTypes) {
@@ -250,7 +249,7 @@ void applyTupletData(const MusicXmlMusxMapping& context, mx::api::NoteData& note
         }
         if (tupletInfo.endIndex == entryInfo.getIndexInFrame()) {
             auto& stop = note.noteAttachmentData.tupletStops.emplace_back();
-            stop.numberLevel = numberLevel;
+            stop.number = mx::api::SpannerNumber(numberLevel);
         }
     }
 }

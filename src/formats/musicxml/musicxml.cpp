@@ -30,7 +30,7 @@
 #include "musicxml.h"
 #include "utils/mathutils.h"
 
-#include "mx/api/DocumentManager.h"
+#include "mx/api/MusicXml.h"
 #include "mx/api/ScoreData.h"
 
 using namespace musx::dom;
@@ -46,8 +46,8 @@ std::string mxResultMessage(std::string_view operation, const mx::api::ApiError&
     if (!error.message.empty()) {
         result += ": " + error.message;
     }
-    if (!error.path.empty()) {
-        result += " at " + error.path;
+    if (!error.location.xmlPath.empty()) {
+        result += " at " + error.location.xmlPath;
     }
     return result;
 }
@@ -96,17 +96,13 @@ mx::api::ScoreData createMusicXmlDocumentFromDocument(
 
 void writeMusicXmlToCallback(const mx::api::ScoreData& score, const std::string& suggestedName, const MultiOutputCallback& outputCallback)
 {
-    auto& documentManager = mx::api::DocumentManager::getInstance();
-
-    const auto idResult = documentManager.createFromScore(score);
-    if (!idResult.ok()) {
-        throw std::runtime_error(mxResultMessage("createFromScore", idResult.error()));
+    auto documentResult = mx::api::fromScore(score);
+    if (!documentResult.ok()) {
+        throw std::runtime_error(mxResultMessage("fromScore", documentResult.error()));
     }
 
-    const int documentId = idResult.value();
     std::ostringstream output;
-    const auto writeResult = documentManager.writeToStream(documentId, output);
-    documentManager.destroyDocument(documentId);
+    const auto writeResult = documentResult.value().writeToStream(output);
     if (!writeResult.ok()) {
         throw std::runtime_error(mxResultMessage("writeToStream", writeResult.error()));
     }
