@@ -181,15 +181,12 @@ Define intentional downgrade policies for Finale text and line features that Mus
 
 ## MX diagnostics
 
-`writeMusicXmlToCallback` in `musicxml.cpp` passes an `mx::api::Diagnostics` to `fromScore` and
-`writeToStream`, but logs only the id-integrity codes: `duplicateId`, where mx renamed an id two
-elements claimed, and `danglingIdReference`. Denigma generates every id it writes, so either is a
-Denigma defect. Every other code is discarded: `valueAdjusted`, `invalidValue`,
-`missingValueDefaulted`, `unmatchedSpanner`, and `droppedData` each mean mx changed or left out
-something Denigma asked for, but until each has been checked against the fixture corpus it is not
-known which point at Denigma defects and which are expected normalization.
+`writeMusicXmlToCallback` in `musicxml.cpp` logs every `mx::api::Diagnostic` it is handed, the
+id-integrity codes as warnings and the rest at Verbose. Two decisions remain. Which of
+`valueAdjusted`, `invalidValue`, `missingValueDefaulted`, `unmatchedSpanner`, and `droppedData`
+name a Denigma defect rather than expected normalization, and so deserve promoting out of Verbose,
+is not yet known; each needs checking against the fixture corpus. And data mx drops may belong in
+a typed gap collection, as MNX has, rather than in the log at all.
 
-Triage each code, log the ones that indicate a Denigma defect, and decide whether data mx drops
-belongs in the typed gap collection rather than the log. `mxResultMessage` also reports only the
-XML path of a failure, although `ApiError::location` now carries part, measure, staff, voice, and
-tick as well.
+`mxResultMessage` also reports only the XML path of a failure, although `ApiError::location` now
+carries part, measure, staff, voice, and tick as well.

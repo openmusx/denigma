@@ -98,14 +98,18 @@ mx::api::ScoreData createMusicXmlDocumentFromDocument(
 void writeMusicXmlToCallback(const DenigmaContext& denigmaContext, const mx::api::ScoreData& score, const std::string& suggestedName,
     const MultiOutputCallback& outputCallback)
 {
-    // mx renames an id that two elements claim, and reports a reference that names no matching id,
-    // then writes on. Denigma generates every id and reference it exports, so either means one of
-    // them was generated wrong.
-    /// @todo Use the other diagnostics of interest rather than discarding them.
+    // Denigma authors the whole ScoreData it hands to mx, so every diagnostic on this path reports
+    // something mx changed or left out of what Denigma asked for, never something it read from
+    // someone else's file. mx renames an id that two elements claim, and reports a reference that
+    // names no matching id, then writes on; Denigma generates every id and reference it exports, so
+    // either means one of them was generated wrong, and both are worth a warning. The rest are
+    // recorded at Verbose until each has been triaged against the fixture corpus; see roadmap.md.
     auto diagnostics = mx::api::Diagnostics([&denigmaContext](const mx::api::Diagnostic& diagnostic) {
-        if (diagnostic.code == mx::api::DiagnosticCode::duplicateId || diagnostic.code == mx::api::DiagnosticCode::danglingIdReference) {
-            denigmaContext.logMessage(LogMsg() << "MusicXML id integrity: " << mx::api::formatDiagnostic(diagnostic), MessageSeverity::Warning);
-        }
+        const bool isIdIntegrity =
+            diagnostic.code == mx::api::DiagnosticCode::duplicateId || diagnostic.code == mx::api::DiagnosticCode::danglingIdReference;
+        denigmaContext.logMessage(
+            LogMsg() << "MusicXML " << (isIdIntegrity ? "id integrity" : "diagnostic") << ": " << mx::api::formatDiagnostic(diagnostic),
+            isIdIntegrity ? MessageSeverity::Warning : MessageSeverity::Verbose);
     });
 
     auto documentResult = mx::api::fromScore(score, diagnostics);
