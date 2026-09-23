@@ -159,7 +159,7 @@ TEST(MusicXmlTuplets, NestedSingletonTupletCarriesCumulativeRatio)
         EXPECT_NE(note.normalType, note.noteType) << "note " << note.id;
     }
 
-    // Numbering is sound: denigma's numberLevel is the tuplet's index in its entry frame, so it is
+    // Numbering is sound: denigma numbers a tuplet by its index in its entry frame, so it is
     // stable for a tuplet's whole extent and every start matches its own stop.
     std::vector<std::pair<std::string, int>> openCounts;
     for (const auto& note : notes) {

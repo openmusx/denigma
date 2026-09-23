@@ -74,7 +74,7 @@ Export measure-attached Finale graphics from `details::MeasureGraphicAssign` as 
 
 ## Tuplet numbering scope
 
-Tuplet `numberLevel` comes from the tuplet's index within its entry frame (`applyTupletData` in
+Tuplet numbers come from the tuplet's index within its entry frame (`applyTupletData` in
 `musicxml_notes.cpp`). That is stable for a tuplet's whole extent, so a start always pairs with its
 stop, but a frame is one layer of one staff while MusicXML's `number` is scoped to the part. Two
 layers each numbering from 1 can therefore hand the same level to two unrelated tuplets, and
