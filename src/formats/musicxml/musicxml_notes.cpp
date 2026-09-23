@@ -61,10 +61,6 @@ constexpr char32_t kDisplayNumberJoinMarker = char32_t(0x00A0);
 // its length. Such entries are mostly hidden playback tricks (a plugin's trill), which lose nothing.
 constexpr NoteType kShortestMusicXmlNoteType = NoteType::Note1024th;
 
-// The highest MusicXML number-level. mx::api::SpannerNumber collapses an explicit level above it to
-// unspecified, and unspecified levels compare equal, so nested tuplets would pair each other's ends.
-constexpr int kMaxMusicXmlNumberLevel = 16;
-
 bool hasMusicXmlNoteType(NoteType noteType)
 {
     return Edu(noteType) >= Edu(kShortestMusicXmlNoteType);
@@ -234,16 +230,10 @@ void applyTupletData(const MusicXmlMusxMapping& context, mx::api::NoteData& note
     for (size_t tupletIndex : activeTuplets) {
         const auto& tupletInfo = entryInfo.getFrame()->tupletInfo[tupletIndex];
         const auto& tupletDef = tupletInfo.tuplet;
-        // A frame-scoped level fits for all but a frame with more than kMaxMusicXmlNumberLevel tuplets;
-        // past that, an identity unique to the tuplet lets mx assign the level.
-        const auto number = [&]() {
-            const int numberLevel = int(tupletIndex) + 1;
-            if (numberLevel <= kMaxMusicXmlNumberLevel) {
-                return mx::api::SpannerNumber(numberLevel);
-            }
-            return mx::api::SpannerNumber("tuplet-" + std::to_string(entryInfo.getStaff()) + "-" + std::to_string(entryInfo.getMeasure())
-                                          + "-" + std::to_string(entryInfo.getLayerIndex()) + "-" + std::to_string(tupletIndex));
-        }();
+        // A tuplet lives in one frame, so its staff, measure, layer, and index there identify it within
+        // the part. The start and stop share that identity, and mx assigns the MusicXML number.
+        const auto number = mx::api::SpannerNumber("tuplet-" + std::to_string(entryInfo.getStaff()) + "-" + std::to_string(entryInfo.getMeasure())
+                                                   + "-" + std::to_string(entryInfo.getLayerIndex()) + "-" + std::to_string(tupletIndex));
         // A tuplet of durations MusicXML cannot name keeps its <time-modification>, which carries
         // the timing, and loses the <tuplet> notation; see roadmap.md.
         const bool hasMusicXmlTypes = hasMusicXmlNoteType(calcDurationInfoFromEdu(tupletDef->displayDuration).first)
