@@ -178,3 +178,18 @@ Convert eligible music-font characters in expression text to `SymbolData` within
 Use page-specific `PageData` layout overrides when computing absolute credit anchors. The exporter currently uses the score's default odd/even page size and margins, so credits on pages with Finale layout overrides may be misplaced.
 
 Define intentional downgrade policies for Finale text and line features that MusicXML cannot represent. These include full and forced-full text justification; arbitrary Shape Designer text frames; page and measure text-block geometry such as fixed dimensions, insets, corner radius, line spacing, and word wrapping; custom-line continuation text shown after system breaks; and center full/abbreviated text on general bracket or dashes lines. Preserve the closest standard appearance where possible and log material omissions.
+
+## MX diagnostics
+
+`writeMusicXmlToCallback` in `musicxml.cpp` passes an `mx::api::Diagnostics` to `fromScore` and
+`writeToStream`, but logs only the id-integrity codes: `duplicateId`, where mx renamed an id two
+elements claimed, and `danglingIdReference`. Denigma generates every id it writes, so either is a
+Denigma defect. Every other code is discarded: `valueAdjusted`, `invalidValue`,
+`missingValueDefaulted`, `unmatchedSpanner`, and `droppedData` each mean mx changed or left out
+something Denigma asked for, but until each has been checked against the fixture corpus it is not
+known which point at Denigma defects and which are expected normalization.
+
+Triage each code, log the ones that indicate a Denigma defect, and decide whether data mx drops
+belongs in the typed gap collection rather than the log. `mxResultMessage` also reports only the
+XML path of a failure, although `ApiError::location` now carries part, measure, staff, voice, and
+tick as well.

@@ -30,6 +30,7 @@
 #include "musicxml.h"
 #include "utils/mathutils.h"
 
+#include "mx/api/Diagnostics.h"
 #include "mx/api/MusicXml.h"
 #include "mx/api/ScoreData.h"
 
@@ -94,15 +95,26 @@ mx::api::ScoreData createMusicXmlDocumentFromDocument(
     return *context.musicXmlScore;
 }
 
-void writeMusicXmlToCallback(const mx::api::ScoreData& score, const std::string& suggestedName, const MultiOutputCallback& outputCallback)
+void writeMusicXmlToCallback(const DenigmaContext& denigmaContext, const mx::api::ScoreData& score, const std::string& suggestedName,
+    const MultiOutputCallback& outputCallback)
 {
-    auto documentResult = mx::api::fromScore(score);
+    // mx renames an id that two elements claim, and reports a reference that names no matching id,
+    // then writes on. Denigma generates every id and reference it exports, so either means one of
+    // them was generated wrong.
+    /// @todo Use the other diagnostics of interest rather than discarding them.
+    auto diagnostics = mx::api::Diagnostics([&denigmaContext](const mx::api::Diagnostic& diagnostic) {
+        if (diagnostic.code == mx::api::DiagnosticCode::duplicateId || diagnostic.code == mx::api::DiagnosticCode::danglingIdReference) {
+            denigmaContext.logMessage(LogMsg() << "MusicXML id integrity: " << mx::api::formatDiagnostic(diagnostic), MessageSeverity::Warning);
+        }
+    });
+
+    auto documentResult = mx::api::fromScore(score, diagnostics);
     if (!documentResult.ok()) {
         throw std::runtime_error(mxResultMessage("fromScore", documentResult.error()));
     }
 
     std::ostringstream output;
-    const auto writeResult = documentResult.value().writeToStream(output);
+    const auto writeResult = documentResult.value().writeToStream(output, diagnostics);
     if (!writeResult.ok()) {
         throw std::runtime_error(mxResultMessage("writeToStream", writeResult.error()));
     }
@@ -128,7 +140,7 @@ void convert(const CommandInputData& inputData, const DenigmaContext& denigmaCon
     if (denigmaContext.allPartsAndScore || !denigmaContext.partName.has_value()) {
         const auto score = createMusicXmlDocumentFromDocument(document, denigmaContext, nullptr);
         // The score file takes the document's own name, with no part suffix.
-        writeMusicXmlToCallback(score, std::string{}, outputCallback);
+        writeMusicXmlToCallback(denigmaContext, score, std::string{}, outputCallback);
     }
     bool foundPart = false;
     if (denigmaContext.allPartsAndScore || denigmaContext.partName.has_value()) {
@@ -137,10 +149,10 @@ void convert(const CommandInputData& inputData, const DenigmaContext& denigmaCon
             if (part->getCmper() != SCORE_PARTID) {
                 if (denigmaContext.allPartsAndScore) {
                     const auto partScore = createMusicXmlDocumentFromDocument(document, denigmaContext, part);
-                    writeMusicXmlToCallback(partScore, calcLinkedPartDisplayName(part), outputCallback);
+                    writeMusicXmlToCallback(denigmaContext, partScore, calcLinkedPartDisplayName(part), outputCallback);
                 } else if (denigmaContext.partName->empty() || part->getName().rfind(denigmaContext.partName.value(), 0) == 0) {
                     const auto partScore = createMusicXmlDocumentFromDocument(document, denigmaContext, part);
-                    writeMusicXmlToCallback(partScore, calcLinkedPartDisplayName(part), outputCallback);
+                    writeMusicXmlToCallback(denigmaContext, partScore, calcLinkedPartDisplayName(part), outputCallback);
                     foundPart = true;
                     break;
                 }
