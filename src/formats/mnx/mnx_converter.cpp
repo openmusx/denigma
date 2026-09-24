@@ -112,6 +112,11 @@ void registerConverters(ConverterRegistry& registry)
     registry.add(std::make_unique<MusxToMnxJsonConverter>());
 }
 
+int schemaVersion()
+{
+    return mnxdom::getMnxSchemaVersion();
+}
+
 } // namespace mnx
 } // namespace formats
 } // namespace denigma

@@ -49,6 +49,7 @@ enum class ExpressionType {
     Dynamic, ///< A dynamic mark.
     Fermata, ///< A fermata symbol.
     BreathMark, ///< A breath-mark symbol.
+    Caesura, ///< A caesura symbol.
     StringMute, ///< A string-mute on/off symbol.
     AccordionRegistration, ///< An accordion-registration glyph or combining glyph sequence.
     HarpDiagram, ///< A harp-pedal diagram.
@@ -198,6 +199,16 @@ struct BreathMark
     std::optional<std::string> glyphName;
 };
 
+/// @struct Caesura
+/// @brief Caesura expression and its resolved source glyph.
+struct Caesura
+{
+    /// @brief Semantic caesura classification.
+    articulation::Caesura caesura{};
+    /// @brief SMuFL glyph name when the source glyph can be resolved.
+    std::optional<std::string> glyphName;
+};
+
 /// @struct HarpDiagram
 /// @brief Seven-pedal state encoded by a Finale harp-pedal diagram.
 struct HarpDiagram
@@ -327,10 +338,10 @@ struct RunClassification
 } // namespace expression
 
 /// @brief Semantic payload associated with an @ref ExpressionClassification.
-using ExpressionValue = std::variant<std::monostate, dynamics::Mark, expression::Fermata, expression::BreathMark, articulation::StringMute,
-    articulation::AccordionRegistration, expression::HarpDiagram, keyboardpedal::Type, PseudoTie, expression::NonArpeggio, expression::TempoText,
-    expression::MetronomeMark, expression::TempoAlteration, expression::TechniqueText, expression::RehearsalMark, expression::MultimeasureRestNumber,
-    expression::MeasureRepeatCount, expression::GenericText, expression::Error, expression::Suppress>;
+using ExpressionValue = std::variant<std::monostate, dynamics::Mark, expression::Fermata, expression::BreathMark, expression::Caesura,
+    articulation::StringMute, articulation::AccordionRegistration, expression::HarpDiagram, keyboardpedal::Type, PseudoTie, expression::NonArpeggio,
+    expression::TempoText, expression::MetronomeMark, expression::TempoAlteration, expression::TechniqueText, expression::RehearsalMark,
+    expression::MultimeasureRestNumber, expression::MeasureRepeatCount, expression::GenericText, expression::Error, expression::Suppress>;
 
 /// @struct ExpressionClassification
 /// @brief Exporter-neutral semantic classification of one Finale expression.
@@ -381,6 +392,10 @@ public:
     /// @brief Returns the classified breath mark.
     /// @throws std::logic_error if #type is not ExpressionType::BreathMark.
     const expression::BreathMark& breathMark() const { return checkedPayload<expression::BreathMark, ExpressionType::BreathMark>("BreathMark"); }
+
+    /// @brief Returns the classified caesura.
+    /// @throws std::logic_error if #type is not ExpressionType::Caesura.
+    const expression::Caesura& caesura() const { return checkedPayload<expression::Caesura, ExpressionType::Caesura>("Caesura"); }
 
     /// @brief Returns the classified string-mute symbol.
     /// @throws std::logic_error if #type is not ExpressionType::StringMute.

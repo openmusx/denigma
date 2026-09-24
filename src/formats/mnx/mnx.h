@@ -103,7 +103,7 @@ struct MnxMusxMapping
     {
         std::string startNoteId;
         std::string endNoteId;
-        std::optional<mnxdom::SlurTieSide> side;
+        mnxdom::SlurTieSide side{mnxdom::SlurTieSide::Auto};
     };
 
     std::vector<DeferredJumpTie> deferredJumpTies;
@@ -164,7 +164,12 @@ struct MnxMusxMapping
     ///
     /// Collected while the staves are exported and consumed once the measure repeats themselves are
     /// known, because MNX attaches a counter to the repeat rather than to the measure.
-    std::map<MeasCmper, int> measureRepeatCounts;
+    struct MeasureRepeatCount
+    {
+        int count{};
+        mnxdom::MultiStaffPlacement placement{mnxdom::MultiStaffPlacement::Auto};
+    };
+    std::map<MeasCmper, MeasureRepeatCount> measureRepeatCounts;
 
     struct CurrentMeasureStaff
     {

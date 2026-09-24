@@ -88,6 +88,35 @@ BEGIN_ENUM_CONVERSION(classify::articulation::BreathMark::Type, mnxdom::BreathMa
     case classify::articulation::BreathMark::Type::Salzedo: return mnxdom::BreathMarkSymbol::Salzedo;
 END_ENUM_CONVERSION
 
+// MNX has no chant caesura; its short single stroke is the nearest shape.
+BEGIN_ENUM_CONVERSION(classify::articulation::Caesura::Type, mnxdom::CaesuraShape)
+    case classify::articulation::Caesura::Type::Normal: return mnxdom::CaesuraShape::Normal;
+    case classify::articulation::Caesura::Type::Curved: return mnxdom::CaesuraShape::Curved;
+    case classify::articulation::Caesura::Type::Short: return mnxdom::CaesuraShape::Short;
+    case classify::articulation::Caesura::Type::Thick: return mnxdom::CaesuraShape::Thick;
+    case classify::articulation::Caesura::Type::Chant: return mnxdom::CaesuraShape::Short;
+    case classify::articulation::Caesura::Type::SingleStroke: return mnxdom::CaesuraShape::Normal;
+END_ENUM_CONVERSION
+
+BEGIN_ENUM_CONVERSION(classify::articulation::Fermata::Duration, mnxdom::FermataDuration)
+    case classify::articulation::Fermata::Duration::Auto: return mnxdom::FermataDuration::Auto;
+    case classify::articulation::Fermata::Duration::VeryShort: return mnxdom::FermataDuration::VeryShort;
+    case classify::articulation::Fermata::Duration::Short: return mnxdom::FermataDuration::Short;
+    case classify::articulation::Fermata::Duration::Long: return mnxdom::FermataDuration::Long;
+    case classify::articulation::Fermata::Duration::VeryLong: return mnxdom::FermataDuration::VeryLong;
+END_ENUM_CONVERSION
+
+BEGIN_ENUM_CONVERSION(classify::articulation::Fermata::Shape, mnxdom::FermataSymbol)
+    case classify::articulation::Fermata::Shape::Normal: return mnxdom::FermataSymbol::Normal;
+    case classify::articulation::Fermata::Shape::Angled: return mnxdom::FermataSymbol::Angled;
+    case classify::articulation::Fermata::Shape::DoubleAngled: return mnxdom::FermataSymbol::DoubleAngled;
+    case classify::articulation::Fermata::Shape::Square: return mnxdom::FermataSymbol::Square;
+    case classify::articulation::Fermata::Shape::DoubleSquare: return mnxdom::FermataSymbol::DoubleSquare;
+    case classify::articulation::Fermata::Shape::HalfCurve: return mnxdom::FermataSymbol::HalfCurve;
+    case classify::articulation::Fermata::Shape::DoubleDot: return mnxdom::FermataSymbol::DoubleDot;
+    case classify::articulation::Fermata::Shape::Curlew: return mnxdom::FermataSymbol::Curlew;
+END_ENUM_CONVERSION
+
 BEGIN_ENUM_CONVERSION(classify::GlyphStyle::Placement, mnxdom::MarkingUpDownAuto)
     case classify::GlyphStyle::Placement::Automatic: return mnxdom::MarkingUpDownAuto::Auto;
     case classify::GlyphStyle::Placement::Above: return mnxdom::MarkingUpDownAuto::Up;
@@ -163,18 +192,18 @@ BEGIN_ENUM_CONVERSION(classify::dynamics::Reinforcement, mnxdom::DynamicPrefix)
     case classify::dynamics::Reinforcement::Rinforzando: return mnxdom::DynamicPrefix::r;
 END_ENUM_CONVERSION
 
-BEGIN_ENUM_CONVERSION(VerticalPlacement, mnxdom::Orientation)
-    case VerticalPlacement::NotApplicable: return mnxdom::Orientation::Auto;
-    case VerticalPlacement::Float: return mnxdom::Orientation::Auto;
-    case VerticalPlacement::Above: return mnxdom::Orientation::Above;
-    case VerticalPlacement::Below: return mnxdom::Orientation::Below;
+BEGIN_ENUM_CONVERSION(VerticalPlacement, mnxdom::Placement)
+    case VerticalPlacement::NotApplicable: return mnxdom::Placement::Auto;
+    case VerticalPlacement::Float: return mnxdom::Placement::Auto;
+    case VerticalPlacement::Above: return mnxdom::Placement::Above;
+    case VerticalPlacement::Below: return mnxdom::Placement::Below;
 END_ENUM_CONVERSION
 
-BEGIN_ENUM_CONVERSION(VerticalPlacement, mnxdom::MultiStaffOrientation)
-    case VerticalPlacement::NotApplicable: return mnxdom::MultiStaffOrientation::Auto;
-    case VerticalPlacement::Float: return mnxdom::MultiStaffOrientation::Auto;
-    case VerticalPlacement::Above: return mnxdom::MultiStaffOrientation::Above;
-    case VerticalPlacement::Below: return mnxdom::MultiStaffOrientation::Below;
+BEGIN_ENUM_CONVERSION(VerticalPlacement, mnxdom::MultiStaffPlacement)
+    case VerticalPlacement::NotApplicable: return mnxdom::MultiStaffPlacement::Auto;
+    case VerticalPlacement::Float: return mnxdom::MultiStaffPlacement::Auto;
+    case VerticalPlacement::Above: return mnxdom::MultiStaffPlacement::Above;
+    case VerticalPlacement::Below: return mnxdom::MultiStaffPlacement::Below;
 END_ENUM_CONVERSION
 // clang-format on
 

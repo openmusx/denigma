@@ -668,6 +668,9 @@ void processExpressions(MusicXmlMusxMapping& context, mx::api::MeasureData& meas
         case classify::ExpressionType::BreathMark:
             appendMarkToAssociatedNote(assignment, musicXmlMark(mx::api::MarkType::breathMark, placement));
             break;
+        case classify::ExpressionType::Caesura:
+            appendMarkToAssociatedNote(assignment, musicXmlMark(enumConvert<mx::api::MarkType>(classification.caesura().caesura.type), placement));
+            break;
         case classify::ExpressionType::StringMute:
             emitGroupedDirection(
                 createStringMuteExpressionDirection(context, staffIndex, assignment, classification, placement, isStaffValueSpecified));

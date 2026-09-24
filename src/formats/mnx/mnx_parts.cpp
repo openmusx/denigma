@@ -34,6 +34,7 @@
 #include "core/element_ids.h"
 #include "denigma/classify/clefs.h"
 #include "denigma/classify/dynamics.h"
+#include "utils/font_names.h"
 #include "utils/stringutils.h"
 
 namespace denigma {
@@ -130,7 +131,7 @@ static void createBeams(const MnxMusxMappingPtr& context, mnxdom::part::Measure 
 }
 
 static std::optional<ClefIndex> createClef(const MnxMusxMappingPtr& context, mnxdom::part::Measure& mnxMeasure, std::optional<int> mnxStaffNumber,
-    ClefIndex clefIndex, musx::util::Fraction location, const MusxInstance<others::Staff>& musxStaff)
+    ClefIndex clefIndex, musx::util::Fraction location, const MusxInstance<others::Staff>& musxStaff, bool hide)
 {
     ASSERT_IF (!musxStaff) {
         context->logMessage(LogMsg() << "invalid or unmapped staff passed to createClef", MessageSeverity::Warning);
@@ -139,18 +140,35 @@ static std::optional<ClefIndex> createClef(const MnxMusxMappingPtr& context, mnx
     const auto& musxClef = context->finaleOptions.clefOptions->getClefDef(clefIndex);
     const auto clef = classify::classifyClef(musxClef, musxStaff);
     std::optional<mnxdom::ClefSign> clefSign;
-    if (clef && !clef.isBlank && std::abs(clef.octave) <= 3) {
+    int octave = clef.octave;
+    int staffPosition = mnxStaffPosition(musxStaff, musxClef->staffPosition);
+    if (clef && std::abs(clef.octave) <= 3) {
         switch (clef.type) {
         case music_theory::ClefType::G: clefSign = mnxdom::ClefSign::GClef; break;
         case music_theory::ClefType::C: clefSign = mnxdom::ClefSign::CClef; break;
         case music_theory::ClefType::F: clefSign = mnxdom::ClefSign::FClef; break;
-        /// @todo handle Percussion and Tab cases when defined in mnx spec
+        case music_theory::ClefType::Percussion1: clefSign = mnxdom::ClefSign::PercussionClef; break;
+        case music_theory::ClefType::Percussion2: clefSign = mnxdom::ClefSign::PercussionClef; break;
         default: break;
         }
     }
+    if (clef.isBlank) {
+        // A blank clef draws nothing, so it becomes a hidden clef. On a pitched staff whose blank clef
+        // does not read as a letter clef, a treble clef stands in, as it does in Finale's own blank clefs.
+        hide = true;
+        constexpr int trebleClefStaffPosition = -2; // the second line of a five-line staff, relative to its middle line
+        if (musxStaff->notationStyle == others::Staff::NotationStyle::Percussion) {
+            clefSign = mnxdom::ClefSign::PercussionClef;
+        } else if (clefSign == mnxdom::ClefSign::PercussionClef || !clefSign) {
+            if (musxStaff->notationStyle != others::Staff::NotationStyle::Tablature) {
+                clefSign = mnxdom::ClefSign::GClef;
+                octave = 0;
+                staffPosition = trebleClefStaffPosition;
+            }
+        }
+    }
     if (clefSign) {
-        int staffPosition = mnxStaffPosition(musxStaff, musxClef->staffPosition);
-        auto mnxClef = mnxMeasure.ensure_clefs().append(clefSign.value(), staffPosition, mnxdom::OttavaAmountOrZero(clef.octave));
+        auto mnxClef = mnxMeasure.ensure_clefs().append(clefSign.value(), staffPosition, mnxdom::OttavaAmountOrZero(octave));
         if (location) {
             mnxClef.ensure_position(mnxFractionFromFraction(location));
         }
@@ -160,9 +178,10 @@ static std::optional<ClefIndex> createClef(const MnxMusxMappingPtr& context, mnx
         if (mnxStaffNumber) {
             mnxClef.set_staff(mnxStaffNumber.value());
         }
-        if (clef.glyphName) {
+        if (clef.glyphName && !clef.isBlank) {
             mnxClef.clef().set_glyph(clef.glyphName.value());
         }
+        mnxClef.clef().set_or_clear_hide(hide);
         return clefIndex;
     } else {
         context->logMessage(LogMsg() << "Clef char " << int(musxClef->clefChar) << " has no clef info. " << " (glyph name is "
@@ -185,9 +204,8 @@ static void createClefs(const MnxMusxMappingPtr& context, const mnxdom::Part& mn
     // clef display: MNX has no counterpart to MusicXML's clef@additional, so a consumer that
     // dedupes against the prevailing clef will still drop the restatement.
     //
-    // ShowClefMode::Never has no MNX representation at all, because a clef carries no visibility
-    // flag. The clef cannot simply be omitted either, since it determines the staff positions of
-    // the following notes, so Finale's hidden clefs are exported as ordinary visible clefs.
+    // A clef Finale does not draw (ShowClefMode::Never, or a staff that hides clefs) is still exported,
+    // because it determines the staff positions of the following notes. It is marked hidden instead.
     auto addClef = [&](const others::Staff::ClefChange& clefChange) {
         const auto clefIndex = clefChange.clefIndex;
         const auto location = clefChange.position;
@@ -201,7 +219,9 @@ static void createClefs(const MnxMusxMappingPtr& context, const mnxdom::Part& mn
                 LogMsg() << mnxPartDisplayName(context, mnxPart) << " has no staff information for staff " << staffCmper, MessageSeverity::Warning);
             return;
         }
-        if (auto newClefIndex = createClef(context, mnxMeasure, mnxStaffNumber, clefIndex, location, musxStaff)) {
+        const bool hide =
+            clefChange.showClefMode == ShowClefMode::Never || (clefChange.showClefMode == ShowClefMode::WhenNeeded && musxStaff->hideClefs);
+        if (auto newClefIndex = createClef(context, mnxMeasure, mnxStaffNumber, clefIndex, location, musxStaff, hide)) {
             prevClefIndex = newClefIndex;
         }
     };
@@ -247,7 +267,8 @@ static bool createFirstClefForInactiveInstrument(const MnxMusxMappingPtr& contex
                     if (!musxStaff) {
                         return true;
                     }
-                    prevClefIndex = createClef(context, mnxMeasure, mnxStaffNumber, musxStaff->calcClefIndex(/*forWrittenPitch*/ true), 0, musxStaff);
+                    prevClefIndex = createClef(
+                        context, mnxMeasure, mnxStaffNumber, musxStaff->calcClefIndex(/*forWrittenPitch*/ true), 0, musxStaff, musxStaff->hideClefs);
                 }
             }
             return true;
@@ -328,7 +349,8 @@ static void createMeasureRepeats(const MnxMusxMappingPtr& context, mnxdom::Part&
             // A counter belongs to the repeat, so only one found on the measure that declares the
             // repeat can be attached. Counters on the measures a group covers are reported below.
             if (const auto counter = context->measureRepeatCounts.extract(musxMeasures[index]->getCmper())) {
-                mnxRepeat.ensure_counter(counter.mapped());
+                auto mnxCounter = mnxRepeat.ensure_counter(counter.mapped().count);
+                mnxCounter.set_or_clear_placement(counter.mapped().placement);
             }
         }
         // Finale flags every measure a repeat region covers, so a covered measure repeating the same
@@ -350,8 +372,9 @@ static void createMeasureRepeats(const MnxMusxMappingPtr& context, mnxdom::Part&
     // Whatever is left counts a repeat that was not exported, or a measure that a repeat covers
     // rather than declares. MNX has nowhere to put either, and the count is no longer available to
     // the expression export that would otherwise have carried its text.
-    for (const auto& [measureId, count] : context->measureRepeatCounts) {
-        context->logMessage(LogMsg() << mnxPartDisplayName(context, part) << " has measure repeat counter " << count << " in measure " << measureId
+    for (const auto& [measureId, counter] : context->measureRepeatCounts) {
+        context->logMessage(LogMsg() << mnxPartDisplayName(context, part) << " has measure repeat counter " << counter.count << " in measure "
+                                     << measureId
                                      << ", which does not begin an exported measure repeat;"
                                         " the counter is not exported.",
             MessageSeverity::Warning);
@@ -400,7 +423,8 @@ static void createMeasures(const MnxMusxMappingPtr& context, mnxdom::Part& part)
             }
             if (!context->currSplitInstrumentUuid && musxMeasure->getCmper() == 1) {
                 const auto musxStaff = others::StaffComposite::createCurrent(musxDocument, musxMeasure->getRequestedPartId(), staffCmper, 1, 0);
-                prevClefs[x] = createClef(context, mnxMeasure, staffNumber, musxStaff->calcClefIndex(/*forWrittenPitch*/ true), 0, musxStaff);
+                prevClefs[x] = createClef(
+                    context, mnxMeasure, staffNumber, musxStaff->calcClefIndex(/*forWrittenPitch*/ true), 0, musxStaff, musxStaff->hideClefs);
             }
             context->setCurrentMeasureStaff(musxMeasure, staffCmper);
             processChords(context, mnxMeasure, staffNumber, musxMeasure, staffCmper);
@@ -463,6 +487,14 @@ static void populatePartMetadata(const MnxMusxMappingPtr& context, mnxdom::Part&
     }
     if (instInfo.staves.size() > 1) {
         part.set_staves(int(instInfo.staves.size()));
+    }
+    // A legacy Finale music font is named by the SMuFL font that succeeds it, when one is established.
+    if (const auto& musicFont = context->finaleOptions.defaultMusicFont) {
+        if (musicFont->calcIsSMuFL()) {
+            part.set_smuflFont(musicFont->getName());
+        } else if (const auto mapped = utils::mappedSmuflFontForFinaleLegacyFont(musicFont->getName())) {
+            part.set_smuflFont(std::string(*mapped));
+        }
     }
     const auto [transpositionDisp, transpositionAlt] = staff->calcTranspositionInterval();
     if (transpositionDisp || transpositionAlt) {

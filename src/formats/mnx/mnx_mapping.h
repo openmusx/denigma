@@ -54,7 +54,7 @@ mnxdom::FractionValue mnxFractionFromSmartShapeEndPoint(const MusxInstance<smart
 
 int mnxStaffPosition(const MusxInstance<others::Staff>& staff, int musxStaffPosition);
 
-mnxdom::MultiStaffOrientation mnxMultiStaffOrientFromVerticalPlacement(const std::optional<int>& mnxStaffNumber, VerticalPlacement placement);
+mnxdom::MultiStaffPlacement mnxMultiStaffPlacementFromVerticalPlacement(const std::optional<int>& mnxStaffNumber, VerticalPlacement placement);
 
 } // namespace detail
 } // namespace mnx

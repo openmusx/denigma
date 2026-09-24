@@ -49,6 +49,7 @@ std::optional<mnxdom::Fermata> makeFermata(
     const classify::articulation::Fermata& fermata, const classify::GlyphStyle& glyphStyle, VerticalPlacement placement);
 
 mnxdom::sequence::BreathMark makeBreathMark(const classify::articulation::BreathMark& breathMark, VerticalPlacement placement);
+mnxdom::sequence::Caesura makeCaesura(const classify::articulation::Caesura& caesura);
 
 void appendArpeggioCandidate(
     const MnxMusxMappingPtr& context, mnxdom::part::Measure& mnxPartMeasure, const musx::util::ArpeggioSpanCandidate& candidate);

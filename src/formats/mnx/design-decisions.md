@@ -67,3 +67,39 @@ A staff-attached fermata over an empty measure attaches to that staff's full-mea
 A Finale tuplet with a reference count of zero takes no time, and its entries are phantoms: a user or a plugin such as Beam Over Barline puts a note there so that a beam or a tie can reach across a barline, and the note that actually sounds sits at the same position. MNX has nowhere to put such an entry. A tuplet's ratio must be positive, an event outside a tuplet always takes its written duration, and a `grace` container would draw the note small. So the tuplet and its entries are omitted, and nothing else may refer to them: a beam skips them, a tie into one is written as `lv`, and a slur ending on one is a gap. The one form `musxdom` interprets, a singleton beam with the phantom's notehead and stem hidden, never reaches this path.
 
 The count of omitted tuplets is logged once per conversion as a warning. Each occurrence is logged only at verbose level, because a document that carries the workaround carries it many times.
+
+### A sequence's direction hint comes from its layer's stem setting
+
+A v1 sequence carries `directionHint` exactly when Finale's layer attributes freeze its stems and those attributes are in effect (`EntryInfoPtr::calcIfLayerSettingsApply`). That holds when the layer is alone on the staff, because "Apply Settings Only if Notes are in Other Layers" can be off, and when the layer also has v2 entries, although every stem in such a layer is written explicitly. A v2 sequence never carries a hint: Finale stems voice 2 per v2 launch, so no one direction describes the sequence.
+
+Events get an explicit `stemDirection` only for a manual stem freeze and in a layer that uses v2. A v1-only layer relies on the hint.
+
+## Clefs
+
+### A clef Finale does not draw is a hidden clef
+
+A clef with `ShowClefMode::Never`, or with `WhenNeeded` on a staff that hides clefs, is exported with `hide`, matching the MusicXML exporter's `print-object`. A blank clef is hidden as well. On a percussion staff it becomes a percussion clef. On any other staff it keeps its letter clef when Finale's clef definition reads as one, and otherwise becomes a treble clef, which is what Finale's own blank clefs are. Tablature clefs have no MNX sign and are still skipped.
+
+## Tuplets
+
+### Stem-relative tuplet placement names its side
+
+MNX `auto` placement leaves the side to the reader, so Finale's beam-side and note-side positioning styles are resolved against the stem direction of the tuplet's first entry and written as `above` or `below`. Manual positioning names no side and stays `auto`.
+
+## Schema items not exported
+
+Each of these is omitted on purpose. Revisit one if Finale data turns out to carry it.
+
+- `grace.graceType`: a playback nuance; the MNX default stands.
+- `multi-note-tremolo.individualDuration`: derivable from `marks` and `outer`.
+- `ottava.placement`: Finale draws an ottava where convention puts it, which is what `auto` means.
+- `ottava.voice`: Finale ottavas apply to the whole staff.
+- `page.layout` and `system.layoutChanges`: a Finale system has one staff configuration, and each system already names its layout.
+- `dynamic-group.visuallyContinues`: the spec asks readers to derive it from `position` and `end`.
+- `dynamic-group.staffEnd`: Finale hairpins do not cross staves.
+- `slur.sideEnd`: Finale has no mid-slur side change.
+- `slur.startNote` and `endNote`: a Finale slur attaches to an entry, never to one note of a chord.
+- Layout `staff.label`, `labelref` and `symbol`: a Finale staff has one source, so labels go on the source, and a bracket on a single staff is already a group.
+- `measure-repeat.displayNumber` and `staffPosition`: Finale draws both by convention.
+- `lyric-line-metadata.lang` and `_c`: Finale has no source for either.
+- `perform`: the schema defines it as an empty object.

@@ -31,7 +31,8 @@ const MNX_INDENT_SPACES = 2;
 const createModule = (await import(pathToFileURL(resolve(moduleArg)))).default;
 const Module = await createModule({ wasmBinary: await readFile(resolve(wasmArg)) });
 
-console.log(`denigma ${Module.UTF8ToString(Module._denigma_version())} (${Module.UTF8ToString(Module._denigma_commit())})`);
+const mnxSchemaVersion = Module._denigma_mnx_schema_version();
+console.log(`denigma ${Module.UTF8ToString(Module._denigma_version())} (${Module.UTF8ToString(Module._denigma_commit())}), MNX schema ${mnxSchemaVersion}`);
 
 function messages(result) {
   const count = Module._denigma_result_diagnostic_count(result);
@@ -231,6 +232,12 @@ withInput(chordInput, 'chords.musx', (dataPointer, namePointer) => {
   const result = convert(dataPointer, chordInput.byteLength, namePointer, FORMAT_MNX);
   try {
     if (!Module._denigma_result_success(result)) throw new Error(`Chord MNX conversion failed:\n${messages(result)}`);
+    const mnxPointer = Module._denigma_result_output_data(result, 0);
+    const mnxSize = Module._denigma_result_output_size(result, 0);
+    const mnxDocument = JSON.parse(new TextDecoder().decode(Module.HEAPU8.slice(mnxPointer, mnxPointer + mnxSize)));
+    if (mnxDocument.mnx.version !== mnxSchemaVersion) {
+      throw new Error(`MNX output declares schema ${mnxDocument.mnx.version}; the module reports ${mnxSchemaVersion}.`);
+    }
     const report = gapReport(result);
     if (report.schemaVersion !== 1) {
       throw new Error('Chord gap report has invalid envelope metadata.');
