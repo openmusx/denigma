@@ -23,8 +23,8 @@
 #include <algorithm>
 #include <cstdlib>
 #include <iomanip>
+#include <map>
 #include <optional>
-#include <set>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -33,6 +33,7 @@
 #include "denigma/classify/barlines.h"
 #include "denigma/classify/chords.h"
 #include "denigma/classify/clefs.h"
+#include "denigma/classify/staff_states.h"
 
 #include "mx/api/BarlineData.h"
 #include "mx/api/ChordData.h"
@@ -425,9 +426,11 @@ mx::api::KeyData createKeyData(const MusicXmlMusxMapping& context, const MusxIns
     return key;
 }
 
-std::optional<mx::api::TransposeData> createTransposeData(const MusicXmlMusxMapping& context, const MusxInstance<others::StaffComposite>& staff)
+std::optional<mx::api::TransposeData> createTransposeData(
+    const MusicXmlMusxMapping& context, const classify::staff_state::Transposition& transposition)
 {
-    const auto [transpositionDisp, transpositionAlt] = staff->calcTranspositionInterval();
+    const int transpositionDisp = transposition.displacement;
+    const int transpositionAlt = transposition.alteration;
     if (!transpositionDisp && !transpositionAlt) {
         return std::nullopt;
     }
@@ -687,113 +690,83 @@ void assignStaffAttributes(MusicXmlMusxMapping& context, mx::api::PartData& part
         return;
     }
 
-    const MeasCmper finaleMeasureId = musxMeasures.back()->getCmper();
-
     for (size_t staffIndex = 0; staffIndex < staves.size(); ++staffIndex) {
         const auto staffId = staves[staffIndex];
-        std::set<MusicPoint> attributeChanges{MusicPoint{}};
-        if (const auto rawStaff = context.document->getOthers()->get<others::Staff>(context.forPartId, staffId); rawStaff && rawStaff->hasStyles) {
-            const auto styleAssigns = context.document->getOthers()->getArray<others::StaffStyleAssign>(context.forPartId, staffId);
-            for (const auto& styleAssign : styleAssigns) {
-                attributeChanges.emplace(styleAssign->startMeas, Fraction::fromEdu(styleAssign->startEdu));
-                if (const auto nextLocation = styleAssign->nextLocation(staffId)) {
-                    attributeChanges.emplace(*nextLocation);
-                }
-            }
-        }
-        // Each system where this staff appears is an attribute change point, but only if the part's
-        // layout was calculated. Otherwise startMeas is a zero placeholder and seeds nothing useful.
-        if (context.partLayoutIsCalculated) {
-            for (const auto& system : context.document->getOthers()->getArray<others::StaffSystem>(context.forPartId)) {
-                const auto systemStaves = context.document->getOthers()->getArray<others::StaffUsed>(context.forPartId, system->getCmper());
-                if (systemStaves.getIndexForStaff(staffId).has_value()) {
-                    attributeChanges.emplace(system->startMeas, Fraction{});
-                }
-            }
-        }
-
-        int prevStaffLines = music_theory::STANDARD_NUMBER_OF_STAFFLINES;
-        std::optional<mx::api::TransposeData> prevTransposition;
-        for (const auto& point : attributeChanges) {
-            if (point.measureId <= 0 || size_t(point.measureId) > part.measures.size()) {
-                continue;
-            }
-
-            const auto pointStaff = others::StaffComposite::createCurrent(
-                context.document, context.forPartId, staffId, point.measureId, point.position.calcEduDuration());
-            ASSERT_IF (!pointStaff) {
-                context.logMessage(LogMsg() << "No staff composite found for staff " << staffId << " at measure " << point.measureId << ", edu "
-                                            << point.position.calcEduDuration() << " while assigning MusicXML staff attributes.",
+        const auto staffMeasure = [&](const MusicPoint& point, const char* attributeKind) -> mx::api::MeasureData* {
+            auto& measure = part.measures[size_t(point.measureId - 1)];
+            ASSERT_IF (measure.staves.size() != staves.size()) {
+                context.logMessage(LogMsg() << "Measure " << point.measureId << " in part " << part.uniqueId << " has " << measure.staves.size()
+                                            << " staves, expected " << staves.size() << " while assigning MusicXML " << attributeKind
+                                            << " attributes.",
                     MessageSeverity::Warning);
+                return nullptr;
+            }
+            return &measure;
+        };
+
+        // The part-level transposition already states the one in effect at the start, so the walk
+        // begins from it. The emitted value is tracked separately because createTransposeData maps
+        // every interval it does not export to no transposition.
+        classify::StaffState baseline;
+        std::optional<mx::api::TransposeData> prevTransposition;
+        const auto startState = classify::calcStaffState(context.document, context.forPartId, staffId, MusicPoint{});
+        const auto startTransposition = createTransposeData(context, startState.transposition);
+        if (startTransposition && transposeDataEqualIgnoringStaffAndTick(startTransposition, part.transposition)) {
+            baseline.transposition = startState.transposition;
+            prevTransposition = startTransposition;
+        }
+
+        // mx::api can write staff lines and staff size only at the start of a measure (see
+        // mx-api-gaps.md). A change within a measure is written at the next barline with the state
+        // Finale has there, so a change that is undone within the same measure is lost.
+        std::map<MeasCmper, classify::StaffState> barlineStates;
+        classify::iterateStaffStateChanges(context.document, context.forPartId, staffId, baseline, [&](const classify::StaffStateChange& change) {
+            const MeasCmper barline = change.point.position == 0 ? change.point.measureId : change.point.measureId + 1;
+            if (size_t(barline) <= part.measures.size()) {
+                barlineStates[barline] = change.current;
+            }
+
+            if (change.current.transposition == change.previous.transposition) {
+                return true;
+            }
+            const auto currentTransposition = createTransposeData(context, change.current.transposition);
+            if (transposeDataEqualIgnoringStaffAndTick(prevTransposition, currentTransposition)) {
+                return true;
+            }
+            auto* measure = staffMeasure(change.point, "transposition");
+            if (!measure) {
+                return false;
+            }
+            auto transpose = currentTransposition.value_or(mx::api::TransposeData{});
+            if (staves.size() > 1) {
+                transpose.staffIndex = static_cast<int>(staffIndex);
+            }
+            transpose.tickTimePosition = context.timing.calcNearestMusicXmlDivisions(change.point.position);
+            measure->transpositions.emplace_back(transpose);
+            prevTransposition = currentTransposition;
+            return true;
+        });
+
+        classify::StaffState written;
+        for (const auto& [measureId, state] : barlineStates) {
+            const bool linesChanged = state.numberOfLines != written.numberOfLines;
+            const bool sizeChanged = state.lineSpace != written.lineSpace || state.staffScaling != written.staffScaling;
+            if (!linesChanged && !sizeChanged) {
                 continue;
             }
-
-            const auto measureStartStaff = [&]() -> MusxInstance<others::StaffComposite> {
-                if (point.position == 0) {
-                    return pointStaff;
-                }
-                if (point.measureId < finaleMeasureId) {
-                    return others::StaffComposite::createCurrent(context.document, context.forPartId, staffId, point.measureId + 1, 0);
-                }
-                return nullptr;
-            }();
-
-            if (measureStartStaff) {
-                // items here can only be changed at start of measure in musicxml/mx::api
-                const auto measureId = measureStartStaff->getMeasureId();
-                auto& measure = part.measures[size_t(measureId - 1)];
-                ASSERT_IF (measure.staves.size() != staves.size()) {
-                    context.logMessage(LogMsg() << "Measure " << measureId << " in part " << part.uniqueId << " has " << measure.staves.size()
-                                                << " staves, expected " << staves.size()
-                                                << " while assigning MusicXML measure-start staff attributes.",
-                        MessageSeverity::Warning);
-                    return;
-                }
-                // An uncalculated layout resolves no system, which is an expected saved state rather
-                // than an anomaly, so only a calculated layout missing a system is worth reporting.
-                // Warning here unconditionally would fire once per change point per staff.
-                const auto system = context.systemForMeasure(measureId);
-                ASSERT_IF (context.partLayoutIsCalculated && !system) {
-                    context.logMessage(LogMsg() << "No staff system found for measure " << measureId
-                                                << " while assigning MusicXML staff attributes for staff " << staffId << ".",
-                        MessageSeverity::Warning);
-                    continue;
-                }
-                const int staffLines = measureStartStaff->calcNumberOfStafflines();
-                if (staffLines != prevStaffLines) {
-                    measure.staves[staffIndex].staffLines = staffLines;
-                }
-                prevStaffLines = staffLines;
-
-                // Staff lines and transposition do not depend on the system, so they still export
-                // without one; per-system scaling falls back to unscaled.
-                const Fraction lineSpaceFactor{measureStartStaff->lineSpace, Evpu(EVPU_PER_SPACE)};
-                const Fraction systemScale = system ? system->calcStaffScaling(staffId) : Fraction{1, 1};
-                context.layout.setStaffSize(measure.staves[staffIndex], staffId, lineSpaceFactor * systemScale, systemScale);
+            auto* measure = staffMeasure(MusicPoint(measureId, Fraction{}), "measure-start staff");
+            if (!measure) {
+                break;
             }
-
-            const auto currentTransposition = createTransposeData(context, pointStaff);
-            if (!transposeDataEqualIgnoringStaffAndTick(prevTransposition, currentTransposition)) {
-                const bool initialPointCoveredByPart =
-                    point == MusicPoint{} && transposeDataEqualIgnoringStaffAndTick(currentTransposition, part.transposition);
-                if (!initialPointCoveredByPart) {
-                    auto& measure = part.measures[size_t(point.measureId - 1)];
-                    ASSERT_IF (measure.staves.size() != staves.size()) {
-                        context.logMessage(LogMsg()
-                                               << "Measure " << point.measureId << " in part " << part.uniqueId << " has " << measure.staves.size()
-                                               << " staves, expected " << staves.size() << " while assigning MusicXML transposition attributes.",
-                            MessageSeverity::Warning);
-                        return;
-                    }
-                    auto transpose = currentTransposition.value_or(mx::api::TransposeData{});
-                    if (staves.size() > 1) {
-                        transpose.staffIndex = static_cast<int>(staffIndex);
-                    }
-                    transpose.tickTimePosition = context.timing.calcNearestMusicXmlDivisions(point.position);
-                    measure.transpositions.emplace_back(transpose);
-                }
-                prevTransposition = currentTransposition;
+            auto& staffData = measure->staves[staffIndex];
+            if (linesChanged) {
+                staffData.staffLines = state.numberOfLines;
             }
+            if (sizeChanged) {
+                const Fraction lineSpaceFactor{state.lineSpace, Evpu(EVPU_PER_SPACE)};
+                context.layout.setStaffSize(staffData, staffId, lineSpaceFactor * state.staffScaling, state.staffScaling);
+            }
+            written = state;
         }
     }
 }

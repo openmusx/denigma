@@ -13,3 +13,7 @@ The gap report embeds arrowhead SVGs, and text drawn inside such a shape is size
 ## Accidental display on every note
 
 `support.useAccidentalDisplay` promises that every note with a visible accidental carries `accidentalDisplay`. Today only frozen and parenthesized accidentals do. Finale's `Note::showAcci` could supply the rest, but Finale updates it only when a frame is edited, so it goes stale when, for instance, a key change is added later. Exporting it needs either confidence in that flag or an accidental calculation in `musxdom`.
+
+## Staff size in staff configs
+
+MNX `staff-config` carries only the number of staff lines. Finale can also change a staff's size, through staff-style line spacing and through the staff percent in each system's staff list. Once `staff-config` has a size field, `createStaffConfigs` can write it from `classify::StaffState::lineSpace` and `staffScaling`, which the staff-state classifier already reports, as the MusicXML exporter does for `<staff-size>`.

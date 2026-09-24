@@ -1224,3 +1224,75 @@ TEST(MusicXmlParts, IndependentTimeSignaturesMatchFinale)
 
     compareTimeSignatures(*actualScore, *expectedScore);
 }
+
+TEST(MusicXmlParts, SystemStaffScalingSetsStaffSize)
+{
+    setupTestDataPaths();
+    const auto score = createScoreDataFromMusicXmlFixture("piano3staff.musx");
+    ASSERT_TRUE(score);
+    ASSERT_EQ(score->parts.size(), 3u);
+
+    // The first two staves are reduced to 80% in the system's staff list; the third is not.
+    for (size_t partIndex = 0; partIndex < 2; ++partIndex) {
+        const auto& staff = score->parts.at(partIndex).measures.at(0).staves.at(0);
+        EXPECT_DOUBLE_EQ(staff.staffSize, 80.0) << "part " << partIndex;
+        EXPECT_DOUBLE_EQ(staff.staffScaling, 80.0) << "part " << partIndex;
+    }
+    const auto& unscaled = score->parts.at(2).measures.at(0).staves.at(0);
+    EXPECT_DOUBLE_EQ(unscaled.staffSize, mx::api::DOUBLE_UNSPECIFIED);
+}
+
+TEST(MusicXmlParts, StaffLinesChangeAtNextBarline)
+{
+    setupTestDataPaths();
+
+    Buffer buffer;
+    const auto inputPath = getInputPath() / "reference" / utils::utf8ToPath("notAscii-其れ.enigmaxml");
+    readFile(inputPath, buffer);
+    std::string xml(buffer.begin(), buffer.end());
+
+    const std::string staffNeedle = "<staffSpec cmper=\"1\">";
+    const auto staffPos = xml.find(staffNeedle);
+    ASSERT_NE(staffPos, std::string::npos);
+    xml.insert(staffPos + staffNeedle.size(), "<hasStyles/>");
+
+    // One staff line during beat 2 of measure 1, and again from beat 4 of measure 1 to the end.
+    const std::string partNeedle = "<partDef cmper=\"0\">";
+    const auto partPos = xml.find(partNeedle);
+    ASSERT_NE(partPos, std::string::npos);
+    xml.insert(partPos, R"xml(<staffStyle cmper="1">
+      <staffLines>1</staffLines>
+      <lineSpace>24</lineSpace>
+      <styleName>One line</styleName>
+      <mask><staffType/></mask>
+    </staffStyle>
+    <staffStyleAssign cmper="1" inci="0">
+      <style>1</style>
+      <startMeas>1</startMeas>
+      <startEdu>1024</startEdu>
+      <endMeas>1</endMeas>
+      <endEdu>2047</endEdu>
+    </staffStyleAssign>
+    <staffStyleAssign cmper="1" inci="1">
+      <style>1</style>
+      <startMeas>1</startMeas>
+      <startEdu>3072</startEdu>
+      <endMeas>2</endMeas>
+      <endEdu>4095</endEdu>
+    </staffStyleAssign>
+    )xml");
+
+    CommandInputData inputData;
+    inputData.primaryBuffer.assign(xml.begin(), xml.end());
+    DenigmaContext context(DENIGMA_NAME);
+    context.inputFilePath = inputPath;
+    const auto score = formats::musicxml::detail::createMusicXmlDocument(inputData, context);
+    ASSERT_EQ(score.parts.size(), 1u);
+    const auto& measures = score.parts.front().measures;
+    ASSERT_EQ(measures.size(), 2u);
+
+    // MusicXML staff lines change only at a barline: the beat-2 range is lost, and the range that
+    // starts on beat 4 takes effect at the next barline.
+    EXPECT_EQ(measures[0].staves.at(0).staffLines, mx::api::VALUE_UNSPECIFIED);
+    EXPECT_EQ(measures[1].staves.at(0).staffLines, 1);
+}

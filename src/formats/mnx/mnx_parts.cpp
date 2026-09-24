@@ -34,6 +34,7 @@
 #include "core/element_ids.h"
 #include "denigma/classify/clefs.h"
 #include "denigma/classify/dynamics.h"
+#include "denigma/classify/staff_states.h"
 #include "utils/font_names.h"
 #include "utils/stringutils.h"
 
@@ -382,6 +383,44 @@ static void createMeasureRepeats(const MnxMusxMappingPtr& context, mnxdom::Part&
     context->measureRepeatCounts.clear();
 }
 
+/// @brief Exports the staff settings that MNX `staff-config` carries wherever they change.
+///
+/// Each staff config is a complete description of the staff, so every exported setting is written
+/// even when only one of them changed.
+static void createStaffConfigs(const MnxMusxMappingPtr& context, const mnxdom::Part& part, mnxdom::Array<mnxdom::part::Measure>& mnxMeasures)
+{
+    // The walk starts from what the MNX part already states: the staff-config default of a standard
+    // five-line staff, and the part's transposition.
+    classify::StaffState baseline;
+    baseline.numberOfLines = music_theory::STANDARD_NUMBER_OF_STAFFLINES;
+    if (const auto partTransposition = part.transposition()) {
+        const auto interval = partTransposition->interval();
+        baseline.transposition = {
+            interval.staffDistance(), music_theory::calcAlterationFrom12EdoHalfsteps(interval.staffDistance(), interval.halfSteps())};
+    }
+    for (size_t x = 0; x < context->currPartStaves.size(); x++) {
+        const StaffCmper staffCmper = context->currPartStaves[x];
+        const std::optional<int> staffNumber = (context->currPartStaves.size() > 1) ? std::optional<int>(int(x) + 1) : std::nullopt;
+        classify::iterateStaffStateChanges(context->document, SCORE_PARTID, staffCmper, baseline, [&](const classify::StaffStateChange& change) {
+            if (change.current.numberOfLines == change.previous.numberOfLines) {
+                return true;
+            }
+            auto mnxStaffConfig = mnxMeasures.at(static_cast<size_t>(change.point.measureId - 1)).ensure_staffConfigs().append();
+            if (change.point.position) {
+                mnxStaffConfig.ensure_position(mnxFractionFromFraction(change.point.position));
+            }
+            if (staffNumber) {
+                mnxStaffConfig.set_staff(staffNumber.value());
+            }
+            // A config is written only where the count changes, so a count of 5 here is a return to
+            // five lines. Stating it says so explicitly, where an empty config would leave the change
+            // to the schema default. See design-decisions.md.
+            mnxStaffConfig.config().set_lines(static_cast<unsigned>((std::max)(0, change.current.numberOfLines)));
+            return true;
+        });
+    }
+}
+
 static void createMeasures(const MnxMusxMappingPtr& context, mnxdom::Part& part)
 {
     auto& musxDocument = context->document;
@@ -439,6 +478,7 @@ static void createMeasures(const MnxMusxMappingPtr& context, mnxdom::Part& part)
         }
     }
     createMeasureRepeats(context, part, mnxMeasures, musxMeasures);
+    createStaffConfigs(context, part, mnxMeasures);
     context->clearCounts();
 }
 

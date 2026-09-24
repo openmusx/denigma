@@ -80,6 +80,12 @@ Events get an explicit `stemDirection` only for a manual stem freeze and in a la
 
 A clef with `ShowClefMode::Never`, or with `WhenNeeded` on a staff that hides clefs, is exported with `hide`, matching the MusicXML exporter's `print-object`. A blank clef is hidden as well. On a percussion staff it becomes a percussion clef. On any other staff it keeps its letter clef when Finale's clef definition reads as one, and otherwise becomes a treble clef, which is what Finale's own blank clefs are. Tablature clefs have no MNX sign and are still skipped.
 
+## Staff configs
+
+### A staff config always states its line count
+
+`lines` defaults to 5, so a staff config that returns a staff to five lines could omit it. It is written anyway, departing from the exporter's usual preference for omitting defaults. A config exists only where the count changes, so one that returns to five lines records a real change, and stating the count makes that change explicit rather than leaving it implied by the schema default. A staff that has five lines from the start gets no staff config at all.
+
 ## Tuplets
 
 ### Stem-relative tuplet placement names its side
