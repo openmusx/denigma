@@ -35,7 +35,7 @@ using namespace musx::dom;
 TEST(ElementIdsTest, CalcEventId)
 {
     std::vector<char> xml;
-    readFile(getInputPath() / "reference/notAscii-其れ.enigmaxml", xml);
+    readFile(getInputPath() / "reference" / utils::utf8ToPath("notAscii-其れ.enigmaxml"), xml);
     const auto document = musx::factory::DocumentFactory::create<denigma::MusxReader>(xml);
     ASSERT_TRUE(document);
     const auto firstEntry = EntryInfoPtr::fromEntryNumber(document, SCORE_PARTID, 1);
@@ -80,7 +80,7 @@ MusxInstance<T> makeLyricAssign(EntryNumber entry, Cmper lyricNumber, Inci inci)
 TEST(ElementIdsTest, CalcLyricAssignId)
 {
     std::vector<char> xml;
-    readFile(getInputPath() / "reference/notAscii-其れ.enigmaxml", xml);
+    readFile(getInputPath() / "reference" / utils::utf8ToPath("notAscii-其れ.enigmaxml"), xml);
     const auto document = musx::factory::DocumentFactory::create<denigma::MusxReader>(xml);
     ASSERT_TRUE(document);
     const auto firstEntry = EntryInfoPtr::fromEntryNumber(document, SCORE_PARTID, 1);
