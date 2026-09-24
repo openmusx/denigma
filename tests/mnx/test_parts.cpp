@@ -22,9 +22,15 @@
 #include <filesystem>
 #include <fstream>
 #include <iterator>
+#include <span>
+#include <sstream>
 #include <string>
+#include <vector>
 
 #include "core/denigma.h"
+#include "core/musx_reader.h"
+#include "denigma/classify/staff_states.h"
+#include "denigma/formats/mnx.h"
 #include "mnxdom.h"
 #include "test_utils.h"
 #include "gtest/gtest.h"
@@ -489,4 +495,100 @@ TEST(MnxParts, LegacyMusicFontNamesItsSmuflSuccessor)
     for (const auto& part : mnx["parts"]) {
         EXPECT_EQ(part.value("smuflFont", ""), "Finale Maestro") << part.dump(4);
     }
+}
+
+TEST(MnxParts, StaffConfigsFollowStaffStyles)
+{
+    setupTestDataPaths();
+
+    Buffer buffer;
+    readFile(getInputPath() / "reference" / utils::utf8ToPath("notAscii-其れ.enigmaxml"), buffer);
+    std::string xml(buffer.begin(), buffer.end());
+
+    const std::string staffNeedle = "<staffSpec cmper=\"1\">";
+    const auto staffPos = xml.find(staffNeedle);
+    ASSERT_NE(staffPos, std::string::npos);
+    xml.insert(staffPos + staffNeedle.size(), "<hasStyles/>");
+
+    // Style 1 draws one staff line: all of measure 1, then the third beat of measure 2. Style 2
+    // changes only the transposition, on the first beat of measure 2.
+    const std::string partNeedle = "<partDef cmper=\"0\">";
+    const auto partPos = xml.find(partNeedle);
+    ASSERT_NE(partPos, std::string::npos);
+    xml.insert(partPos, R"xml(<staffStyle cmper="1">
+      <staffLines>1</staffLines>
+      <lineSpace>24</lineSpace>
+      <styleName>One line</styleName>
+      <mask><staffType/></mask>
+    </staffStyle>
+    <staffStyle cmper="2">
+      <staffLines>5</staffLines>
+      <lineSpace>24</lineSpace>
+      <transposition><keysig><interval>3</interval><adjust>-1</adjust></keysig></transposition>
+      <styleName>Transposed</styleName>
+      <mask><transposition/></mask>
+    </staffStyle>
+    <staffStyleAssign cmper="1" inci="0">
+      <style>1</style>
+      <startMeas>1</startMeas>
+      <startEdu>0</startEdu>
+      <endMeas>1</endMeas>
+      <endEdu>4095</endEdu>
+    </staffStyleAssign>
+    <staffStyleAssign cmper="1" inci="1">
+      <style>1</style>
+      <startMeas>2</startMeas>
+      <startEdu>2048</startEdu>
+      <endMeas>2</endMeas>
+      <endEdu>3071</endEdu>
+    </staffStyleAssign>
+    <staffStyleAssign cmper="1" inci="2">
+      <style>2</style>
+      <startMeas>2</startMeas>
+      <startEdu>0</startEdu>
+      <endMeas>2</endMeas>
+      <endEdu>1023</endEdu>
+    </staffStyleAssign>
+    )xml");
+
+    // The transposition style must take effect for its missing staff config to mean anything.
+    std::vector<char> xmlBuffer(xml.begin(), xml.end());
+    const auto musxDocument = musx::factory::DocumentFactory::create<MusxReader>(xmlBuffer);
+    const auto transposedState = classify::calcStaffState(musxDocument, musx::dom::SCORE_PARTID, 1, musx::dom::MusicPoint(2, {}));
+    EXPECT_NE(transposedState.transposition, classify::staff_state::Transposition{});
+
+    denigma::ConverterRegistry registry;
+    denigma::formats::mnx::registerConverters(registry);
+    const auto* converter = registry.find(denigma::FormatId::EnigmaXml, denigma::FormatId::MnxJson);
+    ASSERT_NE(converter, nullptr);
+
+    std::ostringstream output;
+    denigma::formats::mnx::Options options;
+    options.common.sourceName = "staff_configs.enigmaxml";
+    const auto result =
+        converter->convert(std::as_bytes(std::span<const char>(xml.data(), xml.size())), output, denigma::ConversionRequest{&options});
+    for (const auto& diagnostic : result.diagnostics()) {
+        ADD_FAILURE() << diagnostic.message;
+    }
+
+    const auto mnx = nlohmann::json::parse(output.str());
+    ASSERT_EQ(mnx["parts"].size(), 1u);
+    const auto& measures = mnx["parts"][0]["measures"];
+    ASSERT_EQ(measures.size(), 2u);
+
+    const auto& measure1 = measures[0];
+    ASSERT_TRUE(measure1.contains("staffConfigs")) << measure1.dump(4);
+    ASSERT_EQ(measure1["staffConfigs"].size(), 1u) << measure1.dump(4);
+    EXPECT_EQ(measure1["staffConfigs"][0], nlohmann::json::parse(R"({"config":{"lines":1}})"));
+
+    // A return to five lines states the count. The transposition ending on the second beat changes
+    // nothing a staff config carries, so it writes no config.
+    const auto& measure2 = measures[1];
+    ASSERT_TRUE(measure2.contains("staffConfigs")) << measure2.dump(4);
+    EXPECT_EQ(measure2["staffConfigs"], nlohmann::json::parse(R"([
+        {"config":{"lines":5}},
+        {"config":{"lines":1},"position":{"fraction":[1,2]}},
+        {"config":{"lines":5},"position":{"fraction":[3,4]}}
+    ])"))
+        << measure2.dump(4);
 }

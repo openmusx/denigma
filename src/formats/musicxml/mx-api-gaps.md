@@ -36,6 +36,8 @@ MusicXML allows `<attributes>` elements mid-measure, and `<attributes>` may incl
 
 `mx::api::StaffData::staffLines`, `staffSize`, and `staffScaling` are currently single scalars with no tick position. MX writes them during the measure-start attributes phase, so Denigma can only express measure-start staff detail changes through the current API.
 
+Until then, `assignStaffAttributes` writes a mid-measure change at the next barline, with the state Finale has there. A staff style that begins mid-measure takes effect a measure late, one that ends mid-measure lasts to the next barline, and one that begins and ends within a single measure is lost.
+
 Needed API shape: positionable staff details data, likely a vector on `StaffData`, with `tickTimePosition` and fields such as `staffLines`, `staffSize`, and `staffScaling`.
 
 ## Clefs
