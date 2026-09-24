@@ -72,29 +72,17 @@ Use `OtherDirectionData` only for recognized direction semantics that lack a ded
 
 Export measure-attached Finale graphics from `details::MeasureGraphicAssign` as MusicXML `<image>` directions. Resolve embedded and external graphic sources, emit required image files through the multi-output callback, determine MIME types, and convert Finale position and size values to MusicXML tenths. Page graphics and graphics embedded in Shape Designer objects remain separate mapping tasks.
 
-## Tuplet numbering scope
+## Tuplets of unnameable durations
 
-Tuplet `numberLevel` comes from the tuplet's index within its entry frame (`applyTupletData` in
-`musicxml_notes.cpp`). That is stable for a tuplet's whole extent, so a start always pairs with its
-stop, but a frame is one layer of one staff while MusicXML's `number` is scoped to the part. Two
-layers each numbering from 1 can therefore hand the same level to two unrelated tuplets, and
-nothing currently prevents it.
+A tuplet whose displayed or reference duration is shorter than a 1024th - Finale's 2048th and
+4096th, below the floor of MusicXML's `note-type-value` - is exported as a bare
+`<time-modification>` with no `<tuplet>` notation, so the bracket and the number are lost
+(`applyTupletData` in `musicxml_notes.cpp`). MX used to force that: `NotationsWriter` named a type
+on every portion it wrote, and an unspecified `DurationName` would have been named `maxima`.
 
-No fixture demonstrates this yet, so it is a latent risk rather than a known defect; a two-layer
-measure with a tuplet in each layer would settle it. The fix is a number allocated per part and
-released when a tuplet ends, which is what `mx::impl::SpannerResolver` already does for every other
-spanner family. Tuplets are excluded from it because `TupletStart` and `TupletStop` carry a raw
-`numberLevel` int rather than an `api::SpannerNumber`, so either Denigma allocates part-scoped
-levels itself or MX extends the resolver to tuplets. Note that MusicXML makes `number` optional and
-defaults it to 1, and MX omits the attribute when the level is unspecified, so a measure with no
-overlapping tuplets needs no numbering at all.
-
-Two neighbouring tuplet defects were MX's and are now fixed upstream: `<normal-type>` written from
-a sibling search rather than from the API field ([webern/mx#428](https://github.com/webern/mx/issues/428)),
-and a single-note tuplet writing its stop before its start
-([webern/mx#429](https://github.com/webern/mx/issues/429)). `MusicXmlTuplets` in
-`tests/musicxml/test_tuplets.cpp` guards both, along with what Denigma asks for on a nested
-tuplet.
+MX now leaves `<tuplet-type>` unset when the name is unspecified, so the notation is expressible
+with the numbers alone, which is what Finale's own export writes. `createTupletStart` can leave the
+names unspecified for these durations and keep the notation.
 
 ## Tablature staves
 
@@ -190,3 +178,15 @@ Convert eligible music-font characters in expression text to `SymbolData` within
 Use page-specific `PageData` layout overrides when computing absolute credit anchors. The exporter currently uses the score's default odd/even page size and margins, so credits on pages with Finale layout overrides may be misplaced.
 
 Define intentional downgrade policies for Finale text and line features that MusicXML cannot represent. These include full and forced-full text justification; arbitrary Shape Designer text frames; page and measure text-block geometry such as fixed dimensions, insets, corner radius, line spacing, and word wrapping; custom-line continuation text shown after system breaks; and center full/abbreviated text on general bracket or dashes lines. Preserve the closest standard appearance where possible and log material omissions.
+
+## MX diagnostics
+
+`writeMusicXmlToCallback` in `musicxml.cpp` logs every `mx::api::Diagnostic` it is handed, the
+id-integrity codes as warnings and the rest at Verbose. Two decisions remain. Which of
+`valueAdjusted`, `invalidValue`, `missingValueDefaulted`, `unmatchedSpanner`, and `droppedData`
+name a Denigma defect rather than expected normalization, and so deserve promoting out of Verbose,
+is not yet known; each needs checking against the fixture corpus. And data mx drops may belong in
+a typed gap collection, as MNX has, rather than in the log at all.
+
+`mxResultMessage` also reports only the XML path of a failure, although `ApiError::location` now
+carries part, measure, staff, voice, and tick as well.

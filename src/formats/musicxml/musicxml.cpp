@@ -30,7 +30,8 @@
 #include "musicxml.h"
 #include "utils/mathutils.h"
 
-#include "mx/api/DocumentManager.h"
+#include "mx/api/Diagnostics.h"
+#include "mx/api/MusicXml.h"
 #include "mx/api/ScoreData.h"
 
 using namespace musx::dom;
@@ -46,8 +47,8 @@ std::string mxResultMessage(std::string_view operation, const mx::api::ApiError&
     if (!error.message.empty()) {
         result += ": " + error.message;
     }
-    if (!error.path.empty()) {
-        result += " at " + error.path;
+    if (!error.location.xmlPath.empty()) {
+        result += " at " + error.location.xmlPath;
     }
     return result;
 }
@@ -94,19 +95,30 @@ mx::api::ScoreData createMusicXmlDocumentFromDocument(
     return *context.musicXmlScore;
 }
 
-void writeMusicXmlToCallback(const mx::api::ScoreData& score, const std::string& suggestedName, const MultiOutputCallback& outputCallback)
+void writeMusicXmlToCallback(const DenigmaContext& denigmaContext, const mx::api::ScoreData& score, const std::string& suggestedName,
+    const MultiOutputCallback& outputCallback)
 {
-    auto& documentManager = mx::api::DocumentManager::getInstance();
+    // Denigma authors the whole ScoreData it hands to mx, so every diagnostic on this path reports
+    // something mx changed or left out of what Denigma asked for, never something it read from
+    // someone else's file. mx renames an id that two elements claim, and reports a reference that
+    // names no matching id, then writes on; Denigma generates every id and reference it exports, so
+    // either means one of them was generated wrong, and both are worth a warning. The rest are
+    // recorded at Verbose until each has been triaged against the fixture corpus; see roadmap.md.
+    auto diagnostics = mx::api::Diagnostics([&denigmaContext](const mx::api::Diagnostic& diagnostic) {
+        const bool isIdIntegrity =
+            diagnostic.code == mx::api::DiagnosticCode::duplicateId || diagnostic.code == mx::api::DiagnosticCode::danglingIdReference;
+        denigmaContext.logMessage(
+            LogMsg() << "MusicXML " << (isIdIntegrity ? "id integrity" : "diagnostic") << ": " << mx::api::formatDiagnostic(diagnostic),
+            isIdIntegrity ? MessageSeverity::Warning : MessageSeverity::Verbose);
+    });
 
-    const auto idResult = documentManager.createFromScore(score);
-    if (!idResult.ok()) {
-        throw std::runtime_error(mxResultMessage("createFromScore", idResult.error()));
+    auto documentResult = mx::api::fromScore(score, diagnostics);
+    if (!documentResult.ok()) {
+        throw std::runtime_error(mxResultMessage("fromScore", documentResult.error()));
     }
 
-    const int documentId = idResult.value();
     std::ostringstream output;
-    const auto writeResult = documentManager.writeToStream(documentId, output);
-    documentManager.destroyDocument(documentId);
+    const auto writeResult = documentResult.value().writeToStream(output, diagnostics);
     if (!writeResult.ok()) {
         throw std::runtime_error(mxResultMessage("writeToStream", writeResult.error()));
     }
@@ -132,7 +144,7 @@ void convert(const CommandInputData& inputData, const DenigmaContext& denigmaCon
     if (denigmaContext.allPartsAndScore || !denigmaContext.partName.has_value()) {
         const auto score = createMusicXmlDocumentFromDocument(document, denigmaContext, nullptr);
         // The score file takes the document's own name, with no part suffix.
-        writeMusicXmlToCallback(score, std::string{}, outputCallback);
+        writeMusicXmlToCallback(denigmaContext, score, std::string{}, outputCallback);
     }
     bool foundPart = false;
     if (denigmaContext.allPartsAndScore || denigmaContext.partName.has_value()) {
@@ -141,10 +153,10 @@ void convert(const CommandInputData& inputData, const DenigmaContext& denigmaCon
             if (part->getCmper() != SCORE_PARTID) {
                 if (denigmaContext.allPartsAndScore) {
                     const auto partScore = createMusicXmlDocumentFromDocument(document, denigmaContext, part);
-                    writeMusicXmlToCallback(partScore, calcLinkedPartDisplayName(part), outputCallback);
+                    writeMusicXmlToCallback(denigmaContext, partScore, calcLinkedPartDisplayName(part), outputCallback);
                 } else if (denigmaContext.partName->empty() || part->getName().rfind(denigmaContext.partName.value(), 0) == 0) {
                     const auto partScore = createMusicXmlDocumentFromDocument(document, denigmaContext, part);
-                    writeMusicXmlToCallback(partScore, calcLinkedPartDisplayName(part), outputCallback);
+                    writeMusicXmlToCallback(denigmaContext, partScore, calcLinkedPartDisplayName(part), outputCallback);
                     foundPart = true;
                     break;
                 }

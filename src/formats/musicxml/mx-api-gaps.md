@@ -210,9 +210,8 @@ attribute. Denigma can preserve visible una-corda text and brackets through gene
 cannot preserve its playback semantics. Finale custom hook geometry, continuation text, and character-based line
 bodies have no direct MusicXML pedal equivalent.
 
-Needed API shape: extend `PedalLineData` with `sign`, `abbreviated`, and `number`, with reader/writer support and
-pedal-aware number resolution. Correct `SpannerNumberResolver`'s MusicXML-3.0-era claim that `<pedal>` has no
-`number` attribute. `SoundData` should also expose MusicXML's `soft-pedal` playback attribute.
+Needed API shape: extend `PedalLineData` with `sign` and `abbreviated`, with reader/writer support. `SoundData`
+should also expose MusicXML's `soft-pedal` playback attribute.
 
 ### Direction-level technique playback
 
@@ -221,22 +220,6 @@ Finale technique text such as `pizz.`, `arco`, and `mute` carries playback meani
 Denigma keeps technique text as a words direction. Only the playback-style `arco`/`pizzicato` values are copied into `DirectionData::soundData.pizzicato`; the rest remain textual until `mx::api` grows richer playback or direction-technical modeling.
 
 Needed API shape: direction-level playback or technical modeling for the remaining technique vocabulary, so a recognized technique can carry its playback effect alongside its words.
-
-## Tuplets
-
-### Tuplet spanner numbers are unmanaged
-
-`TupletStart` and `TupletStop` carry a raw `int numberLevel` rather than an `api::SpannerNumber`, so tuplets are the one spanner family `mx::impl::SpannerResolver` does not handle: `NotationsWriter` writes the level verbatim while curves, wedges, octave shifts, brackets, dashes, glissandi, slides, and wavy lines all route through `emittedNumber`. The author therefore owns allocating and recycling tuplet levels, including keeping them distinct across the whole part.
-
-Needed API shape: `SpannerNumber` on `TupletStart`/`TupletStop` with resolver support, extending the writer-side assignment that the other families received in MX PR #320. Denigma's current part-scope exposure is recorded in [roadmap.md](roadmap.md).
-
-### Tuplet portions cannot omit their type
-
-`<tuplet-actual>` and `<tuplet-normal>` are optional in `<tuplet>`, and `<tuplet-type>` is optional within each, so a tuplet of durations MusicXML cannot name (Finale's 2048th and 4096th, below the 1024th floor of `note-type-value`) is fully expressible with the numbers alone: `<tuplet-actual><tuplet-number>3</tuplet-number></tuplet-actual>` and its normal counterpart draw the bracket and the number exactly as for any other triplet, since the type only feeds `show-type`, whose default is `none`. Finale's own export writes a bare `<tuplet type="start"/>`, which is also valid.
-
-`mx::core` can write this: `TupletPortion` holds its type as `std::optional<TupletType>`. The gap is in `mx::impl`: `NotationsWriter` writes both portions from `TupletStart` and sets each type unconditionally from `Converter::convert(DurationName)`, which maps `unspecified` to `maxima`, so passing `unspecified` would name a wrong type rather than none. Denigma therefore drops the `<tuplet>` notation for such a tuplet and keeps its `<time-modification>`, logging the loss; see `applyTupletData` in [musicxml_notes.cpp](musicxml_notes.cpp).
-
-Needed change: `NotationsWriter` should leave a portion's `<tuplet-type>` unset when its `DurationName` is `unspecified`, as `NoteWriter` already guards `<normal-type>`. No new api field is needed. Once that is in, `createTupletStart` can leave the names `unspecified` for sub-1024th durations and keep the notation.
 
 ## Tablature
 

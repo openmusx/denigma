@@ -33,7 +33,7 @@
 #include "formats/musicxml/musicxml.h"
 #include "musicxml_test.h"
 #include "musx/dom/InstrumentUuids.h"
-#include "mx/api/DocumentManager.h"
+#include "mx/api/MusicXml.h"
 #include "mx/api/ScoreData.h"
 #include "pugixml.hpp"
 #include "test_utils.h"
@@ -822,13 +822,10 @@ TEST(MusicXmlParts, NonTraditional12EdoKeySignaturesPreserveAccidentalOrder)
     };
     EXPECT_EQ(components, expected);
 
-    auto& documentManager = mx::api::DocumentManager::getInstance();
-    const auto documentIdResult = documentManager.createFromScore(*score);
-    ASSERT_TRUE(documentIdResult.ok()) << documentIdResult.error().message;
-    const int documentId = documentIdResult.value();
+    auto documentResult = mx::api::fromScore(*score);
+    ASSERT_TRUE(documentResult.ok()) << documentResult.error().message;
     std::ostringstream output;
-    const auto writeResult = documentManager.writeToStream(documentId, output);
-    documentManager.destroyDocument(documentId);
+    const auto writeResult = documentResult.value().writeToStream(output);
     ASSERT_TRUE(writeResult.ok()) << writeResult.error().message;
 
     pugi::xml_document document;

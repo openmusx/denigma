@@ -36,6 +36,7 @@
 #include "mx/api/NoteData.h"
 #include "mx/api/PitchData.h"
 #include "mx/api/PrintData.h"
+#include "mx/api/SpannerNumber.h"
 #include "mx/api/VoiceData.h"
 
 using namespace musx::dom;
@@ -148,14 +149,14 @@ void applyTremoloData(mx::api::NoteData& note, const EntryInfoPtr& entryInfo)
     }
 }
 
-mx::api::TupletStart createTupletStart(const EntryFrame::TupletInfo& tupletInfo, int numberLevel)
+mx::api::TupletStart createTupletStart(const EntryFrame::TupletInfo& tupletInfo, const mx::api::SpannerNumber& number)
 {
     const auto& tupletDef = tupletInfo.tuplet;
     const auto [actualDurationName, actualDots] = calcDurationInfoFromEdu(tupletDef->displayDuration);
     const auto [normalDurationName, normalDots] = calcDurationInfoFromEdu(tupletDef->referenceDuration);
 
     auto result = mx::api::TupletStart{};
-    result.numberLevel = numberLevel;
+    result.number = number;
     result.actualNumber = tupletDef->displayNumber;
     result.actualDurationName = enumConvert<mx::api::DurationName>(actualDurationName);
     result.actualDots = int(actualDots);
@@ -229,11 +230,12 @@ void applyTupletData(const MusicXmlMusxMapping& context, mx::api::NoteData& note
     for (size_t tupletIndex : activeTuplets) {
         const auto& tupletInfo = entryInfo.getFrame()->tupletInfo[tupletIndex];
         const auto& tupletDef = tupletInfo.tuplet;
-        const int numberLevel = int(tupletIndex) + 1;
-        // <tuplet-actual> and <tuplet-normal> name their durations, and mx writes both with a
-        // type whenever it writes <tuplet> (see mx-api-gaps.md). A tuplet of durations MusicXML
-        // cannot name keeps its <time-modification>, which carries the timing, and loses the
-        // <tuplet> notation.
+        // A tuplet lives in one frame, so its staff, measure, layer, and index there identify it within
+        // the part. The start and stop share that identity, and mx assigns the MusicXML number.
+        const auto number = mx::api::SpannerNumber("tuplet-" + std::to_string(entryInfo.getStaff()) + "-" + std::to_string(entryInfo.getMeasure())
+                                                   + "-" + std::to_string(entryInfo.getLayerIndex()) + "-" + std::to_string(tupletIndex));
+        // A tuplet of durations MusicXML cannot name keeps its <time-modification>, which carries
+        // the timing, and loses the <tuplet> notation; see roadmap.md.
         const bool hasMusicXmlTypes = hasMusicXmlNoteType(calcDurationInfoFromEdu(tupletDef->displayDuration).first)
                                       && hasMusicXmlNoteType(calcDurationInfoFromEdu(tupletDef->referenceDuration).first);
         if (!hasMusicXmlTypes) {
@@ -246,11 +248,11 @@ void applyTupletData(const MusicXmlMusxMapping& context, mx::api::NoteData& note
             continue;
         }
         if (tupletInfo.startIndex == entryInfo.getIndexInFrame()) {
-            note.noteAttachmentData.tupletStarts.emplace_back(createTupletStart(tupletInfo, numberLevel));
+            note.noteAttachmentData.tupletStarts.emplace_back(createTupletStart(tupletInfo, number));
         }
         if (tupletInfo.endIndex == entryInfo.getIndexInFrame()) {
             auto& stop = note.noteAttachmentData.tupletStops.emplace_back();
-            stop.numberLevel = numberLevel;
+            stop.number = number;
         }
     }
 }
