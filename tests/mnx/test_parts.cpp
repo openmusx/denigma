@@ -455,7 +455,7 @@ TEST(MnxParts, DynamicsGraceIndices)
     }
 }
 
-TEST(MnxParts, PercussionClefAndSmuflFont)
+TEST(MnxParts, PercussionClef)
 {
     setupTestDataPaths();
     std::filesystem::path inputPath;
@@ -468,7 +468,7 @@ TEST(MnxParts, PercussionClefAndSmuflFont)
     openJson(inputPath.parent_path() / "drumset.mnx", mnx);
     ASSERT_EQ(mnx["parts"].size(), 1u);
     const auto& part = mnx["parts"][0];
-    EXPECT_EQ(part.value("smuflFont", ""), "Finale Maestro");
+    EXPECT_FALSE(part.contains("smuflFont")) << "a music font belongs at the global level, not on a part";
 
     const auto& clefs = part["measures"][0]["clefs"];
     ASSERT_EQ(clefs.size(), 1u) << part["measures"][0].dump(4);
@@ -477,24 +477,6 @@ TEST(MnxParts, PercussionClefAndSmuflFont)
     EXPECT_EQ(clef["staffPosition"], 0);
     EXPECT_EQ(clef.value("glyph", ""), "unpitchedPercussionClef1");
     EXPECT_FALSE(clef.contains("hide"));
-}
-
-TEST(MnxParts, LegacyMusicFontNamesItsSmuflSuccessor)
-{
-    setupTestDataPaths();
-    std::filesystem::path inputPath;
-    copyInputToOutput("voices.musx", inputPath);
-    ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), "--mnx"};
-    checkStderr({"Processing", pathString(inputPath.filename()), "!validation error"},
-        [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath); });
-
-    nlohmann::json mnx;
-    openJson(inputPath.parent_path() / "voices.mnx", mnx);
-    // The fixture uses the legacy Maestro font, whose SMuFL successor is Finale Maestro.
-    ASSERT_FALSE(mnx["parts"].empty());
-    for (const auto& part : mnx["parts"]) {
-        EXPECT_EQ(part.value("smuflFont", ""), "Finale Maestro") << part.dump(4);
-    }
 }
 
 TEST(MnxParts, StaffConfigsFollowStaffStyles)
