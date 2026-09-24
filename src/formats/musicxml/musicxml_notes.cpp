@@ -162,11 +162,15 @@ mx::api::TupletStart createTupletStart(
     auto result = mx::api::TupletStart{};
     result.number = number;
     result.actualNumber = tupletDef->displayNumber;
-    result.actualDurationName = enumConvert<mx::api::DurationName>(actualDurationName);
-    result.actualDots = int(actualDots);
+    if (hasMusicXmlNoteType(actualDurationName)) {
+        result.actualDurationName = enumConvert<mx::api::DurationName>(actualDurationName);
+        result.actualDots = int(actualDots);
+    }
     result.normalNumber = tupletDef->referenceNumber;
-    result.normalDurationName = enumConvert<mx::api::DurationName>(normalDurationName);
-    result.normalDots = int(normalDots);
+    if (hasMusicXmlNoteType(normalDurationName)) {
+        result.normalDurationName = enumConvert<mx::api::DurationName>(normalDurationName);
+        result.normalDots = int(normalDots);
+    }
     result.positionData.placement = enumConvert<mx::api::Placement>(tupletClassification.placement);
     result.lineShape =
         tupletDef->brackStyle == details::TupletDef::BracketStyle::Slur ? mx::api::TupletLineShape::curved : mx::api::TupletLineShape::straight;
