@@ -552,8 +552,11 @@ void appendKeyboardPedal(MusicXmlMusxMapping& context, mx::api::StaffData& staff
     } else {
         auto start = mx::api::PedalLineData{};
         auto stop = mx::api::PedalLineData{};
+        const auto pedalNumber = smartShapeSpannerNumber(shape);
         start.tickTimePosition = startDirection.tickTimePosition;
         stop.tickTimePosition = stopDirection.tickTimePosition;
+        start.number = pedalNumber;
+        stop.number = pedalNumber;
         start.positionData.placement = enumConvert<mx::api::Placement>(placement);
         stop.positionData.placement = enumConvert<mx::api::Placement>(placement);
         start.kind = isPedalChange(pedal.startText, pedal.startCap)
@@ -566,11 +569,6 @@ void appendKeyboardPedal(MusicXmlMusxMapping& context, mx::api::StaffData& staff
 
     staff.directions.emplace_back(std::move(startDirection));
     stopStaff->directions.emplace_back(std::move(stopDirection));
-}
-
-double tenthsFromEfix(Efix value)
-{
-    return (static_cast<double>(value) / EFIX_PER_EVPU) * (MUSICXML_DEFAULT_TENTHS_PER_STAFF / EVPU_PER_STANDARD_STAFF);
 }
 
 mx::api::LineHook lineHookFromCap(const classify::smartshape::LineCap& cap)
@@ -603,18 +601,18 @@ mx::api::LineType lineTypeFromGeneralLine(const classify::smartshape::GeneralLin
     return mx::api::LineType::unspecified;
 }
 
-void applyGeneralLineDashes(const classify::smartshape::GeneralLine& line, mx::api::LineData& lineData)
+void applyGeneralLineDashes(const MusicXmlMusxMapping& context, const classify::smartshape::GeneralLine& line, mx::api::LineData& lineData)
 {
     if (line.lineStyle != others::SmartShapeCustomLine::LineStyle::Dashed) {
         return;
     }
     if (line.dashOn != 0) {
         lineData.isDashLengthSpecified = true;
-        lineData.dashLength = tenthsFromEfix(line.dashOn);
+        lineData.dashLength = context.musicXmlTenthsFromEfix(line.dashOn);
     }
     if (line.dashOff != 0) {
         lineData.isSpaceLengthSpecified = true;
-        lineData.spaceLength = tenthsFromEfix(line.dashOff);
+        lineData.spaceLength = context.musicXmlTenthsFromEfix(line.dashOff);
     }
 }
 
@@ -659,8 +657,8 @@ void appendGeneralLine(MusicXmlMusxMapping& context, mx::api::StaffData& staff, 
         stop.tickTimePosition = stopDirection.tickTimePosition;
         start.number = smartShapeSpannerNumber(shape);
         stop.number = smartShapeSpannerNumber(shape);
-        applyGeneralLineDashes(line, start.lineData);
-        applyGeneralLineDashes(line, stop.lineData);
+        applyGeneralLineDashes(context, line, start.lineData);
+        applyGeneralLineDashes(context, line, stop.lineData);
         if (!hasCaps && startHasWords) {
             // The MusicXML idiom for a hookless text line is words followed by dashes.
             startDirection.directionTypes.emplace_back(mx::api::DirectionChoice::dashesStart(std::move(start)));
@@ -672,11 +670,11 @@ void appendGeneralLine(MusicXmlMusxMapping& context, mx::api::StaffData& staff, 
             stop.lineData.lineHook = lineHookFromCap(line.endCap);
             if (start.lineData.lineHook == mx::api::LineHook::up || start.lineData.lineHook == mx::api::LineHook::down) {
                 start.lineData.isStopLengthSpecified = true;
-                start.lineData.endLength = tenthsFromEfix(std::abs(line.startCap.hookLength));
+                start.lineData.endLength = context.musicXmlTenthsFromEfix(std::abs(line.startCap.hookLength));
             }
             if (stop.lineData.lineHook == mx::api::LineHook::up || stop.lineData.lineHook == mx::api::LineHook::down) {
                 stop.lineData.isStopLengthSpecified = true;
-                stop.lineData.endLength = tenthsFromEfix(std::abs(line.endCap.hookLength));
+                stop.lineData.endLength = context.musicXmlTenthsFromEfix(std::abs(line.endCap.hookLength));
             }
             startDirection.directionTypes.emplace_back(mx::api::DirectionChoice::bracketStart(std::move(start)));
             stopDirection.directionTypes.emplace_back(mx::api::DirectionChoice::bracketStop(std::move(stop)));
@@ -767,13 +765,13 @@ void appendGlissando(MusicXmlMusxMapping& context, const MusxInstance<others::Sm
     start.number = smartShapeSpannerNumber(shape);
     start.text = glissandoText(context, glissando.line);
     start.lineData.lineType = lineType;
-    applyGeneralLineDashes(glissando.line, start.lineData);
+    applyGeneralLineDashes(context, glissando.line, start.lineData);
     startNote->noteAttachmentData.glissandoStarts.emplace_back(std::move(start));
 
     auto stop = mx::api::GlissandoStop{glissandoType};
     stop.number = smartShapeSpannerNumber(shape);
     stop.lineData.lineType = lineType;
-    applyGeneralLineDashes(glissando.line, stop.lineData);
+    applyGeneralLineDashes(context, glissando.line, stop.lineData);
     endNote->noteAttachmentData.glissandoStops.emplace_back(std::move(stop));
 }
 

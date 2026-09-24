@@ -24,14 +24,15 @@
 namespace denigma {
 namespace core {
 
-std::string calcEventId(musx::dom::EntryNumber entryNum)
+std::string calcEventId(const musx::dom::EntryInfoPtr& entryInfo)
 {
-    return "ev" + std::to_string(entryNum);
+    /// @todo Mirror entries from pre-Finale 25 documents can occur in multiple frames; prepend the frame number as `fr<cmper>` to keep their ids unique.
+    return "ev" + std::to_string(entryInfo->getEntry()->getEntryNumber());
 }
 
 std::string calcNoteId(const musx::dom::NoteInfoPtr& noteInfo)
 {
-    return calcEventId(noteInfo.getEntryInfo()->getEntry()->getEntryNumber()) + "n" + std::to_string(noteInfo->getNoteId());
+    return calcEventId(noteInfo.getEntryInfo()) + "n" + std::to_string(noteInfo->getNoteId());
 }
 
 std::string calcGlobalMeasureId(musx::dom::Cmper cmperValue)
@@ -62,6 +63,11 @@ std::string calcExpressionId(const musx::dom::MusxInstance<musx::dom::others::Me
 std::string calcTempoDefId(musx::dom::Cmper measureCmper, musx::dom::Inci inci)
 {
     return calcGlobalMeasureId(measureCmper) + ".tempoDef.inci" + std::to_string(inci);
+}
+
+std::string calcTupletId(const musx::dom::EntryInfoPtr& firstEntryInfo, const musx::dom::MusxInstance<musx::dom::details::TupletDef>& tupletDef)
+{
+    return calcEventId(firstEntryInfo) + ".inci" + std::to_string(tupletDef->getInci().value_or(0));
 }
 
 } // namespace core

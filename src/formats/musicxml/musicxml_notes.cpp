@@ -19,6 +19,8 @@
 
 #include "musicxml.h"
 
+#include "denigma/classify/tuplets.h"
+
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
@@ -149,36 +151,42 @@ void applyTremoloData(mx::api::NoteData& note, const EntryInfoPtr& entryInfo)
     }
 }
 
-mx::api::TupletStart createTupletStart(const EntryFrame::TupletInfo& tupletInfo, const mx::api::SpannerNumber& number)
+mx::api::TupletStart createTupletStart(
+    const EntryFrame::TupletInfo& tupletInfo, const EntryInfoPtr& firstEntryInfo, const mx::api::SpannerNumber& number)
 {
     const auto& tupletDef = tupletInfo.tuplet;
+    const auto tupletClassification = classify::classifyTuplet(tupletInfo, firstEntryInfo);
     const auto [actualDurationName, actualDots] = calcDurationInfoFromEdu(tupletDef->displayDuration);
     const auto [normalDurationName, normalDots] = calcDurationInfoFromEdu(tupletDef->referenceDuration);
 
     auto result = mx::api::TupletStart{};
     result.number = number;
     result.actualNumber = tupletDef->displayNumber;
-    result.actualDurationName = enumConvert<mx::api::DurationName>(actualDurationName);
-    result.actualDots = int(actualDots);
+    if (hasMusicXmlNoteType(actualDurationName)) {
+        result.actualDurationName = enumConvert<mx::api::DurationName>(actualDurationName);
+        result.actualDots = int(actualDots);
+    }
     result.normalNumber = tupletDef->referenceNumber;
-    result.normalDurationName = enumConvert<mx::api::DurationName>(normalDurationName);
-    result.normalDots = int(normalDots);
+    if (hasMusicXmlNoteType(normalDurationName)) {
+        result.normalDurationName = enumConvert<mx::api::DurationName>(normalDurationName);
+        result.normalDots = int(normalDots);
+    }
+    result.positionData.placement = enumConvert<mx::api::Placement>(tupletClassification.placement);
+    result.lineShape =
+        tupletDef->brackStyle == details::TupletDef::BracketStyle::Slur ? mx::api::TupletLineShape::curved : mx::api::TupletLineShape::straight;
     if (tupletDef->hidden) {
         result.bracket = mx::api::Bool::no;
         result.showActualNumber = mx::api::Bool::no;
         result.showNormalNumber = mx::api::Bool::no;
+        result.showActualType = mx::api::Bool::no;
+        result.showNormalType = mx::api::Bool::no;
         return result;
     }
-    result.bracket = [&]() {
-        if (tupletDef->brackStyle == details::TupletDef::BracketStyle::Nothing) {
-            return mx::api::Bool::no;
-        }
-        if (tupletDef->autoBracketStyle == details::TupletDef::AutoBracketStyle::Always) {
-            return mx::api::Bool::yes;
-        }
-        return mx::api::Bool::unspecified;
-    }();
+    result.bracket = tupletClassification.showBracket ? mx::api::Bool::yes : mx::api::Bool::no;
     std::tie(result.showActualNumber, result.showNormalNumber) = [&]() {
+        if (!tupletClassification.showNumber) {
+            return std::pair{mx::api::Bool::no, mx::api::Bool::no};
+        }
         switch (tupletDef->numStyle) {
         case details::TupletDef::NumberStyle::Nothing: return std::pair{mx::api::Bool::no, mx::api::Bool::no};
         case details::TupletDef::NumberStyle::Number: return std::pair{mx::api::Bool::yes, mx::api::Bool::no};
@@ -188,11 +196,24 @@ mx::api::TupletStart createTupletStart(const EntryFrame::TupletInfo& tupletInfo,
         }
         return std::pair{mx::api::Bool::yes, mx::api::Bool::no};
     }();
-    /// @todo Export tuplet placement, offsets, hook lengths, slope, and other positioning if mx::api exposes them.
+    switch (tupletDef->numStyle) {
+    case details::TupletDef::NumberStyle::Nothing:
+    case details::TupletDef::NumberStyle::Number:
+    case details::TupletDef::NumberStyle::UseRatio:
+        result.showActualType = mx::api::Bool::no;
+        result.showNormalType = mx::api::Bool::no;
+        break;
+    case details::TupletDef::NumberStyle::RatioPlusDenominatorNote:
+    case details::TupletDef::NumberStyle::RatioPlusBothNotes:
+        // MusicXML has no normal-only show-type value; showing both retains the requested normal note value.
+        result.showActualType = mx::api::Bool::yes;
+        result.showNormalType = mx::api::Bool::yes;
+        break;
+    }
     return result;
 }
 
-void applyTupletData(const MusicXmlMusxMapping& context, mx::api::NoteData& note, const EntryInfoPtr& entryInfo)
+void applyTupletData(mx::api::NoteData& note, const EntryInfoPtr& entryInfo)
 {
     if (entryInfo->getEntry()->graceNote) {
         return;
@@ -229,26 +250,10 @@ void applyTupletData(const MusicXmlMusxMapping& context, mx::api::NoteData& note
 
     for (size_t tupletIndex : activeTuplets) {
         const auto& tupletInfo = entryInfo.getFrame()->tupletInfo[tupletIndex];
-        const auto& tupletDef = tupletInfo.tuplet;
-        // A tuplet lives in one frame, so its staff, measure, layer, and index there identify it within
-        // the part. The start and stop share that identity, and mx assigns the MusicXML number.
-        const auto number = mx::api::SpannerNumber("tuplet-" + std::to_string(entryInfo.getStaff()) + "-" + std::to_string(entryInfo.getMeasure())
-                                                   + "-" + std::to_string(entryInfo.getLayerIndex()) + "-" + std::to_string(tupletIndex));
-        // A tuplet of durations MusicXML cannot name keeps its <time-modification>, which carries
-        // the timing, and loses the <tuplet> notation; see roadmap.md.
-        const bool hasMusicXmlTypes = hasMusicXmlNoteType(calcDurationInfoFromEdu(tupletDef->displayDuration).first)
-                                      && hasMusicXmlNoteType(calcDurationInfoFromEdu(tupletDef->referenceDuration).first);
-        if (!hasMusicXmlTypes) {
-            if (tupletInfo.startIndex == entryInfo.getIndexInFrame()) {
-                context.logMessage(LogMsg() << "Layer " << entryInfo.getLayerIndex() + 1 << " entry index " << entryInfo.getIndexInFrame()
-                                            << " starts a tuplet of notes shorter than a 1024th, which MusicXML cannot name; "
-                                            << "exporting its time modification without the tuplet notation.",
-                    tupletDef->hidden ? MessageSeverity::Info : MessageSeverity::Warning);
-            }
-            continue;
-        }
+        const auto firstEntryInfo = EntryInfoPtr(entryInfo.getFrame(), tupletInfo.startIndex);
+        const auto number = mx::api::SpannerNumber{core::calcTupletId(firstEntryInfo, tupletInfo.tuplet)};
         if (tupletInfo.startIndex == entryInfo.getIndexInFrame()) {
-            note.noteAttachmentData.tupletStarts.emplace_back(createTupletStart(tupletInfo, number));
+            note.noteAttachmentData.tupletStarts.emplace_back(createTupletStart(tupletInfo, firstEntryInfo, number));
         }
         if (tupletInfo.endIndex == entryInfo.getIndexInFrame()) {
             auto& stop = note.noteAttachmentData.tupletStops.emplace_back();
@@ -512,7 +517,7 @@ mx::api::NoteData createRestData(MusicXmlMusxMapping& context, mx::api::StaffDat
         const auto entry = entryInfo->getEntry();
         rest.isGrace = entry->graceNote;
         rest.durationData = createDurationData(context, entryInfo, entryIt.getEffectiveActualDuration(/*global*/ true), entryIt.getEffectiveHidden());
-        rest.id = mx::api::Id{core::calcEventId(entry->getEntryNumber())};
+        rest.id = mx::api::Id{core::calcEventId(entryInfo)};
     } else {
         rest.durationData.durationName = mx::api::DurationName::whole;
     }
@@ -528,7 +533,7 @@ mx::api::NoteData createRestData(MusicXmlMusxMapping& context, mx::api::StaffDat
     const auto effectiveStaff = entryInfo ? entryInfo.createCurrentStaff() : measureStartStaff;
     if (entryInfo) {
         rest.beams = createBeamData(context, entryInfo);
-        applyTupletData(context, rest, entryInfo);
+        applyTupletData(rest, entryInfo);
         applyRestPositionIfNeeded(context, rest, entryInfo);
         processArticulations(context, staff, rest, entryInfo, isStaffValueSpecified);
         if (entryIt.getEffectiveHidden() || (effectiveStaff && effectiveStaff->hideRests)) {
@@ -627,7 +632,7 @@ void appendEntryNotes(MusicXmlMusxMapping& context, mx::api::StaffData& staff, m
         applyNoteheadData(note, noteInfo, entryNoteheads);
         if (includedPosition == 0) {
             note.beams = createBeamData(context, entryInfo);
-            applyTupletData(context, note, entryInfo);
+            applyTupletData(note, entryInfo);
             applyLyrics(context, note, entryInfo);
             processArticulations(context, staff, note, entryInfo, isStaffValueSpecified);
             applyTremoloData(note, entryInfo);

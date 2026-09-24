@@ -105,6 +105,11 @@ double MusicXmlMusxMapping::musicXmlTenthsFromEvpu(double evpu, double backoutSc
     return evpu * musicXmlScore->defaults.scalingTenths / musx::dom::EVPU_PER_STANDARD_STAFF / backoutScaling;
 }
 
+double MusicXmlMusxMapping::musicXmlTenthsFromEfix(double efix, double backoutScaling) const
+{
+    return musicXmlTenthsFromEvpu(efix / musx::dom::EFIX_PER_EVPU, backoutScaling);
+}
+
 } // namespace detail
 } // namespace musicxml
 } // namespace formats

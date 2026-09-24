@@ -1600,8 +1600,9 @@ TEST(MusicXmlNotes, NotesShorterThan1024thExportWithoutType)
 
     // Layer 4 holds hidden 4096th notes (a trill-playback trick), layer 1 a visible triplet of
     // 2048ths. MusicXML's note-type-value stops at 1024th, so both export without <type>, as
-    // Finale's own export in musicxml/note-4096th-ref.musicxml does. The hidden entries deserve
-    // no warning, so they log at Info; the visible ones and their tuplet log at Warning.
+    // Finale's own export in musicxml/note-4096th-ref.musicxml does. MX can write the tuplet
+    // notation without naming its durations. The hidden entries deserve no warning, so they log at
+    // Info; the visible notes log at Warning.
     denigma::ConverterRegistry registry;
     denigma::formats::musicxml::registerConverters(registry);
     const auto* converter = registry.findReaderMultiOutput(denigma::FormatId::Musx, denigma::FormatId::MusicXml);
@@ -1647,7 +1648,7 @@ TEST(MusicXmlNotes, NotesShorterThan1024thExportWithoutType)
     }
     EXPECT_EQ(infoCount, 8u);
     EXPECT_EQ(warningCount, 3u);
-    EXPECT_EQ(tupletWarningCount, 1u);
+    EXPECT_EQ(tupletWarningCount, 0u);
 
     pugi::xml_document document;
     ASSERT_TRUE(document.load_string(xmlText.c_str()));
@@ -1681,7 +1682,6 @@ TEST(MusicXmlNotes, NotesShorterThan1024thExportWithoutType)
     }
     EXPECT_EQ(typelessCount, 11u);
     EXPECT_EQ(typelessInTuplet, 3u);
-    // mx cannot write <tuplet> without naming its durations, so the 2048th triplet keeps only its
-    // <time-modification>.
-    EXPECT_EQ(tupletNotations, 0u);
+    // The 2048th triplet keeps its notation even though MusicXML cannot name its durations.
+    EXPECT_EQ(tupletNotations, 2u);
 }

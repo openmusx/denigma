@@ -72,18 +72,6 @@ Use `OtherDirectionData` only for recognized direction semantics that lack a ded
 
 Export measure-attached Finale graphics from `details::MeasureGraphicAssign` as MusicXML `<image>` directions. Resolve embedded and external graphic sources, emit required image files through the multi-output callback, determine MIME types, and convert Finale position and size values to MusicXML tenths. Page graphics and graphics embedded in Shape Designer objects remain separate mapping tasks.
 
-## Tuplets of unnameable durations
-
-A tuplet whose displayed or reference duration is shorter than a 1024th - Finale's 2048th and
-4096th, below the floor of MusicXML's `note-type-value` - is exported as a bare
-`<time-modification>` with no `<tuplet>` notation, so the bracket and the number are lost
-(`applyTupletData` in `musicxml_notes.cpp`). MX used to force that: `NotationsWriter` named a type
-on every portion it wrote, and an unspecified `DurationName` would have been named `maxima`.
-
-MX now leaves `<tuplet-type>` unset when the name is unspecified, so the notation is expressible
-with the numbers alone, which is what Finale's own export writes. `createTupletStart` can leave the
-names unspecified for these durations and keep the notation.
-
 ## Tablature staves
 
 Export Finale tablature staves as MusicXML tablature rather than as ordinary pitched staves.

@@ -147,10 +147,10 @@ void processEntrySmartShapes(const MnxMusxMappingPtr& context, mnxdom::sequence:
     // The end entry may not be exported (a cue layer, for instance), which is known only once every
     // entry has been; finalizeEntryTargets then removes the slur and reports it as a gap.
     auto createOneSlur = [&](const MusxInstance<others::SmartShape>& shape, const classify::SmartShapeClassification& classification,
-                             const EntryNumber targetEntry) -> mnxdom::sequence::Slur {
+                             const EntryInfoPtr& targetEntry) -> mnxdom::sequence::Slur {
         auto mnxSlurs = mnxEvent.ensure_slurs();
         auto mnxSlur = mnxSlurs.append(core::calcEventId(targetEntry));
-        context->deferredSlurTargets.push_back({{mnxSlur.pointer(), targetEntry}, shape, classification});
+        context->deferredSlurTargets.push_back({{mnxSlur.pointer(), targetEntry->getEntry()->getEntryNumber()}, shape, classification});
         return mnxSlur;
     };
     // A shape that MNX does not export is reported from its start entry, anchored to the note it
@@ -160,7 +160,7 @@ void processEntrySmartShapes(const MnxMusxMappingPtr& context, mnxdom::sequence:
             return;
         }
         const auto startNote = shape->calcStartNote();
-        classify::GapAnchor start{startNote ? core::calcNoteId(startNote) : core::calcEventId(currentEntryNumber), std::nullopt, std::nullopt};
+        classify::GapAnchor start{startNote ? core::calcNoteId(startNote) : core::calcEventId(musxEntryInfo), std::nullopt, std::nullopt};
         context->deferredSmartShapeGaps.push_back({shape, classification, std::move(start)});
     };
     auto shapeAssigns = musxEntry->getDocument()->getDetails()->getArray<details::SmartShapeEntryAssign>(SCORE_PARTID, musxEntry->getEntryNumber());
@@ -189,7 +189,7 @@ void processEntrySmartShapes(const MnxMusxMappingPtr& context, mnxdom::sequence:
             deferGap(shape, classification);
             continue;
         }
-        auto mnxSlur = createOneSlur(shape, classification, slur->endEntry->getEntry()->getEntryNumber());
+        auto mnxSlur = createOneSlur(shape, classification, slur->endEntry);
         mnxSlur.set_lineType(shape->calcIsDashed() ? mnxdom::LineType::Dashed : mnxdom::LineType::Solid);
         if (slur->contour != CurveContourDirection::Unspecified) {
             mnxSlur.set_or_clear_side(slur->contour == CurveContourDirection::Up ? mnxdom::SlurTieSide::Up : mnxdom::SlurTieSide::Down);
@@ -210,7 +210,8 @@ void finalizeSmartShapeGaps(const MnxMusxMappingPtr& context)
         const auto targetIt = context->entryTargetByNumber.find(endPoint->entryNumber);
         if (targetIt != context->entryTargetByNumber.end() && targetIt->second.kind == EntryTargetKind::Event) {
             const auto endNote = deferred.shape->calcEndNote();
-            end = classify::GapAnchor{endNote ? core::calcNoteId(endNote) : core::calcEventId(endPoint->entryNumber), std::nullopt, std::nullopt};
+            const auto endEntryInfo = endPoint->calcAssociatedEntry();
+            end = classify::GapAnchor{endNote ? core::calcNoteId(endNote) : core::calcEventId(endEntryInfo), std::nullopt, std::nullopt};
         } else {
             // The end entry was not exported (a cue layer, or a full-measure rest with no event id), so
             // the end names the measure it falls in.

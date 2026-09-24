@@ -39,12 +39,6 @@ namespace detail {
 DEFINE_ENUM_CONVERT_TEMPLATE
 
 // clang-format off
-BEGIN_ENUM_CONVERSION(details::TupletDef::AutoBracketStyle, mnxdom::AutoYesNo)
-    case details::TupletDef::AutoBracketStyle::Always: return mnxdom::AutoYesNo::Yes;
-    case details::TupletDef::AutoBracketStyle::NeverBeamSide: return mnxdom::AutoYesNo::Yes; // currently there is no exact analog for this Finale option in Mnx.
-    case details::TupletDef::AutoBracketStyle::UnbeamedOnly: return mnxdom::AutoYesNo::Auto;
-END_ENUM_CONVERSION
-
 using BarlineType = musx::dom::others::Measure::BarlineType;
 BEGIN_ENUM_CONVERSION(BarlineType, mnxdom::BarlineType)
     case BarlineType::None: return mnxdom::BarlineType::NoBarline;
