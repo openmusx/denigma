@@ -198,10 +198,9 @@ ordinary hooks; four custom pedal-cap shapes; and solid, dashed, or character-ba
 directions also support `line`, `sign`, `abbreviated`, and `number` attributes.
 
 `mx::api::PedalLineData` exposes the complete MusicXML pedal-line event vocabulary, including sostenuto, change,
-continue, discontinue, and resume, but carries only the event kind, tick, and position. Its writer always emits
-`line="yes"` and does not expose sign selection, abbreviation, or identity numbers. MusicXML 3.1 and later use
-the `number` attribute to distinguish simultaneous lines such as damper and sostenuto pedals, and
-`mx::core::Pedal` supports it, but `mx::api` does not.
+continue, discontinue, and resume, and its `number` field distinguishes overlapping lines. Denigma now assigns the
+same smart-shape identity to each pedal line's start and stop events. The API still always emits `line="yes"` for
+pedal-line events and does not expose sign selection or abbreviation.
 
 MusicXML does not provide dash or hook geometry on `<pedal>`, nor a visual pedal type for una corda / Pedal III;
 visible notation for those cases uses words and bracket/dashes directions. It does represent una-corda playback through
@@ -210,8 +209,8 @@ attribute. Denigma can preserve visible una-corda text and brackets through gene
 cannot preserve its playback semantics. Finale custom hook geometry, continuation text, and character-based line
 bodies have no direct MusicXML pedal equivalent.
 
-Needed API shape: extend `PedalLineData` with `sign` and `abbreviated`, with reader/writer support. `SoundData`
-should also expose MusicXML's `soft-pedal` playback attribute.
+Remaining API work: expose sign selection and abbreviation on `PedalLineData`, and MusicXML's `soft-pedal`
+playback attribute on `SoundData`.
 
 ### Direction-level technique playback
 

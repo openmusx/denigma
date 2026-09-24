@@ -29,6 +29,7 @@
 
 #include "core/element_ids.h"
 #include "denigma/classify/lyrics.h"
+#include "denigma/classify/tuplets.h"
 #include "mnx.h"
 #include "mnx_gaps.h"
 #include "mnx_noteheads.h"
@@ -98,18 +99,17 @@ static mnxdom::sequence::Tuplet createTuplet(const MnxMusxMappingPtr& context, m
     const musx::dom::EntryFrame::TupletInfo& tupletInfo, const EntryInfoPtr& firstEntryInfo)
 {
     const auto& musxTuplet = tupletInfo.tuplet;
+    const auto tupletClassification = classify::classifyTuplet(tupletInfo, firstEntryInfo);
     auto mnxTuplet = content.appendTuplet(
         mnxdom::NoteValueQuantity::make(static_cast<unsigned>(musxTuplet->displayNumber), mnxNoteValueFromEdu(musxTuplet->displayDuration)),
         mnxdom::NoteValueQuantity::make(static_cast<unsigned>(musxTuplet->referenceNumber), mnxNoteValueFromEdu(musxTuplet->referenceDuration)));
 
-    mnxTuplet.set_or_clear_bracket([&]() {
-        if (musxTuplet->brackStyle == details::TupletDef::BracketStyle::Nothing) {
-            return mnxdom::AutoYesNo::No;
-        }
-        return enumConvert<mnxdom::AutoYesNo>(musxTuplet->autoBracketStyle);
-    }());
+    mnxTuplet.set_or_clear_bracket(tupletClassification.showBracket ? mnxdom::AutoYesNo::Yes : mnxdom::AutoYesNo::No);
 
     mnxTuplet.set_or_clear_showNumber([&]() {
+        if (!tupletClassification.showNumber) {
+            return mnxdom::TupletDisplaySetting::NoNumber;
+        }
         switch (musxTuplet->numStyle) {
         case details::TupletDef::NumberStyle::Number: return mnxdom::TupletDisplaySetting::Inner;
         case details::TupletDef::NumberStyle::Nothing: return mnxdom::TupletDisplaySetting::NoNumber;
@@ -121,6 +121,9 @@ static mnxdom::sequence::Tuplet createTuplet(const MnxMusxMappingPtr& context, m
     }());
 
     mnxTuplet.set_or_clear_showValue([&]() {
+        if (!tupletClassification.showNumber) {
+            return mnxdom::TupletDisplaySetting::NoNumber;
+        }
         switch (musxTuplet->numStyle) {
         case details::TupletDef::NumberStyle::Number: return mnxdom::TupletDisplaySetting::NoNumber;
         case details::TupletDef::NumberStyle::Nothing: return mnxdom::TupletDisplaySetting::NoNumber;
@@ -132,18 +135,7 @@ static mnxdom::sequence::Tuplet createTuplet(const MnxMusxMappingPtr& context, m
         return mnxdom::TupletDisplaySetting::NoNumber;
     }());
 
-    // MNX's auto placement leaves the side to the reader, so the stem-relative styles name theirs.
-    mnxTuplet.set_or_clear_placement([&]() {
-        using PositioningStyle = details::TupletDef::PositioningStyle;
-        switch (musxTuplet->posStyle) {
-        case PositioningStyle::Manual: return mnxdom::Placement::Auto;
-        case PositioningStyle::BeamSide: return firstEntryInfo.calcUpStem() ? mnxdom::Placement::Above : mnxdom::Placement::Below;
-        case PositioningStyle::NoteSide: return firstEntryInfo.calcUpStem() ? mnxdom::Placement::Below : mnxdom::Placement::Above;
-        case PositioningStyle::Above: return mnxdom::Placement::Above;
-        case PositioningStyle::Below: return mnxdom::Placement::Below;
-        }
-        return mnxdom::Placement::Auto;
-    }());
+    mnxTuplet.set_or_clear_placement(enumConvert<mnxdom::Placement>(tupletClassification.placement));
 
     // A tuplet whose every entry crosses to the same staff is drawn on that staff.
     std::optional<StaffCmper> crossedStaff = firstEntryInfo.calcCrossedStaffForAll();
@@ -440,7 +432,7 @@ static void createLyrics(const MnxMusxMappingPtr& context, mnxdom::sequence::Eve
                     if (const auto wordExtension = classify::classifyLyricWordExtension(lyr)) {
                         // MNX has no word extension yet, so the line takes the id the gap anchors to. The id is
                         // written whether or not a report was requested; see design-decisions.md.
-                        mnxLyricLine.set_id(core::calcLyricAssignId(lyr));
+                        mnxLyricLine.set_id(core::calcLyricAssignId(lyr, musxEntryInfo));
                         if (gapCollectorFor(context)) {
                             context->deferredLyricExtensionGaps.push_back(
                                 {wordExtension, classify::GapAnchor{mnxLyricLine.id_or(""), std::nullopt, std::nullopt}});
@@ -472,7 +464,7 @@ void finalizeLyricExtensionGaps(const MnxMusxMappingPtr& context)
         std::optional<classify::GapAnchor> end;
         const auto targetIt = context->entryTargetByNumber.find(endEntryNumber);
         if (targetIt != context->entryTargetByNumber.end() && targetIt->second.kind == EntryTargetKind::Event) {
-            end = classify::GapAnchor{core::calcEventId(endEntryNumber), std::nullopt, std::nullopt};
+            end = classify::GapAnchor{core::calcEventId(endEntry), std::nullopt, std::nullopt};
         } else {
             // The end entry was not exported (a cue layer, or a full-measure rest with no event id), so
             // the end names the measure it falls in.
@@ -526,7 +518,7 @@ static std::optional<mnxdom::sequence::Event> createEvent(const MnxMusxMappingPt
     }
     const auto noteValue = mnxNoteValueFromEdu(effectiveDura);
     auto mnxEvent = content.appendEvent(noteValue.base, noteValue.dots);
-    mnxEvent.set_id(core::calcEventId(musxEntry->getEntryNumber()));
+    mnxEvent.set_id(core::calcEventId(musxEntryInfo));
     context->entryTargetByNumber.insert_or_assign(musxEntry->getEntryNumber(), EntryTarget{EntryTargetKind::Event, mnxEvent.pointer()});
     createLyrics(context, mnxEvent, musxEntryInfo);
     processArticulations(context, mnxEvent, musxEntryInfo);
@@ -809,8 +801,8 @@ void finalizeEntryTargets(const MnxMusxMappingPtr& context)
         if (gapCollectorFor(context) && !deferred.shape->hidden) {
             const auto startNote = deferred.shape->calcStartNote();
             classify::GapAnchor start{
-                startNote ? core::calcNoteId(startNote) : core::calcEventId(deferred.shape->startTermSeg->endPoint->entryNumber), std::nullopt,
-                std::nullopt};
+                startNote ? core::calcNoteId(startNote) : core::calcEventId(deferred.shape->startTermSeg->endPoint->calcAssociatedEntry()),
+                std::nullopt, std::nullopt};
             context->deferredSmartShapeGaps.push_back({std::move(deferred.shape), std::move(deferred.classification), std::move(start)});
         }
     }

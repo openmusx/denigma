@@ -63,13 +63,13 @@ static void createBeams(const MnxMusxMappingPtr& context, mnxdom::part::Measure 
                     if (isInOmittedZeroLengthTuplet(next)) {
                         continue; // the entry has no event to beam
                     }
-                    beam.events().push_back(core::calcEventId(entryNumber));
+                    beam.events().push_back(core::calcEventId(next));
                     if (unsigned lowestBeamStart = next.calcLowestBeamStart(/*considerBeamOverBarlines*/ true)) {
                         unsigned nextBeamNumber = beamNumber + 1;
                         unsigned lowestBeamStub = next.calcLowestBeamStub();
                         if (lowestBeamStub && lowestBeamStub <= nextBeamNumber && next.calcNumberOfBeams() >= nextBeamNumber) {
                             auto hookBeam = beam.ensure_beams().append();
-                            hookBeam.events().push_back(core::calcEventId(entryNumber));
+                            hookBeam.events().push_back(core::calcEventId(next));
                             if (entry->stemDetail) {
                                 if (auto manual = musxDocument->getDetails()->get<details::BeamStubDirection>(partId, entryNumber)) {
                                     mnxdom::BeamHookDirection hookDir =

@@ -35,6 +35,8 @@ namespace detail {
 
 namespace {
 
+constexpr double kMusicXmlDefaultTenthsPerStaff = 40.0;
+
 void createPageLayoutData(const MusicXmlMusxMapping& context, const options::PageFormatOptions::PageFormat& pagePrefs, double combinedSystemScaling)
 {
     auto& pageLayout = context.musicXmlScore->defaults.pageLayout;
@@ -92,7 +94,7 @@ void createAppearance(const MusicXmlMusxMapping& context)
         appearance.emplace_back(std::move(data));
     };
     const auto addLineWidth = [&](const std::string& subType, double efix) {
-        addAppearance(mx::api::AppearanceType::LineWidth, subType, context.musicXmlTenthsFromEvpu(efix / EFIX_PER_EVPU));
+        addAppearance(mx::api::AppearanceType::LineWidth, subType, context.musicXmlTenthsFromEfix(efix));
     };
     const auto addDistance = [&](const std::string& subType, double evpu) {
         addAppearance(mx::api::AppearanceType::Distance, subType, context.musicXmlTenthsFromEvpu(evpu));
@@ -232,7 +234,7 @@ void createDefaults(const MusicXmlMusxMapping& context)
     constexpr auto kUnscaledMmPerStaff = EVPU_PER_STANDARD_STAFF / EVPU_PER_MM;
     const auto combinedSystemScaling = pagePrefs->calcCombinedSystemScaling().toDouble();
     score.defaults.scalingMillimeters = combinedSystemScaling * kUnscaledMmPerStaff;
-    score.defaults.scalingTenths = MUSICXML_DEFAULT_TENTHS_PER_STAFF; // standard value for many MusicXML exporters, including Finale
+    score.defaults.scalingTenths = kMusicXmlDefaultTenthsPerStaff; // standard value for many MusicXML exporters, including Finale
 
     createPageLayoutData(context, *pagePrefs, combinedSystemScaling);
     createSystemLayoutData(context, *pagePrefs);

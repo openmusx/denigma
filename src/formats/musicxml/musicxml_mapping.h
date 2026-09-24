@@ -47,8 +47,6 @@ namespace formats {
 namespace musicxml {
 namespace detail {
 
-inline constexpr double MUSICXML_DEFAULT_TENTHS_PER_STAFF = 40.0;
-
 enum class MusicXmlFontFamilyFallback {
     None,
     Music,
@@ -222,6 +220,7 @@ struct MusicXmlMusxMapping
     musx::dom::MusxInstance<musx::dom::others::StaffSystem> systemForMeasure(musx::dom::MeasCmper measureId) const;
 
     double musicXmlTenthsFromEvpu(double evpu, double backoutScaling = 1.0) const;
+    double musicXmlTenthsFromEfix(double efix, double backoutScaling = 1.0) const;
     mx::api::FontData musicXmlFontDataFromFontInfo(const musx::dom::FontInfo& fontInfo,
         MusicXmlFontFamilyFallback fallback = MusicXmlFontFamilyFallback::None,
         MusicXmlFontScaling fontScaling = MusicXmlFontScaling::StaffSpace) const;
