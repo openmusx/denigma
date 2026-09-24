@@ -183,8 +183,15 @@ static void assignRepeats(mnxdom::global::Measure& mnxMeasure, const MusxInstanc
         mnxMeasure.ensure_repeatStart();
     }
     if (musxMeasure->backwardsRepeatBar) {
-        mnxMeasure.ensure_repeatEnd();
-        /// @todo add `times` if appropriate.
+        auto repeatEnd = mnxMeasure.ensure_repeatEnd();
+        // MNX implies two passes, so only a longer count is written.
+        constexpr int impliedPasses = 2;
+        if (const auto repeatBack =
+                musxMeasure->getDocument()->getOthers()->get<others::RepeatBack>(musxMeasure->getRequestedPartId(), musxMeasure->getCmper())) {
+            if (repeatBack->trigger == others::RepeatTriggerType::UntilPass && repeatBack->passNumber > impliedPasses) {
+                repeatEnd.set_times(repeatBack->passNumber);
+            }
+        }
     }
 }
 

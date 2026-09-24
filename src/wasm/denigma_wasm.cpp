@@ -22,6 +22,7 @@
 
 #include "core/denigma.h"
 #include "core/musx_reader.h"
+#include "denigma/formats/mnx.h"
 #include "denigma/gap_report.h"
 #include "denigma/io/random_access_reader.h"
 #include "formats/enigmaxml/enigmaxml.h"
@@ -643,6 +644,11 @@ const char* denigma_version()
 const char* denigma_commit()
 {
     return denigma::gitCommit();
+}
+
+int denigma_mnx_schema_version()
+{
+    return denigma::formats::mnx::schemaVersion();
 }
 
 } // extern "C"

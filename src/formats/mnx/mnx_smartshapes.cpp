@@ -45,7 +45,7 @@ void appendHairpin(const MnxMusxMappingPtr&, mnxdom::part::Measure& mnxMeasure, 
     /// @todo Perhaps get smarter about setting start/end grace index using situational heuristics
     mnxDynamic.position().set_graceIndex(0);        // always after grace notes
     mnxDynamic.end().position().set_graceIndex(0);  // always after grace notes
-    mnxDynamic.set_or_clear_orient(mnxMultiStaffOrientFromVerticalPlacement(mnxStaffNumber, shape->calcVerticalPlacementForBeatAttached()));
+    mnxDynamic.set_or_clear_placement(mnxMultiStaffPlacementFromVerticalPlacement(mnxStaffNumber, shape->calcVerticalPlacementForBeatAttached()));
     if (mnxStaffNumber > 1) { // we get better import results not specifying the 1st staff number: this could become an option
         mnxDynamic.set_staff(mnxStaffNumber.value());
     }
@@ -192,7 +192,7 @@ void processEntrySmartShapes(const MnxMusxMappingPtr& context, mnxdom::sequence:
         auto mnxSlur = createOneSlur(shape, classification, slur->endEntry->getEntry()->getEntryNumber());
         mnxSlur.set_lineType(shape->calcIsDashed() ? mnxdom::LineType::Dashed : mnxdom::LineType::Solid);
         if (slur->contour != CurveContourDirection::Unspecified) {
-            mnxSlur.set_side(slur->contour == CurveContourDirection::Up ? mnxdom::SlurTieSide::Up : mnxdom::SlurTieSide::Down);
+            mnxSlur.set_or_clear_side(slur->contour == CurveContourDirection::Up ? mnxdom::SlurTieSide::Up : mnxdom::SlurTieSide::Down);
         }
     }
 }
@@ -250,7 +250,6 @@ void createOttavas(const MnxMusxMappingPtr& context, const MusxInstance<others::
                         if (mnxStaffNumber) {
                             mnxOttava.set_staff(mnxStaffNumber.value());
                         }
-                        /// @todo: orient (if applicable)
                     }
                 }
             }

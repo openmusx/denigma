@@ -40,6 +40,7 @@ std::string_view expressionTypeName(ExpressionType type)
     case ExpressionType::Dynamic: return "dynamic";
     case ExpressionType::Fermata: return "fermata";
     case ExpressionType::BreathMark: return "breath-mark";
+    case ExpressionType::Caesura: return "caesura";
     case ExpressionType::StringMute: return "string-mute";
     case ExpressionType::AccordionRegistration: return "accordion-registration";
     case ExpressionType::HarpDiagram: return "harp-diagram";

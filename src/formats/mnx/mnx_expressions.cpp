@@ -309,7 +309,7 @@ void appendDynamic(const MnxMusxMappingPtr& context, mnxdom::part::Measure& mnxM
             }
         }
     }
-    mnxDynamic.set_or_clear_orient(mnxMultiStaffOrientFromVerticalPlacement(mnxStaffNumber, placement));
+    mnxDynamic.set_or_clear_placement(mnxMultiStaffPlacementFromVerticalPlacement(mnxStaffNumber, placement));
     if (asgn->layer > 0 || asgn->voice2 || (entryInfo && entryInfo->getEntry()->v2Launch)) {
         mnxDynamic.set_staff(mnxStaffNumber.value_or(1));
         mnxDynamic.set_voice(calcVoice(mnxStaffNumber.value_or(1), voiceLayerIdx, entryVoice));
@@ -362,22 +362,29 @@ void attachBreathMark(const MnxMusxMappingPtr& context, const ExpressionAttachme
     }
 };
 
+void attachCaesura(const MnxMusxMappingPtr& context, const ExpressionAttachmentContext& attachment, const mnxdom::sequence::Caesura& caesura)
+{
+    if (attachment.entryTarget && attachment.entryTarget->kind == EntryTargetKind::Event) {
+        mnxdom::sequence::Event(context->mnxDocument->root(), attachment.entryTarget->pointer).ensure_markings().set_caesura(caesura);
+    }
+}
+
 /// @brief Records a measure repeat counter for the measure, to be attached once the repeats are known.
 ///
 /// MNX gives a part measure one measure repeat shared by every staff, so it has one counter as well.
 /// Finale numbers each staff separately, and the staves of a part normally agree; where they do not,
 /// only one count can be kept.
 void recordMeasureRepeatCount(const MnxMusxMappingPtr& context, const MusxInstance<others::MeasureExprAssign>& asgn,
-    const MusxInstance<others::Measure>& musxMeasure, int count)
+    const MusxInstance<others::Measure>& musxMeasure, int count, mnxdom::MultiStaffPlacement placement)
 {
     // The repeat notation that identifies this expression as a counter can also hide it. A counter
     // Finale does not draw is not counting anything the reader can see.
     if (asgn->calcIsHiddenByAlternateNotation()) {
         return;
     }
-    const auto [it, inserted] = context->measureRepeatCounts.emplace(musxMeasure->getCmper(), count);
-    if (!inserted && it->second != count) {
-        context->logMessage(LogMsg() << "Measure repeat counter " << count << " disagrees with counter " << it->second
+    const auto [it, inserted] = context->measureRepeatCounts.emplace(musxMeasure->getCmper(), MnxMusxMapping::MeasureRepeatCount{count, placement});
+    if (!inserted && it->second.count != count) {
+        context->logMessage(LogMsg() << "Measure repeat counter " << count << " disagrees with counter " << it->second.count
                                      << " on another staff of the same part;"
                                         " MNX has one counter per part measure, so only the first is exported.",
             MessageSeverity::Verbose);
@@ -413,9 +420,13 @@ void processExpressions(const MnxMusxMappingPtr& context, const MusxInstance<oth
             case classify::ExpressionType::BreathMark:
                 attachBreathMark(context, calcAttachmentContext(context, asgn), makeBreathMark(classification.breathMark().breathMark, placement));
                 break;
+            case classify::ExpressionType::Caesura:
+                attachCaesura(context, calcAttachmentContext(context, asgn), makeCaesura(classification.caesura().caesura));
+                break;
             case classify::ExpressionType::NonArpeggio: appendArpeggioCandidate(context, mnxMeasure, classification.nonArpeggio().candidate); break;
             case classify::ExpressionType::MeasureRepeatCount:
-                recordMeasureRepeatCount(context, asgn, musxMeasure, classification.measureRepeatCount().count);
+                recordMeasureRepeatCount(context, asgn, musxMeasure, classification.measureRepeatCount().count,
+                    mnxMultiStaffPlacementFromVerticalPlacement(mnxStaffNumber, placement));
                 break;
             case classify::ExpressionType::PseudoTie: break;
             case classify::ExpressionType::Error: context->logMessage(LogMsg() << classification.error().message, MessageSeverity::Warning); break;

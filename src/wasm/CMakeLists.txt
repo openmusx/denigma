@@ -65,6 +65,7 @@ set(_denigma_wasm_exports
     _denigma_result_gap_report_size
     _denigma_version
     _denigma_commit
+    _denigma_mnx_schema_version
 )
 list(JOIN _denigma_wasm_exports "," _denigma_wasm_exports)
 

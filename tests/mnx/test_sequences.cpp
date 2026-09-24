@@ -21,6 +21,7 @@
  */
 #include <filesystem>
 #include <fstream>
+#include <functional>
 #include <iterator>
 #include <string>
 
@@ -246,5 +247,97 @@ TEST(MnxSequences, EmptyMeasureRestOmitsStaffOnSingleStaffPart)
         EXPECT_FALSE(sequences[0].contains("voice")) << sequences[0].dump(4);
         EXPECT_TRUE(sequences[0].contains("fullMeasure")) << sequences[0].dump(4);
         EXPECT_TRUE(sequences[0]["content"].empty()) << sequences[0].dump(4);
+    }
+}
+
+TEST(MnxSequences, DirectionHintsFollowLayerStemSettings)
+{
+    const auto mnx = exportMnxFixture("voices.musx");
+    const auto& measures = mnx["parts"][0]["measures"];
+    ASSERT_GE(measures.size(), 2u);
+
+    const auto countStemDirections = [](const nlohmann::json& sequence) {
+        size_t count = 0;
+        const std::function<void(const nlohmann::json&)> walk = [&](const nlohmann::json& node) {
+            if (node.is_object()) {
+                count += node.contains("stemDirection") ? 1 : 0;
+                for (const auto& [key, value] : node.items()) {
+                    walk(value);
+                }
+            } else if (node.is_array()) {
+                for (const auto& value : node) {
+                    walk(value);
+                }
+            }
+        };
+        walk(sequence);
+        return count;
+    };
+
+    // Measure 1 has one layer per staff, so the layer settings are not in effect. Staff 1 uses v2,
+    // which freezes every stem in the layer.
+    for (const auto& sequence : measures[0]["sequences"]) {
+        EXPECT_FALSE(sequence.contains("directionHint")) << sequence.dump(4);
+        if (sequence["staff"] == 1) {
+            EXPECT_GT(countStemDirections(sequence), 0u) << sequence.dump(4);
+        } else {
+            EXPECT_EQ(countStemDirections(sequence), 0u) << sequence.dump(4);
+        }
+    }
+
+    // Measure 2 has two layers on each staff, and Finale's defaults freeze layer 1 up and layer 2 down.
+    // The hint carries the direction, so no event needs its own.
+    const auto& sequences = measures[1]["sequences"];
+    ASSERT_EQ(sequences.size(), 4u) << measures[1].dump(4);
+    for (const auto& sequence : sequences) {
+        const std::string voice = sequence["voice"];
+        const std::string expected = voice.ends_with("layer1") ? "upper" : "lower";
+        EXPECT_EQ(sequence.value("directionHint", ""), expected) << sequence.dump(4);
+        EXPECT_EQ(countStemDirections(sequence), 0u) << sequence.dump(4);
+    }
+}
+
+TEST(MnxSequences, BeamSideTupletsNameTheStemSide)
+{
+    const auto mnx = exportMnxFixture("tuplets_nested.musx");
+    std::vector<std::string> placements;
+    const std::function<void(const nlohmann::json&)> walk = [&](const nlohmann::json& node) {
+        if (node.is_object()) {
+            if (node.value("type", "") == "tuplet") {
+                placements.push_back(node.value("placement", "auto"));
+            }
+            for (const auto& [key, value] : node.items()) {
+                walk(value);
+            }
+        } else if (node.is_array()) {
+            for (const auto& value : node) {
+                walk(value);
+            }
+        }
+    };
+    walk(mnx["parts"]);
+    // Every tuplet in the fixture uses beam-side positioning, so each follows its first entry's stem.
+    EXPECT_EQ(placements, (std::vector<std::string>{"below", "below", "above", "below"}));
+}
+
+TEST(MnxSequences, FullMeasureRestStatesWholeGlyphInBreveMeasure)
+{
+    const auto mnx = exportMnxFixture("whole_rests.musx");
+    const auto& measures = mnx["parts"][0]["measures"];
+    ASSERT_GE(measures.size(), 7u);
+    for (size_t x = 0; x < measures.size(); x++) {
+        for (const auto& sequence : measures[x]["sequences"]) {
+            if (!sequence.contains("fullMeasure")) {
+                continue;
+            }
+            // The fixture is in 4/2, where readers would otherwise draw a breve rest. Measure 7 holds
+            // its only full-measure rest; the others hold whole-note events.
+            if (x == 6) {
+                ASSERT_TRUE(sequence["fullMeasure"].contains("visualDuration")) << sequence.dump(4);
+                EXPECT_EQ(sequence["fullMeasure"]["visualDuration"]["base"], "whole");
+            } else {
+                EXPECT_FALSE(sequence["fullMeasure"].contains("visualDuration")) << "measure " << (x + 1) << sequence.dump(4);
+            }
+        }
     }
 }

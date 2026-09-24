@@ -117,17 +117,17 @@ mnxdom::LyricLineType mnxLineTypeFromLyric(const MusxInstance<LyricsSyllableInfo
     return mnxdom::LyricLineType::Whole;
 }
 
-mnxdom::MultiStaffOrientation mnxMultiStaffOrientFromVerticalPlacement(const std::optional<int>& mnxStaffNumber, VerticalPlacement placement)
+mnxdom::MultiStaffPlacement mnxMultiStaffPlacementFromVerticalPlacement(const std::optional<int>& mnxStaffNumber, VerticalPlacement placement)
 {
-    auto result = enumConvert<mnxdom::MultiStaffOrientation>(placement);
+    auto result = enumConvert<mnxdom::MultiStaffPlacement>(placement);
     if (mnxStaffNumber.has_value()) {
         if (mnxStaffNumber == 1) {
             if (placement == VerticalPlacement::Below) {
-                result = mnxdom::MultiStaffOrientation::Between;
+                result = mnxdom::MultiStaffPlacement::Between;
             }
         } else {
             if (placement == VerticalPlacement::Above) {
-                result = mnxdom::MultiStaffOrientation::Between;
+                result = mnxdom::MultiStaffPlacement::Between;
             }
         }
     }

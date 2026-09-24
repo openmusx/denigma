@@ -4,7 +4,7 @@
 # FORCE keeps these pins authoritative over stale values cached by earlier
 # configures (including in consumer build trees that FetchContent denigma).
 
-set(MNXDOM_GIT_TAG_OR_BRANCH "ee14988b4fc7decb75852723ea307653d49ffea2" CACHE STRING "" FORCE)
-set(MUSXDOM_GIT_TAG_OR_BRANCH "aff4981ce1915721cc1c6d2b31c7cea0d21f96da" CACHE STRING "" FORCE)
+set(MNXDOM_GIT_TAG_OR_BRANCH "8c5056cb5cb08ff317b3199ed73aacf9e350d7ae" CACHE STRING "" FORCE)
+set(MUSXDOM_GIT_TAG_OR_BRANCH "cf22758dc1f0ce241ada71544a5bf0ea1c5ac5a3" CACHE STRING "" FORCE)
 set(SMUFL_MAPPING_GIT_TAG_OR_BRANCH "0d40955ab3d7acf7b171026d7fc15befd6d5b830" CACHE STRING "" FORCE)
 set(MX_GIT_TAG_OR_BRANCH "5973bfa8a7e8347ecdaf7b947b424494edb33388" CACHE STRING "" FORCE)

@@ -84,6 +84,9 @@ public:
 /// Registers all MNX format converters with the supplied registry.
 void registerConverters(ConverterRegistry& registry);
 
+/// Returns the MNX schema version that exported documents declare in `mnx.version`.
+[[nodiscard]] int schemaVersion();
+
 } // namespace mnx
 } // namespace formats
 } // namespace denigma

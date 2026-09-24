@@ -300,6 +300,33 @@ TEST(ExpressionClassification, ClassifiesTextExpressionFermataAndBreathMarkSymbo
     EXPECT_EQ(*breath.breathMark().glyphName, "breathMarkComma");
 }
 
+TEST(ExpressionClassification, ClassifiesTextExpressionCaesuraSymbols)
+{
+    struct ExpectedCaesura
+    {
+        std::u8string glyph;
+        articulation::Caesura::Type type;
+        std::string glyphName;
+    };
+    const std::vector<ExpectedCaesura> cases = {
+        {u8"", articulation::Caesura::Type::Normal, "caesura"},
+        {u8"", articulation::Caesura::Type::Thick, "caesuraThick"},
+        {u8"", articulation::Caesura::Type::Short, "caesuraShort"},
+        {u8"", articulation::Caesura::Type::Curved, "caesuraCurved"},
+        {u8"", articulation::Caesura::Type::SingleStroke, "caesuraSingleStroke"},
+    };
+    for (const auto& item : cases) {
+        const auto context =
+            makeTextExpressionContext("^fontid(0)^size(24)^nfx(0)" + makeGlyphText(item.glyph), ExpressionCategoryType::Misc, {}, false, "Bravura");
+        const auto result = classifyExpression(context.def);
+        ASSERT_EQ(result.type, ExpressionType::Caesura) << item.glyphName;
+        EXPECT_EQ(result.basis, ClassificationBasis::Heuristic) << item.glyphName;
+        EXPECT_EQ(result.caesura().caesura.type, item.type) << item.glyphName;
+        ASSERT_TRUE(result.caesura().glyphName.has_value()) << item.glyphName;
+        EXPECT_EQ(*result.caesura().glyphName, item.glyphName);
+    }
+}
+
 TEST(ExpressionClassification, ClassifiesStringMuteGlyphExpressions)
 {
     struct ExpectedStringMute

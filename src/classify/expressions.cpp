@@ -768,6 +768,13 @@ static std::optional<ExpressionClassification> classifySymbolExpression(const Re
         result.value = BreathMark{*breathMark, classification.glyphName};
         return result;
     }
+    if (const auto* caesura = classification.as<articulation::Caesura>()) {
+        ExpressionClassification result;
+        result.type = ExpressionType::Caesura;
+        result.basis = basisForSymbolRecognition(resolved.categoryType);
+        result.value = Caesura{*caesura, classification.glyphName};
+        return result;
+    }
     if (const auto* stringMute = classification.as<articulation::StringMute>()) {
         ExpressionClassification result;
         result.type = ExpressionType::StringMute;
