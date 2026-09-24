@@ -35,7 +35,6 @@
 #include "denigma/classify/clefs.h"
 #include "denigma/classify/dynamics.h"
 #include "denigma/classify/staff_states.h"
-#include "utils/font_names.h"
 #include "utils/stringutils.h"
 
 namespace denigma {
@@ -527,14 +526,6 @@ static void populatePartMetadata(const MnxMusxMappingPtr& context, mnxdom::Part&
     }
     if (instInfo.staves.size() > 1) {
         part.set_staves(int(instInfo.staves.size()));
-    }
-    // A legacy Finale music font is named by the SMuFL font that succeeds it, when one is established.
-    if (const auto& musicFont = context->finaleOptions.defaultMusicFont) {
-        if (musicFont->calcIsSMuFL()) {
-            part.set_smuflFont(musicFont->getName());
-        } else if (const auto mapped = utils::mappedSmuflFontForFinaleLegacyFont(musicFont->getName())) {
-            part.set_smuflFont(std::string(*mapped));
-        }
     }
     const auto [transpositionDisp, transpositionAlt] = staff->calcTranspositionInterval();
     if (transpositionDisp || transpositionAlt) {
