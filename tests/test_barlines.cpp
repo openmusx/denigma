@@ -22,10 +22,14 @@
 #include "gtest/gtest.h"
 
 #include <optional>
+#include <string>
 
+#include "core/denigma.h"
 #include "core/musx_reader.h"
 #include "denigma/classify/barlines.h"
+#include "formats/enigmaxml/enigmaxml.h"
 #include "musx/musx.h"
+#include "test_utils.h"
 
 using namespace denigma::classify;
 using namespace musx::dom;
@@ -99,6 +103,15 @@ static BarlineContext makeBarlineContext(std::string_view measureFields, std::st
         document->getOthers()->get<others::Measure>(SCORE_PARTID, 1),
         document->getOptions()->get<options::BarlineOptions>(),
     };
+}
+
+static DocumentPtr loadFixture(const std::string& fileName)
+{
+    const auto inputPath = getInputPath() / fileName;
+    denigma::DenigmaContext denigmaContext(DENIGMA_NAME);
+    denigmaContext.inputFilePath = inputPath;
+    const auto inputData = denigma::formats::enigmaxml::detail::extractMusxInputData(inputPath, denigmaContext);
+    return denigma::createMusxDocument<denigma::MusxReader>(inputData, denigmaContext);
 }
 
 } // namespace
@@ -177,16 +190,16 @@ TEST(BarlineClassification, ReportsShortFlag)
     EXPECT_FALSE(classification.isShort);
 }
 
-TEST(BarlineClassification, ClassifiesSymmetricShortBarlineAtMinimumExtension)
+TEST(BarlineClassification, ClassifiesShortBarlineAtCenter)
 {
-    const auto context = makeBarlineContext("      <barline>normal</barline>", {}, true, true, false, false, 5, -36, 36);
+    const auto context = makeBarlineContext("      <barline>normal</barline>", {}, true, true, false, false, 5, -48, 48);
     const auto classification = classifyBarline(context.staff, context.measure, false, context.options);
 
     EXPECT_EQ(classification.type, barline::Type::Regular);
     EXPECT_TRUE(classification.isShort);
 }
 
-TEST(BarlineClassification, ClassifiesSymmetricShortBarlineAtMaximumExtension)
+TEST(BarlineClassification, ClassifiesShortBarlineAtMaximumDistanceFromCenter)
 {
     const auto context = makeBarlineContext("      <barline>normal</barline>", {}, true, true, false, false, 5, -12, 12);
     const auto classification = classifyBarline(context.staff, context.measure, false, context.options);
@@ -195,13 +208,13 @@ TEST(BarlineClassification, ClassifiesSymmetricShortBarlineAtMaximumExtension)
     EXPECT_TRUE(classification.isShort);
 }
 
-TEST(BarlineClassification, RejectsShortBarlineOutsideExtensionRange)
+TEST(BarlineClassification, RejectsShortBarlineOutsideDistanceFromCenterRange)
 {
-    const auto belowMinimum = makeBarlineContext("      <barline>normal</barline>", {}, true, true, false, false, 5, -37, 37);
-    EXPECT_FALSE(classifyBarline(belowMinimum.staff, belowMinimum.measure, false, belowMinimum.options).isShort);
+    const auto inverted = makeBarlineContext("      <barline>normal</barline>", {}, true, true, false, false, 5, -49, 49);
+    EXPECT_FALSE(classifyBarline(inverted.staff, inverted.measure, false, inverted.options).isShort);
 
-    const auto aboveMaximum = makeBarlineContext("      <barline>normal</barline>", {}, true, true, false, false, 5, -11, 11);
-    EXPECT_FALSE(classifyBarline(aboveMaximum.staff, aboveMaximum.measure, false, aboveMaximum.options).isShort);
+    const auto beyondMaximum = makeBarlineContext("      <barline>normal</barline>", {}, true, true, false, false, 5, -11, 11);
+    EXPECT_FALSE(classifyBarline(beyondMaximum.staff, beyondMaximum.measure, false, beyondMaximum.options).isShort);
 }
 
 TEST(BarlineClassification, RejectsAsymmetricShortBarline)
@@ -211,11 +224,34 @@ TEST(BarlineClassification, RejectsAsymmetricShortBarline)
     EXPECT_FALSE(classifyBarline(context.staff, context.measure, false, context.options).isShort);
 }
 
-TEST(BarlineClassification, ClassifiesOneLineShortBarlineWithOutwardOffsets)
+TEST(BarlineClassification, ClassifiesOneLineShortBarlineAtMaximumDistanceFromCenter)
 {
     const auto context = makeBarlineContext("      <barline>normal</barline>", {}, true, true, false, false, 1, 36, -36);
     const auto classification = classifyBarline(context.staff, context.measure, false, context.options);
 
     EXPECT_EQ(classification.type, barline::Type::Regular);
     EXPECT_TRUE(classification.isShort);
+}
+
+TEST(BarlineClassification, StackBarlineIsShortOnlyWhenShortOnEveryStaff)
+{
+    setupTestDataPaths();
+
+    const auto mixed = loadFixture("barline_short_normal.musx");
+    ASSERT_TRUE(mixed);
+    const auto mixedMeasure = mixed->getOthers()->get<others::Measure>(SCORE_PARTID, 1);
+    const auto mixedOptions = mixed->getOptions()->get<options::BarlineOptions>();
+    const auto topStaff = mixed->getScrollViewStaves(SCORE_PARTID).at(0)->getStaffInstance(1, 0);
+    EXPECT_TRUE(classifyBarline(topStaff, mixedMeasure, false, mixedOptions).isShort) << "top staff";
+    const auto mixedStack = classifyBarline(nullptr, mixedMeasure, false, mixedOptions);
+    EXPECT_EQ(mixedStack.type, barline::Type::Regular);
+    EXPECT_FALSE(mixedStack.isShort) << "stack with a normal-length staff";
+
+    const auto allShort = loadFixture("barline_types.musx");
+    ASSERT_TRUE(allShort);
+    constexpr MeasCmper shortMeasureId = 8;
+    const auto allShortStack = classifyBarline(nullptr, allShort->getOthers()->get<others::Measure>(SCORE_PARTID, shortMeasureId), false,
+        allShort->getOptions()->get<options::BarlineOptions>());
+    EXPECT_EQ(allShortStack.type, barline::Type::Regular);
+    EXPECT_TRUE(allShortStack.isShort) << "stack with every staff short";
 }

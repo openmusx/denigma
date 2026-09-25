@@ -370,10 +370,9 @@ TEST(MnxGlobal, FinalMeasureWithNormalBarlineUsesImplicitFinal)
     auto measures = doc.global().measures();
     ASSERT_GE(measures.size(), 3) << "should be at least three measures";
 
+    // Only the top staff has short barlines, so the stack's barline is regular, which is the default.
     for (size_t i = 0; i + 1 < measures.size(); ++i) {
-        const auto barline = measures[i].barline();
-        ASSERT_TRUE(barline) << "measure " << (i + 1) << " should have a barline";
-        EXPECT_EQ(barline->type(), mnxdom::BarlineType::Short) << "measure " << (i + 1);
+        EXPECT_FALSE(measures[i].barline()) << "measure " << (i + 1) << " should rely on the implicit regular barline";
     }
 
     // The final measure has a normal barline in the musx document, but Finale's
