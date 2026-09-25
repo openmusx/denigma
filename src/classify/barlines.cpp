@@ -37,10 +37,37 @@ static bool classifyIsShortBarline(const musx::dom::MusxInstance<musx::dom::othe
         return false;
     }
 
-    constexpr musx::dom::Evpu minExtension = 12;
-    constexpr musx::dom::Evpu maxExtension = 36;
+    constexpr musx::dom::Evpu maxDistanceFromCenter = 36;
     const auto [topFromCenter, bottomFromCenter] = staff->calcBarlineOffsetsFromCenter();
-    return topFromCenter == -bottomFromCenter && topFromCenter >= minExtension && topFromCenter <= maxExtension;
+    return topFromCenter == -bottomFromCenter && topFromCenter >= 0 && topFromCenter <= maxDistanceFromCenter;
+}
+
+struct BarlineGeometry
+{
+    bool isHidden{};
+    bool isShort{};
+};
+
+static BarlineGeometry calcStaffBarlineGeometry(const musx::dom::MusxInstance<musx::dom::others::Staff>& staff)
+{
+    return {staff->hideBarlines, classifyIsShortBarline(staff)};
+}
+
+// The stack's barline is hidden when every staff hides it, and short when it is short on every staff that shows it.
+static BarlineGeometry calcStackBarlineGeometry(const musx::dom::MusxInstance<musx::dom::others::Measure>& measure)
+{
+    bool isShown = false;
+    bool isShortOnEveryStaff = true;
+    const auto endOfBar = measure->calcDuration().calcEduDuration();
+    for (const auto& staffSlot : measure->getDocument()->getScrollViewStaves(measure->getRequestedPartId())) {
+        const auto staff = staffSlot->getStaffInstance(measure->getCmper(), endOfBar);
+        if (!staff || staff->hideBarlines) {
+            continue;
+        }
+        isShown = true;
+        isShortOnEveryStaff = isShortOnEveryStaff && classifyIsShortBarline(staff);
+    }
+    return {!isShown, isShown && isShortOnEveryStaff};
 }
 
 static Type classifyMeasureBarlineType(MusxBarlineType type)
@@ -66,15 +93,15 @@ BarlineClassification classifyBarline(const musx::dom::MusxInstance<musx::dom::o
     const musx::dom::MusxInstance<musx::dom::others::Measure>& measure, bool isFinalMeasure,
     const musx::dom::MusxInstance<musx::dom::options::BarlineOptions>& barlineOptions)
 {
-    ASSERT_IF (!measure || !barlineOptions || !staff) {
+    ASSERT_IF (!measure || !barlineOptions) {
         return {};
     }
 
-    if (!barlineOptions->drawBarlines || staff->hideBarlines) {
+    const auto [isHidden, isShort] = staff ? calcStaffBarlineGeometry(staff) : calcStackBarlineGeometry(measure);
+    if (!barlineOptions->drawBarlines || isHidden) {
         return {Type::NoBarline, false};
     }
 
-    const bool isShort = classifyIsShortBarline(staff);
     const auto type = measure->barlineType;
     if (type == MusxBarlineType::Normal) {
         if (isFinalMeasure && barlineOptions->drawFinalBarlineOnLastMeas) {

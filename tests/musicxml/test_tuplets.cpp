@@ -87,6 +87,25 @@ std::vector<TupletNote> tupletNotes(const std::filesystem::path& musicXmlPath)
     return result;
 }
 
+// Expects every tuplet start to pair with exactly one stop at the same number.
+void expectTupletsBalanced(const std::vector<TupletNote>& notes)
+{
+    std::vector<std::pair<std::string, int>> openCounts;
+    for (const auto& note : notes) {
+        for (const auto& mark : note.marks) {
+            const auto found = std::ranges::find_if(openCounts, [&mark](const auto& entry) { return entry.first == mark.number; });
+            if (found == openCounts.end()) {
+                openCounts.emplace_back(mark.number, mark.type == "start" ? 1 : -1);
+            } else {
+                found->second += mark.type == "start" ? 1 : -1;
+            }
+        }
+    }
+    for (const auto& [number, balance] : openCounts) {
+        EXPECT_EQ(balance, 0) << "tuplet number " << number << " is unbalanced";
+    }
+}
+
 } // namespace
 
 TEST(MusicXmlTuplets, NestedTupletsCarryCumulativeTimeModification)
@@ -115,21 +134,7 @@ TEST(MusicXmlTuplets, NestedTupletsCarryCumulativeTimeModification)
     EXPECT_EQ(notes.front().marks.at(1).type, "start");
     EXPECT_EQ(notes.front().marks.at(1).number, "2");
 
-    // Every start pairs with exactly one stop at the same number.
-    std::vector<std::pair<std::string, int>> openCounts;
-    for (const auto& note : notes) {
-        for (const auto& mark : note.marks) {
-            const auto found = std::ranges::find_if(openCounts, [&mark](const auto& entry) { return entry.first == mark.number; });
-            if (found == openCounts.end()) {
-                openCounts.emplace_back(mark.number, mark.type == "start" ? 1 : -1);
-            } else {
-                found->second += mark.type == "start" ? 1 : -1;
-            }
-        }
-    }
-    for (const auto& [number, balance] : openCounts) {
-        EXPECT_EQ(balance, 0) << "tuplet number " << number << " is unbalanced";
-    }
+    expectTupletsBalanced(notes);
 }
 
 TEST(MusicXmlTuplets, NestedSingletonTupletCarriesCumulativeRatio)
@@ -161,20 +166,7 @@ TEST(MusicXmlTuplets, NestedSingletonTupletCarriesCumulativeRatio)
 
     // Numbering is sound: a tuplet's start and stop share one identity, so mx gives both the same
     // number and every start matches its own stop.
-    std::vector<std::pair<std::string, int>> openCounts;
-    for (const auto& note : notes) {
-        for (const auto& mark : note.marks) {
-            const auto found = std::ranges::find_if(openCounts, [&mark](const auto& entry) { return entry.first == mark.number; });
-            if (found == openCounts.end()) {
-                openCounts.emplace_back(mark.number, mark.type == "start" ? 1 : -1);
-            } else {
-                found->second += mark.type == "start" ? 1 : -1;
-            }
-        }
-    }
-    for (const auto& [number, balance] : openCounts) {
-        EXPECT_EQ(balance, 0) << "tuplet number " << number << " is unbalanced";
-    }
+    expectTupletsBalanced(notes);
 }
 
 TEST(MusicXmlTuplets, SingleNoteTupletsCarryCumulativeRatio)
@@ -275,4 +267,15 @@ TEST(MusicXmlTuplets, NormalTypeIsWrittenOnlyWhereRequested)
 
     EXPECT_EQ(writtenCount, requestedCount);
     EXPECT_EQ(redundantCount, 0u) << "<normal-type> should never merely repeat <type>";
+}
+
+// A singleton beam workaround hides its extra entry from the interpreted iterator, and in this
+// fixture that extra entry ends a tuplet. The kept entry stands in for it and writes the stop.
+TEST(MusicXmlTuplets, SingletonBeamExtraEntryClosesTuplet)
+{
+    setupTestDataPaths();
+    const auto notes = tupletNotes(exportMusicXmlFixture("beamovers.musx"));
+    ASSERT_FALSE(notes.empty());
+
+    expectTupletsBalanced(notes);
 }

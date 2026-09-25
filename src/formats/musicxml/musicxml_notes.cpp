@@ -248,14 +248,34 @@ void applyTupletData(mx::api::NoteData& note, const EntryInfoPtr& entryInfo)
         }
     }
 
+    // The kept entry of a singleton beam workaround stands in for the extra entry that the interpreted
+    // iterator skips, so a tuplet that starts or ends on the extra entry starts or ends here. Finding the
+    // extra entry is costly, so it is sought only for a tuplet boundary elsewhere in a frame that has a
+    // zero-length tuplet, which every singleton beam workaround uses.
+    const auto& frame = entryInfo.getFrame();
+    EntryInfoPtr extraEntryInfo;
+    bool isExtraEntrySought = false;
+    const auto isAtIndexInFrame = [&](size_t indexInFrame) {
+        if (indexInFrame == entryInfo.getIndexInFrame()) {
+            return true;
+        }
+        if (!isExtraEntrySought) {
+            isExtraEntrySought = true;
+            if (std::ranges::any_of(frame->tupletInfo, [](const auto& tupletInfo) { return tupletInfo.tuplet->calcRatio() == 0; })) {
+                extraEntryInfo = entryInfo.findSingletonBeamExtraEntry();
+            }
+        }
+        return extraEntryInfo && extraEntryInfo.getFrame() == frame && indexInFrame == extraEntryInfo.getIndexInFrame();
+    };
+
     for (size_t tupletIndex : activeTuplets) {
         const auto& tupletInfo = entryInfo.getFrame()->tupletInfo[tupletIndex];
         const auto firstEntryInfo = EntryInfoPtr(entryInfo.getFrame(), tupletInfo.startIndex);
         const auto number = mx::api::SpannerNumber{core::calcTupletId(firstEntryInfo, tupletInfo.tuplet)};
-        if (tupletInfo.startIndex == entryInfo.getIndexInFrame()) {
+        if (isAtIndexInFrame(tupletInfo.startIndex)) {
             note.noteAttachmentData.tupletStarts.emplace_back(createTupletStart(tupletInfo, firstEntryInfo, number));
         }
-        if (tupletInfo.endIndex == entryInfo.getIndexInFrame()) {
+        if (isAtIndexInFrame(tupletInfo.endIndex)) {
             auto& stop = note.noteAttachmentData.tupletStops.emplace_back();
             stop.number = number;
         }
