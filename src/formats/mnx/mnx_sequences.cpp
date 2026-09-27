@@ -670,7 +670,12 @@ static EntryInfoPtr::InterpretedIterator addEntryToContent(const MnxMusxMappingP
 
         const bool fullMeasureRest = next.getEntryInfo().calcIsFullMeasureRest();
         if (fullMeasureRest) {
-            createFullMeasureRest(context, content, next.getEntryInfo(), next.getEffectiveMeasureStaffDuration());
+            // MNX has no hidden rest. A hidden full-measure rest spans the measure in any meter, so its space does too.
+            if (next.getEffectiveHidden()) {
+                content.appendSpace(mnxFractionFromFraction(next.getEffectiveMeasureStaffDuration()));
+            } else {
+                createFullMeasureRest(context, content, next.getEntryInfo(), next.getEffectiveMeasureStaffDuration());
+            }
             elapsedInSequence = currElapsedDuration + next.getEffectiveMeasureStaffDuration();
         } else {
             createEvent(context, content, next.getEntryInfo(), next.getEffectiveHidden(), hasVoice1Voice2, tupletDef, inTremolo);

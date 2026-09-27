@@ -341,3 +341,23 @@ TEST(MnxSequences, FullMeasureRestStatesWholeGlyphInBreveMeasure)
         }
     }
 }
+
+TEST(MnxSequences, HiddenFullMeasureRestSpansTheMeasure)
+{
+    // Measures 6 (3/4) and 7 (4/2) each hold only a hidden whole rest, which Finale enters in any meter.
+    const auto mnx = exportMnxFixture("hidden_full_measure_rests.musx");
+    const auto& measures = mnx["parts"][0]["measures"];
+    ASSERT_EQ(measures.size(), 7u);
+
+    const auto expectSingleSpace = [&](size_t measureIndex, int numerator, int denominator) {
+        const auto& sequences = measures[measureIndex]["sequences"];
+        ASSERT_EQ(sequences.size(), 1u) << measures[measureIndex].dump(4);
+        EXPECT_FALSE(sequences[0].contains("fullMeasure")) << sequences[0].dump(4);
+        const auto& content = sequences[0]["content"];
+        ASSERT_EQ(content.size(), 1u) << sequences[0].dump(4);
+        EXPECT_EQ(content[0]["type"], "space") << content[0].dump(4);
+        EXPECT_EQ(content[0]["duration"], nlohmann::json::array({numerator, denominator})) << content[0].dump(4);
+    };
+    expectSingleSpace(5, 3, 4);
+    expectSingleSpace(6, 2, 1);
+}
