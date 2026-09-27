@@ -2,8 +2,9 @@
 // SPDX-License-Identifier: MIT
 //
 // Exercises the WebAssembly module's C ABI end to end: inspection, every
-// exporter, linked-part selection, EnigmaXML and zipped EnigmaXML input, and
-// diagnostic reporting for invalid input. It has no dependencies beyond Node.
+// exporter, linked-part selection, EnigmaXML and zipped EnigmaXML input,
+// diagnostic reporting for invalid input, and stack headroom for MusicXML export.
+// It has no dependencies beyond Node.
 //
 // usage: node tests/wasm/smoke.mjs <denigma.js> <denigma.wasm> [sample.musx]
 
@@ -15,6 +16,9 @@ const defaultSample = resolve(import.meta.dirname, '..', 'data', 'inputs', 'voic
 const chordSample = resolve(import.meta.dirname, '..', 'data', 'inputs', 'chords.musx');
 const noteheadSample = resolve(import.meta.dirname, '..', 'data', 'inputs', 'note_shapes.musx');
 const arrowheadSample = resolve(import.meta.dirname, '..', 'data', 'inputs', 'custom_arrowheads.enigmaxml.zip');
+// Each needs more than Emscripten's default 64 KiB stack to export as MusicXML.
+const deepStackSamples = ['harmonics_artificial.musx', 'large_orchestra.musx']
+  .map((name) => resolve(import.meta.dirname, '..', 'data', 'inputs', name));
 const [, , moduleArg, wasmArg, musxArg = defaultSample] = process.argv;
 if (!moduleArg || !wasmArg) {
   console.error('usage: node tests/wasm/smoke.mjs <denigma.js> <denigma.wasm> [sample.musx]');
@@ -325,3 +329,20 @@ withInput(arrowheadInput, 'custom_arrowheads.enigmaxml.zip', (dataPointer, nameP
     Module._denigma_result_destroy(result);
   }
 });
+
+// MusicXML export of these files needs more stack than Emscripten's 64 KiB default. An
+// overflow aborts the module (STACK_OVERFLOW_CHECK), or without the check silently corrupts
+// it, so the MNX export that follows in the same module also shows that nothing was damaged.
+for (const sample of deepStackSamples) {
+  const name = sample.split(/[\\/]/).pop();
+  const sampleInput = await readFile(sample);
+  withInput(sampleInput, name, (dataPointer, namePointer) => {
+    const size = sampleInput.byteLength;
+    const parts = inspect(dataPointer, size, namePointer, `${name} inspection`);
+    const selection = [0, ...parts.map((part) => part.outputIndex)].sort((a, b) => a - b);
+    assertResult(convert(dataPointer, size, namePointer, FORMAT_MUSICXML, { selection }),
+      `${name} MusicXML score and all parts`, '<score-partwise', { outputCount: selection.length, indices: selection });
+    assertResult(convert(dataPointer, size, namePointer, FORMAT_MNX, { writeGapReport: 0 }),
+      `${name} MNX after MusicXML`, '"mnx"');
+  });
+}
