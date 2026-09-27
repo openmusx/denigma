@@ -69,6 +69,14 @@ set(_denigma_wasm_exports
 )
 list(JOIN _denigma_wasm_exports "," _denigma_wasm_exports)
 
+# Emscripten's default stack is 64 KiB, and MusicXML export needs about 80 KiB wherever
+# mx writes ornaments, whatever the size of the score. A WebAssembly stack overflow is
+# not trapped: it silently overwrites the static data beside the stack, including the
+# C++ runtime's locale, and every later conversion fails. The larger stack leaves ample
+# headroom, and the overflow check turns any overflow that remains into an abort that
+# reports it, so the caller can discard the module instead of reusing a corrupted one.
+set(_denigma_wasm_stack_size 1048576)
+
 target_compile_options(denigma_wasm PRIVATE -Oz)
 target_link_options(denigma_wasm PRIVATE
     -Oz
@@ -76,9 +84,12 @@ target_link_options(denigma_wasm PRIVATE
     "-sEXPORT_ES6=1"
     "-sENVIRONMENT=web,worker,node"
     "-sALLOW_MEMORY_GROWTH=1"
+    "-sSTACK_SIZE=${_denigma_wasm_stack_size}"
+    "-sSTACK_OVERFLOW_CHECK=2"
     "-sFILESYSTEM=0"
     "-sASSERTIONS=0"
     "-sEXPORTED_FUNCTIONS=${_denigma_wasm_exports}"
     "-sEXPORTED_RUNTIME_METHODS=HEAPU8,UTF8ToString"
 )
 unset(_denigma_wasm_exports)
+unset(_denigma_wasm_stack_size)
