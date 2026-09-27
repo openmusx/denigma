@@ -62,6 +62,10 @@ Cue entries are skipped by the exporter and have no MNX representation yet, so a
 
 A staff-attached fermata over an empty measure attaches to that staff's full-measure rest. A staff whose settings suppressed the rest gets one created for the fermata anyway, because MNX has nowhere else to put it.
 
+### A hidden full-measure rest is a space the length of the measure
+
+MNX has no hidden rest, so a hidden entry is exported as a `space` of its own duration. A hidden full-measure rest is the exception: its space spans the measure instead. Finale enters a full-measure rest as a whole rest in any meter, so its written duration would overrun a shorter measure, and a longer one would need the rest of the measure padded with more spaces. `EntryInfoPtr::calcIsFullMeasureRest` does not consider visibility, so the exporter checks it before choosing between `fullMeasure` and the space.
+
 ### The entries of a zero-length tuplet are omitted
 
 A Finale tuplet with a reference count of zero takes no time, and its entries are phantoms: a user or a plugin such as Beam Over Barline puts a note there so that a beam or a tie can reach across a barline, and the note that actually sounds sits at the same position. MNX has nowhere to put such an entry. A tuplet's ratio must be positive, an event outside a tuplet always takes its written duration, and a `grace` container would draw the note small. So the tuplet and its entries are omitted, and nothing else may refer to them: a beam skips them, a tie into one is written as `lv`, and a slur ending on one is a gap. The one form `musxdom` interprets, a singleton beam with the phantom's notehead and stem hidden, never reaches this path.
