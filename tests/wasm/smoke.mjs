@@ -66,10 +66,11 @@ function withSelection(indices, callback) {
 
 function convert(dataPointer, size, namePointer, format, options = {}) {
   const { includeTempo = 0, allFonts = 0, finaleRestPosition = 0, splitInstruments = 0, cueLayer = 0, selection = [],
-    writeGapReport = 1 } = options;
+    writeGapReport = 1, validate = 1 } = options;
   return withSelection(selection, (selectionPointer, selectionCount) =>
     Module._denigma_convert(dataPointer, size, namePointer, format, includeTempo, allFonts, finaleRestPosition,
-      splitInstruments, MNX_INDENT_SPACES, cueLayer, selectionCount ? selectionPointer : 0, selectionCount, writeGapReport));
+      splitInstruments, MNX_INDENT_SPACES, cueLayer, selectionCount ? selectionPointer : 0, selectionCount, writeGapReport,
+      validate));
 }
 
 function assertResult(result, label, marker, { outputCount = 1, verbose = false, indices } = {}) {
@@ -98,6 +99,24 @@ function assertResult(result, label, marker, { outputCount = 1, verbose = false,
     Module._denigma_result_destroy(result);
   }
   return firstOutput;
+}
+
+// MNX validation announces itself in a verbose diagnostic, so its presence shows whether validation ran.
+function assertValidation(dataPointer, size, namePointer) {
+  const marker = 'Validation starting.';
+  for (const validate of [1, 0]) {
+    const result = convert(dataPointer, size, namePointer, FORMAT_MNX, { validate });
+    try {
+      if (!Module._denigma_result_success(result)) throw new Error(`MNX with validate=${validate} failed:\n${messages(result)}`);
+      if (!Module._denigma_result_output_size(result, 0)) throw new Error(`MNX with validate=${validate} produced no output`);
+      if (messages(result).includes(marker) !== (validate === 1)) {
+        throw new Error(`MNX with validate=${validate} ${validate ? 'did not validate' : 'validated anyway'}`);
+      }
+    } finally {
+      Module._denigma_result_destroy(result);
+    }
+  }
+  console.log('MNX validation: runs when requested and is skipped otherwise.');
 }
 
 function gapReport(result) {
@@ -214,6 +233,7 @@ withInput(input, 'sample.musx', (dataPointer, namePointer) => {
       'MusicXML score and linked part', '<score-partwise', { outputCount: 2, indices: [0, partIndex] });
   }
   assertResult(convert(dataPointer, size, namePointer, FORMAT_MNX), 'MNX with verbose logging', '"mnx"', { verbose: true });
+  assertValidation(dataPointer, size, namePointer);
   const enigmaXml = assertResult(convert(dataPointer, size, namePointer, FORMAT_ENIGMAXML), 'EnigmaXML', '<finale');
 
   exerciseEnigmaXmlInput(enigmaXml, 'sample.enigmaxml', 'EnigmaXML input');

@@ -206,7 +206,7 @@ or (for Linux or macOS)
 Denigma also builds a WebAssembly module exposing MUSX inspection and conversion to EnigmaXML, MusicXML, and MNX through a small C ABI (`src/wasm/denigma_wasm.cpp`). It is the module that [denigma-online](https://github.com/openmusx/denigma-online) runs in the browser. Building it requires [Emscripten](https://emscripten.org/) (CI uses 5.0.7):
 
 ```bash
-emcmake cmake -S . -B build-wasm -DCMAKE_BUILD_TYPE=MinSizeRel -DDENIGMA_CXX_STANDARD=20
+emcmake cmake -S . -B build-wasm -DCMAKE_BUILD_TYPE=Release -DDENIGMA_CXX_STANDARD=20
 cmake --build build-wasm --target denigma_wasm
 node tests/wasm/smoke.mjs build-wasm/wasm/denigma.js build-wasm/wasm/denigma.wasm
 ```

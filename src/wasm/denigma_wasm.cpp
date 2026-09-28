@@ -138,13 +138,14 @@ denigma::DenigmaContext makeInputContext(OnlineResult& result, const char* sourc
 // Mirrors makeMusicXmlContext()/makeMnxContext() in Denigma's converter adapters
 // (src/formats/*/*_converter.cpp). Those adapters re-extract the archive on every
 // call, so this wrapper drives the detail entry points with cached input data and
-// assembles the equivalent context here. Validation stays on and quiet stays off,
-// matching the CommonOptions defaults the adapters map from.
+// assembles the equivalent context here. Quiet stays off, matching the CommonOptions
+// default the adapters map from.
 denigma::DenigmaContext makeConversionContext(
-    OnlineResult& result, const char* sourceName, InputFormat format, denigma::ConversionResult& conversionResult)
+    OnlineResult& result, const char* sourceName, InputFormat format, denigma::ConversionResult& conversionResult, bool validate)
 {
     auto context = makeInputContext(result, sourceName, fallbackSourceName(format));
     context.conversionResult = &conversionResult;
+    context.noValidate = !validate;
     return context;
 }
 
@@ -323,10 +324,10 @@ void inspectInput(OnlineResult& result, std::span<const std::byte> bytes, const 
 }
 
 void convertMusicXml(OnlineResult& result, std::span<const std::byte> bytes, const char* sourceName, InputFormat inputFormat, bool includeTempo,
-    bool allFontsAvailable, bool useFinaleRestPosition, int cueLayer, const int* selectedOutputs, std::size_t selectedCount)
+    bool allFontsAvailable, bool useFinaleRestPosition, int cueLayer, const int* selectedOutputs, std::size_t selectedCount, bool validate)
 {
     denigma::ConversionResult conversionResult;
-    auto context = makeConversionContext(result, sourceName, inputFormat, conversionResult);
+    auto context = makeConversionContext(result, sourceName, inputFormat, conversionResult, validate);
     context.includeTempoTool = includeTempo;
     context.allFontsAvailable = allFontsAvailable;
     context.useFinaleRestPosition = useFinaleRestPosition;
@@ -349,10 +350,10 @@ void convertMusicXml(OnlineResult& result, std::span<const std::byte> bytes, con
 }
 
 void convertMnx(OnlineResult& result, std::span<const std::byte> bytes, const char* sourceName, InputFormat inputFormat, bool includeTempo,
-    bool splitInstruments, int indentSpaces, int cueLayer, bool writeGapReport)
+    bool splitInstruments, int indentSpaces, int cueLayer, bool writeGapReport, bool validate)
 {
     denigma::ConversionResult conversionResult;
-    auto context = makeConversionContext(result, sourceName, inputFormat, conversionResult);
+    auto context = makeConversionContext(result, sourceName, inputFormat, conversionResult, validate);
     std::optional<denigma::classify::GapCollector> gapCollector;
     if constexpr (denigma::GAP_REPORT_AVAILABLE) {
         if (writeGapReport) {
@@ -433,7 +434,7 @@ OnlineResult* denigma_inspect(const std::uint8_t* data, std::size_t size, const 
 
 OnlineResult* denigma_convert(const std::uint8_t* data, std::size_t size, const char* sourceName, int format, int includeTempo, int allFontsAvailable,
     int useFinaleRestPosition, int splitInstruments, int indentSpaces, int cueLayer, const int* selectedOutputs, std::size_t selectedCount,
-    int writeGapReport)
+    int writeGapReport, int validate)
 {
     return makeResult([&](OnlineResult& result) {
         const auto bytes = inputBytes(data, size);
@@ -444,11 +445,11 @@ OnlineResult* denigma_convert(const std::uint8_t* data, std::size_t size, const 
                 throw std::invalid_argument("Select the score or at least one linked part.");
             }
             convertMusicXml(result, bytes, sourceName, sourceFormat, includeTempo != 0, allFontsAvailable != 0, useFinaleRestPosition != 0, cueLayer,
-                selectedOutputs, selectedCount);
+                selectedOutputs, selectedCount, validate != 0);
             break;
         case 1:
-            convertMnx(
-                result, bytes, sourceName, sourceFormat, includeTempo != 0, splitInstruments != 0, indentSpaces, cueLayer, writeGapReport != 0);
+            convertMnx(result, bytes, sourceName, sourceFormat, includeTempo != 0, splitInstruments != 0, indentSpaces, cueLayer, writeGapReport != 0,
+                validate != 0);
             break;
         case 2: convertEnigmaXml(result, bytes, sourceName, sourceFormat); break;
         default: throw std::invalid_argument("Unknown output format.");

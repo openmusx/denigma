@@ -124,7 +124,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y ninja-build
 
       - name: Configure with CMake
-        run: emcmake cmake -G Ninja -S . -B build-wasm -DCMAKE_BUILD_TYPE=MinSizeRel -DDENIGMA_CXX_STANDARD=20
+        run: emcmake cmake -G Ninja -S . -B build-wasm -DCMAKE_BUILD_TYPE=Release -DDENIGMA_CXX_STANDARD=20
 
       # Build only the module so the text-measuring converters, which the module
       # does not export, stay out of the WebAssembly build.
