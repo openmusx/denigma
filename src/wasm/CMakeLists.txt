@@ -77,9 +77,12 @@ list(JOIN _denigma_wasm_exports "," _denigma_wasm_exports)
 # reports it, so the caller can discard the module instead of reusing a corrupted one.
 set(_denigma_wasm_stack_size 1048576)
 
-target_compile_options(denigma_wasm PRIVATE -Oz)
+# Optimize for speed. Conversion time on large scores is dominated by building the
+# musxdom document and running the exporters, which -O3 runs about twice as fast as
+# a size-optimized build, for a compressed module roughly a fifth larger.
+target_compile_options(denigma_wasm PRIVATE -O3)
 target_link_options(denigma_wasm PRIVATE
-    -Oz
+    -O3
     "-sMODULARIZE=1"
     "-sEXPORT_ES6=1"
     "-sENVIRONMENT=web,worker,node"

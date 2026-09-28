@@ -52,7 +52,7 @@ The repository builds a CLI plus reusable libraries for classification, massage,
 - The build downloads third-party dependencies through `FetchContent`, including `pugixml`, `nlohmann_json`, `zlib`, and `googletest`.
 - If you need a local MUSX DOM checkout, set `MUSX_LOCAL_PATH` in CMake rather than editing dependency logic.
 - The WebAssembly module (`src/wasm`, target `denigma_wasm`, option `denigma_BUILD_WASM`) is built with Emscripten:
-  - `emcmake cmake -S . -B build-wasm -DCMAKE_BUILD_TYPE=MinSizeRel -DDENIGMA_CXX_STANDARD=20`
+  - `emcmake cmake -S . -B build-wasm -DCMAKE_BUILD_TYPE=Release -DDENIGMA_CXX_STANDARD=20`
   - `cmake --build build-wasm --target denigma_wasm`
   - `node tests/wasm/smoke.mjs build-wasm/wasm/denigma.js build-wasm/wasm/denigma.wasm`
 - Always name the `denigma_wasm` target for that build. The `all` target also compiles the text-measuring converters and `denigma_textmetrics`, which the module does not link and which do not compile under Emscripten.
