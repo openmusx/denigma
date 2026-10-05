@@ -52,10 +52,28 @@ struct ExpectedDynamic
     std::optional<mnx::DynamicWedgeType> wedgeType;
 };
 
+/// @brief The dynamic value, which each MNX dynamic type defines separately.
+std::optional<mnx::DynamicValue> dynamicValue(const mnx::part::DynamicGroupBase& dynamic)
+{
+    if (dynamic.type() == mnx::part::DynamicImmediate::ContentTypeValue) {
+        return dynamic.get<mnx::part::DynamicImmediate>().value();
+    }
+    if (dynamic.type() == mnx::part::DynamicAccent::ContentTypeValue) {
+        return dynamic.get<mnx::part::DynamicAccent>().value();
+    }
+    if (dynamic.type() == mnx::part::DynamicGradual::ContentTypeValue) {
+        return dynamic.get<mnx::part::DynamicGradual>().value();
+    }
+    if (dynamic.type() == mnx::part::DynamicRelative::ContentTypeValue) {
+        return dynamic.get<mnx::part::DynamicRelative>().value();
+    }
+    return std::nullopt;
+}
+
 void checkDynamic(const mnx::part::DynamicGroupBase& dynamic, const ExpectedDynamic& expected, const std::string& label)
 {
     ASSERT_EQ(dynamic.type(), expected.type) << label;
-    EXPECT_EQ(dynamic.value(), expected.value) << label;
+    EXPECT_EQ(dynamicValue(dynamic), expected.value) << label;
     EXPECT_EQ(dynamic.prefix_or({}), expected.prefix) << label;
     EXPECT_EQ(dynamic.suffix_or({}), expected.suffix) << label;
     if (expected.glyphs.empty()) {
