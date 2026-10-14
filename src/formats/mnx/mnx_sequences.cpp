@@ -479,10 +479,22 @@ void finalizeLyricExtensionGaps(const MnxMusxMappingPtr& context)
     context->deferredLyricExtensionGaps.clear();
 }
 
+/// @brief Calculates the written duration that fills an entry's actual duration.
+/// @return The entry's written duration, except for an entry whose actual duration was adjusted to end a tuplet,
+/// for which it is the written duration that, scaled by the active tuplet ratios, equals the adjusted actual duration.
+static musx::util::Fraction calcFittedWrittenDuration(const EntryInfoPtr& entryInfo)
+{
+    if (entryInfo->actualDuration == entryInfo->untruncatedActualDuration || entryInfo->cumulativeRatio == 0) {
+        return musx::util::Fraction::fromEdu(entryInfo->getEntry()->duration);
+    }
+    return entryInfo->actualDuration / entryInfo->cumulativeRatio;
+}
+
 static std::optional<mnxdom::sequence::Event> createEvent(const MnxMusxMappingPtr& context, mnxdom::sequence::SequenceContent content,
     EntryInfoPtr musxEntryInfo, bool effectiveHidden, bool hasVoice1Voice2, const MusxInstance<details::TupletDef>& tupletDef, bool forTremolo)
 {
     const auto musxEntry = musxEntryInfo->getEntry();
+    const auto writtenDuration = calcFittedWrittenDuration(musxEntryInfo);
 
     if (effectiveHidden) {
         if (musxEntry->graceNote) {
@@ -491,7 +503,7 @@ static std::optional<mnxdom::sequence::Event> createEvent(const MnxMusxMappingPt
             return std::nullopt;
         }
         /// @todo include hidden entries perhaps, if MNX starts allowing them.
-        content.appendSpace(mnxFractionFromEdu(musxEntry->duration));
+        content.appendSpace(mnxFractionFromFraction(writtenDuration));
         return std::nullopt;
     }
 
@@ -502,7 +514,7 @@ static std::optional<mnxdom::sequence::Event> createEvent(const MnxMusxMappingPt
             return std::nullopt;
         }
         context->logMessage(LogMsg() << "Emitting zero-note entry " << musxEntry->getEntryNumber() << " as an MNX spacer.", MessageSeverity::Info);
-        content.appendSpace(mnxFractionFromEdu(musxEntry->duration));
+        content.appendSpace(mnxFractionFromFraction(writtenDuration));
         return std::nullopt;
     }
 
@@ -516,7 +528,22 @@ static std::optional<mnxdom::sequence::Event> createEvent(const MnxMusxMappingPt
     if (forTremolo && tupletDef) {
         effectiveDura = tupletDef->calcReferenceDuration().calcEduDuration();
     }
-    const auto noteValue = mnxNoteValueFromEdu(effectiveDura);
+    auto noteValue = mnxNoteValueFromEdu(effectiveDura);
+    if (!forTremolo && writtenDuration != musx::util::Fraction::fromEdu(musxEntry->duration)) {
+        const auto fittedEdu = writtenDuration * Edu(NoteType::Whole);
+        const auto fittedNoteValue = fittedEdu.denominator() == 1 ? mnxExactNoteValueFromEdu(fittedEdu.numerator()) : std::nullopt;
+        if (fittedNoteValue) {
+            noteValue = fittedNoteValue.value();
+            context->logMessage(LogMsg() << "Entry " << musxEntry->getEntryNumber()
+                                         << " ends a tuplet that its written duration overfills. Its note value is shortened to fit the tuplet.",
+                MessageSeverity::Info);
+        } else {
+            context->logMessage(LogMsg() << "Entry " << musxEntry->getEntryNumber()
+                                         << " ends a tuplet that its written duration overfills, and no note value fits the tuplet."
+                                         << " Its written duration is kept, so the MNX tuplet is overfilled.",
+                MessageSeverity::Warning);
+        }
+    }
     auto mnxEvent = content.appendEvent(noteValue.base, noteValue.dots);
     mnxEvent.set_id(core::calcEventId(musxEntryInfo));
     context->entryTargetByNumber.insert_or_assign(musxEntry->getEntryNumber(), EntryTarget{EntryTargetKind::Event, mnxEvent.pointer()});

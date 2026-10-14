@@ -361,3 +361,43 @@ TEST(MnxSequences, HiddenFullMeasureRestSpansTheMeasure)
     expectSingleSpace(5, 3, 4);
     expectSingleSpace(6, 2, 1);
 }
+
+TEST(MnxSequences, EntryOverfillingATupletIsShortenedToFit)
+{
+    // Each of measures 1-3 and 5 ends a tuplet with an entry whose written duration overfills it.
+    const auto mnx = exportMnxFixture("tuplet_completion.enigmaxml");
+    ASSERT_TRUE(mnx.contains("parts"));
+    const auto& measures = mnx["parts"][0]["measures"];
+    ASSERT_GE(measures.size(), 5u);
+
+    const auto findEvent = [](const nlohmann::json& measure, const std::string& eventId) -> nlohmann::json {
+        std::function<nlohmann::json(const nlohmann::json&)> search = [&](const nlohmann::json& content) -> nlohmann::json {
+            for (const auto& item : content) {
+                if (item.value("id", "") == eventId) {
+                    return item;
+                }
+                if (item.contains("content")) {
+                    if (auto found = search(item["content"]); !found.is_null()) {
+                        return found;
+                    }
+                }
+            }
+            return nullptr;
+        };
+        for (const auto& sequence : measure["sequences"]) {
+            if (auto found = search(sequence["content"]); !found.is_null()) {
+                return found;
+            }
+        }
+        return nullptr;
+    };
+
+    // 5:4 eighths: a written dotted half becomes the dotted quarter that ends the tuplet.
+    EXPECT_EQ(findEvent(measures[0], "ev7")["duration"], nlohmann::json::parse(R"({"base": "quarter", "dots": 1})")) << measures[0].dump(4);
+    // Triplet nested in 5:4: a written quarter becomes the eighth that ends the triplet.
+    EXPECT_EQ(findEvent(measures[1], "ev12")["duration"], nlohmann::json::parse(R"({"base": "eighth"})")) << measures[1].dump(4);
+    // A written quarter that ends both a triplet and its enclosing tuplet becomes an eighth.
+    EXPECT_EQ(findEvent(measures[2], "ev21")["duration"], nlohmann::json::parse(R"({"base": "eighth"})")) << measures[2].dump(4);
+    // A written eighth that ends a 3-sixteenths tuplet becomes a sixteenth.
+    EXPECT_EQ(findEvent(measures[4], "ev31")["duration"], nlohmann::json::parse(R"({"base": "16th"})")) << measures[4].dump(4);
+}
