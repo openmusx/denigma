@@ -32,22 +32,31 @@ mnxdom::NoteValue::Required mnxNoteValueFromEdu(Edu duration)
     return mnxdom::NoteValue::make(enumConvert<mnxdom::NoteValueBase>(base), dots);
 }
 
+std::optional<mnxdom::NoteValue::Required> mnxExactNoteValueFromEdu(Edu duration)
+{
+    if (duration < Edu(NoteType::Note4096th) || duration > Edu(NoteType::Maxima)) {
+        return std::nullopt;
+    }
+    // calcDurationInfoFromEdu answers with the closest base and dot count for any duration in
+    // range rather than refusing, so its answer is spelled back out and compared against the
+    // duration before it can be trusted to be a note value.
+    const auto [base, dots] = calcDurationInfoFromEdu(duration);
+    Edu spelledOut = Edu(base);
+    Edu dotValue = Edu(base);
+    for (unsigned dot = 0; dot < dots; dot++) {
+        dotValue /= 2;
+        spelledOut += dotValue;
+    }
+    if (spelledOut != duration) {
+        return std::nullopt;
+    }
+    return mnxdom::NoteValue::make(enumConvert<mnxdom::NoteValueBase>(base), dots);
+}
+
 mnxdom::global::Tempo::Required mnxTempoFromPlayback(int beatsPerMinute, Edu beatUnitEdu)
 {
-    if (beatUnitEdu >= Edu(NoteType::Note4096th) && beatUnitEdu <= Edu(NoteType::Maxima)) {
-        // calcDurationInfoFromEdu answers with the closest base and dot count for any duration in
-        // range rather than refusing, so its answer is spelled back out and compared against the
-        // beat unit before it can be trusted to be a note value.
-        const auto [base, dots] = calcDurationInfoFromEdu(beatUnitEdu);
-        Edu spelledOut = Edu(base);
-        Edu dotValue = Edu(base);
-        for (unsigned dot = 0; dot < dots; dot++) {
-            dotValue /= 2;
-            spelledOut += dotValue;
-        }
-        if (spelledOut == beatUnitEdu) {
-            return mnxdom::global::Tempo::make(beatsPerMinute, mnxdom::NoteValue::make(enumConvert<mnxdom::NoteValueBase>(base), dots));
-        }
+    if (const auto beatUnit = mnxExactNoteValueFromEdu(beatUnitEdu)) {
+        return mnxdom::global::Tempo::make(beatsPerMinute, beatUnit.value());
     }
     // A beat unit MNX cannot spell is restated as a count of quarter notes, which loses nothing.
     // See design-decisions.md.

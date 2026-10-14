@@ -96,6 +96,10 @@ A clef with `ShowClefMode::Never`, or with `WhenNeeded` on a staff that hides cl
 
 MNX `auto` placement leaves the side to the reader, so Finale's beam-side and note-side positioning styles are resolved against the stem direction of the tuplet's first entry and written as `above` or `below`. Manual positioning names no side and stays `auto`.
 
+### An entry that overfills its tuplet is shortened to fit
+
+Finale ends an entry that completes a tuplet at the tuplet's endpoint, even when its written duration would carry it further, and `musxdom` reports that shortened actual duration. MNX has no event positions: a reader sums written durations. So the event is written with the note value that, scaled by the enclosing tuplet ratios, fills the rest of the tuplet. The change is logged at info level. When no note value fits, the written duration is kept and a warning says that the MNX tuplet is overfilled. A hidden entry's space takes the fitted duration in every case, because a space accepts any fraction.
+
 ## Schema items not exported
 
 Each of these is omitted on purpose. Revisit one if Finale data turns out to carry it.
