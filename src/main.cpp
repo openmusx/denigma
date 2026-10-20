@@ -32,8 +32,8 @@
 #include <unordered_set>
 #include <vector>
 
-#include "core/denigma.h"
 #include "export/export.h"
+#include "input/input.h"
 #include "massage/massage.h"
 #include "utils/stringutils.h"
 
@@ -49,6 +49,14 @@ static const auto registeredCommands = []() {
 static int showHelpPage(const std::string_view& programName)
 {
     std::cout << "Usage: " << programName << " [<command>] <input-pattern> [--options]" << std::endl;
+    std::cout << std::endl;
+
+    std::cout << "Legacy MUS resources (optional paths, resolved from the working directory):" << std::endl;
+    std::cout << "  --mus-symbol-fonts path" << std::endl;
+    std::cout << "  --mus-percussion-map path       Repeat for multiple mapping XML files" << std::endl;
+    std::cout << "  --mus-percussion-conversion-table path" << std::endl;
+    std::cout << "  --mus-soundmap path             Repeat in desired lookup order" << std::endl;
+    std::cout << "  --mus-instrument-catalog path" << std::endl;
     std::cout << std::endl;
 
     // General options
@@ -192,10 +200,12 @@ int _MAIN(int argc, arg_char* argv[])
             std::vector<std::filesystem::path> wildcardPatterns;
             if (std::filesystem::is_directory(inputFilePattern)) {
                 isSpecificFile = false;
-                for (const auto& format : currentCommand->defaultInputFormats()) {
-                    std::u8string wildcardPattern = u8"*.";
-                    wildcardPattern.append(format);
-                    wildcardPatterns.emplace_back(wildcardPattern);
+                if (!currentCommand->probesAllInputs()) {
+                    for (const auto& format : currentCommand->defaultInputFormats()) {
+                        std::u8string wildcardPattern = u8"*.";
+                        wildcardPattern.append(format);
+                        wildcardPatterns.emplace_back(wildcardPattern);
+                    }
                 }
                 if (wildcardPatterns.empty()) {
                     wildcardPatterns.emplace_back(std::u8string(u8"*"));
@@ -250,7 +260,7 @@ int _MAIN(int argc, arg_char* argv[])
                     }
                     if (entry.is_regular_file() && matchesAnyPattern(entry.path())) {
                         auto inputFilePath = entry.path();
-                        if (currentCommand->canProcess(inputFilePath)) {
+                        if (currentCommand->canProcess(inputFilePath, denigmaContext)) {
                             pathsToProcess.emplace(inputFilePath);
                         }
                     }
@@ -272,6 +282,7 @@ int _MAIN(int argc, arg_char* argv[])
             throw std::invalid_argument("Unknown or misplaced option: " + optionBeforeInput.value());
         }
         denigmaContext.startLogging(defaultLogPath.value_or(std::filesystem::current_path()), argc, argv);
+        loadMusResources(denigmaContext);
         if (denigmaContext.mnxSchemaPath.has_value() && !denigmaContext.mnxSchema.has_value()) {
             denigmaContext.mnxSchema = fileToString(denigmaContext.mnxSchemaPath.value());
         }

@@ -172,8 +172,9 @@ void createMetaData(const MusicXmlMusxMapping& context)
     addMiscellaneousField(score.encoding, "denigma-commit", gitCommit());
 
     // report the content format, not the container: a zipped enigmaxml is provenance-identical to a plain one
-    const auto inputFilePath = unwrappedInputPath(context.denigmaContext->inputFilePath);
-    const std::u8string sourceFormat = utils::normalizedPathExtension(inputFilePath);
+    const auto inputFilePath =
+        context.sourceFormat == FormatId::Mus ? context.denigmaContext->inputFilePath : unwrappedInputPath(context.denigmaContext->inputFilePath);
+    const std::u8string sourceFormat = context.sourceFormat == FormatId::Mus ? u8"mus" : utils::normalizedPathExtension(inputFilePath);
     addMiscellaneousField(score.encoding, "source-format", sourceFormat.empty() ? std::string("unknown") : utils::utf8ToString(sourceFormat));
     if (!inputFilePath.empty()) {
         addMiscellaneousField(score.encoding, "source-filename", utils::pathToString(inputFilePath.filename()));

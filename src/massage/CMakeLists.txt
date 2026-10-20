@@ -27,3 +27,8 @@ if(denigma_BUILD_TESTING)
             musx
     )
 endif()
+
+target_link_libraries(denigma_massage PRIVATE denigma_input)
+if(denigma_BUILD_TESTING)
+    target_link_libraries(denigma_massage_test PRIVATE denigma_input)
+endif()

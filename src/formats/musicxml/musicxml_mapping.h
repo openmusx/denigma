@@ -158,6 +158,7 @@ struct MusicXmlMusxMapping
 
     const DenigmaContext* denigmaContext;
     musx::dom::DocumentPtr document;
+    FormatId sourceFormat = FormatId::EnigmaXml;
     FinaleOptions finaleOptions;
     std::unique_ptr<mx::api::ScoreData> musicXmlScore;
     musx::dom::Cmper forPartId;

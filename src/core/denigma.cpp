@@ -20,9 +20,11 @@
  * THE SOFTWARE.
  */
 #include "core/denigma.h"
+#include "denigma/mus_resources.h"
 #include <iostream>
 #include <limits>
 #include <mutex>
+#include <unordered_map>
 
 namespace denigma {
 
@@ -142,7 +144,25 @@ std::vector<const arg_char*> DenigmaContext::parseOptions(int argc, arg_char* ar
             return {};
         };
         const arg_view next(argv[x]);
-        if (next == _ARG("--version")) {
+        static const std::unordered_map<arg_view, MusResourceKind> resourceOptions = {
+            {_ARG("--mus-symbol-fonts"), MusResourceKind::SymbolFonts},
+            {_ARG("--mus-percussion-map"), MusResourceKind::PercussionMap},
+            {_ARG("--mus-percussion-conversion-table"), MusResourceKind::PercussionConversionTable},
+            {_ARG("--mus-soundmap"), MusResourceKind::Soundmap},
+            {_ARG("--mus-instrument-catalog"), MusResourceKind::InstrumentCatalog},
+        };
+        if (const auto resource = resourceOptions.find(next); resource != resourceOptions.end()) {
+            const auto path = getNextArg();
+            if (path.empty()) {
+                throw std::invalid_argument("Missing path for " + std::string(arg_string(next)));
+            }
+            if (resource->second != MusResourceKind::PercussionMap && resource->second != MusResourceKind::Soundmap
+                && std::any_of(
+                    musResourcePaths.begin(), musResourcePaths.end(), [&](const auto& entry) { return entry.first == resource->second; })) {
+                throw std::invalid_argument("Duplicate option: " + std::string(arg_string(next)));
+            }
+            musResourcePaths.emplace_back(resource->second, std::filesystem::path(path));
+        } else if (next == _ARG("--version")) {
             showVersion = true;
         } else if (next == _ARG("--about")) {
             showAbout = true;
@@ -543,7 +563,8 @@ void DenigmaContext::processFile(
             }
             if (createDirectoryIfNeeded(retval)) {
                 outputIsFilename = false;
-                std::filesystem::path outputFileName = unwrappedInputPath(inputFilePath).filename();
+                std::filesystem::path outputFileName =
+                    (inputData.originalFormat == InputFormat::ZippedEnigmaXml ? unwrappedInputPath(inputFilePath) : inputFilePath).filename();
                 outputFileName.replace_extension(format);
                 retval = retval / outputFileName;
             } else {
@@ -566,7 +587,7 @@ void DenigmaContext::processFile(
             }
         }
         if (!outputFormatSpecified) {
-            const auto& defaultFormat = currentCommand->defaultOutputFormat(inputFilePath);
+            const auto& defaultFormat = currentCommand->defaultOutputFormat(inputFilePath, inputData);
             if (defaultFormat.has_value()) {
                 currentCommand->processOutput(inputData, calcOutpuFilePath(inputFilePath.parent_path(), defaultFormat.value()), inputFilePath, *this);
             }

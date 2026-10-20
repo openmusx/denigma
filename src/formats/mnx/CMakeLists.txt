@@ -81,3 +81,5 @@ target_link_libraries(denigma_mnx
         mnxdom
         pugixml
 )
+
+target_link_libraries(denigma_mnx PRIVATE denigma_input)

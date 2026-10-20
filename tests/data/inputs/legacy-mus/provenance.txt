@@ -1,0 +1,35 @@
+Controlled Finale fixtures authored by Robert G. Patterson, copied unchanged from
+openmusx/finale-mus-reader commit 15259b54e8c09b9550e776266c2f1f6ecce16591.
+Released under that repository's MIT license (same author and license as Denigma).
+F100 covers Coda-banner framing; F300 uncompressed big-endian; F2002 DCL
+big-endian; F2008 and F2012 zlib little-endian. The voiced-parts and shape
+fixtures exercise document exporters beyond container recognition.
+
+F100-note.mus
+    sha256 305ee46cb1dec03c268d61def0424aca7c59d1af9d761f087edfacb5fd55bb6f
+    Source: tests/evidence/F100/F100-note.mus
+
+F100-shapexp.mus
+    sha256 df95d64f439723654c05f34939e2510ca77b3eec792c7c7ebbe896bf0129868c
+    Source: tests/evidence/F100/F100-shapexp.mus
+
+F300-baseline.mus
+    sha256 c04afa1fa3fc07e5c048e8bf7d68aed995741b91a09ca06978950c869033e0e8
+    Source: tests/evidence/F300/F300-baseline.mus
+
+F2002-baseline.mus
+    sha256 9cab321bfdddb4f25262abf089e0a445c851c27d5ded18c0395f00304cda2f58
+    Source: tests/evidence/F2002/F2002-baseline.mus
+
+F2008-parts-voiced.mus
+    sha256 8fc23ec298ea38e742afc21c7eb7463c98fa44f4ffb862d251ec1530792a3df1
+    Source: tests/evidence/F2008/F2008-parts-voiced.mus
+
+F2012-noteartexp.mus
+    sha256 4ffcb6b07d802e7cc2f1d0a8313e484a074bb0e099665ead8c23c3387a22c830
+    Source: tests/evidence/F2012/F2012-noteartexp.mus
+
+Expected outputs under reference/legacy-mus:
+    F100-note.mnx records the complete MNX export with volatile provenance removed.
+    F100-note.mss records the style export without repeatBarlineDotSeparation or
+    dotDotDistance, whose values depend on font files available to the host.

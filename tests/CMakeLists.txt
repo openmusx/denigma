@@ -43,6 +43,7 @@ endfunction()
         test_conversion_result.cpp
         test_logging.cpp
         test_massage.cpp
+        test_mus_input.cpp
         test_mss_converter.cpp
         test_options.cpp
         test_smartshapes.cpp
@@ -107,6 +108,7 @@ endfunction()
     # Tests intentionally aggregate broad dependencies. Do not copy this
     # dependency shape into production converter libs.
     target_link_libraries(denigma_tests PRIVATE
+        denigma_input
         denigma_export_test
         denigma_massage_test
         denigma_core_test

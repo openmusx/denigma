@@ -20,6 +20,8 @@
  * THE SOFTWARE.
  */
 
+#include "input/input.h"
+
 #include <span>
 #include <sstream>
 #include <stdexcept>
@@ -71,10 +73,11 @@ void createTiming(const MusicXmlMusxMapping& context, MusicXmlTimingPlan& timing
 
 namespace {
 
-mx::api::ScoreData createMusicXmlDocumentFromDocument(
-    const musx::dom::DocumentPtr& document, const DenigmaContext& denigmaContext, const MusxInstance<others::PartDefinition>& part)
+mx::api::ScoreData createMusicXmlDocumentFromDocument(const musx::dom::DocumentPtr& document, const DenigmaContext& denigmaContext,
+    const MusxInstance<others::PartDefinition>& part, FormatId sourceFormat)
 {
     auto context = MusicXmlMusxMapping(denigmaContext, document, part ? part->getCmper() : SCORE_PARTID);
+    context.sourceFormat = sourceFormat;
     context.musicXmlScore = std::make_unique<mx::api::ScoreData>();
 
     createTiming(context, context.timing);
@@ -133,7 +136,7 @@ mx::api::ScoreData createMusicXmlDocument(
     const CommandInputData& inputData, const DenigmaContext& denigmaContext, const MusxInstance<others::PartDefinition>& part)
 {
     auto document = denigma::createMusxDocument<MusxReader>(inputData, denigmaContext, musx::dom::PartVoicingPolicy::Apply);
-    return createMusicXmlDocumentFromDocument(document, denigmaContext, part);
+    return createMusicXmlDocumentFromDocument(document, denigmaContext, part, inputData.sourceFormat);
 }
 
 void convert(const CommandInputData& inputData, const DenigmaContext& denigmaContext, const MultiOutputCallback& outputCallback)
@@ -142,7 +145,7 @@ void convert(const CommandInputData& inputData, const DenigmaContext& denigmaCon
     auto document = denigma::createMusxDocument<MusxReader>(inputData, denigmaContext, musx::dom::PartVoicingPolicy::Apply);
 
     if (denigmaContext.allPartsAndScore || !denigmaContext.partName.has_value()) {
-        const auto score = createMusicXmlDocumentFromDocument(document, denigmaContext, nullptr);
+        const auto score = createMusicXmlDocumentFromDocument(document, denigmaContext, nullptr, inputData.sourceFormat);
         // The score file takes the document's own name, with no part suffix.
         writeMusicXmlToCallback(denigmaContext, score, std::string{}, outputCallback);
     }
@@ -152,10 +155,10 @@ void convert(const CommandInputData& inputData, const DenigmaContext& denigmaCon
         for (const auto& part : parts) {
             if (part->getCmper() != SCORE_PARTID) {
                 if (denigmaContext.allPartsAndScore) {
-                    const auto partScore = createMusicXmlDocumentFromDocument(document, denigmaContext, part);
+                    const auto partScore = createMusicXmlDocumentFromDocument(document, denigmaContext, part, inputData.sourceFormat);
                     writeMusicXmlToCallback(denigmaContext, partScore, calcLinkedPartDisplayName(part), outputCallback);
                 } else if (denigmaContext.partName->empty() || part->getName().rfind(denigmaContext.partName.value(), 0) == 0) {
-                    const auto partScore = createMusicXmlDocumentFromDocument(document, denigmaContext, part);
+                    const auto partScore = createMusicXmlDocumentFromDocument(document, denigmaContext, part, inputData.sourceFormat);
                     writeMusicXmlToCallback(denigmaContext, partScore, calcLinkedPartDisplayName(part), outputCallback);
                     foundPart = true;
                     break;

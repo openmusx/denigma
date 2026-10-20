@@ -138,3 +138,5 @@ target_link_libraries(denigma_musicxml
         mx
         musx
 )
+
+target_link_libraries(denigma_musicxml PRIVATE denigma_input)

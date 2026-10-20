@@ -24,10 +24,10 @@
 #include <optional>
 #include <string>
 
-#include "core/denigma.h"
 #include "core/musx_reader.h"
 #include "denigma/classify/barlines.h"
 #include "formats/enigmaxml/enigmaxml.h"
+#include "input/input.h"
 #include "musx/musx.h"
 #include "test_utils.h"
 

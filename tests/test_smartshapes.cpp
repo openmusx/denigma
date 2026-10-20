@@ -29,6 +29,7 @@
 #include "core/musx_reader.h"
 #include "denigma/classify/smartshapes.h"
 #include "formats/enigmaxml/enigmaxml.h"
+#include "input/input.h"
 
 using namespace denigma::classify;
 using namespace musx::dom;

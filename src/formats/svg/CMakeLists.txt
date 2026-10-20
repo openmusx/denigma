@@ -18,3 +18,5 @@ target_link_libraries(denigma_svg
         musx
         pugixml
 )
+
+target_link_libraries(denigma_svg PRIVATE denigma_input)
