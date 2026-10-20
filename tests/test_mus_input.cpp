@@ -107,9 +107,9 @@ TEST(MusInput, NativeAdaptersAndSelectedParts)
             // Dot widths depend on which fonts the host can resolve.
             style.remove_child("repeatBarlineDotSeparation");
             style.remove_child("dotDotDistance");
-            std::ofstream output(path);
-            xml.save(output);
-            output.close();
+            std::ofstream outputFile(path);
+            xml.save(outputFile);
+            outputFile.close();
             compareFiles(path, getInputPath() / "reference/legacy-mus/F100-note.mss");
         }
     }
