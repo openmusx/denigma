@@ -28,6 +28,13 @@ set_target_properties(denigma_wasm PROPERTIES
 set(_denigma_wasm_exports
     _denigma_malloc
     _denigma_free
+    _denigma_recognize_mus
+    _denigma_mus_resources_create
+    _denigma_mus_resources_add
+    _denigma_mus_resources_finalize
+    _denigma_mus_resources_destroy
+    _denigma_inspect_with_resources
+    _denigma_convert_with_resources
     _denigma_inspect
     _denigma_convert
     _denigma_result_destroy
@@ -96,3 +103,5 @@ target_link_options(denigma_wasm PRIVATE
 )
 unset(_denigma_wasm_exports)
 unset(_denigma_wasm_stack_size)
+
+target_link_libraries(denigma_wasm PRIVATE denigma_input)

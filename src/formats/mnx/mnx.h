@@ -86,6 +86,7 @@ struct MnxMusxMapping
 
     const DenigmaContext* denigmaContext;
     musx::dom::DocumentPtr document;
+    FormatId sourceFormat = FormatId::EnigmaXml;
     FinaleOptions finaleOptions;
     std::unique_ptr<mnxdom::Document> mnxDocument;
     MusxInstanceList<others::PartDefinition> musxParts;

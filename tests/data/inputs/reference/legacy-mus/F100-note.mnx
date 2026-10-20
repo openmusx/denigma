@@ -1,0 +1,106 @@
+{
+    "global": {
+        "measures": [
+            {
+                "barline": {
+                    "type": "regular"
+                },
+                "id": "m1",
+                "key": {
+                    "fifths": 0
+                },
+                "time": {
+                    "count": 4,
+                    "display": "common",
+                    "unit": 4
+                }
+            }
+        ]
+    },
+    "layouts": [
+        {
+            "content": [
+                {
+                    "sources": [
+                        {
+                            "labelref": "name",
+                            "part": "P1",
+                            "staff": 1
+                        }
+                    ],
+                    "type": "staff"
+                }
+            ],
+            "id": "S0-ScrVw"
+        }
+    ],
+    "mnx": {
+        "support": {
+            "useBeams": true
+        },
+        "version": 46
+    },
+    "parts": [
+        {
+            "id": "P1",
+            "measures": [
+                {
+                    "clefs": [
+                        {
+                            "clef": {
+                                "glyph": "gClef",
+                                "sign": "G",
+                                "staffPosition": -2
+                            }
+                        }
+                    ],
+                    "id": "P1.m1",
+                    "sequences": [
+                        {
+                            "content": [
+                                {
+                                    "duration": {
+                                        "base": "quarter"
+                                    },
+                                    "id": "ev1",
+                                    "notes": [
+                                        {
+                                            "id": "ev1n1",
+                                            "pitch": {
+                                                "alter": 1,
+                                                "octave": 4,
+                                                "step": "F"
+                                            }
+                                        }
+                                    ]
+                                },
+                                {
+                                    "duration": {
+                                        "base": "quarter"
+                                    },
+                                    "id": "ev2",
+                                    "rest": {}
+                                },
+                                {
+                                    "duration": {
+                                        "base": "half"
+                                    },
+                                    "id": "ev3",
+                                    "rest": {}
+                                }
+                            ],
+                            "staff": 1,
+                            "voice": "s1layer1"
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "scores": [
+        {
+            "layout": "S0-ScrVw",
+            "name": "Score"
+        }
+    ]
+}

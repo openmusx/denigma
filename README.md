@@ -1,6 +1,6 @@
 # denigma command line interface (cli) utility
 
-This utility extracts and converts Enigma XML from a Finale `.musx` file. It is a successor to the original denigma project by [Chris Roode](https://github.com/chrisroode).
+This utility extracts and converts Enigma XML from Finale `.musx` files and imports legacy Finale binary scores. It is a successor to the original denigma project by [Chris Roode](https://github.com/chrisroode).
 
 **This project is not affiliated with or endorsed by Finale or its parent company.**
 
@@ -203,7 +203,7 @@ or (for Linux or macOS)
 
 ## WebAssembly build
 
-Denigma also builds a WebAssembly module exposing MUSX inspection and conversion to EnigmaXML, MusicXML, and MNX through a small C ABI (`src/wasm/denigma_wasm.cpp`). It is the module that [denigma-online](https://github.com/openmusx/denigma-online) runs in the browser. Building it requires [Emscripten](https://emscripten.org/) (CI uses 5.0.7):
+Denigma also builds a WebAssembly module exposing MUSX and legacy MUS inspection and conversion to EnigmaXML, MusicXML, and MNX through a small C ABI (`src/wasm/denigma_wasm.cpp`). It is the module that [denigma-online](https://github.com/openmusx/denigma-online) runs in the browser. Building it requires [Emscripten](https://emscripten.org/) (CI uses 5.0.7):
 
 ```bash
 emcmake cmake -S . -B build-wasm -DCMAKE_BUILD_TYPE=Release -DDENIGMA_CXX_STANDARD=20
@@ -212,6 +212,42 @@ node tests/wasm/smoke.mjs build-wasm/wasm/denigma.js build-wasm/wasm/denigma.was
 ```
 
 Build the `denigma_wasm` target rather than `all`: the module links only the EnigmaXML, MusicXML, and MNX converters, and naming the target keeps the text-measuring converters (SVG and MSS) and their font dependencies out of the build. Under Emscripten the CLI and tests are off by default and `denigma_BUILD_WASM` is on. The module lands in `build-wasm/wasm/` as `denigma.js` and `denigma.wasm`; CI builds and smoke-tests the module on every pull request, uploads the pair as the `denigma-wasm` artifact of every push to `main`, and attaches it to every published release as `denigma.<tag>.wasm.zip` alongside the native binaries.
+
+## Legacy Finale MUS input
+
+Legacy MUS scores are recognized from their contents, regardless of filename or extension. CLI export accepts explicit paths and wildcard matches; directory inputs examine all regular files, with existing recursion and folder exclusions. Unrelated files are skipped. A recognized MUS score takes precedence over an extension such as `.musx` or `.enigmaxml`.
+
+Legacy input defaults to MusicXML. MusicXML, MNX, MSS, and SVG use the existing exporter options and limitations (SVG exports shape definitions). EnigmaXML and MUSX output are unavailable for legacy input because musxdom does not serialize documents to EnigmaXML.
+
+```bash
+denigma old-score
+denigma archive --recursive --musicxml converted
+```
+
+The optional CLI resource flags are `--mus-symbol-fonts path`, `--mus-percussion-map path`, `--mus-percussion-conversion-table path`, `--mus-soundmap path`, and `--mus-instrument-catalog path`. Repeat percussion maps and soundmaps in the desired order. Paths resolve from the working directory. The percussion map's basename identifies it to the conversion table. No Finale installation is located automatically; absent resources use reader defaults. An explicit `massage --finale-file` companion also uses content recognition; automatic companion lookup retains its existing MUSX/EnigmaXML filename search.
+
+Native callers use `finale_mus_reader::recognize(bytes)` from `finale_mus_reader/reader.h` for recognition and link `finale_mus_reader::finale_mus_reader`. Each document exporter registers an adapter accepting `FormatId::Mus` and a memory span. For optional resources, include `denigma/mus_resources.h` and link `denigma::input`. `MusResources::create(resources)` parses named buffers once; put the returned shared handle in `options.common.musResources`. Input resource buffers can be released when creation returns. Singleton resource kinds reject duplicates; percussion maps and soundmaps preserve order and reader matching behavior.
+
+Denigma supplies the reader's musxdom and zlib targets and builds it without instrumentation. `FINALE_MUS_READER_LOCAL_PATH` selects a local checkout. The fetched reader revision includes per-import source identity and part voicing, plus diagnostic formatting compatible with the macOS deployment target.
+
+### WASM recognition and resources
+
+Existing `denigma_inspect` and `denigma_convert` signatures also accept recognized MUS bytes with any source name. Existing output codes stay unchanged; requesting EnigmaXML for MUS returns an error result.
+
+`denigma_recognize_mus(data, size)` returns `0` for unrelated input, `1` for a candidate legacy score, `2` for Finale input outside legacy score containers (including MUSX, ETF, and libraries), `3` for a damaged legacy container, and `-1` for a null pointer with nonzero size. Empty input is unrelated. Recognition does not import, decompress, or require resources; a candidate can still fail during import.
+
+Resource functions use opaque caller-owned handles:
+
+- `denigma_mus_resources_create()` returns an empty handle, or null on allocation failure.
+- `denigma_mus_resources_add(handle, kind, name, data, size)` copies a named buffer. Kinds are `0` symbol fonts, `1` percussion mapping XML, `2` percussion conversion table, `3` soundmap XML, and `4` instrument catalog XML. Percussion maps require a name. Buffers must be nonempty.
+- `denigma_mus_resources_finalize(handle)` validates and parses the resources once, freezes the handle, and releases the copied input buffers. Repeated successful finalization is harmless. A failed finalization leaves the handle unfinalized; destroy and recreate it to replace invalid resources.
+- `denigma_mus_resources_destroy(handle)` releases a handle; null is harmless.
+
+Add and finalize return ordinary result objects: check `denigma_result_success`, read diagnostics, and call `denigma_result_destroy`. Adding to a finalized handle fails. The empty finalized handle selects reader defaults.
+
+`denigma_inspect_with_resources` and `denigma_convert_with_resources` take the same arguments as their existing counterparts, followed by the resource handle. A null handle uses defaults; a nonnull handle must be finalized. The caller retains ownership and may reuse a handle across files and conversions. Each operation constructs its own document, so differing resource handles and part-voicing settings do not share document state.
+
+Resource acquisition belongs to the client: these functions accept bytes from uploads, drag-and-drop, network fetches, or another source. This integration does not change denigma-online's UI or choose its resource acquisition policy.
 
 ## Visual Studio Code setup
 

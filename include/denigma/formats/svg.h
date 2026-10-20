@@ -73,6 +73,21 @@ public:
         std::span<const std::byte> input, const MultiOutputCallback& outputCallback, const ConversionRequest& request = {}) const override;
 };
 
+/// @brief Converts legacy MUS bytes using the format's existing export options.
+class MusToSvgConverter final : public IMultiOutputConverter
+{
+public:
+    [[nodiscard]] FormatId sourceFormat() const override { return FormatId::Mus; }
+    [[nodiscard]] FormatId targetFormat() const override { return FormatId::Svg; }
+
+    /// Converts legacy MUS from memory and invokes outputCallback for each SVG document.
+    ConversionResult convert(std::span<const std::byte> input, const MultiOutputCallback& outputCallback, const Options& options = {}) const;
+
+    /// Converts legacy MUS using type-erased registry options.
+    ConversionResult convert(
+        std::span<const std::byte> input, const MultiOutputCallback& outputCallback, const ConversionRequest& request = {}) const override;
+};
+
 /// @class MusxToSvgConverter
 /// @brief Converter adapter for MUSX archive input to zero or more SVG documents.
 class MusxToSvgConverter final : public IReaderMultiOutputConverter

@@ -66,11 +66,12 @@ function withSelection(indices, callback) {
 
 function convert(dataPointer, size, namePointer, format, options = {}) {
   const { includeTempo = 0, allFonts = 0, finaleRestPosition = 0, splitInstruments = 0, cueLayer = 0, selection = [],
-    writeGapReport = 1, validate = 1 } = options;
-  return withSelection(selection, (selectionPointer, selectionCount) =>
-    Module._denigma_convert(dataPointer, size, namePointer, format, includeTempo, allFonts, finaleRestPosition,
-      splitInstruments, MNX_INDENT_SPACES, cueLayer, selectionCount ? selectionPointer : 0, selectionCount, writeGapReport,
-      validate));
+    writeGapReport = 1, validate = 1, resources = 0 } = options;
+  return withSelection(selection, (selectionPointer, selectionCount) => {
+    const args = [dataPointer, size, namePointer, format, includeTempo, allFonts, finaleRestPosition,
+      splitInstruments, MNX_INDENT_SPACES, cueLayer, selectionCount ? selectionPointer : 0, selectionCount, writeGapReport, validate];
+    return resources ? Module._denigma_convert_with_resources(...args, resources) : Module._denigma_convert(...args);
+  });
 }
 
 function assertResult(result, label, marker, { outputCount = 1, verbose = false, indices } = {}) {
@@ -366,3 +367,101 @@ for (const sample of deepStackSamples) {
       `${name} MNX after MusicXML`, '"mnx"');
   });
 }
+
+// Recognition is independent of filename, resource configuration, and imports.
+const legacyDirectory = resolve(import.meta.dirname, '..', 'data', 'inputs', 'legacy-mus');
+for (const file of ['F100-note.mus', 'F300-baseline.mus', 'F2002-baseline.mus', 'F2012-noteartexp.mus']) {
+  const input = await readFile(resolve(legacyDirectory, file));
+  for (const name of ['score', 'score.binary', 'score.musx', 'score.enigmaxml.zip']) {
+    withInput(input, name, (dataPointer, namePointer) => {
+      if (Module._denigma_recognize_mus(dataPointer, input.length) !== 1) throw new Error(`${file} was not recognized`);
+      inspect(dataPointer, input.length, namePointer, `${file} as ${name}`);
+      if (name === 'score.enigmaxml.zip') {
+        const mnx = JSON.parse(new TextDecoder().decode(assertResult(convert(dataPointer, input.length, namePointer, FORMAT_MNX),
+          `${file} MNX as ${name}`, '"mnx"')));
+        const source = mnx.mnx._x.mnxdom.source;
+        if (source.format !== 'mus' || source.filename !== name) throw new Error('Legacy MNX provenance was inferred from the filename');
+      }
+      const musicXml = new TextDecoder().decode(assertResult(
+        convert(dataPointer, input.length, namePointer, FORMAT_MUSICXML, { selection: [0] }),
+        `${file} MusicXML as ${name}`, '<score-partwise'));
+      if (!musicXml.includes('name="source-format">mus<') || !musicXml.includes(`name="source-filename">${name}<`)) {
+        throw new Error('Legacy MusicXML provenance did not preserve the format and filename');
+      }
+    });
+  }
+  withInput(input, file, (dataPointer, namePointer) => {
+    assertResult(convert(dataPointer, input.length, namePointer, FORMAT_MNX), `${file} MNX`, '"mnx"');
+    assertStatus(convert(dataPointer, input.length, namePointer, FORMAT_ENIGMAXML), false, 'Legacy EnigmaXML rejection');
+  });
+}
+
+function assertStatus(result, success, label) {
+  try {
+    if (Boolean(Module._denigma_result_success(result)) !== success) throw new Error(`${label}: ${messages(result)}`);
+    if (!success && Module._denigma_result_diagnostic_count(result) === 0) throw new Error(`${label} omitted its diagnostic`);
+  } finally {
+    Module._denigma_result_destroy(result);
+  }
+}
+
+if (Module._denigma_recognize_mus(0, 1) !== -1 || Module._denigma_recognize_mus(0, 0) !== 0) {
+  throw new Error('Recognition buffer validation failed');
+}
+for (const [data, verdict] of [[new TextEncoder().encode('unrelated'), 0],
+  [new TextEncoder().encode('ENIGMA TRANSPORTABLE FILE'), 2],
+  [(await readFile(resolve(legacyDirectory, 'F300-baseline.mus'))).subarray(0, 1024), 3]]) {
+  withAllocated(data, (pointer) => {
+    if (Module._denigma_recognize_mus(pointer, data.length) !== verdict) throw new Error(`Recognition expected ${verdict}`);
+  });
+}
+
+function addResource(handle, kind, name, text) {
+  const bytes = new TextEncoder().encode(text);
+  return withInput(bytes, name, (dataPointer, namePointer) =>
+    Module._denigma_mus_resources_add(handle, kind, namePointer, dataPointer, bytes.length));
+}
+
+const resources = Module._denigma_mus_resources_create();
+const otherResources = Module._denigma_mus_resources_create();
+const badResources = Module._denigma_mus_resources_create();
+try {
+  const input = await readFile(resolve(legacyDirectory, 'F100-note.mus'));
+  withInput(input, 'score', (dataPointer, namePointer) => {
+    assertStatus(Module._denigma_inspect_with_resources(dataPointer, input.length, namePointer, resources), false, 'Unfinalized resources');
+  });
+  for (const [kind, name, text] of [[0, 'MacSymbolFonts.txt', 'Maestro\nPetaluma\n'],
+    [1, 'Example.xml', '<Finale/>'], [2, 'conversion.txt', '// empty table\n'],
+    [3, 'first.soundmap', '<Soundmap><Description><Name>First</Name></Description></Soundmap>'],
+    [3, 'second.soundmap', '<Soundmap><Description><Name>Second</Name></Description></Soundmap>'],
+    [4, 'catalog.xml', '<InstrumentCatalog/>']]) {
+    assertStatus(addResource(resources, kind, name, text), true, 'Add resource');
+  }
+  assertStatus(Module._denigma_mus_resources_finalize(resources), true, 'Finalize resources after releasing upload buffers');
+  assertStatus(Module._denigma_mus_resources_finalize(resources), true, 'Finalize is idempotent');
+  assertStatus(addResource(resources, 0, 'extra.txt', 'Maestro'), false, 'Frozen resources');
+  assertStatus(Module._denigma_mus_resources_finalize(otherResources), true, 'Finalize defaults');
+  for (const handle of [resources, otherResources, resources]) {
+    withInput(input, 'score.binary', (dataPointer, namePointer) => {
+      assertStatus(Module._denigma_inspect_with_resources(dataPointer, input.length, namePointer, handle), true, 'Inspect with resources');
+      assertResult(convert(dataPointer, input.length, namePointer, FORMAT_MUSICXML, { selection: [0], resources: handle }),
+        'Resource-backed MusicXML', '<score-partwise');
+    });
+  }
+  assertStatus(addResource(badResources, 3, 'bad.soundmap', '<Other/>'), true, 'Stage malformed resource');
+  assertStatus(Module._denigma_mus_resources_finalize(badResources), false, 'Invalid resource XML');
+} finally {
+  Module._denigma_mus_resources_destroy(resources);
+  Module._denigma_mus_resources_destroy(otherResources);
+  Module._denigma_mus_resources_destroy(badResources);
+}
+
+const voicedMus = await readFile(resolve(legacyDirectory, 'F2008-parts-voiced.mus'));
+withInput(voicedMus, 'voiced', (dataPointer, namePointer) => {
+  const parts = inspect(dataPointer, voicedMus.length, namePointer, 'Legacy voiced parts');
+  if (!parts.length) throw new Error('Legacy parts were not recovered');
+  const selection = [0, ...parts.map((part) => part.outputIndex)];
+  assertResult(convert(dataPointer, voicedMus.length, namePointer, FORMAT_MUSICXML, { selection }),
+    'Legacy voiced score and parts', '<score-partwise', { outputCount: selection.length, indices: selection });
+});
+console.log('Legacy MUS recognition, resources, and conversion passed.');

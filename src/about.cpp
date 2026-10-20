@@ -43,6 +43,14 @@ namespace musx {
 #include "musx_license.xxd"
 }
 
+namespace finale_mus_reader {
+#include "finale_mus_reader_license.xxd"
+}
+
+namespace blast {
+#include "blast_license.xxd"
+}
+
 namespace smufl_mapping {
 #include "smufl_mapping_license.xxd"
 }
@@ -62,20 +70,22 @@ constexpr std::span<const unsigned char> zlibLicense(zlib::LICENSE, sizeof(zlib:
 constexpr std::span<const unsigned char> mnxLicense(mnxdom::LICENSE, sizeof(mnxdom::LICENSE));
 constexpr std::span<const unsigned char> mxLicense(mx::LICENSE, sizeof(mx::LICENSE));
 constexpr std::span<const unsigned char> musxLicense(musx::LICENSE, sizeof(musx::LICENSE));
+constexpr std::span<const unsigned char> musReaderLicense(finale_mus_reader::LICENSE, sizeof(finale_mus_reader::LICENSE));
+constexpr std::span<const unsigned char> blastLicense(blast::blast_LICENSE_txt, sizeof(blast::blast_LICENSE_txt));
 constexpr std::span<const unsigned char> smuflLicense(smufl_mapping::LICENSE, sizeof(smufl_mapping::LICENSE));
 constexpr std::span<const unsigned char> pugixmlLicense(pugixml::LICENSE_md, sizeof(pugixml::LICENSE_md));
 #ifdef DENIGMA_HAS_FREETYPE_LICENSE
 constexpr std::span<const unsigned char> freetypeLicense(freetype::FTL_TXT, sizeof(freetype::FTL_TXT));
 #endif
 
-constexpr auto licenses = std::to_array<std::pair<std::string_view, std::span<const unsigned char>>>(
-    {{DENIGMA_NAME, denigmaLicense}, {"musx object model", musxLicense}, {"mnx object model", mnxLicense}, {"mx MusicXML library", mxLicense},
-        {"SMuFL mapping", smuflLicense}, {"zlib", zlibLicense}, {"pugixml", pugixmlLicense}
+constexpr auto licenses = std::to_array<std::pair<std::string_view, std::span<const unsigned char>>>({{DENIGMA_NAME, denigmaLicense},
+    {"musx object model", musxLicense}, {"Finale MUS reader", musReaderLicense}, {"blast", blastLicense}, {"mnx object model", mnxLicense},
+    {"mx MusicXML library", mxLicense}, {"SMuFL mapping", smuflLicense}, {"zlib", zlibLicense}, {"pugixml", pugixmlLicense}
 #ifdef DENIGMA_HAS_FREETYPE_LICENSE
-        ,
-        {"FreeType (FTL)", freetypeLicense}
+    ,
+    {"FreeType (FTL)", freetypeLicense}
 #endif
-    });
+});
 
 namespace denigma {
 

@@ -1,4 +1,5 @@
 add_subdirectory(enigmaxml)
+add_subdirectory(../input ${CMAKE_CURRENT_BINARY_DIR}/input)
 add_subdirectory(musicxml)
 add_subdirectory(mnx)
 add_subdirectory(mss)

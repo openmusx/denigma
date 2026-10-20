@@ -20,12 +20,12 @@
 #include <utility>
 #include <vector>
 
-#include "core/denigma.h"
 #include "core/musx_reader.h"
 #include "denigma/formats/mnx.h"
 #include "denigma/gap_report.h"
 #include "denigma/io/random_access_reader.h"
 #include "formats/enigmaxml/enigmaxml.h"
+#include "input/input.h"
 #include "utils/ziputils.h"
 
 // The public converter adapters extract the MUSX archive on every call. These are
@@ -35,13 +35,25 @@
 // and mnxdom, which are private dependencies of the libraries this target links.
 // Declaring them here keeps the wrapper's build off that graph; a signature change
 // in either exporter surfaces as a link error.
-namespace denigma::formats::musicxml::detail {
+namespace denigma {
+namespace formats {
+namespace musicxml {
+namespace detail {
 void convert(const CommandInputData& inputData, const DenigmaContext& denigmaContext, const MultiOutputCallback& outputCallback);
-} // namespace denigma::formats::musicxml::detail
+} // namespace detail
+} // namespace musicxml
+} // namespace formats
+} // namespace denigma
 
-namespace denigma::formats::mnx::detail {
+namespace denigma {
+namespace formats {
+namespace mnx {
+namespace detail {
 void exportJson(std::ostream& output, const CommandInputData& inputData, const DenigmaContext& denigmaContext);
-} // namespace denigma::formats::mnx::detail
+} // namespace detail
+} // namespace mnx
+} // namespace formats
+} // namespace denigma
 
 namespace {
 
@@ -84,34 +96,32 @@ struct OnlineResult
     std::string gapReport;
 };
 
-enum class InputFormat {
-    Musx,
-    EnigmaXml,
-    ZippedEnigmaXml
+using denigma::InputFormat;
+
+struct OwnedMusResource
+{
+    denigma::MusResourceKind kind;
+    std::string name;
+    std::vector<std::byte> bytes;
 };
 
-bool endsWithCaseInsensitive(std::string_view value, std::string_view suffix)
+struct WasmMusResources
 {
-    if (value.size() < suffix.size()) {
-        return false;
+    std::vector<OwnedMusResource> pending;
+    std::shared_ptr<const denigma::MusResources> parsed;
+};
+
+std::shared_ptr<const denigma::MusResources> parsedResources(const WasmMusResources* resources)
+{
+    if (resources && !resources->parsed) {
+        throw std::invalid_argument("Finalize MUS resources before inspection or conversion.");
     }
-    return std::equal(suffix.rbegin(), suffix.rend(), value.rbegin(),
-        [](char lhs, char rhs) { return std::tolower(static_cast<unsigned char>(lhs)) == std::tolower(static_cast<unsigned char>(rhs)); });
+    return resources ? resources->parsed : nullptr;
 }
 
-InputFormat inputFormat(const char* sourceName)
+InputFormat inputFormat(std::span<const std::byte> bytes, const char* sourceName)
 {
-    const std::string_view name = sourceName ? sourceName : "browser.musx";
-    if (endsWithCaseInsensitive(name, ".enigmaxml.zip")) {
-        return InputFormat::ZippedEnigmaXml;
-    }
-    if (endsWithCaseInsensitive(name, ".enigmaxml")) {
-        return InputFormat::EnigmaXml;
-    }
-    if (endsWithCaseInsensitive(name, ".musx")) {
-        return InputFormat::Musx;
-    }
-    throw std::invalid_argument("Unsupported input filename.");
+    return denigma::resolveInputFormat(bytes, utils::utf8ToPath(sourceName ? sourceName : "browser.musx"));
 }
 
 void addDiagnostic(OnlineResult& result, denigma::MessageSeverity severity, std::string message)
@@ -122,7 +132,7 @@ void addDiagnostic(OnlineResult& result, denigma::MessageSeverity severity, std:
 
 const char* fallbackSourceName(InputFormat format)
 {
-    return format == InputFormat::Musx ? "browser.musx" : "browser.enigmaxml";
+    return format == InputFormat::Mus ? "browser.mus" : format == InputFormat::Musx ? "browser.musx" : "browser.enigmaxml";
 }
 
 denigma::DenigmaContext makeInputContext(OnlineResult& result, const char* sourceName, const char* fallbackName)
@@ -155,28 +165,6 @@ std::span<const std::byte> inputBytes(const std::uint8_t* data, std::size_t size
         throw std::invalid_argument("Input buffer is null.");
     }
     return {reinterpret_cast<const std::byte*>(data), size};
-}
-
-denigma::Buffer copyBytes(std::span<const std::byte> bytes)
-{
-    denigma::Buffer result;
-    result.reserve(bytes.size());
-    std::transform(bytes.begin(), bytes.end(), std::back_inserter(result), [](std::byte value) { return static_cast<char>(value); });
-    return result;
-}
-
-denigma::CommandInputData readInputData(std::span<const std::byte> bytes, InputFormat format, const denigma::DenigmaContext& context)
-{
-    if (format == InputFormat::Musx) {
-        denigma::BufferRandomAccessReader reader(bytes);
-        return denigma::formats::enigmaxml::detail::extractMusxInputData(reader, context);
-    }
-    if (format == InputFormat::ZippedEnigmaXml) {
-        denigma::BufferRandomAccessReader reader(bytes);
-        const auto xml = utils::readSoleFileWithExtension(reader, ENIGMAXML_EXTENSION, context);
-        return {denigma::Buffer(xml.begin(), xml.end()), std::nullopt, {}};
-    }
-    return {copyBytes(bytes), std::nullopt, {}};
 }
 
 // Extracting a MUSX archive inflates the zip and deobfuscates the EnigmaXML inside
@@ -213,7 +201,7 @@ const denigma::CommandInputData& cachedInputData(
         return inputCache.data;
     }
     inputCache = {}; // release the previous extraction before allocating the next one
-    inputCache.data = readInputData(bytes, format, context);
+    inputCache.data = denigma::prepareInput(bytes, format, context);
     inputCache.sourceName = name;
     inputCache.size = bytes.size();
     inputCache.hash = hash;
@@ -289,10 +277,12 @@ void finishConversion(OnlineResult& result, const denigma::ConversionResult& con
     }
 }
 
-void inspectInput(OnlineResult& result, std::span<const std::byte> bytes, const char* sourceName, InputFormat format)
+void inspectInput(
+    OnlineResult& result, std::span<const std::byte> bytes, const char* sourceName, InputFormat format, const WasmMusResources* resources)
 {
     auto context = makeInputContext(result, sourceName, fallbackSourceName(format));
 
+    context.musResources = parsedResources(resources);
     const auto& input = cachedInputData(bytes, format, context, sourceName);
     auto document = denigma::createMusxDocument<denigma::MusxReader>(input, context);
     auto parts = document->getOthers()->getArray<musx::dom::others::PartDefinition>(musx::dom::SCORE_PARTID);
@@ -324,7 +314,8 @@ void inspectInput(OnlineResult& result, std::span<const std::byte> bytes, const 
 }
 
 void convertMusicXml(OnlineResult& result, std::span<const std::byte> bytes, const char* sourceName, InputFormat inputFormat, bool includeTempo,
-    bool allFontsAvailable, bool useFinaleRestPosition, int cueLayer, const int* selectedOutputs, std::size_t selectedCount, bool validate)
+    bool allFontsAvailable, bool useFinaleRestPosition, int cueLayer, const int* selectedOutputs, std::size_t selectedCount, bool validate,
+    const WasmMusResources* resources)
 {
     denigma::ConversionResult conversionResult;
     auto context = makeConversionContext(result, sourceName, inputFormat, conversionResult, validate);
@@ -344,13 +335,14 @@ void convertMusicXml(OnlineResult& result, std::span<const std::byte> bytes, con
         }
         ++outputIndex;
     };
+    context.musResources = parsedResources(resources);
     const auto& input = cachedInputData(bytes, inputFormat, context, sourceName);
     denigma::formats::musicxml::detail::convert(input, context, outputCallback);
     finishConversion(result, conversionResult);
 }
 
 void convertMnx(OnlineResult& result, std::span<const std::byte> bytes, const char* sourceName, InputFormat inputFormat, bool includeTempo,
-    bool splitInstruments, int indentSpaces, int cueLayer, bool writeGapReport, bool validate)
+    bool splitInstruments, int indentSpaces, int cueLayer, bool writeGapReport, bool validate, const WasmMusResources* resources)
 {
     denigma::ConversionResult conversionResult;
     auto context = makeConversionContext(result, sourceName, inputFormat, conversionResult, validate);
@@ -369,6 +361,7 @@ void convertMnx(OnlineResult& result, std::span<const std::byte> bytes, const ch
 
     std::ostringstream output;
     const denigma::MusxLoggerScope musxLogger(denigma::makeMusxLogCallback(context));
+    context.musResources = parsedResources(resources);
     const auto& input = cachedInputData(bytes, inputFormat, context, sourceName);
     denigma::formats::mnx::detail::exportJson(output, input, context);
     if (gapCollector) {
@@ -382,12 +375,17 @@ void convertMnx(OnlineResult& result, std::span<const std::byte> bytes, const ch
     finishConversion(result, conversionResult);
 }
 
-void convertEnigmaXml(OnlineResult& result, std::span<const std::byte> bytes, const char* sourceName, InputFormat inputFormat)
+void convertEnigmaXml(
+    OnlineResult& result, std::span<const std::byte> bytes, const char* sourceName, InputFormat inputFormat, const WasmMusResources* resources)
 {
     // Denigma's MUSX-to-EnigmaXML converter writes exactly the primary buffer that
     // extraction already produced, so both input formats reduce to the cached data.
     auto context = makeInputContext(result, sourceName, fallbackSourceName(inputFormat));
+    context.musResources = parsedResources(resources);
     const auto& input = cachedInputData(bytes, inputFormat, context, sourceName);
+    if (input.sourceFormat == denigma::FormatId::Mus) {
+        throw std::invalid_argument("Legacy MUS input cannot be exported as EnigmaXML.");
+    }
     appendOutput(result, {}, primaryBytes(input));
     if (input.primaryBuffer.empty()) {
         addDiagnostic(result, denigma::MessageSeverity::Error, "The EnigmaXML input is empty.");
@@ -427,34 +425,111 @@ void denigma_free(void* pointer)
     ::operator delete(pointer);
 }
 
-OnlineResult* denigma_inspect(const std::uint8_t* data, std::size_t size, const char* sourceName)
-{
-    return makeResult([&](OnlineResult& result) { inspectInput(result, inputBytes(data, size), sourceName, inputFormat(sourceName)); });
-}
-
-OnlineResult* denigma_convert(const std::uint8_t* data, std::size_t size, const char* sourceName, int format, int includeTempo, int allFontsAvailable,
-    int useFinaleRestPosition, int splitInstruments, int indentSpaces, int cueLayer, const int* selectedOutputs, std::size_t selectedCount,
-    int writeGapReport, int validate)
+OnlineResult* denigma_inspect_with_resources(const std::uint8_t* data, std::size_t size, const char* sourceName, const WasmMusResources* resources)
 {
     return makeResult([&](OnlineResult& result) {
         const auto bytes = inputBytes(data, size);
-        const auto sourceFormat = inputFormat(sourceName);
+        inspectInput(result, bytes, sourceName, inputFormat(bytes, sourceName), resources);
+    });
+}
+
+OnlineResult* denigma_convert_with_resources(const std::uint8_t* data, std::size_t size, const char* sourceName, int format, int includeTempo,
+    int allFontsAvailable, int useFinaleRestPosition, int splitInstruments, int indentSpaces, int cueLayer, const int* selectedOutputs,
+    std::size_t selectedCount, int writeGapReport, int validate, const WasmMusResources* resources)
+{
+    return makeResult([&](OnlineResult& result) {
+        const auto bytes = inputBytes(data, size);
+        const auto sourceFormat = inputFormat(bytes, sourceName);
         switch (format) {
         case 0:
             if (!selectedOutputs || selectedCount == 0) {
                 throw std::invalid_argument("Select the score or at least one linked part.");
             }
             convertMusicXml(result, bytes, sourceName, sourceFormat, includeTempo != 0, allFontsAvailable != 0, useFinaleRestPosition != 0, cueLayer,
-                selectedOutputs, selectedCount, validate != 0);
+                selectedOutputs, selectedCount, validate != 0, resources);
             break;
         case 1:
             convertMnx(result, bytes, sourceName, sourceFormat, includeTempo != 0, splitInstruments != 0, indentSpaces, cueLayer, writeGapReport != 0,
-                validate != 0);
+                validate != 0, resources);
             break;
-        case 2: convertEnigmaXml(result, bytes, sourceName, sourceFormat); break;
+        case 2: convertEnigmaXml(result, bytes, sourceName, sourceFormat, resources); break;
         default: throw std::invalid_argument("Unknown output format.");
         }
     });
+}
+
+OnlineResult* denigma_inspect(const std::uint8_t* data, std::size_t size, const char* sourceName)
+{
+    return denigma_inspect_with_resources(data, size, sourceName, nullptr);
+}
+
+OnlineResult* denigma_convert(const std::uint8_t* data, std::size_t size, const char* sourceName, int format, int includeTempo, int allFontsAvailable,
+    int useFinaleRestPosition, int splitInstruments, int indentSpaces, int cueLayer, const int* selectedOutputs, std::size_t selectedCount,
+    int writeGapReport, int validate)
+{
+    return denigma_convert_with_resources(data, size, sourceName, format, includeTempo, allFontsAvailable, useFinaleRestPosition, splitInstruments,
+        indentSpaces, cueLayer, selectedOutputs, selectedCount, writeGapReport, validate, nullptr);
+}
+
+int denigma_recognize_mus(const std::uint8_t* data, std::size_t size)
+{
+    if (!data && size != 0) {
+        return -1;
+    }
+    switch (denigma::recognizeMus({reinterpret_cast<const std::byte*>(data), size})) {
+    case finale_mus_reader::MusRecognition::NotFinale: return 0;
+    case finale_mus_reader::MusRecognition::Candidate: return 1;
+    case finale_mus_reader::MusRecognition::FinaleNonScore: return 2;
+    case finale_mus_reader::MusRecognition::Damaged: return 3;
+    }
+    return -1;
+}
+
+WasmMusResources* denigma_mus_resources_create()
+{
+    return new (std::nothrow) WasmMusResources;
+}
+
+OnlineResult* denigma_mus_resources_add(WasmMusResources* resources, int kind, const char* name, const std::uint8_t* data, std::size_t size)
+{
+    return makeResult([&](OnlineResult&) {
+        if (!resources || resources->parsed) {
+            throw std::invalid_argument("MUS resource handle is null or already finalized.");
+        }
+        if (kind < static_cast<int>(denigma::MusResourceKind::SymbolFonts) || kind > static_cast<int>(denigma::MusResourceKind::InstrumentCatalog)) {
+            throw std::invalid_argument("Unknown MUS resource kind.");
+        }
+        const auto bytes = inputBytes(data, size);
+        if (bytes.empty()) {
+            throw std::invalid_argument("MUS resource is empty.");
+        }
+        resources->pending.push_back({static_cast<denigma::MusResourceKind>(kind), name ? name : "", {bytes.begin(), bytes.end()}});
+    });
+}
+
+OnlineResult* denigma_mus_resources_finalize(WasmMusResources* resources)
+{
+    return makeResult([&](OnlineResult& result) {
+        if (!resources) {
+            throw std::invalid_argument("MUS resource handle is null.");
+        }
+        if (resources->parsed) {
+            return;
+        }
+        std::vector<denigma::MusResource> inputs;
+        for (const auto& resource : resources->pending) {
+            inputs.push_back({resource.kind, resource.name, resource.bytes});
+        }
+        auto context = makeInputContext(result, nullptr, "MUS resources");
+        denigma::MusxLoggerScope logger(denigma::makeMusxLogCallback(context));
+        resources->parsed = denigma::MusResources::create(inputs);
+        resources->pending.clear();
+    });
+}
+
+void denigma_mus_resources_destroy(WasmMusResources* resources)
+{
+    delete resources;
 }
 
 void denigma_result_destroy(OnlineResult* result)

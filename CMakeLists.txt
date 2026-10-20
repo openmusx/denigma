@@ -255,6 +255,23 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(musx)
 
+# The reader consumes Denigma's musx and zlib targets.
+set(FINALE_MUS_READER_LOCAL_PATH "" CACHE PATH "Optional local finale-mus-reader checkout")
+set(FINALE_MUS_READER_INSTRUMENTATION OFF CACHE STRING "" FORCE)
+set(FINALE_MUS_READER_BUILD_TESTING OFF CACHE BOOL "" FORCE)
+set(FINALE_MUS_READER_BUILD_REPORTING_TESTING OFF CACHE BOOL "" FORCE)
+if(FINALE_MUS_READER_LOCAL_PATH)
+    get_filename_component(_denigma_reader_source "${FINALE_MUS_READER_LOCAL_PATH}" ABSOLUTE BASE_DIR "${PROJECT_SOURCE_DIR}")
+    set(finale_mus_reader_SOURCE_DIR "${_denigma_reader_source}")
+    add_subdirectory("${_denigma_reader_source}" "${PROJECT_BINARY_DIR}/_deps/finale_mus_reader-build")
+else()
+    FetchContent_Declare(finale_mus_reader
+        GIT_REPOSITORY https://github.com/openmusx/finale-mus-reader.git
+        GIT_TAG ${FINALE_MUS_READER_GIT_TAG}
+    )
+    FetchContent_MakeAvailable(finale_mus_reader)
+endif()
+
 FetchContent_GetProperties(musx)
 message(STATUS "Musx Source Directory: ${musx_SOURCE_DIR}")
 
@@ -372,6 +389,7 @@ if(denigma_BUILD_CLI)
     # Ensure the include directories are added
     add_dependencies(denigma GenerateLicenseXxd)
     target_link_libraries(denigma PRIVATE
+        denigma_input
         denigma_export
         denigma_massage
         denigma_internal_deps

@@ -64,6 +64,8 @@ constexpr int JSON_INDENT_SPACES = 4;
 
 namespace denigma {
 
+enum class MusResourceKind;
+
 const char* gitCommit();
 
 /// @brief Returns the additive offset that converts a Finale rest position to the SMuFL glyph-origin convention.
@@ -140,6 +142,13 @@ struct arg_string : public std::string
 using Buffer = std::vector<char>;
 using LogMsg = std::stringstream;
 
+enum class InputFormat {
+    Mus,
+    Musx,
+    EnigmaXml,
+    ZippedEnigmaXml
+};
+
 struct CommandInputData
 {
     struct EmbeddedGraphicFile
@@ -151,6 +160,8 @@ struct CommandInputData
     Buffer primaryBuffer;
     std::optional<Buffer> notationMetadata;
     std::vector<EmbeddedGraphicFile> embeddedGraphics;
+    FormatId sourceFormat = FormatId::EnigmaXml;
+    InputFormat originalFormat = InputFormat::EnigmaXml;
 };
 
 // stupid omission from C++17 standard
@@ -278,6 +289,8 @@ public:
     /// @brief Every input queued for this run, in comparable form. An output that would
     /// land on one of these is skipped, because that file may not have been read yet.
     PathSet scheduledInputPaths;
+    std::shared_ptr<const MusResources> musResources;
+    std::vector<std::pair<MusResourceKind, std::filesystem::path>> musResourcePaths;
     std::function<void(MessageSeverity severity, std::string_view message)> logCallback;
     ConversionResult* conversionResult{};
     classify::GapCollector* gapCollector{};
@@ -367,7 +380,7 @@ public:
 
     virtual int showHelpPage(const std::string_view& programName, const std::string& indentSpaces = {}) const = 0;
 
-    virtual bool canProcess(const std::filesystem::path& inputPath) const = 0;
+    virtual bool canProcess(const std::filesystem::path& inputPath, const DenigmaContext& context) const = 0;
     virtual CommandInputData processInput(const std::filesystem::path& inputPath, const DenigmaContext& denigmaContext) const = 0;
     virtual void processOutput(const CommandInputData& inputData, const std::filesystem::path& outputPath, const std::filesystem::path& inputPath,
         const DenigmaContext& denigmaContext) const = 0;
@@ -375,7 +388,9 @@ public:
     /// The first entry is reported as the command's default input format. An empty span
     /// means every file in the directory is considered.
     virtual std::span<const std::u8string_view> defaultInputFormats() const { return {}; }
-    virtual std::optional<std::u8string> defaultOutputFormat(const std::filesystem::path&) const { return std::nullopt; }
+    /// Whether directory discovery also examines files outside the default extensions.
+    virtual bool probesAllInputs() const { return false; }
+    virtual std::optional<std::u8string> defaultOutputFormat(const std::filesystem::path&, const CommandInputData&) const { return std::nullopt; }
 
     virtual const std::string_view commandName() const = 0;
 };
@@ -385,26 +400,6 @@ std::string getTimeStamp(const std::string& fmt);
 bool createDirectoryIfNeeded(const std::filesystem::path& path);
 void showAboutPage();
 bool isFontSMuFL(const std::shared_ptr<musx::dom::FontInfo>& font);
-
-// createMusxDocument is implemented as a template to avoid promoting pugixml to being a core dependency
-template <typename Reader>
-musx::dom::DocumentPtr createMusxDocument(const CommandInputData& inputData, const DenigmaContext& denigmaContext,
-    musx::dom::PartVoicingPolicy partVoicingPolicy = musx::dom::PartVoicingPolicy::Ignore)
-{
-    musx::factory::DocumentFactory::CreateOptions::EmbeddedGraphicFiles embeddedGraphicFiles;
-    embeddedGraphicFiles.reserve(inputData.embeddedGraphics.size());
-    for (const auto& graphic : inputData.embeddedGraphics) {
-        musx::factory::DocumentFactory::CreateOptions::EmbeddedGraphicFile file;
-        file.filename = graphic.filename;
-        file.bytes.assign(graphic.blob.begin(), graphic.blob.end());
-        embeddedGraphicFiles.emplace_back(std::move(file));
-    }
-
-    musx::factory::DocumentFactory::CreateOptions createOptions(
-        denigmaContext.inputFilePath, inputData.notationMetadata.value_or(Buffer{}), std::move(embeddedGraphicFiles), partVoicingPolicy);
-
-    return musx::factory::DocumentFactory::create<Reader>(inputData.primaryBuffer, std::move(createOptions));
-}
 
 template <typename T>
 musx::dom::MusxInstance<T> getDocOptions(const musx::dom::DocumentPtr& document, const std::string& prefsName)

@@ -24,8 +24,8 @@
 #include <optional>
 #include <vector>
 
-#include "core/denigma.h"
 #include "formats/enigmaxml/enigmaxml.h"
+#include "input/input.h"
 #include "musicxml.h"
 
 namespace denigma {
@@ -48,6 +48,7 @@ DenigmaContext makeMusicXmlContext(const Options& options, const std::filesystem
 {
     DenigmaContext context("denigma");
     context.inputFilePath = options.common.sourceName.empty() ? defaultSourceName : utils::utf8ToPath(options.common.sourceName);
+    context.musResources = options.common.musResources;
     context.noValidate = !options.common.validate;
     context.verbose = options.common.verbose;
     context.quiet = options.common.quiet;
@@ -60,24 +61,30 @@ DenigmaContext makeMusicXmlContext(const Options& options, const std::filesystem
     return context;
 }
 
+ConversionResult convertDocumentInput(
+    std::span<const std::byte> input, const MultiOutputCallback& outputCallback, const Options& options, FormatId sourceFormat)
+{
+    ConversionResult result;
+    auto buffer = copyBytes(input);
+    auto context = makeMusicXmlContext(options, (sourceFormat == FormatId::Mus ? "input.mus" : "input.enigmaxml"));
+    context.logCallback = options.common.logCallback;
+    context.conversionResult = &result;
+
+    try {
+        detail::convert(CommandInputData{std::move(buffer), std::nullopt, {}, sourceFormat}, context, outputCallback);
+    } catch (const std::exception& ex) {
+        context.logMessage(LogMsg() << "unable to convert Finale input to MusicXML", MessageSeverity::Error);
+        context.logMessage(LogMsg() << " (exception: " << ex.what() << ")", MessageSeverity::Error);
+    }
+    return result;
+}
+
 } // namespace
 
 ConversionResult EnigmaXmlToMusicXmlMultiOutputConverter::convert(
     std::span<const std::byte> input, const MultiOutputCallback& outputCallback, const Options& options) const
 {
-    ConversionResult result;
-    auto buffer = copyBytes(input);
-    auto context = makeMusicXmlContext(options, "input.enigmaxml");
-    context.logCallback = options.common.logCallback;
-    context.conversionResult = &result;
-
-    try {
-        detail::convert(CommandInputData{std::move(buffer), std::nullopt, {}}, context, outputCallback);
-    } catch (const std::exception& ex) {
-        context.logMessage(LogMsg() << "unable to convert Enigma XML to MusicXML", MessageSeverity::Error);
-        context.logMessage(LogMsg() << " (exception: " << ex.what() << ")", MessageSeverity::Error);
-    }
-    return result;
+    return convertDocumentInput(input, outputCallback, options, FormatId::EnigmaXml);
 }
 
 ConversionResult EnigmaXmlToMusicXmlMultiOutputConverter::convert(
@@ -109,9 +116,22 @@ ConversionResult MusxToMusicXmlMultiOutputConverter::convert(
     return convert(input, outputCallback, optionsFromRequest<Options>(request, "MusxToMusicXmlMultiOutputConverter"));
 }
 
+ConversionResult MusToMusicXmlMultiOutputConverter::convert(
+    std::span<const std::byte> input, const MultiOutputCallback& outputCallback, const Options& options) const
+{
+    return convertDocumentInput(input, outputCallback, options, FormatId::Mus);
+}
+
+ConversionResult MusToMusicXmlMultiOutputConverter::convert(
+    std::span<const std::byte> input, const MultiOutputCallback& outputCallback, const ConversionRequest& request) const
+{
+    return convert(input, outputCallback, optionsFromRequest<Options>(request, "MusToMusicXmlMultiOutputConverter"));
+}
+
 void registerConverters(ConverterRegistry& registry)
 {
     registry.add(std::make_unique<EnigmaXmlToMusicXmlMultiOutputConverter>());
+    registry.add(std::make_unique<MusToMusicXmlMultiOutputConverter>());
     registry.add(std::make_unique<MusxToMusicXmlMultiOutputConverter>());
 }
 

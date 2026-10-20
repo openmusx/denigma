@@ -39,6 +39,7 @@
 #include "denigma/gap_report.h"
 #include "export/export.h"
 #include "formats/enigmaxml/enigmaxml.h"
+#include "input/input.h"
 #include "utils/stringutils.h"
 #include "utils/textmetrics.h"
 
@@ -50,6 +51,7 @@ CommonOptions makeCommonOptions(const DenigmaContext& denigmaContext)
 {
     CommonOptions options;
     options.sourceName = utils::pathToString(denigmaContext.inputFilePath);
+    options.musResources = denigmaContext.musResources;
     options.validate = !denigmaContext.noValidate;
     options.verbose = denigmaContext.verbose;
     options.quiet = denigmaContext.quiet;
@@ -114,7 +116,7 @@ formats::svg::Options makeSvgOptions(const DenigmaContext& denigmaContext)
     return options;
 }
 
-std::span<const std::byte> enigmaXmlBytes(const CommandInputData& inputData)
+std::span<const std::byte> preparedInputBytes(const CommandInputData& inputData)
 {
     return std::as_bytes(std::span(inputData.primaryBuffer.data(), inputData.primaryBuffer.size()));
 }
@@ -133,7 +135,7 @@ void exportMnxJsonWithAdapter(const std::filesystem::path& outputPath, const Com
 
     ConverterRegistry registry;
     formats::mnx::registerConverters(registry);
-    const auto* converter = registry.find(FormatId::EnigmaXml, FormatId::MnxJson);
+    const auto* converter = registry.find(inputData.sourceFormat, FormatId::MnxJson);
     if (!converter) {
         throw std::logic_error("MNX JSON converter is not registered.");
     }
@@ -147,7 +149,7 @@ void exportMnxJsonWithAdapter(const std::filesystem::path& outputPath, const Com
     if (denigmaContext.writeGapReport) {
         options.common.gapCollector = &gapCollector;
     }
-    converter->convert(enigmaXmlBytes(inputData), output, ConversionRequest{&options});
+    converter->convert(preparedInputBytes(inputData), output, ConversionRequest{&options});
     output.close();
 
     if (denigmaContext.writeGapReport) {
@@ -181,7 +183,7 @@ void exportMusicXmlWithAdapter(const std::filesystem::path& outputPath, const Co
 
     ConverterRegistry registry;
     formats::musicxml::registerConverters(registry);
-    const auto* converter = registry.findMultiOutput(FormatId::EnigmaXml, FormatId::MusicXml);
+    const auto* converter = registry.findMultiOutput(inputData.sourceFormat, FormatId::MusicXml);
     if (!converter) {
         throw std::logic_error("MusicXML converter is not registered.");
     }
@@ -189,7 +191,7 @@ void exportMusicXmlWithAdapter(const std::filesystem::path& outputPath, const Co
     size_t generatedCount = 0;
     const auto options = makeMusicXmlOptions(denigmaContext);
     converter->convert(
-        enigmaXmlBytes(inputData),
+        preparedInputBytes(inputData),
         [&](std::string_view suggestedName, std::span<const std::byte> musicXmlData) {
             std::filesystem::path qualifiedOutputPath = outputPath;
             if (!suggestedName.empty()) {
@@ -224,7 +226,7 @@ void exportMssWithAdapter(const std::filesystem::path& outputPath, const Command
 
     ConverterRegistry registry;
     formats::mss::registerConverters(registry);
-    const auto* converter = registry.findMultiOutput(FormatId::EnigmaXml, FormatId::MssXml);
+    const auto* converter = registry.findMultiOutput(inputData.sourceFormat, FormatId::MssXml);
     if (!converter) {
         throw std::logic_error("MSS converter is not registered.");
     }
@@ -232,7 +234,7 @@ void exportMssWithAdapter(const std::filesystem::path& outputPath, const Command
     size_t generatedCount = 0;
     const auto options = makeMssOptions(denigmaContext);
     converter->convert(
-        enigmaXmlBytes(inputData),
+        preparedInputBytes(inputData),
         [&](std::string_view suggestedName, std::span<const std::byte> mssData) {
             std::filesystem::path qualifiedOutputPath = outputPath;
             if (!suggestedName.empty()) {
@@ -300,7 +302,7 @@ void exportSvgWithAdapter(const std::filesystem::path& outputPath, const Command
 
     ConverterRegistry registry;
     formats::svg::registerConverters(registry);
-    const auto* converter = registry.findMultiOutput(FormatId::EnigmaXml, FormatId::Svg);
+    const auto* converter = registry.findMultiOutput(inputData.sourceFormat, FormatId::Svg);
     if (!converter) {
         throw std::logic_error("SVG converter is not registered.");
     }
@@ -314,7 +316,7 @@ void exportSvgWithAdapter(const std::filesystem::path& outputPath, const Command
     std::vector<PendingSvg> pendingSvgs;
     const auto options = makeSvgOptions(denigmaContext);
     converter->convert(
-        enigmaXmlBytes(inputData),
+        preparedInputBytes(inputData),
         [&](std::string_view suggestedName, std::span<const std::byte> svgData) {
             std::string data;
             data.resize(svgData.size());
@@ -423,6 +425,7 @@ int ExportCommand::showHelpPage(const std::string_view& programName, const std::
 
     // Supported input formats
     std::cout << indentSpaces << "Supported input formats:" << std::endl;
+    std::cout << indentSpaces << "  Legacy MUS scores (recognized by content, any filename; default output: MusicXML)" << std::endl;
     for (const auto& input : inputProcessors) {
         std::cout << indentSpaces << "  *." << utils::utf8ToString(input.extension);
         std::cout << describeDefaultInputFormat(defaultInputFormats(), input.extension);
@@ -432,9 +435,11 @@ int ExportCommand::showHelpPage(const std::string_view& programName, const std::
 
     // Supported output formats
     std::cout << indentSpaces << "Supported output options:" << std::endl;
+    CommandInputData defaultInput;
+    defaultInput.originalFormat = InputFormat::Musx;
     for (const auto& output : outputProcessors) {
         std::cout << indentSpaces << "  --" << utils::utf8ToString(output.extension) << " [optional filepath, relative to current directory]";
-        if (output.extension == defaultOutputFormat({})) {
+        if (output.extension == defaultOutputFormat({}, defaultInput)) {
             std::cout << " (default output format)";
         }
         std::cout << std::endl;
@@ -455,26 +460,49 @@ int ExportCommand::showHelpPage(const std::string_view& programName, const std::
     return 1;
 }
 
-bool ExportCommand::canProcess(const std::filesystem::path& inputPath) const
+bool ExportCommand::canProcess(const std::filesystem::path& inputPath, const DenigmaContext& context) const
 {
     try {
-        findProcessor(inputProcessors, inputFormatKey(inputPath));
+        const auto buffer = readInputBytes(inputPath);
+        const auto bytes = std::as_bytes(std::span(buffer));
+        if (recognizeMus(bytes) == finale_mus_reader::MusRecognition::Damaged) {
+            context.logMessage(LogMsg() << "Skipping damaged legacy Finale file: " << utils::asUtf8Bytes(inputPath), MessageSeverity::Warning);
+            return false;
+        }
+        resolveInputFormat(bytes, inputPath);
         return true;
-    } catch (...) {}
+    } catch (const std::ios_base::failure& error) {
+        context.logMessage(LogMsg() << "Unable to examine " << utils::asUtf8Bytes(inputPath) << ": " << error.what(), MessageSeverity::Warning);
+    } catch (const std::invalid_argument&) {
+        context.logMessage(LogMsg() << "Skipping unsupported input: " << utils::asUtf8Bytes(inputPath), MessageSeverity::Verbose);
+    }
     return false;
 }
 
 CommandInputData ExportCommand::processInput(const std::filesystem::path& inputPath, const DenigmaContext& denigmaContext) const
 {
     MusxLoggerScope musxLogger(makeMusxLogCallback(denigmaContext));
-    auto inputProcessor = findProcessor(inputProcessors, inputFormatKey(inputPath));
-    return inputProcessor(inputPath, denigmaContext);
+#ifdef DENIGMA_TEST
+    if (denigmaContext.forTestOutput()) {
+        const auto key = inputFormatKey(inputPath);
+        auto input = findProcessor(inputProcessors, key)(inputPath, denigmaContext);
+        input.originalFormat = key == MUSX_EXTENSION            ? InputFormat::Musx
+                               : key == ENIGMAXML_ZIP_EXTENSION ? InputFormat::ZippedEnigmaXml
+                                                                : InputFormat::EnigmaXml;
+        return input;
+    }
+#endif
+    return prepareInput(inputPath, denigmaContext);
 }
 
 void ExportCommand::processOutput(const CommandInputData& inputData, const std::filesystem::path& outputPath, const std::filesystem::path&,
     const DenigmaContext& denigmaContext) const
 {
     MusxLoggerScope musxLogger(makeMusxLogCallback(denigmaContext));
+    if (inputData.sourceFormat == FormatId::Mus
+        && (utils::pathExtensionEquals(outputPath, ENIGMAXML_EXTENSION) || utils::pathExtensionEquals(outputPath, MUSX_EXTENSION))) {
+        throw std::invalid_argument("Legacy MUS input cannot be exported as EnigmaXML or MUSX.");
+    }
     auto outputProcessor = findProcessor(outputProcessors, outputPath.extension().u8string());
     outputProcessor(outputPath, inputData, denigmaContext);
 }

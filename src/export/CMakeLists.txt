@@ -33,3 +33,8 @@ endif()
 if(denigma_BUILD_TESTING AND denigma_BUILD_GAP_REPORT)
     target_link_libraries(denigma_export_test PUBLIC denigma_gap_report PRIVATE denigma_textmetrics)
 endif()
+
+target_link_libraries(denigma_export PRIVATE denigma_input)
+if(denigma_BUILD_TESTING)
+    target_link_libraries(denigma_export_test PRIVATE denigma_input)
+endif()

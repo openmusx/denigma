@@ -19,6 +19,8 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+#include "input/input.h"
+
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -185,10 +187,10 @@ static void createMnx(const MnxMusxMappingPtr& context)
     client.set_version(DENIGMA_VERSION);
     client.set_commit(gitCommit());
 
-    // report the content format, not the container: a zipped enigmaxml is provenance-identical to a plain one
-    const auto inputFilePath = unwrappedInputPath(context->denigmaContext->inputFilePath);
+    const auto inputFilePath =
+        context->sourceFormat == FormatId::Mus ? context->denigmaContext->inputFilePath : unwrappedInputPath(context->denigmaContext->inputFilePath);
     auto source = mnx.ensure_mnxdom().ensure_source();
-    const std::u8string sourceFormat = utils::normalizedPathExtension(inputFilePath);
+    const std::u8string sourceFormat = context->sourceFormat == FormatId::Mus ? u8"mus" : utils::normalizedPathExtension(inputFilePath);
     source.set_format(sourceFormat.empty() ? std::string("unknown") : utils::utf8ToString(sourceFormat));
     if (!inputFilePath.empty()) {
         source.set_filename(utils::pathToString(inputFilePath.filename()));
@@ -249,6 +251,7 @@ static std::unique_ptr<mnxdom::Document> createMnxDocument(const CommandInputDat
         gapCollector->retainDocument(document);
     }
     auto context = std::make_shared<MnxMusxMapping>(denigmaContext, document);
+    context->sourceFormat = inputData.sourceFormat;
     context->mnxDocument = std::make_unique<mnxdom::Document>();
     context->musxParts = others::PartDefinition::getInUserOrder(document);
     MusxLoggerScope mnxMusxLogger(makeMusxLogCallback(context));
