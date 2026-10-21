@@ -48,10 +48,6 @@ END_ENUM_CONVERSION
 
 BEGIN_ENUM_CONVERSION(classify::articulation::ArticulationMark::Type, mx::api::MarkType)
     case classify::articulation::ArticulationMark::Type::Accent: return mx::api::MarkType::accent;
-    case classify::articulation::ArticulationMark::Type::BrassDoit: return mx::api::MarkType::doit;
-    case classify::articulation::ArticulationMark::Type::BrassFalloff: return mx::api::MarkType::falloff;
-    case classify::articulation::ArticulationMark::Type::BrassPlop: return mx::api::MarkType::plop;
-    case classify::articulation::ArticulationMark::Type::BrassScoop: return mx::api::MarkType::scoop;
     case classify::articulation::ArticulationMark::Type::SoftAccent: return mx::api::MarkType::softAccent;
     case classify::articulation::ArticulationMark::Type::Spiccato: return mx::api::MarkType::spiccato;
     case classify::articulation::ArticulationMark::Type::Staccatissimo: return mx::api::MarkType::staccatissimo;
@@ -213,6 +209,13 @@ BEGIN_ENUM_CONVERSION(music_theory::NoteName, mx::api::Step)
     case music_theory::NoteName::E: return mx::api::Step::e;
     case music_theory::NoteName::F: return mx::api::Step::f;
     case music_theory::NoteName::G: return mx::api::Step::g;
+END_ENUM_CONVERSION
+
+BEGIN_ENUM_CONVERSION(classify::articulation::NoteSlide::Type, mx::api::MarkType)
+    case classify::articulation::NoteSlide::Type::Scoop: return mx::api::MarkType::scoop;
+    case classify::articulation::NoteSlide::Type::Plop: return mx::api::MarkType::plop;
+    case classify::articulation::NoteSlide::Type::Falloff: return mx::api::MarkType::falloff;
+    case classify::articulation::NoteSlide::Type::Doit: return mx::api::MarkType::doit;
 END_ENUM_CONVERSION
 
 BEGIN_ENUM_CONVERSION(NoteType, mx::api::DurationName)

@@ -20,6 +20,7 @@
 
 #include <cstddef>
 #include <optional>
+#include <span>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -112,8 +113,11 @@ void processExpressions(MusicXmlMusxMapping& context, mx::api::MeasureData& meas
     const musx::dom::MusxInstance<musx::dom::others::Measure>& musxMeasure, musx::dom::StaffCmper staffId, size_t staffIndex);
 void processJumps(MusicXmlMusxMapping& context, mx::api::StaffData& staff, const musx::dom::MusxInstance<musx::dom::others::Measure>& musxMeasure,
     musx::dom::StaffCmper staffId, size_t staffIndex);
-void processArticulations(MusicXmlMusxMapping& context, mx::api::StaffData& staff, mx::api::NoteData& note, const musx::dom::EntryInfoPtr& entryInfo,
-    bool isStaffValueSpecified);
+/// @brief Exports the entry's articulations.
+/// @param notes The entry's exported notes from lowest to highest, or its rest. Entry-level marks go on the first, and
+/// note-level marks are distributed among them.
+void processArticulations(MusicXmlMusxMapping& context, mx::api::StaffData& staff, std::span<mx::api::NoteData> notes,
+    const musx::dom::EntryInfoPtr& entryInfo, bool isStaffValueSpecified);
 void appendArpeggioCandidate(MusicXmlMusxMapping& context, const musx::util::ArpeggioSpanCandidate& candidate);
 void finalizeArpeggioCandidates(MusicXmlMusxMapping& context);
 void applyNoteheadData(mx::api::NoteData& note, const musx::dom::NoteInfoPtr& noteInfo, const classify::EntryNoteheadClassification& entryNoteheads);

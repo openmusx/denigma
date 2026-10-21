@@ -320,9 +320,6 @@ TEST(MusicXmlLyrics, WordExtensionsRequireASpanAndMatchFinale)
     // for_health_and_strength.musx is the case that proves it: one assignment carries wext, all 27
     // of its wordExt shapes are degenerate, and Finale writes no extension. The syllable continues
     // past the first ending into the second, so none is needed.
-    //
-    // lyric_legacy_wext.musx has smart word extensions off, so each extension is a length rather
-    // than a span, and Finale writes it as a bare <extend/>.
     struct Expected
     {
         const char* fixture;
@@ -332,7 +329,6 @@ TEST(MusicXmlLyrics, WordExtensionsRequireASpanAndMatchFinale)
         {"for_health_and_strength.musx", "for_health_and_strength-ref.musicxml"},
         {"zwei_gesange.musx", "zwei_gesange-ref.musicxml"},
         {"verse_chorus_section.musx", "verse_chorus_section-ref.musicxml"},
-        {"lyric_legacy_wext.musx", "lyric_legacy_wext-ref.musicxml"},
     };
 
     for (const auto& entry : fixtures) {
@@ -346,4 +342,22 @@ TEST(MusicXmlLyrics, WordExtensionsRequireASpanAndMatchFinale)
         // A start without its stop, or vice versa, means a degenerate span leaked through.
         EXPECT_EQ(oursCounts.starts, oursCounts.stops) << entry.fixture;
     }
+}
+
+TEST(MusicXmlLyrics, LegacyWordExtensionsSpanTheirInferredEnd)
+{
+    setupTestDataPaths();
+
+    // lyric_legacy_wext.musx has smart word extensions off, so each extension stores only a drawn length.
+    // Its end is inferred from the music: two of the three verse extensions reach the next entry and become
+    // spans, and the third is followed by a rest, so it stays a bare <extend/> on its own note, as Finale
+    // writes all three. The chorus types its extensions as underscores, which are bare as well.
+    const auto ours = loadScoreData(exportMusicXmlFixture("lyric_legacy_wext.musx"));
+    ASSERT_TRUE(ours.has_value());
+    const auto counts = countExtends(*ours);
+    EXPECT_EQ(counts.starts, 2u) << counts;
+    EXPECT_EQ(counts.stops, 2u) << counts;
+    const auto reference = loadScoreData(std::filesystem::path("inputs") / "musicxml" / "lyric_legacy_wext-ref.musicxml");
+    ASSERT_TRUE(reference.has_value());
+    EXPECT_EQ(counts.untyped, countExtends(*reference).untyped - counts.starts) << counts;
 }

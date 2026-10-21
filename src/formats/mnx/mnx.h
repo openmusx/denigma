@@ -123,25 +123,16 @@ struct MnxMusxMapping
 
     std::vector<DeferredSmartShapeGap> deferredSmartShapeGaps;
 
-    /// @brief A lyric word extension, held until every entry has been exported so its end can be
-    /// anchored to an exported event or, failing that, a measure.
-    struct DeferredLyricExtensionGap
-    {
-        classify::LyricWordExtension classification;
-        classify::GapAnchor start;
-    };
-
-    std::vector<DeferredLyricExtensionGap> deferredLyricExtensionGaps;
-
-    /// @brief A tie or slur written against an entry that may not be exported (a cue layer, for
+    /// @brief A tie, slur, or lyric extender written against an entry that may not be exported (a cue layer, for
     /// instance), held until every entry has been exported so the reference can be checked.
     struct DeferredEntryTarget
     {
-        mnxdom::json_pointer pointer; ///< The tie or slur in the MNX document.
+        mnxdom::json_pointer pointer; ///< The tie, slur, or lyric extender in the MNX document.
         EntryNumber targetEntry; ///< The entry the target id names.
     };
 
     std::vector<DeferredEntryTarget> deferredTieTargets;
+    std::vector<DeferredEntryTarget> deferredLyricExtenderTargets;
 
     /// @brief A slur, with the shape it came from so a slur whose end was never exported can be reported
     /// as a gap instead.
@@ -213,6 +204,10 @@ struct MnxMusxMapping
     void logMessage(LogMsg&& msg, MessageSeverity severity = MessageSeverity::Info);
     void logDiscardedHeuristicCueStaffMeasure();
     void logDiscardedCueLayerFrame(LayerIndex layer);
+
+private:
+    /// @brief Set while #logMessage looks up the current staff for its prefix.
+    bool m_resolvingLogStaffName{};
 };
 
 std::string mnxPartDisplayName(const MnxMusxMappingPtr& context, const std::string& partId);
@@ -262,9 +257,8 @@ void createParts(const MnxMusxMappingPtr& context);
 void createSequences(const MnxMusxMappingPtr& context, mnxdom::part::Measure& mnxMeasure, std::optional<int> mnxStaffNumber,
     const MusxInstance<others::Measure>& musxMeasure);
 void finalizeJumpTies(const MnxMusxMappingPtr& context);
-void finalizeLyricExtensionGaps(const MnxMusxMappingPtr& context);
-/// @brief Resolves ties and slurs whose target entry was never exported: a tie becomes l.v. and a slur is
-/// removed. Must run after every entry has been exported and before any pass that reads the ties.
+/// @brief Resolves ties, slurs, and lyric extenders whose target entry was never exported: a tie becomes l.v.,
+/// a slur is removed, and an extender loses its target. Must run after every entry has been exported and before any pass that reads the ties.
 void finalizeEntryTargets(const MnxMusxMappingPtr& context);
 
 /// @brief Whether the tuplet is a zero-length tuplet whose entries MNX omits.

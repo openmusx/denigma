@@ -430,12 +430,13 @@ static void createLyrics(const MnxMusxMappingPtr& context, mnxdom::sequence::Eve
                         calcLyricLineId(std::string(T::TextType::XmlNodeName), lyr->lyricNumber), lyrText->syllables[sylIndex]->syllable);
                     mnxLyricLine.set_type(mnxLineTypeFromLyric(lyrText->syllables[sylIndex]));
                     if (const auto wordExtension = classify::classifyLyricWordExtension(lyr)) {
-                        // MNX has no word extension yet, so the line takes the id the gap anchors to. The id is
-                        // written whether or not a report was requested; see design-decisions.md.
-                        mnxLyricLine.set_id(core::calcLyricAssignId(lyr, musxEntryInfo));
-                        if (gapCollectorFor(context)) {
-                            context->deferredLyricExtensionGaps.push_back(
-                                {wordExtension, classify::GapAnchor{mnxLyricLine.id_or(""), std::nullopt, std::nullopt}});
+                        auto mnxExtender = mnxLyricLine.ensure_extender();
+                        // An extender without a target leaves its length to the reader, which is all Finale
+                        // records for a legacy extension or for a smart one that ends on its own entry.
+                        if (const auto& endEntry = wordExtension.endEntry;
+                            endEntry && endEntry->getEntry()->getEntryNumber() != musxEntry->getEntryNumber()) {
+                            mnxExtender.set_target(core::calcEventId(endEntry));
+                            context->deferredLyricExtenderTargets.push_back({mnxExtender.pointer(), endEntry->getEntry()->getEntryNumber()});
                         }
                     }
                 }
@@ -445,38 +446,6 @@ static void createLyrics(const MnxMusxMappingPtr& context, mnxdom::sequence::Eve
     createLyricsType(musxEntry->getDocument()->getDetails()->getArray<details::LyricAssignVerse>(SCORE_PARTID, musxEntry->getEntryNumber()));
     createLyricsType(musxEntry->getDocument()->getDetails()->getArray<details::LyricAssignChorus>(SCORE_PARTID, musxEntry->getEntryNumber()));
     createLyricsType(musxEntry->getDocument()->getDetails()->getArray<details::LyricAssignSection>(SCORE_PARTID, musxEntry->getEntryNumber()));
-}
-
-void finalizeLyricExtensionGaps(const MnxMusxMappingPtr& context)
-{
-    auto* const gapCollector = gapCollectorFor(context);
-    if (!gapCollector) {
-        context->deferredLyricExtensionGaps.clear();
-        return;
-    }
-    for (auto& deferred : context->deferredLyricExtensionGaps) {
-        const auto& endEntry = deferred.classification.endEntry;
-        if (!endEntry) {
-            gapCollector->add(std::move(deferred.start), std::move(deferred.classification), classify::GapExtent::Partial);
-            continue;
-        }
-        const auto endEntryNumber = endEntry->getEntry()->getEntryNumber();
-        std::optional<classify::GapAnchor> end;
-        const auto targetIt = context->entryTargetByNumber.find(endEntryNumber);
-        if (targetIt != context->entryTargetByNumber.end() && targetIt->second.kind == EntryTargetKind::Event) {
-            end = classify::GapAnchor{core::calcEventId(endEntry), std::nullopt, std::nullopt};
-        } else {
-            // The end entry was not exported (a cue layer, or a full-measure rest with no event id), so
-            // the end names the measure it falls in.
-            end = partMeasureAnchor(context, endEntry.getStaff(), endEntry.getMeasure(), endEntry->elapsedDuration);
-        }
-        if (end) {
-            gapCollector->addSpan(std::move(deferred.start), std::move(*end), std::move(deferred.classification), classify::GapExtent::Partial);
-        } else {
-            gapCollector->add(std::move(deferred.start), std::move(deferred.classification), classify::GapExtent::Partial);
-        }
-    }
-    context->deferredLyricExtensionGaps.clear();
 }
 
 /// @brief Calculates the written duration that fills an entry's actual duration.
@@ -547,9 +516,6 @@ static std::optional<mnxdom::sequence::Event> createEvent(const MnxMusxMappingPt
     auto mnxEvent = content.appendEvent(noteValue.base, noteValue.dots);
     mnxEvent.set_id(core::calcEventId(musxEntryInfo));
     context->entryTargetByNumber.insert_or_assign(musxEntry->getEntryNumber(), EntryTarget{EntryTargetKind::Event, mnxEvent.pointer()});
-    createLyrics(context, mnxEvent, musxEntryInfo);
-    processArticulations(context, mnxEvent, musxEntryInfo);
-    processEntrySmartShapes(context, mnxEvent, musxEntryInfo);
     if (const auto& crossedStaffId = musxEntryInfo.calcCrossedStaffForAll()) {
         if (const auto& mnxPartStaff = context->mnxPartStaffFromStaff(crossedStaffId.value())) {
             mnxEvent.set_staff(mnxPartStaff.value());
@@ -569,11 +535,15 @@ static std::optional<mnxdom::sequence::Event> createEvent(const MnxMusxMappingPt
         }
     }
 
+    // The notes come after the cross-staff assignment, which they consult, and before everything that may attach to them.
     if (musxEntry->isNote) {
         createNotes(context, mnxEvent, musxEntryInfo, musxStaff);
     } else {
         createRest(context, mnxEvent, musxEntryInfo, musxStaff);
     }
+    createLyrics(context, mnxEvent, musxEntryInfo);
+    processArticulations(context, mnxEvent, musxEntryInfo);
+    processEntrySmartShapes(context, mnxEvent, musxEntryInfo);
     return mnxEvent;
 }
 
@@ -820,6 +790,13 @@ void finalizeEntryTargets(const MnxMusxMappingPtr& context)
         releasedTies++;
     }
     context->deferredTieTargets.clear();
+
+    for (const auto& deferred : context->deferredLyricExtenderTargets) {
+        if (!isExported(deferred.targetEntry)) {
+            mnxdom::sequence::EventLyricLineExtender(context->mnxDocument->root(), deferred.pointer).clear_target();
+        }
+    }
+    context->deferredLyricExtenderTargets.clear();
 
     // Removing a slur shifts the later slurs of the same event, so each event's slurs are removed from the back.
     std::map<mnxdom::json_pointer, std::vector<size_t>> danglingSlurs;

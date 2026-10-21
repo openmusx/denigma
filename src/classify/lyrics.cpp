@@ -33,11 +33,7 @@ LyricWordExtension classifyLyricWordExtension(const MusxInstance<details::LyricA
         return result;
     }
     const auto lyricOptions = assignment->getDocument()->getOptions()->get<options::LyricOptions>();
-    if (!lyricOptions || !lyricOptions->useSmartWordExtensions) {
-        result.kind = lyric::WordExtensionKind::Legacy;
-        return result;
-    }
-    result.kind = lyric::WordExtensionKind::Smart;
+    result.kind = lyricOptions && lyricOptions->useSmartWordExtensions ? lyric::WordExtensionKind::Smart : lyric::WordExtensionKind::Legacy;
     result.endEntry = assignment->calcWordExtensionEndpoint();
     return result;
 }
