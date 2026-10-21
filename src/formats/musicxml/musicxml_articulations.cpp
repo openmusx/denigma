@@ -23,9 +23,12 @@
 #include "musicxml.h"
 
 #include <algorithm>
+#include <span>
+#include <stdexcept>
 #include <string_view>
 #include <type_traits>
 
+#include "core/element_ids.h"
 #include "denigma/classify/articulations.h"
 #include "mx/api/MarkData.h"
 
@@ -151,9 +154,13 @@ void appendOrnament(mx::api::NoteData& note, const classify::articulation::Ornam
 
 } // namespace
 
-void processArticulations(
-    MusicXmlMusxMapping& context, mx::api::StaffData& staff, mx::api::NoteData& note, const EntryInfoPtr& entryInfo, bool isStaffValueSpecified)
+void processArticulations(MusicXmlMusxMapping& context, mx::api::StaffData& staff, std::span<mx::api::NoteData> notes, const EntryInfoPtr& entryInfo,
+    bool isStaffValueSpecified)
 {
+    ASSERT_IF (notes.empty()) {
+        throw std::logic_error("processArticulations requires at least one note.");
+    }
+    auto& note = notes.front();
     const auto entry = entryInfo->getEntry();
     const auto appendDirection = [&](VerticalPlacement placement, const auto& appendComponent) {
         auto direction = mx::api::DirectionData{};
@@ -192,6 +199,15 @@ void processArticulations(
                         } else {
                             note.noteAttachmentData.marks.emplace_back(
                                 fallbackMarkData(mx::api::MarkType::otherArticulation, classification, "unmapped articulation"));
+                        }
+                    }
+                } else if constexpr (std::is_same_v<Value, classify::articulation::NoteSlide>) {
+                    if (classified.note) {
+                        const mx::api::Id noteId{core::calcNoteId(classified.note)};
+                        const auto target = std::ranges::find_if(notes, [&](const mx::api::NoteData& candidate) { return candidate.id == noteId; });
+                        if (target != notes.end()) {
+                            target->noteAttachmentData.marks.emplace_back(
+                                musicXmlMark(enumConvert<mx::api::MarkType>(classified.type), classification.placement));
                         }
                     }
                 } else if constexpr (std::is_same_v<Value, classify::articulation::TechniqueMark>) {

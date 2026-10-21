@@ -71,6 +71,7 @@ The repository builds a CLI plus reusable libraries for classification, massage,
 - `ctest --test-dir build/tests` can be used only after confirming the discovered tests have the correct `WORKING_DIRECTORY` registration.
 - When investigating a focused regression, prefer a narrow GoogleTest filter on the direct executable before a full suite.
 - Use `ctest -R ...` only after confirming CTest registration and working directories are correct.
+- Some tests (`tests/test_finale_samples.cpp`) read the tutorials and sample files distributed with Finale 27 from `DENIGMA_FINALE_MUSIC_FILES_DIR`. It defaults to the locations Finale's user manuals document, `/Library/Application Support/MakeMusic/Finale 27/Music Files` on macOS and `C:/Program Files/MakeMusic/Finale/27/Music Files` on Windows, and can be overridden with `-DDENIGMA_FINALE_MUSIC_FILES_DIR=...`. The tests skip when the folder is absent. They name each file they use, so add a file to the list rather than scanning the folder.
 - Test fixtures are intentionally broad and include generated comparison files. Update them only when the behavioral change is intended and verified.
 - A `*-ref.musicxml` fixture is Finale's own export of the neighboring `.musx`. Finale is discontinued, so these cannot be regenerated indefinitely and are kept as reference material whether or not a test currently loads one. Never delete one for appearing unused, and never regenerate one to match Denigma's output; the point is that it records what Finale produced.
 

@@ -36,7 +36,8 @@
     ],
     "mnx": {
         "support": {
-            "useBeams": true
+            "useBeams": true,
+            "useLyricExtenders": true
         },
         "version": 46
     },

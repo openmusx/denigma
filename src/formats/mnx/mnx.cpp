@@ -65,7 +65,19 @@ void MnxMusxMapping::logMessage(LogMsg&& msg, MessageSeverity severity)
     std::string logEntry;
     if (current.staff > 0 && current.meas > 0) {
         std::string staffName = [&]() -> std::string {
-            if (document) {
+            // The lookup can itself log (a dangling staff style assignment, for instance), and that message
+            // must not look the staff up again.
+            if (document && !m_resolvingLogStaffName) {
+                struct ResolvingGuard
+                {
+                    bool& flag;
+                    explicit ResolvingGuard(bool& f)
+                        : flag(f)
+                    {
+                        flag = true;
+                    }
+                    ~ResolvingGuard() { flag = false; }
+                } guard(m_resolvingLogStaffName);
                 if (auto staff = others::StaffComposite::createCurrent(document, SCORE_PARTID, current.staff, current.meas, 0)) {
                     auto instName = staff->getFullInstrumentName();
                     if (!instName.empty()) {
@@ -181,6 +193,7 @@ static void createMnx(const MnxMusxMappingPtr& context)
     auto mnx = mnxDocument->mnx();
     auto support = mnx.ensure_support();
     support.set_useBeams(true);
+    support.set_useLyricExtenders(true);
 
     auto client = mnx.ensure_mnxdom().ensure_client();
     client.set_name(DENIGMA_NAME);
@@ -263,7 +276,6 @@ static std::unique_ptr<mnxdom::Document> createMnxDocument(const CommandInputDat
     finalizeArpeggios(context);
     finalizeJumpTies(context);
     finalizeSmartShapeGaps(context);
-    finalizeLyricExtensionGaps(context);
     // Split-instrument parts need time-varying layout sources; skip scores/layouts until MNX has a stable model for that.
     if (!denigmaContext.mnxSplitInstruments) {
         createLayouts(context); // must come after createParts
@@ -293,7 +305,15 @@ static void validateMnxDocument(const mnxdom::Document& mnxDocument, const Denig
             }
         } else {
             denigmaContext.logMessage(LogMsg() << "Schema validation succeeded.");
-            if (auto semanticResult = mnxdom::validation::semanticValidate(mnxDocument); !semanticResult) {
+            const auto semanticResult = mnxdom::validation::semanticValidate(mnxDocument);
+            // Semantic findings are logged one level below their mnxdom severity.
+            if (!semanticResult.warnings.empty()) {
+                denigmaContext.logMessage(LogMsg() << "Semantic validation warnings:", MessageSeverity::Info);
+                for (const auto& warning : semanticResult.warnings) {
+                    denigmaContext.logMessage(LogMsg() << "    " << warning.to_string(4), MessageSeverity::Info);
+                }
+            }
+            if (!semanticResult) {
                 denigmaContext.logMessage(LogMsg() << "Semantic validation errors:", MessageSeverity::Warning);
                 for (const auto& error : semanticResult.errors) {
                     denigmaContext.logMessage(LogMsg() << "    " << error.to_string(4), MessageSeverity::Warning);

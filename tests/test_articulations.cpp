@@ -68,14 +68,16 @@ static FontContext makeFontContext(const std::string& fontName = "Maestro", int 
     return {document, fontInfo};
 }
 
-static void expectSingleArticulationMark(const musx::dom::MusxInstance<FontInfo>& fontInfo, char32_t symbol,
-    articulation::ArticulationMark::Type expectedType, const std::string& expectedGlyphName)
+static void expectNoteSlide(const musx::dom::MusxInstance<FontInfo>& fontInfo, char32_t symbol, articulation::NoteSlide::Type expectedType,
+    bool expectedIntoNote, const std::string& expectedGlyphName)
 {
     const auto classification = classifyArticulationSymbol(fontInfo, symbol);
-    const auto* articulation = classification.as<articulation::ArticulationMarks>();
-    ASSERT_NE(articulation, nullptr);
-    ASSERT_EQ(articulation->marks.size(), 1u);
-    EXPECT_EQ(articulation->marks.front().type, expectedType);
+    const auto* slide = classification.as<articulation::NoteSlide>();
+    ASSERT_NE(slide, nullptr);
+    EXPECT_EQ(slide->type, expectedType);
+    EXPECT_EQ(slide->isIntoNote(), expectedIntoNote);
+    // A glyph alone names no entry, so it names no note either.
+    EXPECT_FALSE(slide->note);
     ASSERT_TRUE(classification.glyphName);
     EXPECT_EQ(classification.glyphName.value(), expectedGlyphName);
 }
@@ -227,11 +229,11 @@ TEST(ArticulationClassification, ClassifiesStringMuteGlyphs)
 TEST(ArticulationClassification, ClassifiesBrassArticulationGlyphs)
 {
     const auto fontContext = makeFontContext("Finale Maestro");
-    expectSingleArticulationMark(fontContext.fontInfo, 0xE5D0, articulation::ArticulationMark::Type::BrassScoop, "brassScoop");
-    expectSingleArticulationMark(fontContext.fontInfo, 0xE5D4, articulation::ArticulationMark::Type::BrassDoit, "brassDoitShort");
-    expectSingleArticulationMark(fontContext.fontInfo, 0xE5D7, articulation::ArticulationMark::Type::BrassFalloff, "brassFallLipShort");
-    expectSingleArticulationMark(fontContext.fontInfo, 0xE5E0, articulation::ArticulationMark::Type::BrassPlop, "brassPlop");
-    expectSingleArticulationMark(fontContext.fontInfo, 0xF768, articulation::ArticulationMark::Type::BrassFalloff, "brassFallSlight");
+    expectNoteSlide(fontContext.fontInfo, 0xE5D0, articulation::NoteSlide::Type::Scoop, true, "brassScoop");
+    expectNoteSlide(fontContext.fontInfo, 0xE5D4, articulation::NoteSlide::Type::Doit, false, "brassDoitShort");
+    expectNoteSlide(fontContext.fontInfo, 0xE5D7, articulation::NoteSlide::Type::Falloff, false, "brassFallLipShort");
+    expectNoteSlide(fontContext.fontInfo, 0xE5E0, articulation::NoteSlide::Type::Plop, true, "brassPlop");
+    expectNoteSlide(fontContext.fontInfo, 0xF768, articulation::NoteSlide::Type::Falloff, false, "brassFallSlight");
 }
 
 TEST(ArticulationClassification, ClassifiesFermatasBreathMarksAndArpeggios)

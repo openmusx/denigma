@@ -24,6 +24,7 @@
 #include <string_view>
 #include <unordered_map>
 #include <utility>
+#include <vector>
 
 #include "smufl_mapping.h"
 
@@ -39,6 +40,7 @@ using HarmonMuteQualifier = HarmonMute::Qualifier;
 using PluckedDampType = PluckedDamp::Type;
 using StringMuteType = StringMute::Type;
 using ParenthesisSide = Parenthesis::Side;
+using NoteSlideType = NoteSlide::Type;
 
 struct AmbiguousMark
 {
@@ -299,6 +301,14 @@ static ArticulationClassification makeParenthesis(ParenthesisSide side, std::opt
 {
     ArticulationClassification result;
     result.value = Parenthesis{side, musx::dom::NoteInfoPtr(), glyphStyleFromGlyphName(glyphName)};
+    setGlyphMetadata(result, std::move(glyphName));
+    return result;
+}
+
+static ArticulationClassification makeNoteSlide(NoteSlideType type, std::optional<std::string> glyphName)
+{
+    ArticulationClassification result;
+    result.value = NoteSlide{type, musx::dom::NoteInfoPtr(), glyphStyleFromGlyphName(glyphName)};
     setGlyphMetadata(result, std::move(glyphName));
     return result;
 }
@@ -580,76 +590,41 @@ static PrivateClassification classifyGlyphName(std::string glyphName)
             [](std::string glyphName) -> PrivateClassification { return makeArticulationMark({ArticulationType::Unstress}, std::move(glyphName)); }},
         {"brassBend",
             [](std::string glyphName) -> PrivateClassification { return makeTechniqueMark(TechniqueType::BrassBend, std::move(glyphName)); }},
-        {"brassDoitLong",
-            [](std::string glyphName) -> PrivateClassification { return makeArticulationMark({ArticulationType::BrassDoit}, std::move(glyphName)); }},
-        {"brassDoitMedium",
-            [](std::string glyphName) -> PrivateClassification { return makeArticulationMark({ArticulationType::BrassDoit}, std::move(glyphName)); }},
-        {"brassDoitShort",
-            [](std::string glyphName) -> PrivateClassification { return makeArticulationMark({ArticulationType::BrassDoit}, std::move(glyphName)); }},
+        {"brassDoitLong", [](std::string glyphName) -> PrivateClassification { return makeNoteSlide(NoteSlideType::Doit, std::move(glyphName)); }},
+        {"brassDoitMedium", [](std::string glyphName) -> PrivateClassification { return makeNoteSlide(NoteSlideType::Doit, std::move(glyphName)); }},
+        {"brassDoitShort", [](std::string glyphName) -> PrivateClassification { return makeNoteSlide(NoteSlideType::Doit, std::move(glyphName)); }},
         {"brassFallLipLong",
-            [](std::string glyphName) -> PrivateClassification {
-                return makeArticulationMark({ArticulationType::BrassFalloff}, std::move(glyphName));
-            }},
+            [](std::string glyphName) -> PrivateClassification { return makeNoteSlide(NoteSlideType::Falloff, std::move(glyphName)); }},
         {"brassFallLipMedium",
-            [](std::string glyphName) -> PrivateClassification {
-                return makeArticulationMark({ArticulationType::BrassFalloff}, std::move(glyphName));
-            }},
+            [](std::string glyphName) -> PrivateClassification { return makeNoteSlide(NoteSlideType::Falloff, std::move(glyphName)); }},
         {"brassFallLipShort",
-            [](std::string glyphName) -> PrivateClassification {
-                return makeArticulationMark({ArticulationType::BrassFalloff}, std::move(glyphName));
-            }},
+            [](std::string glyphName) -> PrivateClassification { return makeNoteSlide(NoteSlideType::Falloff, std::move(glyphName)); }},
         {"brassFallRoughLong",
-            [](std::string glyphName) -> PrivateClassification {
-                return makeArticulationMark({ArticulationType::BrassFalloff}, std::move(glyphName));
-            }},
+            [](std::string glyphName) -> PrivateClassification { return makeNoteSlide(NoteSlideType::Falloff, std::move(glyphName)); }},
         {"brassFallRoughMedium",
-            [](std::string glyphName) -> PrivateClassification {
-                return makeArticulationMark({ArticulationType::BrassFalloff}, std::move(glyphName));
-            }},
+            [](std::string glyphName) -> PrivateClassification { return makeNoteSlide(NoteSlideType::Falloff, std::move(glyphName)); }},
         {"brassFallRoughShort",
-            [](std::string glyphName) -> PrivateClassification {
-                return makeArticulationMark({ArticulationType::BrassFalloff}, std::move(glyphName));
-            }},
+            [](std::string glyphName) -> PrivateClassification { return makeNoteSlide(NoteSlideType::Falloff, std::move(glyphName)); }},
         {"brassFallSmoothLong",
-            [](std::string glyphName) -> PrivateClassification {
-                return makeArticulationMark({ArticulationType::BrassFalloff}, std::move(glyphName));
-            }},
+            [](std::string glyphName) -> PrivateClassification { return makeNoteSlide(NoteSlideType::Falloff, std::move(glyphName)); }},
         {"brassFallSmoothMedium",
-            [](std::string glyphName) -> PrivateClassification {
-                return makeArticulationMark({ArticulationType::BrassFalloff}, std::move(glyphName));
-            }},
+            [](std::string glyphName) -> PrivateClassification { return makeNoteSlide(NoteSlideType::Falloff, std::move(glyphName)); }},
         {"brassFallSmoothShort",
-            [](std::string glyphName) -> PrivateClassification {
-                return makeArticulationMark({ArticulationType::BrassFalloff}, std::move(glyphName));
-            }},
+            [](std::string glyphName) -> PrivateClassification { return makeNoteSlide(NoteSlideType::Falloff, std::move(glyphName)); }},
         {"brassFallRoughShortMedDecline",
-            [](std::string glyphName) -> PrivateClassification {
-                return makeArticulationMark({ArticulationType::BrassFalloff}, std::move(glyphName));
-            }},
+            [](std::string glyphName) -> PrivateClassification { return makeNoteSlide(NoteSlideType::Falloff, std::move(glyphName)); }},
         {"brassFallRoughShortSlightDecline",
-            [](std::string glyphName) -> PrivateClassification {
-                return makeArticulationMark({ArticulationType::BrassFalloff}, std::move(glyphName));
-            }},
+            [](std::string glyphName) -> PrivateClassification { return makeNoteSlide(NoteSlideType::Falloff, std::move(glyphName)); }},
         {"brassFallRoughVeryShortFastDecline",
-            [](std::string glyphName) -> PrivateClassification {
-                return makeArticulationMark({ArticulationType::BrassFalloff}, std::move(glyphName));
-            }},
+            [](std::string glyphName) -> PrivateClassification { return makeNoteSlide(NoteSlideType::Falloff, std::move(glyphName)); }},
         {"brassFallRoughVeryShortMedDecline",
-            [](std::string glyphName) -> PrivateClassification {
-                return makeArticulationMark({ArticulationType::BrassFalloff}, std::move(glyphName));
-            }},
+            [](std::string glyphName) -> PrivateClassification { return makeNoteSlide(NoteSlideType::Falloff, std::move(glyphName)); }},
         {"brassFallRoughVeryShortSlightDecilne",
-            [](std::string glyphName) -> PrivateClassification {
-                return makeArticulationMark({ArticulationType::BrassFalloff}, std::move(glyphName));
-            }},
+            [](std::string glyphName) -> PrivateClassification { return makeNoteSlide(NoteSlideType::Falloff, std::move(glyphName)); }},
         {"brassFallSlight",
-            [](std::string glyphName) -> PrivateClassification {
-                return makeArticulationMark({ArticulationType::BrassFalloff}, std::move(glyphName));
-            }},
+            [](std::string glyphName) -> PrivateClassification { return makeNoteSlide(NoteSlideType::Falloff, std::move(glyphName)); }},
         {"brassFallSmoothVeryLong",
-            [](std::string glyphName) -> PrivateClassification {
-                return makeArticulationMark({ArticulationType::BrassFalloff}, std::move(glyphName));
-            }},
+            [](std::string glyphName) -> PrivateClassification { return makeNoteSlide(NoteSlideType::Falloff, std::move(glyphName)); }},
         {"brassFlip",
             [](std::string glyphName) -> PrivateClassification { return makeTechniqueMark(TechniqueType::BrassFlip, std::move(glyphName)); }},
         {"brassMuteHalfClosed",
@@ -686,12 +661,8 @@ static PrivateClassification classifyGlyphName(std::string glyphName)
             [](std::string glyphName) -> PrivateClassification { return makeTechniqueMark(TechniqueType::BrassLift, std::move(glyphName)); }},
         {"brassLiftVeryShortSlightIncline",
             [](std::string glyphName) -> PrivateClassification { return makeTechniqueMark(TechniqueType::BrassLift, std::move(glyphName)); }},
-        {"brassPlop",
-            [](std::string glyphName) -> PrivateClassification { return makeArticulationMark({ArticulationType::BrassPlop}, std::move(glyphName)); }},
-        {"brassScoop",
-            [](std::string glyphName) -> PrivateClassification {
-                return makeArticulationMark({ArticulationType::BrassScoop}, std::move(glyphName));
-            }},
+        {"brassPlop", [](std::string glyphName) -> PrivateClassification { return makeNoteSlide(NoteSlideType::Plop, std::move(glyphName)); }},
+        {"brassScoop", [](std::string glyphName) -> PrivateClassification { return makeNoteSlide(NoteSlideType::Scoop, std::move(glyphName)); }},
         {"brassSmear",
             [](std::string glyphName) -> PrivateClassification { return makeTechniqueMark(TechniqueType::BrassSmear, std::move(glyphName)); }},
         {"brassVeryLiftShort",
@@ -1062,6 +1033,47 @@ static PrivateClassification classifySelectedSymbolContext(const musx::dom::deta
     return classifySymbol(context.symbol.font, context.symbol.character);
 }
 
+/// @brief Deals an entry's slides of one kind to its notes; see #NoteSlide.
+static musx::dom::NoteInfoPtr calcNoteSlideNote(
+    const musx::dom::MusxInstance<musx::dom::details::ArticulationAssign>& assignment, const musx::dom::EntryInfoPtr& entryInfo, bool intoNote)
+{
+    const auto entry = entryInfo->getEntry();
+    if (!entry->isNote) {
+        return {};
+    }
+    size_t ordinal = 0;
+    const auto assignments = entry->getDocument()->getDetails()->getArray<musx::dom::details::ArticulationAssign>(
+        assignment->getRequestedPartId(), entry->getEntryNumber());
+    for (const auto& other : assignments) {
+        if (other->getInci() == assignment->getInci()) {
+            break;
+        }
+        if (other->hide) {
+            continue;
+        }
+        if (const auto symbolContext = other->calcSelectedSymbolContext(entryInfo)) {
+            const auto classification = classifySelectedSymbolContext(symbolContext.value());
+            if (const auto* otherClassification = std::get_if<ArticulationClassification>(&classification)) {
+                if (const auto* slide = otherClassification->as<NoteSlide>(); slide && slide->isIntoNote() == intoNote) {
+                    ordinal++;
+                }
+            }
+        }
+    }
+    std::vector<size_t> noteIndices;
+    for (size_t noteIndex = 0; noteIndex < entry->notes.size(); noteIndex++) {
+        if (musx::dom::NoteInfoPtr(entryInfo, noteIndex).calcIsIncludedInVoicing()) {
+            noteIndices.push_back(noteIndex);
+        }
+    }
+    if (ordinal >= noteIndices.size()) {
+        return {};
+    }
+    // Notes run from lowest to highest, and an up-stem chord has its noteheads at the bottom.
+    const size_t position = entryInfo.calcUpStem() ? ordinal : noteIndices.size() - 1 - ordinal;
+    return musx::dom::NoteInfoPtr(entryInfo, noteIndices[position]);
+}
+
 ArticulationClassification classifyArticulation(
     const musx::dom::MusxInstance<musx::dom::details::ArticulationAssign>& assignment, const musx::dom::EntryInfoPtr& entryInfo)
 {
@@ -1082,6 +1094,9 @@ ArticulationClassification classifyArticulation(
         result.placement = symbolContext->placement;
         if (auto* parenthesis = std::get_if<Parenthesis>(&result.value)) {
             parenthesis->note = assignment->calcAssociatedNote(entryInfo);
+        }
+        if (auto* slide = std::get_if<NoteSlide>(&result.value)) {
+            slide->note = calcNoteSlideNote(assignment, entryInfo, slide->isIntoNote());
         }
         if (auto* arpeggio = std::get_if<Arpeggio>(&result.value)) {
             arpeggio->candidate = calcArpeggioCandidate(entryInfo, assignment, arpeggio->type);

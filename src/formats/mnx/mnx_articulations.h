@@ -54,6 +54,7 @@ mnxdom::sequence::Caesura makeCaesura(const classify::articulation::Caesura& cae
 void appendArpeggioCandidate(
     const MnxMusxMappingPtr& context, mnxdom::part::Measure& mnxPartMeasure, const musx::util::ArpeggioSpanCandidate& candidate);
 void finalizeArpeggios(const MnxMusxMappingPtr& context);
+/// @brief Exports the entry's articulations to the event and its notes. Must run after the event's notes are created.
 void processArticulations(const MnxMusxMappingPtr& context, mnxdom::sequence::Event& mnxEvent, const EntryInfoPtr& musxEntryInfo);
 void processArticulations(const MnxMusxMappingPtr& context, mnxdom::sequence::FullMeasureRest& mnxFullMeasureRest, const EntryInfoPtr& musxEntryInfo);
 

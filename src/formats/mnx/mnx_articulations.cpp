@@ -357,6 +357,29 @@ static std::optional<mnxdom::sequence::EventMarkingBase> createEventMarking(
     return std::nullopt;
 }
 
+static void appendNoteSlide(mnxdom::sequence::Event& mnxEvent, const classify::articulation::NoteSlide& slide)
+{
+    const auto mnxNotes = mnxEvent.notes();
+    if (!slide.note || !mnxNotes) {
+        return;
+    }
+    const auto noteId = core::calcNoteId(slide.note);
+    for (size_t x = 0; x < mnxNotes->size(); x++) {
+        auto mnxNote = mnxNotes->at(x);
+        if (mnxNote.id_or("") != noteId) {
+            continue;
+        }
+        auto mnxMarkings = mnxNote.ensure_markings();
+        switch (slide.type) {
+        case classify::articulation::NoteSlide::Type::Scoop: mnxMarkings.ensure_slideIn(mnxdom::SlideIntoNoteType::Scoop); break;
+        case classify::articulation::NoteSlide::Type::Plop: mnxMarkings.ensure_slideIn(mnxdom::SlideIntoNoteType::Plop); break;
+        case classify::articulation::NoteSlide::Type::Falloff: mnxMarkings.ensure_slideOut(mnxdom::SlideOutOfNoteType::Falloff); break;
+        case classify::articulation::NoteSlide::Type::Doit: mnxMarkings.ensure_slideOut(mnxdom::SlideOutOfNoteType::Doit); break;
+        }
+        return;
+    }
+}
+
 void processArticulations(const MnxMusxMappingPtr& context, mnxdom::sequence::Event& mnxEvent, const EntryInfoPtr& musxEntryInfo)
 {
     const auto musxEntry = musxEntryInfo->getEntry();
@@ -401,6 +424,8 @@ void processArticulations(const MnxMusxMappingPtr& context, mnxdom::sequence::Ev
                                     mnxMarking->set_or_clear_placement(enumConvert<mnxdom::Placement>(classification.placement));
                                 }
                             }
+                        } else if constexpr (std::is_same_v<Value, classify::articulation::NoteSlide>) {
+                            appendNoteSlide(mnxEvent, classified);
                         } else if constexpr (std::is_same_v<Value, classify::articulation::TechniqueMark>) {
                             auto mnxMarkings = mnxEvent.ensure_markings();
                             if (auto mnxMarking = createEventMarking(mnxMarkings, classified)) {

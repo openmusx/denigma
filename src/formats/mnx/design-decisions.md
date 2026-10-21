@@ -36,6 +36,12 @@ A beat unit that does not survive that comparison is restated as a count of quar
 
 The classifier says what a marking is; whether it attaches to the global measure or to a part measure is MNX's decision, made by expression type in `processGlobalExpressions`. Tempo marks, metronome marks, tempo alterations and rehearsal marks are one marking of the whole score however Finale distributes them, so the global pass handles them once per staff-list assignment group (`classify::groupExpressionAssignments`), whichever staff the assignment sits on. Everything else is a staff marking even when a staff list copies it onto several staves or a category staff list distributes it: a technique text or a multimeasure-rest number on three staves is three staff expressions, and `processExpressions` handles each with its part measure. The presence of a staff group or a floating staff value therefore never routes an expression on its own.
 
+## Jumps
+
+### Jumps and their destinations are written as Finale has them
+
+A jump's type comes from what Finale plays (`classifyJump`'s playback side). Its segno, coda and fine destinations are drawn markers, so they come from the visual side. MNX names no destination: a reader takes the document's only segno, coda or fine, and `mnxdom`'s semantic validation reports an error when a jump needs one and the document has none or several. A Finale score with two codas therefore exports both codas and fails semantic validation, rather than having the exporter guess which one to drop.
+
 ## Smart shapes
 
 ### A smart shape MNX cannot carry is a gap from its emission site, and a beat-attached slur is one of them
@@ -46,9 +52,9 @@ A beat-attached slur is a gap as well. The MNX slur path hosts the entry-attache
 
 ## Lyrics
 
-### A lyric line carries a provenance id only when it has a word extension
+### A word extension's extender names a target only when Finale names a later entry
 
-The gap report anchors a lost word extension to the lyric line it belongs to, and, as with tempos, the id is written whether or not a report was requested, so that the report never describes a different document from the one the user has. Unlike a tempo, a syllable is not an object anything else points at, and lyric-heavy scores have thousands of them; an id on every line would outweigh the lyrics. So a line takes its id (`core::calcLyricAssignId`) exactly when its assignment has a word extension, the one case a gap anchors to it, and no other line has one.
+Every syllable with a Finale word extension gets an `extender`, and `support.useLyricExtenders` says so. The extender's `target` is the event of the entry the word-extension smart shape ends on, when that is a different entry from the syllable's own. Otherwise it has no target, which leaves the length to the reader: a smart extension frequently has both ends on its own entry, with the length resolved at layout time. A legacy extension (smart word extensions off) stores only a drawn length, and its end is inferred from the music by `LyricAssign::calcWordExtensionEndpoint`, so it follows the same rule. A target whose entry is not exported (a cue layer, or a full-measure rest) is removed for the same reason. This matches the MusicXML exporter, which writes a stop `<extend>` only when the end is a different entry. Nothing about an extension is lost, so it is never a gap.
 
 ## Sequences
 
@@ -77,6 +83,12 @@ The count of omitted tuplets is logged once per conversion as a warning. Each oc
 A v1 sequence carries `directionHint` exactly when Finale's layer attributes freeze its stems and those attributes are in effect (`EntryInfoPtr::calcIfLayerSettingsApply`). That holds when the layer is alone on the staff, because "Apply Settings Only if Notes are in Other Layers" can be off, and when the layer also has v2 entries, although every stem in such a layer is written explicitly. A v2 sequence never carries a hint: Finale stems voice 2 per v2 launch, so no one direction describes the sequence.
 
 Events get an explicit `stemDirection` only for a manual stem freeze and in a layer that uses v2. A v1-only layer relies on the hint.
+
+## Articulations
+
+### A brass slide goes on the note the classifier names
+
+A Finale brass articulation (scoop, plop, falloff, doit) belongs to the entry, but a slide belongs to one note. The articulation classifier deals an entry's slides to its notes and names each one's note in `classify::articulation::NoteSlide`, which documents the rule; the exporter appends the slide to that note and drops one that names none.
 
 ## Clefs
 

@@ -46,10 +46,6 @@ struct ArticulationMark
     /// @brief Articulation mark type recognized by the classifier.
     enum class Type {
         Accent,
-        BrassDoit,
-        BrassFalloff,
-        BrassPlop,
-        BrassScoop,
         SoftAccent,
         Spiccato,
         Staccatissimo,
@@ -417,6 +413,35 @@ struct Parenthesis
     GlyphStyle glyphStyle{};
 };
 
+/// @struct NoteSlide
+/// @brief Classification for an indeterminate slide into or out of one note: a scoop, plop, falloff, or doit.
+///
+/// Finale assigns the mark to the entry. The marks of one kind (into or out of the note) that an entry's visible
+/// assignments carry are dealt one per note in assignment order, starting from the note furthest from the stem and
+/// moving toward the stem, among the notes included in the part's voicing.
+struct NoteSlide
+{
+    /// @enum Type
+    /// @brief Slide type.
+    enum class Type {
+        Scoop,
+        Plop,
+        Falloff,
+        Doit
+    };
+
+    /// Classified slide type.
+    Type type{};
+    /// The note the slide belongs to. Falsy for a rest, for a slide beyond the number of notes, and when the
+    /// classification came from a glyph alone, as through classifyArticulationSymbol.
+    musx::dom::NoteInfoPtr note;
+    /// Visual style encoded by the source glyph variant.
+    GlyphStyle glyphStyle{};
+
+    /// Returns true for a slide into the note (scoop or plop), false for one out of it (falloff or doit).
+    bool isIntoNote() const noexcept { return type == Type::Scoop || type == Type::Plop; }
+};
+
 /// @struct OtherMark
 /// @brief Classification for recognized articulation symbols that have no more specific Denigma classification.
 struct OtherMark
@@ -440,7 +465,7 @@ struct OtherMark
 using ArticulationValue = std::variant<std::monostate, articulation::ArticulationMarks, articulation::TechniqueMark, articulation::HarmonMute,
     articulation::PluckedDamp, articulation::StringMute, articulation::Tremolo, articulation::Fermata, articulation::BreathMark,
     articulation::Caesura, articulation::Arpeggio, articulation::Ornament, articulation::AccordionRegistration, articulation::VerticalEntryBracket,
-    articulation::Parenthesis, PseudoTie, articulation::OtherMark>;
+    articulation::Parenthesis, articulation::NoteSlide, PseudoTie, articulation::OtherMark>;
 
 /// @struct ArticulationClassification
 /// @brief Result returned by articulation classification.

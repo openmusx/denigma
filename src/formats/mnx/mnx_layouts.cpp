@@ -218,7 +218,10 @@ void createLayouts(const MnxMusxMappingPtr& context)
             continue;
         }
         for (const auto& staffSystem : context->document->getOthers()->getArray<others::StaffSystem>(linkedPart->getCmper())) {
-            createLayout(context, linkedPart, staffSystem->getCmper(), staffSystem->startMeas);
+            // A system on no page is left over from a layout that ran past the last measure; no page refers to it.
+            if (staffSystem->pageId) {
+                createLayout(context, linkedPart, staffSystem->getCmper(), staffSystem->startMeas);
+            }
         }
     }
 }

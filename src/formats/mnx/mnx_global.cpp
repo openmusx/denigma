@@ -127,9 +127,13 @@ static void createFine(mnxdom::global::Measure& mnxMeasure, const MusxInstance<o
 static void createJump(mnxdom::global::Measure& mnxMeasure, const MusxInstance<others::Measure>& musxMeasure)
 {
     constexpr auto jumpMapping = std::to_array<std::pair<classify::jump::Jump, mnxdom::JumpType>>({
+        {classify::jump::Jump::ToCoda, mnxdom::JumpType::ToCoda},
+        {classify::jump::Jump::DaCapo, mnxdom::JumpType::Dc},
+        {classify::jump::Jump::DCAlFine, mnxdom::JumpType::DcAlFine},
+        {classify::jump::Jump::DCAlCoda, mnxdom::JumpType::DcAlCoda},
         {classify::jump::Jump::DalSegno, mnxdom::JumpType::Segno},
-        {classify::jump::Jump::DsAlCoda, mnxdom::JumpType::Segno},
         {classify::jump::Jump::DsAlFine, mnxdom::JumpType::DsAlFine},
+        {classify::jump::Jump::DsAlCoda, mnxdom::JumpType::DsAlCoda},
     });
 
     for (const auto& mapping : jumpMapping) {
@@ -176,19 +180,36 @@ static void assignRepeats(mnxdom::global::Measure& mnxMeasure, const MusxInstanc
     }
 }
 
+static std::optional<std::string> calcJumpGlyphName(
+    const MusxInstance<others::TextRepeatAssign>& repeatAssign, const MusxInstance<others::Measure>& musxMeasure)
+{
+    const auto musxOthers = musxMeasure->getDocument()->getOthers();
+    if (auto repeatText = musxOthers->get<others::TextRepeatText>(SCORE_PARTID, repeatAssign->textRepeatId)) {
+        if (auto repeatDef = musxOthers->get<others::TextRepeatDef>(SCORE_PARTID, repeatAssign->textRepeatId)) {
+            return utils::smuflGlyphNameForFont(repeatDef->font, repeatText->text);
+        }
+    }
+    return std::nullopt;
+}
+
 static void createSegno(mnxdom::global::Measure& mnxMeasure, const MusxInstance<others::Measure>& musxMeasure)
 {
     if (auto repeatAssign = searchForJump(classify::jump::Jump::Segno, musxMeasure, JumpClassificationSide::Visual)) {
         auto location = calcJumpLocation(repeatAssign.value(), musxMeasure);
         auto segno = mnxMeasure.ensure_segno(mnxFractionFromFraction(location));
-        if (auto repeatText =
-                musxMeasure->getDocument()->getOthers()->get<others::TextRepeatText>(SCORE_PARTID, repeatAssign.value()->textRepeatId)) {
-            if (auto repeatDef =
-                    musxMeasure->getDocument()->getOthers()->get<others::TextRepeatDef>(SCORE_PARTID, repeatAssign.value()->textRepeatId)) {
-                if (auto glyphName = utils::smuflGlyphNameForFont(repeatDef->font, repeatText->text)) {
-                    segno.set_glyph(glyphName.value());
-                }
-            }
+        if (auto glyphName = calcJumpGlyphName(repeatAssign.value(), musxMeasure)) {
+            segno.set_glyph(glyphName.value());
+        }
+    }
+}
+
+static void createCoda(mnxdom::global::Measure& mnxMeasure, const MusxInstance<others::Measure>& musxMeasure)
+{
+    if (auto repeatAssign = searchForJump(classify::jump::Jump::Coda, musxMeasure, JumpClassificationSide::Visual)) {
+        auto location = calcJumpLocation(repeatAssign.value(), musxMeasure);
+        auto coda = mnxMeasure.ensure_coda(mnxFractionFromFraction(location));
+        if (auto glyphName = calcJumpGlyphName(repeatAssign.value(), musxMeasure)) {
+            coda.set_glyph(glyphName.value());
         }
     }
 }
@@ -336,6 +357,7 @@ static void createGlobalMeasures(const MnxMusxMappingPtr& context)
         assignDisplayNumber(mnxMeasure, musxMeasure);
         assignRepeats(mnxMeasure, musxMeasure);
         createSegno(mnxMeasure, musxMeasure);
+        createCoda(mnxMeasure, musxMeasure);
         processGlobalExpressions(context, mnxMeasure, musxMeasure);
         createTempoToolTempos(context, mnxMeasure, musxMeasure); // after the expressions, which take precedence
         assignTimeSignature(context, mnxMeasure, musxMeasure, prevTimeSig, prevTimeSigDisplay);

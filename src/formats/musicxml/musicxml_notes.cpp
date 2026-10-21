@@ -24,6 +24,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <span>
 #include <tuple>
 #include <type_traits>
 #include <utility>
@@ -425,8 +426,8 @@ void applyLyrics(MusicXmlMusxMapping& context, mx::api::NoteData& note, const En
             // candidate rather than a span. Only an extension that reaches a different entry is
             // one MusicXML can express as a span, and only those are what Finale itself exports:
             // of 27 such shapes in for_health_and_strength.musx none spans, and Finale writes no
-            // extension there. A legacy extension has no end at all, and Finale writes it as a
-            // bare <extend/>, as it does the underscores of a syllable.
+            // extension there. A legacy extension that does not reach another entry stays a bare
+            // <extend/>, as Finale writes every legacy extension and the underscores of a syllable.
             const auto wordExtension = classify::classifyLyricWordExtension(assignment);
             const bool extensionSpansEntries = wordExtension.endEntry && wordExtension.endEntry->getEntry()->getEntryNumber() != entryNumber;
             lyric.hasExtend = extensionSpansEntries || wordExtension.kind == classify::lyric::WordExtensionKind::Legacy
@@ -555,7 +556,7 @@ mx::api::NoteData createRestData(MusicXmlMusxMapping& context, mx::api::StaffDat
         rest.beams = createBeamData(context, entryInfo);
         applyTupletData(rest, entryInfo);
         applyRestPositionIfNeeded(context, rest, entryInfo);
-        processArticulations(context, staff, rest, entryInfo, isStaffValueSpecified);
+        processArticulations(context, staff, std::span(&rest, 1), entryInfo, isStaffValueSpecified);
         if (entryIt.getEffectiveHidden() || (effectiveStaff && effectiveStaff->hideRests)) {
             rest.printData.printObject = mx::api::Bool::no;
         }
@@ -616,6 +617,7 @@ void appendEntryNotes(MusicXmlMusxMapping& context, mx::api::StaffData& staff, m
             includedNoteIndices.push_back(noteIndex);
         }
     }
+    const size_t firstNoteInVoice = voice.notes.size();
     for (size_t includedPosition = 0; includedPosition < includedNoteIndices.size(); ++includedPosition) {
         const size_t noteIndex = includedNoteIndices[includedPosition];
         NoteInfoPtr noteInfo(entryInfo, noteIndex);
@@ -654,8 +656,6 @@ void appendEntryNotes(MusicXmlMusxMapping& context, mx::api::StaffData& staff, m
             note.beams = createBeamData(context, entryInfo);
             applyTupletData(note, entryInfo);
             applyLyrics(context, note, entryInfo);
-            processArticulations(context, staff, note, entryInfo, isStaffValueSpecified);
-            applyTremoloData(note, entryInfo);
         }
         if (entry->hasStem()) {
             const auto customStem = details::CustomStem::getForStem(entryInfo);
@@ -681,6 +681,10 @@ void appendEntryNotes(MusicXmlMusxMapping& context, mx::api::StaffData& staff, m
         rememberExactNote(noteInfo, voice.notes.size());
         voice.notes.emplace_back(note);
     }
+    // After the loop, so that note-level marks can reach every note of the chord.
+    const auto entryNotes = std::span(voice.notes).subspan(firstNoteInVoice);
+    processArticulations(context, staff, entryNotes, entryInfo, isStaffValueSpecified);
+    applyTremoloData(entryNotes.front(), entryInfo);
 }
 
 } // namespace

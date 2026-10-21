@@ -21,6 +21,18 @@ if(denigma_BUILD_TESTING)
     endif()
 endfunction()
 
+    # Finale 27's distributed tutorials and sample files, which some tests draw from when they are installed.
+    # The defaults are the locations Finale's user manuals document; override them with -DDENIGMA_FINALE_MUSIC_FILES_DIR.
+    if(APPLE)
+        set(_denigma_default_finale_music_files_dir "/Library/Application Support/MakeMusic/Finale 27/Music Files")
+    elseif(WIN32)
+        set(_denigma_default_finale_music_files_dir "C:/Program Files/MakeMusic/Finale/27/Music Files")
+    else()
+        set(_denigma_default_finale_music_files_dir "")
+    endif()
+    set(DENIGMA_FINALE_MUSIC_FILES_DIR "${_denigma_default_finale_music_files_dir}" CACHE PATH
+        "Finale 27 Music Files folder used by optional tests, which skip when it is absent")
+
     # Add an executable for the test suite
     add_executable(denigma_tests
         denigmatests.cpp
@@ -51,6 +63,7 @@ endfunction()
         test_svg_converter.cpp
         test_typed_converter_options.cpp
         test_jumps.cpp
+        test_finale_samples.cpp
         mnx/test_beams.cpp
         mnx/test_converter.cpp
         mnx/test_dynamics.cpp
@@ -120,6 +133,7 @@ endfunction()
 
     target_compile_definitions(denigma_tests PRIVATE
         MUSX_TEST_DATA_PATH="${musx_SOURCE_DIR}/tests/data"
+        DENIGMA_FINALE_MUSIC_FILES_DIR="${DENIGMA_FINALE_MUSIC_FILES_DIR}"
     )
     if(DENIGMA_HAS_FREETYPE_LICENSE)
         target_compile_definitions(denigma_tests PRIVATE DENIGMA_HAS_FREETYPE_LICENSE=1)
@@ -155,6 +169,7 @@ endfunction()
     )
     target_compile_definitions(denigma_tests_pch PRIVATE
         MUSX_TEST_DATA_PATH="${musx_SOURCE_DIR}/tests/data"
+        DENIGMA_FINALE_MUSIC_FILES_DIR="${DENIGMA_FINALE_MUSIC_FILES_DIR}"
         DENIGMA_TEST
     )
     target_precompile_headers(denigma_tests_pch PRIVATE

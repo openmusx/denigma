@@ -49,6 +49,23 @@ nlohmann::json exportMnxFixture(const std::string& fileName)
     return mnx;
 }
 
+// The lyric lines of the event with @p eventId, or an empty object when the event has none.
+nlohmann::json lyricLinesOf(const nlohmann::json& mnx, const std::string& eventId)
+{
+    for (const auto& part : mnx["parts"]) {
+        for (const auto& measure : part["measures"]) {
+            for (const auto& sequence : measure["sequences"]) {
+                for (const auto& content : sequence["content"]) {
+                    if (content.value("id", "") == eventId) {
+                        return content.contains("lyrics") ? content["lyrics"].value("lines", nlohmann::json::object()) : nlohmann::json::object();
+                    }
+                }
+            }
+        }
+    }
+    return nlohmann::json::object();
+}
+
 } // namespace
 
 TEST(MnxSequences, CalcPointing)
@@ -400,4 +417,45 @@ TEST(MnxSequences, EntryOverfillingATupletIsShortenedToFit)
     EXPECT_EQ(findEvent(measures[2], "ev21")["duration"], nlohmann::json::parse(R"({"base": "eighth"})")) << measures[2].dump(4);
     // A written eighth that ends a 3-sixteenths tuplet becomes a sixteenth.
     EXPECT_EQ(findEvent(measures[4], "ev31")["duration"], nlohmann::json::parse(R"({"base": "16th"})")) << measures[4].dump(4);
+}
+
+TEST(MnxSequences, WordExtensionTargetsTheEventItEndsOn)
+{
+    const auto mnx = exportMnxFixture("verse_chorus_section.musx");
+    EXPECT_EQ(mnx["mnx"]["support"]["useLyricExtenders"], true);
+
+    const auto extended = lyricLinesOf(mnx, "ev20");
+    for (const auto* lineId : {"s1", "s2"}) {
+        ASSERT_TRUE(extended.contains(lineId)) << extended.dump(4);
+        EXPECT_EQ(extended[lineId]["extender"], nlohmann::json::parse(R"({"target": "ev24"})")) << lineId;
+        EXPECT_FALSE(extended[lineId].contains("id")) << lineId;
+    }
+    const auto plain = lyricLinesOf(mnx, "ev19");
+    ASSERT_TRUE(plain.contains("s1"));
+    EXPECT_FALSE(plain["s1"].contains("extender"));
+    EXPECT_FALSE(plain["s1"].contains("id"));
+}
+
+TEST(MnxSequences, WordExtensionEndingOnItsOwnEventHasNoTarget)
+{
+    const auto mnx = exportMnxFixture("for_health_and_strength.musx");
+    const auto line = lyricLinesOf(mnx, "ev137")["v2"];
+    EXPECT_EQ(line["extender"], nlohmann::json::object()) << line.dump(4);
+    EXPECT_FALSE(line.contains("id"));
+}
+
+TEST(MnxSequences, LegacyWordExtensionTargetsItsInferredEnd)
+{
+    // Smart word extensions are off, so each extension stores only a drawn length; the end is inferred from
+    // the music.
+    const auto mnx = exportMnxFixture("lyric_legacy_wext.musx");
+    EXPECT_EQ(lyricLinesOf(mnx, "ev23")["v1"]["extender"], nlohmann::json::parse(R"({"target": "ev24"})"));
+    EXPECT_EQ(lyricLinesOf(mnx, "ev25")["v1"]["extender"], nlohmann::json::parse(R"({"target": "ev26"})"));
+    // A rest follows, so the extension ends on its own event.
+    EXPECT_EQ(lyricLinesOf(mnx, "ev27")["v1"]["extender"], nlohmann::json::object());
+
+    // The chorus on the same entries types its extensions as underscores, which stay in the text.
+    const auto chorus = lyricLinesOf(mnx, "ev23")["c1"];
+    EXPECT_EQ(chorus["text"], "strength_");
+    EXPECT_FALSE(chorus.contains("extender"));
 }
