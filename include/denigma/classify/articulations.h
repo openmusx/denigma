@@ -394,25 +394,6 @@ struct VerticalEntryBracket
     GlyphStyle glyphStyle{};
 };
 
-/// @struct Parenthesis
-/// @brief Classification for a single notehead parenthesis mark attached to one side of a note.
-struct Parenthesis
-{
-    /// @enum Side
-    /// @brief Which side of the note the parenthesis mark appears on.
-    enum class Side {
-        Left,
-        Right
-    };
-
-    /// Side of the note the parenthesis mark is on.
-    Side side{};
-    /// The note this parenthesis is associated with, per ArticulationAssign::calcAssociatedNote. Falsy if unresolved.
-    musx::dom::NoteInfoPtr note;
-    /// Visual style encoded by the source glyph variant.
-    GlyphStyle glyphStyle{};
-};
-
 /// @struct NoteSlide
 /// @brief Classification for an indeterminate slide into or out of one note: a scoop, plop, falloff, or doit.
 ///
@@ -465,7 +446,7 @@ struct OtherMark
 using ArticulationValue = std::variant<std::monostate, articulation::ArticulationMarks, articulation::TechniqueMark, articulation::HarmonMute,
     articulation::PluckedDamp, articulation::StringMute, articulation::Tremolo, articulation::Fermata, articulation::BreathMark,
     articulation::Caesura, articulation::Arpeggio, articulation::Ornament, articulation::AccordionRegistration, articulation::VerticalEntryBracket,
-    articulation::Parenthesis, articulation::NoteSlide, PseudoTie, articulation::OtherMark>;
+    articulation::NoteSlide, PseudoTie, articulation::OtherMark>;
 
 /// @struct ArticulationClassification
 /// @brief Result returned by articulation classification.

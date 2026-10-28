@@ -344,56 +344,29 @@ TEST(ArticulationClassification, ClassifiesUnmeasuredTremoloGlyphs)
     expectUnmeasuredTremolo(0xE232, "stockhausenTremolo");
 }
 
-TEST(ArticulationClassification, ClassifiesAsciiParenthesesInNonSymbolFont)
+TEST(ArticulationClassification, LeavesAsciiParenthesesUnclassified)
 {
-    // A non-symbol charsetVal (SYMBOL_CHARSET_MAC is 4095) means literal ASCII characters, not glyph indices.
-    const auto fontContext = makeFontContext("Times New Roman", /*charsetVal*/ 0);
-
-    const auto left = classifyArticulationSymbol(fontContext.fontInfo, U'(');
-    const auto* leftParen = left.as<articulation::Parenthesis>();
-    ASSERT_NE(leftParen, nullptr);
-    EXPECT_EQ(leftParen->side, articulation::Parenthesis::Side::Left);
-    EXPECT_FALSE(left.glyphName);
-
-    const auto right = classifyArticulationSymbol(fontContext.fontInfo, U')');
-    const auto* rightParen = right.as<articulation::Parenthesis>();
-    ASSERT_NE(rightParen, nullptr);
-    EXPECT_EQ(rightParen->side, articulation::Parenthesis::Side::Right);
-    EXPECT_FALSE(right.glyphName);
+    const auto fontContext = makeFontContext("Times New Roman", 0);
+    EXPECT_FALSE(classifyArticulationSymbol(fontContext.fontInfo, U'('));
+    EXPECT_FALSE(classifyArticulationSymbol(fontContext.fontInfo, U')'));
 }
 
-TEST(ArticulationClassification, DoesNotClassifyAsciiParenthesesInSymbolFont)
+TEST(ArticulationClassification, LeavesLegacyParenthesisGlyphsUnclassified)
 {
-    // In a symbol font, codepoints 40/41 are glyph indices (which happen to map to the same glyphs via
-    // the legacy font maps), not literal ASCII text, so they must not be misidentified as plain text parens.
     const auto fontContext = makeFontContext();
-
-    const auto left = classifyArticulationSymbol(fontContext.fontInfo, 40);
-    const auto* leftParen = left.as<articulation::Parenthesis>();
-    ASSERT_NE(leftParen, nullptr);
-    EXPECT_EQ(leftParen->side, articulation::Parenthesis::Side::Left);
-    ASSERT_TRUE(left.glyphName);
-    EXPECT_EQ(left.glyphName.value(), "noteheadParenthesisLeft");
+    EXPECT_FALSE(classifyArticulationSymbol(fontContext.fontInfo, U'('));
+    EXPECT_FALSE(classifyArticulationSymbol(fontContext.fontInfo, U')'));
 }
 
-TEST(ArticulationClassification, ClassifiesParenthesisGlyphFromAnyFont)
+TEST(ArticulationClassification, LeavesSmuflParenthesisGlyphsUnclassified)
 {
-    // Neither a symbol font nor a recognized SMuFL font, yet carrying the raw SMuFL codepoint directly.
-    const auto fontContext = makeFontContext("Times New Roman", /*charsetVal*/ 0);
-
-    const auto left = classifyArticulationSymbol(fontContext.fontInfo, 0xE0F5);
-    const auto* leftParen = left.as<articulation::Parenthesis>();
-    ASSERT_NE(leftParen, nullptr);
-    EXPECT_EQ(leftParen->side, articulation::Parenthesis::Side::Left);
-    ASSERT_TRUE(left.glyphName);
-    EXPECT_EQ(left.glyphName.value(), "noteheadParenthesisLeft");
-
-    const auto right = classifyArticulationSymbol(fontContext.fontInfo, 0xE0F6);
-    const auto* rightParen = right.as<articulation::Parenthesis>();
-    ASSERT_NE(rightParen, nullptr);
-    EXPECT_EQ(rightParen->side, articulation::Parenthesis::Side::Right);
-    ASSERT_TRUE(right.glyphName);
-    EXPECT_EQ(right.glyphName.value(), "noteheadParenthesisRight");
+    constexpr char32_t leftParenthesis = U'\uE0F5';
+    constexpr char32_t rightParenthesis = U'\uE0F6';
+    for (const auto* fontName : {"Finale Maestro", "Times New Roman"}) {
+        const auto fontContext = makeFontContext(fontName, 0);
+        EXPECT_FALSE(classifyArticulationSymbol(fontContext.fontInfo, leftParenthesis)) << fontName;
+        EXPECT_FALSE(classifyArticulationSymbol(fontContext.fontInfo, rightParenthesis)) << fontName;
+    }
 }
 
 TEST(ArticulationClassification, ClassifiesVerticalEntryBracketShapes)
