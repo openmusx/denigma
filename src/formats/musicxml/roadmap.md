@@ -20,9 +20,9 @@ The instrument name uses Finale's playback route name when one is available, mat
 
 Instrument sound coverage is partial in a way that hides itself. `musicXmlInstrumentSoundFromUuid` maps a fixed table of Finale instrument uuids, several entries are commented out, and an unrecognized uuid simply yields no `<instrument-sound>` with no diagnostic. Decide whether an unmapped instrument deserves a Verbose log, and extend the table.
 
-Transposition is exported once per part, from the staff that was current when the part was built, and gated on `showTransposed`. Finale can change an instrument's transposition mid-piece through a staff style, and nothing captures that. The related concert-score `<for-part>` support is an MX API gap; see [mx-api-gaps.md](mx-api-gaps.md).
+Transposition is complete apart from `<for-part>`. The part states the transposition in effect at the start, and `assignStaffAttributes` writes a `<transpose>` at each point where a staff style changes it, including mid-measure, with the staff number on multi-staff parts. Both are gated on `showTransposed`. The concert-score `<for-part>` support is an MX API gap; see [mx-api-gaps.md](mx-api-gaps.md).
 
-Instrument changes are the largest piece and are blocked upstream: `mx::api::PartData` holds exactly one `InstrumentData` for the whole part, so neither a mid-piece instrument change nor two simultaneous instruments can be expressed. That limitation, and the multiple-`<score-instrument>` model needed to lift it, are described under instrument changes within a part in [mx-api-gaps.md](mx-api-gaps.md). Sound coverage and initial transposition can proceed ahead of it.
+Instrument changes are the largest piece and are blocked upstream: `mx::api::PartData` holds exactly one `InstrumentData` for the whole part, so two simultaneous instruments cannot be expressed. A sequential change, such as a doubling, does not need several instruments: MusicXML can redefine the part's one `<score-instrument>` from a `<sound>` in the music. That route is blocked too, by a smaller gap, since `mx::api::SoundData` has no `<instrument-change>` or `<midi-instrument>` child. Both limitations are described under instrument changes within a part in [mx-api-gaps.md](mx-api-gaps.md). Sound coverage can proceed ahead of either.
 
 Two neighbouring items overlap this one and should stay separate. MIDI channels below covers the playback assignment that hangs off the instrument, and percussion covers the per-note instrument identity that drum kits need.
 
@@ -105,8 +105,9 @@ reproduce Finale's automatic string assignment for every note that carries no ov
 algorithm is not documented in MUSX DOM and would need to be established, ideally as a musxdom
 helper rather than in the exporter, so MNX can share it.
 
-The export half is additionally blocked upstream: `mx::api` models neither `<string>` nor `<fret>`.
-See the tablature entry in [mx-api-gaps.md](mx-api-gaps.md).
+The per-note export is not blocked upstream. `mx::api` writes `<string>` and `<fret>` as the
+`MarkType::string_` and `MarkType::fret` technical marks, with the number in `MarkData::name`. The
+staff details are blocked; see the tablature entry in [mx-api-gaps.md](mx-api-gaps.md).
 
 Two neighbours are related but separate. Fretboard diagrams above cover `<frame>` on `<harmony>`,
 which is chord diagrams rather than staff content, though both read `FretInstrument`. Bends

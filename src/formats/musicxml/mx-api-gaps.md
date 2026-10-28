@@ -122,6 +122,12 @@ MusicXML supports multiple instruments per part and can represent changes via sc
 
 Needed API shape: multiple score instruments per part, plus positionable instrument-change or playback-change data that can be emitted where the instrument changes.
 
+A sequential change, such as a player doubling on a second instrument, can be expressed without several score instruments. MusicXML lets a `<sound>` in the music redefine an existing `<score-instrument>`: `<instrument-change id="...">` replaces its virtual-instrument data, such as `<instrument-sound>`, and `<midi-instrument id="...">` its MIDI program, bank, and volume. Both must reference a `<score-instrument>` already declared in `<score-part>`; neither can introduce a new one. A `<print>` can show the new name on later systems through `<part-name-display>` and `<part-abbreviation-display>`, and a `<transpose>` in `<attributes>` changes the transposition. Some applications build their instrument list only from the `<score-part>` declarations, so they may miss the change.
+
+`mx::api` exposes none of this mid-part. `SoundData` has no `<instrument-change>` or `<midi-instrument>` child (see nested sound children, below), and the part-name displays are modeled only on `PartData`, for `<score-part>`, not on a mid-score `<print>`. `<transpose>` changes are already expressible through `MeasureData::transpositions`.
+
+Needed API shape for the sequential route alone: `instrument-change` and `midi-instrument` children on `SoundData`, keyed to the part's existing instrument id, and part-name and part-abbreviation displays on the measure-level print data. This leaves `PartData` unchanged and is much smaller than the multiple-instrument model, but it cannot express simultaneous instruments such as a drum kit.
+
 ### Per-note instrument assignment
 
 MusicXML assigns a note to one of a part's instruments with `<note><instrument id="..."/>`, an IDREF back to a `<score-instrument>`. The spec is explicit about when it is required: "If multiple score-instruments are specified in a score-part, there should be an instrument element for each note in the part." A note shared between instruments may carry more than one. This is what makes a drum kit expressible, since each staff position is a different instrument within one part.
@@ -136,7 +142,7 @@ Denigma-side work is tracked under percussion in [roadmap.md](roadmap.md).
 
 ### Nested sound children
 
-MusicXML `<sound>` can include nested child elements such as `<midi-instrument>`, `<midi-device>`, `<play>`, `<swing>`, and `<offset>`.
+MusicXML `<sound>` can include nested child elements such as `<instrument-change>`, `<midi-instrument>`, `<midi-device>`, `<play>`, `<swing>`, and `<offset>`.
 
 `mx::api::SoundData` models common scalar attributes and `<swing>`, but not the other nested child elements.
 
@@ -224,17 +230,9 @@ Needed API shape: direction-level playback or technical modeling for the remaini
 
 ## Tablature
 
-### Per-note string and fret
-
-MusicXML notates tablature with `<notations><technical><string>N</string><fret>N</fret></technical>` on each note, alongside a `<clef><sign>TAB</sign>` and the staff tuning described below. The two values are the whole of tablature's note content: the spec says a TAB clef is sufficient to indicate that noteheads are fret numbers, so nothing else per-note is required.
-
-`mx::api` exposes neither. `NoteData` and `NoteAttachmentData` have no string or fret member, and `MarkType` covers only the valueless technical marks such as `upBow`, `openString`, and `thumbPosition`, so there is no existing slot a numeric value could ride in. String numbers are modeled in exactly one place, `AccordData::stringNumber` for `<scordatura>`, which is a direction rather than a note attachment and cannot carry a fret. Denigma therefore cannot express tablature note content at all, and a Finale TAB staff exports as ordinary pitched notes.
-
-Needed API shape: string and fret members on the note-attached technical data, with reader, writer, and comparison support. `<string>` and `<fret>` are ordinary `<technical>` children, so a general technical-data object holding both the valued and valueless members would serve this and the remaining `<technical>` vocabulary at once.
-
 ### Tablature staff details
 
-A tablature staff also needs `<staff-details>` carrying `<staff-tuning>` for each line, with its `<tuning-step>`, `<tuning-octave>`, and `<tuning-alter>`, plus `<capo>` and `<show-frets>` for the numbers-or-letters choice. Finale supplies all of these: the `others::FretInstrument` at `Staff::fretInstId` gives each open string's pitch, `Staff::capoPos` the capo, and `Staff::useTabLetters` the letter display.
+A tablature staff needs `<staff-details>` carrying `<staff-tuning>` for each line, with its `<tuning-step>`, `<tuning-octave>`, and `<tuning-alter>`, plus `<capo>` and `<show-frets>` for the numbers-or-letters choice. Finale supplies all of these: the `others::FretInstrument` at `Staff::fretInstId` gives each open string's pitch, `Staff::capoPos` the capo, and `Staff::useTabLetters` the letter display.
 
 `mx::api::StaffData` exposes `staffLines`, `staffSize`, and `staffScaling` only. This is the tablature-specific face of the staff-details gap recorded above under Staff Details, and the two should be solved together rather than as separate features.
 
