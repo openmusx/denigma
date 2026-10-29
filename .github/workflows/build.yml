@@ -76,7 +76,10 @@ jobs:
 
       - name: Install Ninja on macOS
         if: matrix.os == 'macos-latest'
-        run: brew install ninja || echo "Ninja already installed"
+        run: |
+          if ! command -v ninja >/dev/null 2>&1; then
+            brew install ninja
+          fi
 
       - name: Install Ninja on Windows
         if: matrix.os == 'windows-latest'

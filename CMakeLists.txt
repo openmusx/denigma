@@ -1,6 +1,14 @@
 # Minimum version of CMake required
 cmake_minimum_required(VERSION 3.22)
 
+# Deduplicate archives only when the linker can resolve earlier libraries.
+if(POLICY CMP0156)
+    cmake_policy(SET CMP0156 NEW)
+endif()
+if(POLICY CMP0179)
+    cmake_policy(SET CMP0179 NEW)
+endif()
+
 # Project name and version
 project(denigma VERSION 4.0.0)
 
@@ -136,10 +144,6 @@ set_source_files_properties("${DENIGMA_GIT_COMMIT_CPP}" PROPERTIES GENERATED TRU
 
 # Set output directory for compiled executable
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${OUTPUT_DIR})
-
-# Save the current state and disable deprecation warnings
-set(_original_WARN_DEPRECATED ${CMAKE_WARN_DEPRECATED})
-set(CMAKE_WARN_DEPRECATED OFF CACHE BOOL "Suppress deprecation warnings for external projects" FORCE)
 
 # Disable building tests for pugixml
 set(PUGIXML_BUILD_TESTS OFF CACHE BOOL "Do not build tests for pugixml")
