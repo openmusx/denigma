@@ -157,3 +157,55 @@ TEST(StaffStateClassification, CallbackCanStopWalk)
     EXPECT_FALSE(completed);
     EXPECT_EQ(calls, 1);
 }
+
+TEST(StaffStateClassification, ReportsForcedClefAndNames)
+{
+    const std::string xml = R"xml(<?xml version="1.0" encoding="UTF-8"?>
+<finale>
+  <others>
+    <measSpec cmper="1"><beats>4</beats><divbeat>1024</divbeat></measSpec>
+    <measSpec cmper="2"><beats>4</beats><divbeat>1024</divbeat></measSpec>
+    <measSpec cmper="3"><beats>4</beats><divbeat>1024</divbeat></measSpec>
+    <staffSpec cmper="1"><staffLines>5</staffLines><lineSpace>24</lineSpace><fullName>7</fullName><hasStyles/></staffSpec>
+    <staffStyle cmper="1">
+      <staffLines>5</staffLines>
+      <lineSpace>24</lineSpace>
+      <transposition><setToClef/><keysig><interval>-1</interval><adjust>-2</adjust></keysig></transposition>
+      <transposedClef>3</transposedClef>
+      <fullName>8</fullName>
+      <abbrvName>9</abbrvName>
+      <hideStfNameInScore/>
+      <styleName>Doubling</styleName>
+      <mask><transposition/><fullName/><abrvName/><negNameScore/></mask>
+    </staffStyle>
+    <staffStyleAssign cmper="1" inci="0">
+      <style>1</style>
+      <startMeas>2</startMeas>
+      <startEdu>0</startEdu>
+      <endMeas>2</endMeas>
+      <endEdu>4095</endEdu>
+    </staffStyleAssign>
+  </others>
+</finale>
+)xml";
+    std::vector<char> buffer(xml.begin(), xml.end());
+    const auto document = musx::factory::DocumentFactory::create<denigma::MusxReader>(buffer);
+
+    const auto changes = collectChanges(document, 1, calcStaffState(document, SCORE_PARTID, 1, MusicPoint{}));
+    ASSERT_EQ(changes.size(), 2u);
+
+    EXPECT_EQ(changes[0].point, MusicPoint(2, Fraction{}));
+    EXPECT_EQ(changes[0].previous.transposition.clef, std::nullopt);
+    EXPECT_EQ(changes[0].current.transposition.clef, ClefIndex(3));
+    EXPECT_EQ(changes[0].previous.fullNameTextId, Cmper(7));
+    EXPECT_EQ(changes[0].current.fullNameTextId, Cmper(8));
+    EXPECT_EQ(changes[0].current.abbreviatedNameTextId, Cmper(9));
+    EXPECT_TRUE(changes[0].previous.showNames);
+    EXPECT_FALSE(changes[0].current.showNames);
+
+    EXPECT_EQ(changes[1].point, MusicPoint(3, Fraction{}));
+    EXPECT_EQ(changes[1].current.transposition, staff_state::Transposition{});
+    EXPECT_EQ(changes[1].current.fullNameTextId, Cmper(7));
+    EXPECT_EQ(changes[1].current.abbreviatedNameTextId, Cmper{});
+    EXPECT_TRUE(changes[1].current.showNames);
+}

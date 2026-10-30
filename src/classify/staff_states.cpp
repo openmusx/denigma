@@ -69,7 +69,13 @@ public:
         state.numberOfLines = staff->calcNumberOfStafflines();
         state.lineSpace = staff->lineSpace;
         const auto [displacement, alteration] = staff->calcTranspositionInterval();
-        state.transposition = {displacement, alteration};
+        state.transposition = {displacement, alteration, std::nullopt};
+        if (staff->transposition && staff->transposition->setToClef) {
+            state.transposition.clef = staff->transposedClef;
+        }
+        state.fullNameTextId = staff->fullNameTextId;
+        state.abbreviatedNameTextId = staff->abbrvNameTextId;
+        state.showNames = staff->showNamesForPart(m_partId);
         state.staffScaling = Fraction{1};
         if (m_systems) {
             const auto system = m_document->calcSystemFromMeasure(m_partId, point.measureId);

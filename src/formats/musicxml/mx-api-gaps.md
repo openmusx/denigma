@@ -102,31 +102,27 @@ Needed API shape: a staff-scoped, positionable measure-style collection on `Meas
 
 Full Finale fidelity is not possible through measure style alone. `altLayer` has no general equivalent for measure repeats, while slash/beat-repeat can only exclude other MusicXML voices. `Blank` and `BlankWithRests`, and Finale's independent hide-articulation, lyrics, expressions, and smart-shape settings, require selective `print-object="no"` handling in addition to any measure style. The alternate-notation slash and number fonts, glyph-position options, and two-bar-repeat number offset are likewise Finale-specific layout data with no direct standard MusicXML mapping.
 
-## Transposition
-
-### Concert-score `for-part`
-
-MusicXML supports `<for-part>` in `<attributes>` for concert scores with transposed parts. This allows a concert-score file to describe transpositions for extracted or rendered parts.
-
-`mx::api` currently exposes `PartData::transposition`, but not an API for `<for-part>`.
-
-Needed API shape: an API model for `<for-part>` under measure attributes, including the target part identity and associated transposition data.
-
 ## Instruments and Sound
 
-### Instrument changes within a part
+### Simultaneous instruments within a part
 
-MusicXML supports multiple instruments per part and can represent changes via score instruments, MIDI instruments, and sound/playback data.
+MusicXML supports multiple instruments per part through several `<score-instrument>` and `<midi-instrument>` definitions in one `<score-part>`.
 
-`mx::api::PartData` currently has one `InstrumentData instrumentData` for the part. Denigma can set initial part/instrument metadata, but cannot express Finale staff-style instrument changes or multiple simultaneous instruments within the same part through the current simple field.
+`mx::api::PartData` has one `InstrumentData instrumentData` for the part. A sequential change, such as a player doubling on a second instrument, is expressible: `SoundData::instrumentChange` redefines the part's one instrument from a `<sound>` in the music, `MeasureData::partNameDisplay` and `partAbbreviationDisplay` show the new names, and `MeasureData::transpositions` or `forParts` carry the new transposition. Denigma exports Finale's instrument-change staff styles this way. Several instruments sounding at once, as on a drum kit, cannot be expressed.
 
-Needed API shape: multiple score instruments per part, plus positionable instrument-change or playback-change data that can be emitted where the instrument changes.
+Needed API shape: multiple score instruments per part, designed together with the per-note instrument references below.
 
-A sequential change, such as a player doubling on a second instrument, can be expressed without several score instruments. MusicXML lets a `<sound>` in the music redefine an existing `<score-instrument>`: `<instrument-change id="...">` replaces its virtual-instrument data, such as `<instrument-sound>`, and `<midi-instrument id="...">` its MIDI program, bank, and volume. Both must reference a `<score-instrument>` already declared in `<score-part>`; neither can introduce a new one. A `<print>` can show the new name on later systems through `<part-name-display>` and `<part-abbreviation-display>`, and a `<transpose>` in `<attributes>` changes the transposition. Some applications build their instrument list only from the `<score-part>` declarations, so they may miss the change.
+### Mid-part MIDI instrument
 
-`mx::api` exposes none of this mid-part. `SoundData` has no `<instrument-change>` or `<midi-instrument>` child (see nested sound children, below), and the part-name displays are modeled only on `PartData`, for `<score-part>`, not on a mid-score `<print>`. `<transpose>` changes are already expressible through `MeasureData::transpositions`.
+MusicXML lets a `<sound>` carry a `<midi-instrument id="...">` that changes the MIDI program, bank, and volume of an existing `<score-instrument>`. `mx::api::SoundData` models `<instrument-change>` but not `<midi-instrument>`, so an instrument change can carry its new virtual instrument but not its MIDI settings. Denigma exports no MIDI data yet (see MIDI channels in [roadmap.md](roadmap.md)), so this matters only once that work lands.
 
-Needed API shape for the sequential route alone: `instrument-change` and `midi-instrument` children on `SoundData`, keyed to the part's existing instrument id, and part-name and part-abbreviation displays on the measure-level print data. This leaves `PartData` unchanged and is much smaller than the multiple-instrument model, but it cannot express simultaneous instruments such as a drum kit.
+Needed API shape: an optional `midi-instrument` member on `SoundData`, keyed to the part's instrument, with the same fields as `MidiData`.
+
+### Formatted runs in mid-part name displays
+
+Finale writes a mid-part `<part-name-display>` as alternating `<display-text>` and `<accidental-text>` runs, as in `Clarinet in B` followed by `<accidental-text>flat</accidental-text>`. `mx::api::NameDisplayData` holds one string, so Denigma writes the accidental as a Unicode character within one `<display-text>`, as it already does for `<part-name>`.
+
+Needed API shape: an ordered collection of display-text and accidental-text runs on `NameDisplayData`, each with its own font.
 
 ### Per-note instrument assignment
 
@@ -134,7 +130,7 @@ MusicXML assigns a note to one of a part's instruments with `<note><instrument i
 
 Most of the surrounding percussion vocabulary is already available, and it is worth recording so it is not re-derived. `mx::api::NoteData::isUnpitched` selects `<unpitched>` over `<pitch>`, with `pitchData`'s step and octave serving as display step and octave, which is what the spec requires for notes in a percussion clef. `MidiData::unpitched` carries `<midi-unpitched>`. `PercussionData` models the `<percussion>` pictogram direction.
 
-What is missing is the link between a note and an instrument: `NoteData` has no instrument member, so every note in a part is implicitly the part's single instrument. Combined with `PartData` holding one `InstrumentData` (see instrument changes within a part, above), a multi-instrument percussion staff cannot be expressed at all: neither the several `<score-instrument>` definitions nor the per-note references to them. Denigma consequently exports a drum kit as one pitched instrument.
+What is missing is the link between a note and an instrument: `NoteData` has no instrument member, so every note in a part is implicitly the part's single instrument. Combined with `PartData` holding one `InstrumentData` (see simultaneous instruments within a part, above), a multi-instrument percussion staff cannot be expressed at all: neither the several `<score-instrument>` definitions nor the per-note references to them. Denigma consequently exports a drum kit as one pitched instrument.
 
 Needed API shape: an instrument reference on `NoteData`, allowing more than one, keyed to whatever identity the multiple-score-instruments support settles on. The two are one feature in practice and should be designed together; per-note references are useless without several instruments to point at, and several instruments are unusable without per-note references, since the spec expects one on every note once a part has more than one instrument.
 
@@ -144,7 +140,7 @@ Denigma-side work is tracked under percussion in [roadmap.md](roadmap.md).
 
 MusicXML `<sound>` can include nested child elements such as `<instrument-change>`, `<midi-instrument>`, `<midi-device>`, `<play>`, `<swing>`, and `<offset>`.
 
-`mx::api::SoundData` models common scalar attributes and `<swing>`, but not the other nested child elements.
+`mx::api::SoundData` models common scalar attributes, `<swing>`, and `<instrument-change>`, but not the other nested child elements.
 
 Needed API shape: optional support for nested sound children that matter for Denigma's playback export, especially if Finale data requires instrument-specific playback changes.
 

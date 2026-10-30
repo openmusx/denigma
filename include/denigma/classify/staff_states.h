@@ -22,6 +22,7 @@
 #pragma once
 
 #include <functional>
+#include <optional>
 
 #include "musx/musx.h"
 
@@ -31,13 +32,16 @@ namespace classify {
 namespace staff_state {
 
 /// @struct Transposition
-/// @brief Written-to-concert transposition interval of a staff.
+/// @brief Written-to-concert transposition of a staff.
 struct Transposition
 {
     /// Diatonic displacement, as returned by `others::Staff::calcTranspositionInterval`.
     int displacement{};
     /// Chromatic alteration, as returned by `others::Staff::calcTranspositionInterval`.
     int alteration{};
+    /// Clef the staff uses throughout at written pitch, replacing all its clef changes. Set only
+    /// when the transposition forces one (`others::Staff::Transposition::setToClef`).
+    std::optional<musx::dom::ClefIndex> clef;
 
     bool operator==(const Transposition&) const = default;
 };
@@ -57,8 +61,14 @@ struct StaffState
     /// Staff scaling of the system containing the point, from its staff list. It is 1 when the
     /// part's layout is not calculated.
     musx::util::Fraction staffScaling{1};
-    /// Transposition interval.
+    /// Transposition interval and any clef it forces.
     staff_state::Transposition transposition{};
+    /// Full name @ref musx::dom::others::TextBlock of the staff. Zero means the staff has none.
+    musx::dom::Cmper fullNameTextId{};
+    /// Abbreviated name @ref musx::dom::others::TextBlock of the staff. Zero means the staff has none.
+    musx::dom::Cmper abbreviatedNameTextId{};
+    /// Whether the staff's names are displayed in the part, as `others::Staff::showNamesForPart` reports.
+    bool showNames{true};
 
     bool operator==(const StaffState&) const = default;
 };

@@ -347,3 +347,28 @@ TEST(MnxLayouts, Piano3StaffTest)
         EXPECT_EQ(staffInfo.sources()[0].staff(), i + 1) << "expected staff " << i + 1;
     }
 }
+
+TEST(MnxLayouts, StaffStyleLabelsKeepUnicodeAccidentals)
+{
+    setupTestDataPaths();
+    std::filesystem::path inputPath;
+    copyInputToOutput("instchange.musx", inputPath);
+    ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), "--mnx"};
+    checkStderr({"Processing", pathString(inputPath.filename()), "!validation error"},
+        [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to mnx: " << pathString(inputPath); });
+
+    nlohmann::json mnx;
+    openJson(inputPath.parent_path() / "instchange.mnx", mnx);
+    ASSERT_TRUE(mnx["layouts"].is_array());
+
+    // The clarinet's abbreviated name comes from an instrument-change staff style.
+    bool foundClarinetLabel = false;
+    for (const auto& layout : mnx["layouts"]) {
+        for (const auto& content : layout["content"]) {
+            for (const auto& source : content.value("sources", nlohmann::json::array())) {
+                foundClarinetLabel = foundClarinetLabel || source.value("label", std::string{}) == "B♭ Cl.";
+            }
+        }
+    }
+    EXPECT_TRUE(foundClarinetLabel);
+}

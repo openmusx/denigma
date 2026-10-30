@@ -272,3 +272,21 @@ end reads as an ordinary arpeggio on one chord rather than as half of a broken p
 The `direction` attribute is the arrowhead, not the roll direction, so only an arpeggio Finale drew
 with an arrow becomes `arpeggiateUp` or `arpeggiateDown`. A plain rolled chord is written bare, which
 is already an upward roll to a reader.
+
+### A concert-pitch document is a concert score
+
+A document Finale displays in concert pitch (`showTransposed` off for the score or linked part being exported) is written with `<concert-score/>`, even when none of its instruments transposes. That is the display mode the file is in, and stating it costs nothing.
+
+Its transposing instruments are written with `<for-part>`, which describes the part made from the score, rather than `<transpose>`, which MusicXML reserves in a concert score for octave transpositions the score itself shows. The one octave case Finale shows is the one `keepWrittenOctaveInConcertPitch` keeps written, so that stays a `<transpose>` with no for-part, since the part reads exactly what the score does. An octave that is not kept, such as a piccolo at sounding pitch, is a for-part like any other interval.
+
+Only one of the two is in effect at a time, and each replaces whichever was in effect before. A change writes only the element it exports as, so a player changing from English horn to piccolo gets the piccolo's `<transpose>` and no cancelling for-part. A return to concert pitch is a `<transpose>` with no interval, whether it ends a transposition or a for-part. This matches Finale's own export of a concert score.
+
+### A forced transposition clef is always the part's clef
+
+A Finale transposition that forces a clef (`setToClef`) replaces every clef change on the staff at written pitch. In a concert score that clef is written as the for-part's `<part-clef>` even when it matches the score's clef where the for-part begins, because without it a later clef change in the score would carry over into the part.
+
+### A part's names follow its top staff, and its sound follows its instrument
+
+A staff style can change a staff's full or abbreviated name, or whether its names are shown, with or without changing its instrument. Names are therefore tracked as staff state. Each change of the top staff's names or their visibility writes `<part-name-display>` and `<part-abbreviation-display>` in that measure, with `print-object="no"` when the names are hidden. The two are always written together, even when only one of them changed, so a reader never pairs a new name with a stale abbreviation. A change that leaves the texts and their visibility the same, through different text blocks holding the same names, writes neither.
+
+The new sound comes from musxdom's instrument for the part instead, since that is what the part was made from. musxdom already decides whether the staves of a multistaff instrument agree about a change and reports the ones that do not, so Denigma neither repeats nor second-guesses that check, and writes one `<instrument-change>` per change on the part's first staff. That instrument is the score's, so in a linked-part document the sound follows the score's staff styles while names and transpositions follow the part's.

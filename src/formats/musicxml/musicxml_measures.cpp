@@ -27,6 +27,8 @@
 #include <optional>
 #include <sstream>
 #include <string>
+#include <type_traits>
+#include <variant>
 #include <vector>
 
 #include "core/element_ids.h"
@@ -39,6 +41,8 @@
 #include "mx/api/ChordData.h"
 #include "mx/api/ClefData.h"
 #include "mx/api/DirectionData.h"
+#include "mx/api/ForPartData.h"
+#include "mx/api/InstrumentChangeData.h"
 #include "mx/api/KeyData.h"
 #include "mx/api/MeasureData.h"
 #include "mx/api/PartData.h"
@@ -426,25 +430,6 @@ mx::api::KeyData createKeyData(const MusicXmlMusxMapping& context, const MusxIns
     return key;
 }
 
-std::optional<mx::api::TransposeData> createTransposeData(
-    const MusicXmlMusxMapping& context, const classify::staff_state::Transposition& transposition)
-{
-    const int transpositionDisp = transposition.displacement;
-    const int transpositionAlt = transposition.alteration;
-    if (!transpositionDisp && !transpositionAlt) {
-        return std::nullopt;
-    }
-
-    const bool shouldEmitTransposition = context.finaleOptions.effectivePartGlobals->showTransposed
-                                         || (context.finaleOptions.miscOptions->keepWrittenOctaveInConcertPitch
-                                             && music_theory::calcTranspositionIsOctave(transpositionDisp, transpositionAlt));
-    if (!shouldEmitTransposition) {
-        return std::nullopt;
-    }
-
-    return mx::api::TransposeData(-music_theory::calc12EdoHalfstepsInInterval(transpositionDisp, transpositionAlt), -transpositionDisp);
-}
-
 bool keyDataEqualIgnoringStaffIndex(const mx::api::KeyData& lhs, const mx::api::KeyData& rhs)
 {
     auto normalizedLhs = lhs;
@@ -457,25 +442,6 @@ bool keyDataEqualIgnoringStaffIndex(const mx::api::KeyData& lhs, const mx::api::
 bool keyDataChanged(const std::optional<mx::api::KeyData>& previous, const mx::api::KeyData& current)
 {
     return !previous || !keyDataEqualIgnoringStaffIndex(*previous, current);
-}
-
-bool transposeDataEqualIgnoringStaffAndTick(const mx::api::TransposeData& lhs, const mx::api::TransposeData& rhs)
-{
-    auto normalizedLhs = lhs;
-    auto normalizedRhs = rhs;
-    normalizedLhs.staffIndex = mx::api::INDEX_UNSPECIFIED;
-    normalizedRhs.staffIndex = mx::api::INDEX_UNSPECIFIED;
-    normalizedLhs.tickTimePosition = 0;
-    normalizedRhs.tickTimePosition = 0;
-    return normalizedLhs == normalizedRhs;
-}
-
-bool transposeDataEqualIgnoringStaffAndTick(const std::optional<mx::api::TransposeData>& lhs, const std::optional<mx::api::TransposeData>& rhs)
-{
-    if (!lhs || !rhs) {
-        return !lhs && !rhs;
-    }
-    return transposeDataEqualIgnoringStaffAndTick(*lhs, *rhs);
 }
 
 void assignKeySignatures(const MusicXmlMusxMapping& context, mx::api::MeasureData& measure, const MusxInstance<others::Measure>& musxMeasure,
@@ -679,6 +645,101 @@ void assignClefs(MusicXmlMusxMapping& context, mx::api::StaffData& staff, StaffC
         });
 }
 
+/// Writes each change of the part's instrument as a new sound for the part's one MusicXML instrument.
+/// The part was made from musxdom's instrument for these staves, so its changes are the ones that
+/// instrument reports, which musxdom has already checked for agreement among the staves.
+void assignInstrumentChanges(MusicXmlMusxMapping& context, mx::api::PartData& part, const std::vector<StaffCmper>& staves)
+{
+    const auto* instrument = context.document->getInstruments().getInstrumentForStaff(staves.front());
+    if (!instrument) {
+        return;
+    }
+    std::optional<std::string> prevInstUuid;
+    for (const auto& [point, change] : instrument->getChanges()) {
+        const auto& instUuid = change.identity.instUuid;
+        // The first change is the instrument the part starts with, which the part already states.
+        const bool isStart = !prevInstUuid;
+        const bool isSameInstrument = prevInstUuid == instUuid;
+        prevInstUuid = instUuid;
+        if (isStart || isSameInstrument || size_t(point.measureId) > part.measures.size()) {
+            continue;
+        }
+        const auto sound = musicXmlInstrumentSoundFromUuid(instUuid);
+        if (!sound) {
+            continue;
+        }
+        mx::api::DirectionData direction;
+        direction.tickTimePosition = context.timing.calcNearestMusicXmlDivisions(point.position);
+        direction.isStaffValueSpecified = false;
+        direction.soundData.instrumentChange = mx::api::InstrumentChangeData{};
+        direction.soundData.instrumentChange->soundID = sound->soundId;
+        direction.soundData.instrumentChange->soloOrEnsemble = enumConvert<mx::api::SoloOrEnsemble>(sound->soloOrEnsemble);
+        direction.isSoundDataSpecified = true;
+        part.measures[size_t(point.measureId - 1)].staves.front().directions.emplace_back(std::move(direction));
+    }
+}
+
+/// Writes the transposition or for-part that a staff-state change exports as.
+void assignTranspositionChange(const MusicXmlMusxMapping& context, mx::api::MeasureData& measure, const classify::StaffStateChange& change,
+    std::optional<int> staffIndex, int tickTimePosition)
+{
+    // Only one of a transposition and a for-part is in effect, and each replaces the other, so a
+    // change writes only the one it exports as. A return to concert pitch is a transposition with no
+    // interval, whichever it ends.
+    const auto& previous = change.previous.transposition;
+    const auto& current = change.current.transposition;
+    const bool intervalChanged = current.displacement != previous.displacement || current.alteration != previous.alteration;
+    std::visit(
+        [&](auto exported) {
+            using Exported = decltype(exported);
+            if constexpr (std::is_same_v<Exported, mx::api::TransposeData>) {
+                if (!intervalChanged) {
+                    return;
+                }
+                exported.staffIndex = staffIndex.value_or(mx::api::INDEX_UNSPECIFIED);
+                exported.tickTimePosition = tickTimePosition;
+                measure.transpositions.emplace_back(exported);
+            } else if constexpr (std::is_same_v<Exported, mx::api::ForPartData>) {
+                exported.staffIndex = staffIndex.value_or(mx::api::INDEX_UNSPECIFIED);
+                exported.tickTimePosition = tickTimePosition;
+                measure.forParts.emplace_back(exported);
+            } else {
+                // Only a staff that exported something has anything to end.
+                const bool previousExported = intervalChanged || (context.musicXmlScore->concertScore && previous.clef);
+                if (!previousExported) {
+                    return;
+                }
+                mx::api::TransposeData transpose;
+                transpose.staffIndex = staffIndex.value_or(mx::api::INDEX_UNSPECIFIED);
+                transpose.tickTimePosition = tickTimePosition;
+                measure.transpositions.emplace_back(transpose);
+            }
+        },
+        createMusicXmlTransposition(context, current, change.staff));
+}
+
+/// Writes the full and abbreviated part-name displays for a staff-state change to the top staff's names or their visibility.
+/// @param prevNames The names in effect before the change. Updated to those in effect after it.
+void assignNameChange(
+    const MusicXmlMusxMapping& context, mx::api::MeasureData& measure, const classify::StaffStateChange& change, MusicXmlPartNames& prevNames)
+{
+    const auto names = musicXmlPartNames(context, change.staff);
+    const auto nameDisplay = [&](const std::string& text) {
+        mx::api::NameDisplayData result;
+        result.text = text;
+        if (!names.isVisible) {
+            result.printData.printObject = mx::api::Bool::no;
+        }
+        return result;
+    };
+    // The two are written together, so a reader never pairs a new name with a stale abbreviation.
+    if (names != prevNames) {
+        measure.partNameDisplay = nameDisplay(names.fullName);
+        measure.partAbbreviationDisplay = nameDisplay(names.abbreviatedName);
+    }
+    prevNames = names;
+}
+
 void assignStaffAttributes(MusicXmlMusxMapping& context, mx::api::PartData& part, const MusxInstanceList<others::Measure>& musxMeasures,
     const std::vector<StaffCmper>& staves)
 {
@@ -704,46 +765,47 @@ void assignStaffAttributes(MusicXmlMusxMapping& context, mx::api::PartData& part
             return &measure;
         };
 
-        // The part-level transposition already states the one in effect at the start, so the walk
-        // begins from it. The emitted value is tracked separately because createTransposeData maps
-        // every interval it does not export to no transposition.
-        classify::StaffState baseline;
-        std::optional<mx::api::TransposeData> prevTransposition;
-        const auto startState = classify::calcStaffState(context.document, context.forPartId, staffId, MusicPoint{});
-        const auto startTransposition = createTransposeData(context, startState.transposition);
-        if (startTransposition && transposeDataEqualIgnoringStaffAndTick(startTransposition, part.transposition)) {
-            baseline.transposition = startState.transposition;
-            prevTransposition = startTransposition;
-        }
+        const std::optional<int> exportedStaffIndex = staves.size() > 1 ? std::optional<int>(static_cast<int>(staffIndex)) : std::nullopt;
+        // The names are compared as text, because two text blocks can hold one name. The part
+        // already states the ones it starts with.
+        MusicXmlPartNames prevNames{
+            part.displayName.empty() ? part.name : part.displayName,
+            part.displayAbbreviation.empty() ? part.abbreviation : part.displayAbbreviation,
+            part.namePrintObject != mx::api::Bool::no,
+        };
 
         // mx::api can write staff lines and staff size only at the start of a measure (see
         // mx-api-gaps.md). A change within a measure is written at the next barline with the state
         // Finale has there, so a change that is undone within the same measure is lost.
         std::map<MeasCmper, classify::StaffState> barlineStates;
-        classify::iterateStaffStateChanges(context.document, context.forPartId, staffId, baseline, [&](const classify::StaffStateChange& change) {
+        classify::iterateStaffStateChanges(context.document, context.forPartId, staffId, {}, [&](const classify::StaffStateChange& change) {
             const MeasCmper barline = change.point.position == 0 ? change.point.measureId : change.point.measureId + 1;
             if (size_t(barline) <= part.measures.size()) {
                 barlineStates[barline] = change.current;
             }
 
-            if (change.current.transposition == change.previous.transposition) {
+            const bool transpositionChanged = change.current.transposition != change.previous.transposition;
+            // The part's names are those of its top staff, and they apply to the whole part.
+            const bool namesChanged = staffIndex == 0
+                                      && (change.current.fullNameTextId != change.previous.fullNameTextId
+                                          || change.current.abbreviatedNameTextId != change.previous.abbreviatedNameTextId
+                                          || change.current.showNames != change.previous.showNames);
+            if (!transpositionChanged && !namesChanged) {
                 return true;
             }
-            const auto currentTransposition = createTransposeData(context, change.current.transposition);
-            if (transposeDataEqualIgnoringStaffAndTick(prevTransposition, currentTransposition)) {
-                return true;
-            }
-            auto* measure = staffMeasure(change.point, "transposition");
+            auto* measure = staffMeasure(change.point, "transposition and name");
             if (!measure) {
                 return false;
             }
-            auto transpose = currentTransposition.value_or(mx::api::TransposeData{});
-            if (staves.size() > 1) {
-                transpose.staffIndex = static_cast<int>(staffIndex);
+            const int tickTimePosition = context.timing.calcNearestMusicXmlDivisions(change.point.position);
+
+            if (transpositionChanged) {
+                assignTranspositionChange(context, *measure, change, exportedStaffIndex, tickTimePosition);
             }
-            transpose.tickTimePosition = context.timing.calcNearestMusicXmlDivisions(change.point.position);
-            measure->transpositions.emplace_back(transpose);
-            prevTransposition = currentTransposition;
+
+            if (namesChanged) {
+                assignNameChange(context, *measure, change, prevNames);
+            }
             return true;
         });
 
@@ -1168,9 +1230,45 @@ void createMeasuresForPart(MusicXmlMusxMapping& context, mx::api::PartData& part
     finalizeArpeggioCandidates(context);
 
     assignStaffAttributes(context, part, musxMeasures, stavesIt->second);
+    assignInstrumentChanges(context, part, stavesIt->second);
 }
 
 } // namespace
+
+MusicXmlTransposition createMusicXmlTransposition(
+    const MusicXmlMusxMapping& context, const classify::staff_state::Transposition& transposition, const MusxInstance<others::StaffComposite>& staff)
+{
+    const int displacement = transposition.displacement;
+    const int alteration = transposition.alteration;
+    const bool hasInterval = displacement || alteration;
+    const int chromatic = -music_theory::calc12EdoHalfstepsInInterval(displacement, alteration);
+    const int diatonic = -displacement;
+
+    // A transposed document shows written pitch, as does a concert-pitch document for an octave
+    // transposition Finale keeps written. Every other interval is the part's, not the score's.
+    if (context.finaleOptions.effectivePartGlobals->showTransposed
+        || (hasInterval && context.finaleOptions.miscOptions->keepWrittenOctaveInConcertPitch
+            && music_theory::calcTranspositionIsOctave(displacement, alteration))) {
+        if (hasInterval) {
+            return mx::api::TransposeData(chromatic, diatonic);
+        }
+        return std::monostate{};
+    }
+    if (!hasInterval && !transposition.clef) {
+        return std::monostate{};
+    }
+
+    mx::api::ForPartData forPart;
+    forPart.chromatic = chromatic;
+    forPart.diatonic = diatonic;
+    // The forced clef replaces every clef change in the part, so it is stated even when it matches
+    // the score's clef at this point.
+    if (transposition.clef) {
+        const auto clef = musicXmlClefFromMusxClef(context.finaleOptions.clefOptions->getClefDef(*transposition.clef), staff);
+        forPart.partClef = mx::api::PartClefData{clef.symbol, clef.line, clef.octaveChange};
+    }
+    return forPart;
+}
 
 void createMeasures(MusicXmlMusxMapping& context)
 {

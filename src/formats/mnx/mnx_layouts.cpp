@@ -53,20 +53,20 @@ static void buildMnxStaff(mnxdom::layout::Staff&& mnxStaff, const MnxMusxMapping
     if (staff->showNamesForPart(meas->getRequestedPartId())) {
         if (meas->calcShouldShowFullNames()) {
             if (staff->multiStaffInstId) {
-                mnxSource.set_label(staff->getFullName());
+                mnxSource.set_label(staff->getFullName(EnigmaString::AccidentalStyle::Unicode));
             } else {
                 if (staff->masks->fullName) {
-                    mnxSource.set_label(staff->getFullInstrumentName());
+                    mnxSource.set_label(staff->getFullInstrumentName(EnigmaString::AccidentalStyle::Unicode));
                 } else {
                     mnxSource.set_labelref(mnxdom::LabelRef::Name);
                 }
             }
         } else {
             if (staff->multiStaffInstId) {
-                mnxSource.set_label(staff->getAbbreviatedName());
+                mnxSource.set_label(staff->getAbbreviatedName(EnigmaString::AccidentalStyle::Unicode));
             } else {
                 if (staff->masks->abrvName) {
-                    mnxSource.set_label(staff->getAbbreviatedInstrumentName());
+                    mnxSource.set_label(staff->getAbbreviatedInstrumentName(EnigmaString::AccidentalStyle::Unicode));
                 } else {
                     mnxSource.set_labelref(mnxdom::LabelRef::ShortName);
                 }
@@ -133,7 +133,8 @@ static void buildOrderedContent(mnxdom::layout::LayoutContent&& content, const M
                 break;
             }
             if (!group.group->hideName) {
-                auto name = forMeas->calcShouldShowFullNames() ? group.group->getFullInstrumentName() : group.group->getAbbreviatedInstrumentName();
+                auto name = forMeas->calcShouldShowFullNames() ? group.group->getFullInstrumentName(EnigmaString::AccidentalStyle::Unicode)
+                                                               : group.group->getAbbreviatedInstrumentName(EnigmaString::AccidentalStyle::Unicode);
                 if (!name.empty()) {
                     mnxGroup.set_label(name);
                 }
