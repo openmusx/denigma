@@ -30,9 +30,11 @@
 
 #include "core/denigma.h"
 #include "core/musx_reader.h"
+#include "formats/enigmaxml/enigmaxml.h"
 #include "formats/musicxml/musicxml.h"
 #include "musicxml_test.h"
 #include "musx/dom/InstrumentUuids.h"
+#include "mx/api/Diagnostics.h"
 #include "mx/api/MusicXml.h"
 #include "mx/api/ScoreData.h"
 #include "pugixml.hpp"
@@ -103,6 +105,17 @@ void expectInitialTransposition(const mx::api::PartData& part, int chromatic, in
     ASSERT_TRUE(part.transposition) << label << " transposition";
     EXPECT_EQ(part.transposition->chromatic, chromatic) << label << ".chromatic";
     EXPECT_EQ(part.transposition->diatonic, diatonic) << label << ".diatonic";
+}
+
+/// Checks the transposition Denigma writes at the start of a part's first measure.
+void expectStartingTransposition(const mx::api::PartData& part, int chromatic, int diatonic, const char* label)
+{
+    ASSERT_FALSE(part.measures.empty()) << label;
+    const auto& transpositions = part.measures.front().transpositions;
+    ASSERT_EQ(transpositions.size(), 1u) << label << " transposition count";
+    EXPECT_EQ(transpositions.front().tickTimePosition, 0) << label << ".tickTimePosition";
+    EXPECT_EQ(transpositions.front().chromatic, chromatic) << label << ".chromatic";
+    EXPECT_EQ(transpositions.front().diatonic, diatonic) << label << ".diatonic";
 }
 
 mx::api::BarlineType effectiveRightBarlineType(const mx::api::MeasureData& measure)
@@ -337,6 +350,122 @@ void compareTranspositions(const mx::api::ScoreData& actual, const mx::api::Scor
     }
 }
 
+struct ComparableForPartEvent
+{
+    size_t partIndex{};
+    size_t measureIndex{};
+    int tickTimePosition{};
+    int staffIndex{};
+    int chromatic{};
+    int diatonic{};
+    bool hasPartClef{};
+
+    auto operator<=>(const ComparableForPartEvent&) const = default;
+};
+
+std::vector<ComparableForPartEvent> collectForPartEvents(const mx::api::ScoreData& score, size_t partIndex)
+{
+    std::vector<ComparableForPartEvent> result;
+    const auto& part = score.parts.at(partIndex);
+    for (size_t measureIndex = 0; measureIndex < part.measures.size(); ++measureIndex) {
+        for (const auto& forPart : part.measures[measureIndex].forParts) {
+            result.push_back({
+                partIndex,
+                measureIndex,
+                forPart.tickTimePosition,
+                forPart.staffIndex,
+                forPart.chromatic,
+                forPart.diatonic,
+                forPart.partClef.has_value(),
+            });
+        }
+    }
+    return result;
+}
+
+struct ComparableInstrumentChange
+{
+    size_t measureIndex{};
+    int tickTimePosition{};
+    mx::api::SoundID soundId{};
+
+    auto operator<=>(const ComparableInstrumentChange&) const = default;
+};
+
+std::vector<ComparableInstrumentChange> collectInstrumentChanges(const mx::api::PartData& part)
+{
+    std::vector<ComparableInstrumentChange> result;
+    for (size_t measureIndex = 0; measureIndex < part.measures.size(); ++measureIndex) {
+        for (const auto& staff : part.measures[measureIndex].staves) {
+            for (const auto& direction : staff.directions) {
+                if (direction.soundData.instrumentChange) {
+                    result.push_back({measureIndex, direction.tickTimePosition, direction.soundData.instrumentChange->soundID});
+                }
+            }
+        }
+    }
+    return result;
+}
+
+std::vector<std::pair<size_t, std::string>> collectPartNameDisplays(const mx::api::PartData& part)
+{
+    std::vector<std::pair<size_t, std::string>> result;
+    for (size_t measureIndex = 0; measureIndex < part.measures.size(); ++measureIndex) {
+        if (const auto& display = part.measures[measureIndex].partNameDisplay) {
+            result.emplace_back(measureIndex, display->text);
+        }
+    }
+    return result;
+}
+
+/// Removes the score's "Display in Concert Pitch is unchecked" flag from EnigmaXML text.
+void makeScoreConcertPitch(std::string& xml)
+{
+    const std::string scoreGlobals = "<partGlobals cmper=\"65534\">";
+    const auto scoreGlobalsPos = xml.find(scoreGlobals);
+    ASSERT_NE(scoreGlobalsPos, std::string::npos);
+    const std::string scoreTransposed = "<showTransposed/>";
+    const auto scoreTransposedPos = xml.find(scoreTransposed, scoreGlobalsPos);
+    ASSERT_NE(scoreTransposedPos, std::string::npos);
+    const auto scoreGlobalsEnd = xml.find("</partGlobals>", scoreGlobalsPos);
+    ASSERT_LT(scoreTransposedPos, scoreGlobalsEnd);
+    xml.erase(scoreTransposedPos, scoreTransposed.size());
+}
+
+/// Exports a fixture's score as Finale would show it with "Display in Concert Pitch" checked.
+std::optional<mx::api::ScoreData> createConcertPitchScoreData(const std::string& musxFile)
+{
+    const auto inputPath = getInputPath() / musxFile;
+    DenigmaContext context(DENIGMA_NAME);
+    context.inputFilePath = inputPath;
+    auto inputData = formats::enigmaxml::detail::extractMusxInputData(inputPath, context);
+    std::string xml(inputData.primaryBuffer.begin(), inputData.primaryBuffer.end());
+    makeScoreConcertPitch(xml);
+    if (::testing::Test::HasFatalFailure()) {
+        return std::nullopt;
+    }
+    inputData.primaryBuffer.assign(xml.begin(), xml.end());
+    return formats::musicxml::detail::createMusicXmlDocument(inputData, context);
+}
+
+/// Writes @p score through mx and returns the messages of any diagnostics with @p code.
+std::vector<std::string> collectWriteDiagnostics(const mx::api::ScoreData& score, mx::api::DiagnosticCode code)
+{
+    std::vector<std::string> result;
+    auto diagnostics = mx::api::Diagnostics([&](const mx::api::Diagnostic& diagnostic) {
+        if (diagnostic.code == code) {
+            result.emplace_back(mx::api::formatDiagnostic(diagnostic));
+        }
+    });
+    auto documentResult = mx::api::fromScore(score, diagnostics);
+    EXPECT_TRUE(documentResult.ok());
+    if (documentResult.ok()) {
+        std::ostringstream output;
+        EXPECT_TRUE(documentResult.value().writeToStream(output, diagnostics).ok());
+    }
+    return result;
+}
+
 } // namespace
 
 TEST(MusicXmlParts, PartGroupBracketsMatchFinaleSpans)
@@ -397,15 +526,7 @@ TEST(MusicXmlParts, LinkedPartUsesPartTranspositionView)
     readFile(inputPath, buffer);
     std::string xml(buffer.begin(), buffer.end());
 
-    const std::string scoreGlobals = "<partGlobals cmper=\"65534\">";
-    const auto scoreGlobalsPos = xml.find(scoreGlobals);
-    ASSERT_NE(scoreGlobalsPos, std::string::npos);
-    const std::string scoreTransposed = "<showTransposed/>";
-    const auto scoreTransposedPos = xml.find(scoreTransposed, scoreGlobalsPos);
-    ASSERT_NE(scoreTransposedPos, std::string::npos);
-    const auto scoreGlobalsEnd = xml.find("</partGlobals>", scoreGlobalsPos);
-    ASSERT_LT(scoreTransposedPos, scoreGlobalsEnd);
-    xml.erase(scoreTransposedPos, scoreTransposed.size());
+    ASSERT_NO_FATAL_FAILURE(makeScoreConcertPitch(xml));
 
     const std::string staffNeedle = "<staffSpec cmper=\"1\">";
     const auto staffPos = xml.find(staffNeedle);
@@ -423,11 +544,19 @@ TEST(MusicXmlParts, LinkedPartUsesPartTranspositionView)
     context.inputFilePath = inputPath;
     const auto scoreView = formats::musicxml::detail::createMusicXmlDocument(inputData, context);
     ASSERT_EQ(scoreView.parts.size(), 1u);
-    EXPECT_FALSE(scoreView.parts.front().transposition);
+    EXPECT_TRUE(scoreView.concertScore);
+    EXPECT_TRUE(scoreView.parts.front().measures.front().transpositions.empty());
+    // The forced clef is stated although it matches the score's treble clef.
+    const auto& forParts = scoreView.parts.front().measures.front().forParts;
+    ASSERT_EQ(forParts.size(), 1u);
+    EXPECT_EQ(forParts.front().chromatic, -5);
+    EXPECT_EQ(forParts.front().diatonic, -3);
+    ASSERT_TRUE(forParts.front().partClef);
+    EXPECT_EQ(forParts.front().partClef->symbol, mx::api::ClefSymbol::g);
 
     const auto partView = formats::musicxml::detail::createMusicXmlDocument(inputData, context, linkedPart);
     ASSERT_EQ(partView.parts.size(), 1u);
-    expectInitialTransposition(partView.parts.front(), -5, -3, "alto flute in G linked part");
+    expectStartingTransposition(partView.parts.front(), -5, -3, "alto flute in G linked part");
 }
 
 TEST(MusicXmlParts, BarlinesOverrideCorrectTypes)
@@ -1295,4 +1424,152 @@ TEST(MusicXmlParts, StaffLinesChangeAtNextBarline)
     // starts on beat 4 takes effect at the next barline.
     EXPECT_EQ(measures[0].staves.at(0).staffLines, mx::api::VALUE_UNSPECIFIED);
     EXPECT_EQ(measures[1].staves.at(0).staffLines, 1);
+}
+
+TEST(MusicXmlParts, InstrumentChangesMatchFinale)
+{
+    setupTestDataPaths();
+
+    const auto outputPath = exportMusicXmlFixture("instchange.musx");
+    const auto actualScore = loadScoreData(outputPath);
+    const auto expectedScore = loadScoreData(getInputPath() / "musicxml/instchange-ref.musicxml");
+    ASSERT_TRUE(actualScore);
+    ASSERT_TRUE(expectedScore);
+    ASSERT_EQ(actualScore->parts.size(), 1u);
+    ASSERT_EQ(expectedScore->parts.size(), 1u);
+
+    EXPECT_FALSE(actualScore->concertScore);
+    compareTranspositions(*actualScore, *expectedScore);
+    EXPECT_EQ(collectInstrumentChanges(actualScore->parts.front()), collectInstrumentChanges(expectedScore->parts.front()));
+    EXPECT_EQ(collectInstrumentChanges(actualScore->parts.front()), (std::vector<ComparableInstrumentChange>{
+                                                                        {3, 0, mx::api::SoundID::windReedClarinetBflat},
+                                                                        {6, 0, mx::api::SoundID::windReedEnglishHorn},
+                                                                    }));
+
+    const auto& actualPart = actualScore->parts.front();
+    EXPECT_EQ(collectPartNameDisplays(actualPart), (std::vector<std::pair<size_t, std::string>>{
+                                                       {3, "Clarinet in B\u266D"},
+                                                       {6, "English Horn"},
+                                                   }));
+    ASSERT_TRUE(actualPart.measures.at(3).partAbbreviationDisplay);
+    EXPECT_EQ(actualPart.measures.at(3).partAbbreviationDisplay->text, "B\u266D Cl.");
+    ASSERT_TRUE(actualPart.measures.at(6).partAbbreviationDisplay);
+    EXPECT_EQ(actualPart.measures.at(6).partAbbreviationDisplay->text, "E. Hn.");
+}
+
+TEST(MusicXmlParts, ConcertPitchInstrumentChangesMatchFinale)
+{
+    setupTestDataPaths();
+
+    const auto outputPath = exportMusicXmlFixture("instchange_concert.musx");
+    const auto actualScore = loadScoreData(outputPath);
+    const auto expectedScore = loadScoreData(getInputPath() / "musicxml/instchange_concert-ref.musicxml");
+    ASSERT_TRUE(actualScore);
+    ASSERT_TRUE(expectedScore);
+    ASSERT_EQ(actualScore->parts.size(), 1u);
+    ASSERT_EQ(expectedScore->parts.size(), 1u);
+
+    EXPECT_TRUE(actualScore->concertScore);
+    EXPECT_TRUE(expectedScore->concertScore);
+    compareTranspositions(*actualScore, *expectedScore);
+    EXPECT_EQ(collectInstrumentChanges(actualScore->parts.front()), collectInstrumentChanges(expectedScore->parts.front()));
+    EXPECT_EQ(collectPartNameDisplays(actualScore->parts.front()), (std::vector<std::pair<size_t, std::string>>{
+                                                                       {3, "Clarinet in B\u266D"},
+                                                                       {6, "English Horn"},
+                                                                       {9, "Piccolo"},
+                                                                       {11, "Alto Flute"},
+                                                                       {15, "Flute"},
+                                                                   }));
+
+    EXPECT_EQ(collectForPartEvents(*actualScore, 0), collectForPartEvents(*expectedScore, 0));
+    EXPECT_TRUE(collectWriteDiagnostics(*actualScore, mx::api::DiagnosticCode::specConflict).empty());
+}
+
+TEST(MusicXmlParts, ConcertPitchTranspositionsUseForPart)
+{
+    setupTestDataPaths();
+
+    const auto score = createConcertPitchScoreData("transposition.musx");
+    ASSERT_TRUE(score);
+    ASSERT_EQ(score->parts.size(), 2u);
+    EXPECT_TRUE(score->concertScore);
+
+    // The piccolo's octave is one Finale keeps written in concert pitch, so the score shows it, and
+    // the clarinet in A's for-part that follows replaces it.
+    EXPECT_EQ(collectTranspositionEvents(*score), (std::vector<ComparableTranspositionEvent>{
+                                                      {0, 1, 0, mx::api::INDEX_UNSPECIFIED, 12, 7},
+                                                  }));
+    EXPECT_EQ(collectForPartEvents(*score, 0), (std::vector<ComparableForPartEvent>{
+                                                   {0, 2, 0, mx::api::INDEX_UNSPECIFIED, -3, -2, false},
+                                               }));
+    EXPECT_EQ(collectForPartEvents(*score, 1), (std::vector<ComparableForPartEvent>{
+                                                   {1, 0, 0, mx::api::INDEX_UNSPECIFIED, -7, -4, false},
+                                                   {1, 1, 0, mx::api::INDEX_UNSPECIFIED, -9, -5, false},
+                                                   {1, 2, 0, mx::api::INDEX_UNSPECIFIED, -10, -6, false},
+                                               }));
+    EXPECT_TRUE(collectWriteDiagnostics(*score, mx::api::DiagnosticCode::specConflict).empty());
+}
+
+TEST(MusicXmlParts, ConcertPitchLargeOrchestraStatesPartClefs)
+{
+    setupTestDataPaths();
+
+    const auto score = createConcertPitchScoreData("large_orchestra.musx");
+    ASSERT_TRUE(score);
+    ASSERT_GT(score->parts.size(), 15u);
+    EXPECT_TRUE(score->concertScore);
+
+    expectStartingTransposition(score->parts.at(0), 12, 7, "piccolo");
+    EXPECT_TRUE(collectForPartEvents(*score, 0).empty()) << "piccolo";
+    EXPECT_TRUE(score->parts.at(9).measures.front().transpositions.empty()) << "clarinet in Bb";
+    EXPECT_EQ(collectForPartEvents(*score, 9), (std::vector<ComparableForPartEvent>{
+                                                   {9, 0, 0, mx::api::INDEX_UNSPECIFIED, -2, -1, false},
+                                               }));
+
+    bool hasPartClef = false;
+    for (size_t partIndex = 0; partIndex < score->parts.size(); ++partIndex) {
+        for (const auto& event : collectForPartEvents(*score, partIndex)) {
+            hasPartClef = hasPartClef || event.hasPartClef;
+        }
+    }
+    EXPECT_TRUE(hasPartClef);
+    EXPECT_TRUE(collectWriteDiagnostics(*score, mx::api::DiagnosticCode::specConflict).empty());
+}
+
+TEST(MusicXmlParts, NameVisibilityChangeRestatesBothNames)
+{
+    setupTestDataPaths();
+
+    const auto inputPath = getInputPath() / "instchange.musx";
+    DenigmaContext context(DENIGMA_NAME);
+    context.inputFilePath = inputPath;
+    auto inputData = formats::enigmaxml::detail::extractMusxInputData(inputPath, context);
+    std::string xml(inputData.primaryBuffer.begin(), inputData.primaryBuffer.end());
+
+    // A staff style that hides the names in the score over measure 2 and changes nothing else.
+    const auto assignPos = xml.find("<staffStyleAssign ");
+    ASSERT_NE(assignPos, std::string::npos);
+    xml.insert(assignPos, "<staffStyle cmper=\"3\"><hideStfNameInScore/><styleName>Hide names</styleName><mask><negNameScore/></mask></staffStyle>"
+                          "<staffStyleAssign cmper=\"1\" inci=\"2\"><style>3</style><startMeas>2</startMeas><endMeas>2</endMeas>"
+                          "<endEdu>2147483647</endEdu></staffStyleAssign>");
+    inputData.primaryBuffer.assign(xml.begin(), xml.end());
+
+    const auto score = formats::musicxml::detail::createMusicXmlDocument(inputData, context);
+    ASSERT_EQ(score.parts.size(), 1u);
+    const auto& measures = score.parts.front().measures;
+    ASSERT_GT(measures.size(), 3u);
+
+    const auto expectDisplays = [&](size_t measureIndex, const std::string& fullName, const std::string& abbreviatedName, mx::api::Bool printObject) {
+        SCOPED_TRACE("measure " + std::to_string(measureIndex + 1));
+        const auto& measure = measures.at(measureIndex);
+        ASSERT_TRUE(measure.partNameDisplay);
+        ASSERT_TRUE(measure.partAbbreviationDisplay);
+        EXPECT_EQ(measure.partNameDisplay->text, fullName);
+        EXPECT_EQ(measure.partAbbreviationDisplay->text, abbreviatedName);
+        EXPECT_EQ(measure.partNameDisplay->printData.printObject, printObject);
+        EXPECT_EQ(measure.partAbbreviationDisplay->printData.printObject, printObject);
+    };
+    expectDisplays(1, "Flute", "Fl.", mx::api::Bool::no);
+    expectDisplays(2, "Flute", "Fl.", mx::api::Bool::unspecified);
+    expectDisplays(3, "Clarinet in B♭", "B♭ Cl.", mx::api::Bool::unspecified);
 }

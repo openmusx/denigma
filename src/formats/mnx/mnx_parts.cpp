@@ -395,7 +395,10 @@ static void createStaffConfigs(const MnxMusxMappingPtr& context, const mnxdom::P
     if (const auto partTransposition = part.transposition()) {
         const auto interval = partTransposition->interval();
         baseline.transposition = {
-            interval.staffDistance(), music_theory::calcAlterationFrom12EdoHalfsteps(interval.staffDistance(), interval.halfSteps())};
+            interval.staffDistance(),
+            music_theory::calcAlterationFrom12EdoHalfsteps(interval.staffDistance(), interval.halfSteps()),
+            std::nullopt,
+        };
     }
     for (size_t x = 0; x < context->currPartStaves.size(); x++) {
         const StaffCmper staffCmper = context->currPartStaves[x];

@@ -23,20 +23,24 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <variant>
 #include <vector>
 
 #include "core/denigma.h"
 #include "denigma/classify/entries.h"
 #include "denigma/classify/expressions.h"
+#include "denigma/classify/staff_states.h"
 #include "musicxml_mapping.h"
 #include "mx/api/AccordionRegistrationData.h"
 #include "mx/api/DirectionData.h"
+#include "mx/api/ForPartData.h"
 #include "mx/api/MarkData.h"
 #include "mx/api/MeasureData.h"
 #include "mx/api/NoteData.h"
 #include "mx/api/SoundID.h"
 #include "mx/api/StaffData.h"
 #include "mx/api/TempoData.h"
+#include "mx/api/TransposeData.h"
 
 namespace denigma {
 namespace formats {
@@ -77,6 +81,26 @@ struct MusicXmlInstrumentSound
 };
 
 std::optional<MusicXmlInstrumentSound> musicXmlInstrumentSoundFromUuid(std::string_view instUuid);
+
+/// How a staff's transposition is exported: not at all, as a transposition of the file's own
+/// notation, or, in a concert score, as the transposition of the part made from it.
+using MusicXmlTransposition = std::variant<std::monostate, mx::api::TransposeData, mx::api::ForPartData>;
+
+/// Classifies @p transposition for export. @p staff is the effective staff where it applies.
+MusicXmlTransposition createMusicXmlTransposition(const MusicXmlMusxMapping& context, const classify::staff_state::Transposition& transposition,
+    const musx::dom::MusxInstance<musx::dom::others::StaffComposite>& staff);
+
+/// Instrument names as exported for a part whose top staff is @p staff.
+struct MusicXmlPartNames
+{
+    std::string fullName;        ///< Trimmed full name, which may contain line breaks.
+    std::string abbreviatedName; ///< Trimmed abbreviated name, which may contain line breaks.
+    bool isVisible{};            ///< Whether the names are shown in the exported score or part.
+
+    bool operator==(const MusicXmlPartNames&) const = default;
+};
+
+MusicXmlPartNames musicXmlPartNames(const MusicXmlMusxMapping& context, const musx::dom::MusxInstance<musx::dom::others::StaffComposite>& staff);
 mx::api::MarkData musicXmlMark(mx::api::MarkType type, musx::dom::VerticalPlacement placement);
 mx::api::MarkType musicXmlFermataType(const classify::articulation::Fermata& fermata);
 mx::api::NoteData* noteDataAt(MusicXmlMusxMapping& context, const MusicXmlNoteLocation& location);

@@ -25,6 +25,7 @@
 #include <algorithm>
 #include <string>
 #include <unordered_map>
+#include <variant>
 #include <vector>
 
 #include "utils/stringutils.h"
@@ -72,40 +73,33 @@ void populatePartMetadata(
         }
     }
 
-    const auto [transpositionDisp, transpositionAlt] = staff->calcTranspositionInterval();
-    if (transpositionDisp || transpositionAlt) {
-        const bool shouldEmitTransposition = context.finaleOptions.effectivePartGlobals->showTransposed
-                                             || (context.finaleOptions.miscOptions->keepWrittenOctaveInConcertPitch
-                                                 && music_theory::calcTranspositionIsOctave(transpositionDisp, transpositionAlt));
-        if (shouldEmitTransposition) {
-            part.transposition =
-                mx::api::TransposeData(-music_theory::calc12EdoHalfstepsInInterval(transpositionDisp, transpositionAlt), -transpositionDisp);
-            context.partIdToPitchContext[id] = MusicXmlPitchContext::Written;
-        }
+    const auto startState = classify::calcStaffState(context.document, context.forPartId, staff->getCmper(), MusicPoint{});
+    // The transposition itself is written into the first measure with the rest of the staff state.
+    if (std::holds_alternative<mx::api::TransposeData>(createMusicXmlTransposition(context, startState.transposition, staff))) {
+        context.partIdToPitchContext[id] = MusicXmlPitchContext::Written;
     }
 
     if (part.instrumentData.name.empty()) {
         part.instrumentData.name = staff->instUuid;
     }
-    const auto fullName = utils::trimAscii(staff->getFullInstrumentName(EnigmaString::AccidentalStyle::Unicode));
-    if (!fullName.empty()) {
-        part.name = utils::trimNewLineFromString(fullName);
-        if (!staff->showNamesForPart(context.finaleOptions.forPartId)) {
+    const auto names = musicXmlPartNames(context, staff);
+    if (!names.fullName.empty()) {
+        part.name = utils::trimNewLineFromString(names.fullName);
+        if (!names.isVisible) {
             part.namePrintObject = mx::api::Bool::no;
         }
-        if (part.name != fullName) {
-            part.displayName = fullName;
+        if (part.name != names.fullName) {
+            part.displayName = names.fullName;
         }
     }
 
-    const auto abbreviatedName = utils::trimAscii(staff->getAbbreviatedInstrumentName(EnigmaString::AccidentalStyle::Unicode));
-    if (!abbreviatedName.empty()) {
-        part.abbreviation = utils::trimNewLineFromString(abbreviatedName);
-        if (!staff->showNamesForPart(context.finaleOptions.forPartId)) {
+    if (!names.abbreviatedName.empty()) {
+        part.abbreviation = utils::trimNewLineFromString(names.abbreviatedName);
+        if (!names.isVisible) {
             part.abbreviationPrintObject = mx::api::Bool::no;
         }
-        if (part.abbreviation != abbreviatedName) {
-            part.displayAbbreviation = abbreviatedName;
+        if (part.abbreviation != names.abbreviatedName) {
+            part.displayAbbreviation = names.abbreviatedName;
         }
     }
 }
@@ -238,6 +232,15 @@ void createPartGroups(MusicXmlMusxMapping& context)
 }
 
 } // namespace
+
+MusicXmlPartNames musicXmlPartNames(const MusicXmlMusxMapping& context, const MusxInstance<others::StaffComposite>& staff)
+{
+    return MusicXmlPartNames{
+        utils::trimAscii(staff->getFullInstrumentName(EnigmaString::AccidentalStyle::Unicode)),
+        utils::trimAscii(staff->getAbbreviatedInstrumentName(EnigmaString::AccidentalStyle::Unicode)),
+        staff->showNamesForPart(context.finaleOptions.forPartId),
+    };
+}
 
 void createParts(MusicXmlMusxMapping& context)
 {
