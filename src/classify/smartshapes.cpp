@@ -433,7 +433,7 @@ std::optional<KeyboardPedal> classifyKeyboardPedalCustomLine(const musx::dom::Mu
 SmartShapeClassification classifySmartShape(const musx::dom::MusxInstance<musx::dom::others::SmartShape>& shape)
 {
     SmartShapeClassification result;
-    if (!shape) {
+    ASSERT_IF (!shape) {
         return result;
     }
     result.shapeType = shape->shapeType;

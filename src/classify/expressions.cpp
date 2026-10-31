@@ -1288,6 +1288,20 @@ static ExpressionClassification classifyAssignedShapeExpression(const musx::dom:
     return suppressExpression();
 }
 
+static bool assignmentExcludedByVoicing(const musx::dom::MusxInstance<musx::dom::others::MeasureExprAssign>& assignment)
+{
+    ASSERT_IF (!assignment) {
+        return false;
+    }
+    if (assignment->layer == 0) {
+        return false;
+    }
+    const musx::dom::details::GFrameHoldContext frame(
+        assignment->getDocument(), assignment->getRequestedPartId(), assignment->calcAssignedStaffId(false), assignment->getCmper());
+    const auto voicing = frame.getPolicyPartVoicing();
+    return voicing && !voicing->calcShowsLayer(assignment->layer - 1, frame && frame->calcIsMultiLayer());
+}
+
 static ExpressionClassification withScope(
     ExpressionClassification result, const musx::dom::MusxInstance<musx::dom::others::MeasureExprAssign>& assignment)
 {
@@ -1319,6 +1333,9 @@ ExpressionClassification classifyExpression(const musx::dom::MusxInstance<musx::
     const musx::dom::MusxInstance<musx::dom::others::MeasureExprAssign>& assignment)
 {
     if (assignment) {
+        if (assignmentExcludedByVoicing(assignment)) {
+            return withScope(suppressExpression(), assignment);
+        }
         return withScope(classifyAssignedTextExpression(def, assignment), assignment);
     }
     return classifyTextExpressionDefinition(def);
@@ -1328,6 +1345,9 @@ ExpressionClassification classifyExpression(const musx::dom::MusxInstance<musx::
     const musx::dom::MusxInstance<musx::dom::others::MeasureExprAssign>& assignment)
 {
     if (assignment) {
+        if (assignmentExcludedByVoicing(assignment)) {
+            return withScope(suppressExpression(), assignment);
+        }
         return withScope(classifyAssignedShapeExpression(def, assignment), assignment);
     }
     return classifyShapeExpressionDefinition(def);
@@ -1362,7 +1382,7 @@ static std::vector<ExpressionAssignmentGroup> collectAssignmentGroups(
         ASSERT_IF (!assignment) {
             continue;
         }
-        if (!includeUnshown && !assignment->calcIsAssignedInRequestedPart()) {
+        if (!includeUnshown && (!assignment->calcIsAssignedInRequestedPart() || assignmentExcludedByVoicing(assignment))) {
             continue;
         }
         if (assignment->staffGroup != 0) {
@@ -1404,11 +1424,16 @@ static std::vector<ExpressionAssignmentGroup> collectAssignmentGroups(
     return groups;
 }
 
-/// @brief Classifies a group from its floating top-staff member when it has one, else from its primary.
+/// @brief Classifies a group from its first included floating top-staff member, else its first included member.
 static ExpressionClassification classifyAssignmentGroup(const ExpressionAssignmentGroup& group)
 {
     for (const auto& member : group.members) {
-        if (assignmentUsesTopStaff(member)) {
+        if (assignmentUsesTopStaff(member) && !assignmentExcludedByVoicing(member)) {
+            return classifyExpression(member);
+        }
+    }
+    for (const auto& member : group.members) {
+        if (!assignmentExcludedByVoicing(member)) {
             return classifyExpression(member);
         }
     }
@@ -1435,7 +1460,7 @@ std::vector<ExpressionAssignmentClassification> classifyExpressionAssignments(
     for (const auto& group : collectAssignmentGroups(assignments, true)) {
         const auto classification = classifyAssignmentGroup(group);
         for (const auto& member : group.members) {
-            results.push_back({member, classification});
+            results.push_back({member, assignmentExcludedByVoicing(member) ? suppressExpression() : classification});
             results.back().classification.scope = classifyExpressionScope(member);
         }
     }

@@ -535,7 +535,8 @@ std::vector<ExpressionAssignmentGroup> groupExpressionAssignments(
 ///
 /// Every member of a staff-list group receives the group's classification (see
 /// #groupExpressionAssignments) with its own #ExpressionClassification::scope. Unlike the grouping
-/// function, this one keeps assignments not shown in the requested part.
+/// function, this one keeps assignments not shown in the requested part. Assignments on layers
+/// excluded by the active part-voicing policy receive #ExpressionType::Suppress.
 /// @param assignments Source assignments to classify.
 /// @return One assignment/classification pair for each input assignment, in input order.
 std::vector<ExpressionAssignmentClassification> classifyExpressionAssignments(
