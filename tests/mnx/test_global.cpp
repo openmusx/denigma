@@ -41,13 +41,11 @@ using namespace musx::dom;
 
 TEST(MnxGlobal, MetronomeMarkUsesDisplayedTempoWithoutPlayback)
 {
-    const classify::expression::MetronomeMark mark{
-        {"", 0, 0},
-        NoteType::Half,
-        "metNoteHalfUp",
-        2,
-        72,
-    };
+    classify::expression::MetronomeMark mark;
+    mark.noteType = NoteType::Half;
+    mark.noteGlyphName = "metNoteHalfUp";
+    mark.augmentationDots = 2;
+    mark.displayedBeatsPerMinute = 72;
 
     const auto tempo = formats::mnx::detail::mnxTempoFromMetronomeMark(mark);
     EXPECT_DOUBLE_EQ(tempo.bpm, 72);
