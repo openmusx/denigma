@@ -553,6 +553,9 @@ void processExpressions(MusicXmlMusxMapping& context, mx::api::MeasureData& meas
         }
 
         const auto classification = classify::classifyExpression(assignment);
+        if (classification.type == classify::ExpressionType::Suppress) {
+            continue;
+        }
         const auto placement = assignment->calcVerticalPlacement();
         const bool emittedFromTopStaffAssignment = isTopStaffAssignment(assignment);
         const bool isVoiceAttached = assignment->layer > 0 || assignment->voice2;

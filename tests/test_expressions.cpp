@@ -20,6 +20,7 @@
  * THE SOFTWARE.
  */
 #include <algorithm>
+#include <filesystem>
 #include <functional>
 #include <iterator>
 #include <string>
@@ -30,7 +31,10 @@
 #include "core/musx_reader.h"
 #include "denigma/classify/expressions.h"
 #include "denigma/classify/formatted_text.h"
+#include "formats/enigmaxml/enigmaxml.h"
+#include "input/input.h"
 #include "musx/musx.h"
+#include "test_utils.h"
 #include "utils/stringutils.h"
 
 using namespace denigma::classify;
@@ -1211,6 +1215,75 @@ TEST(ExpressionClassification, ScopeFollowsTheAssignment)
     EXPECT_EQ(classifyExpressionScope(bottomAssignment), ExpressionScope::BottomStaff);
 
     EXPECT_EQ(classifyExpression(context.def).scope, ExpressionScope::Unassigned);
+}
+
+TEST(ExpressionClassification, SuppressesAssignmentsOnExcludedPartLayers)
+{
+    setupTestDataPaths();
+    denigma::DenigmaContext context(DENIGMA_NAME);
+    const auto inputPath = std::filesystem::path("inputs") / "voiced_parts.musx";
+    context.inputFilePath = inputPath;
+    auto input = denigma::formats::enigmaxml::detail::extractMusxInputData(inputPath, context);
+    std::string xml(input.primaryBuffer.begin(), input.primaryBuffer.end());
+    const auto othersEnd = xml.find("</others>");
+    ASSERT_NE(othersEnd, std::string::npos);
+    xml.insert(othersEnd, R"xml(
+      <textBlock cmper="100"><textID>100</textID><textTag>expression</textTag></textBlock>
+      <textExprDef cmper="100"><textIDKey>100</textIDKey></textExprDef>
+    )xml");
+    const auto textsEnd = xml.find("</texts>");
+    ASSERT_NE(textsEnd, std::string::npos);
+    xml.insert(textsEnd, R"xml(<expression number="100">pizz.</expression>)xml");
+    input.primaryBuffer.assign(xml.begin(), xml.end());
+    constexpr Cmper layerOnePart = 1;
+    constexpr Cmper layerTwoPart = 2;
+    constexpr Cmper expressionId = 100;
+    constexpr int layerTwo = 2;
+    constexpr Cmper firstMeasure = 1;
+    constexpr StaffCmper staffId = 1;
+    constexpr int staffGroup = 1;
+    constexpr Cmper singleLayerPart = 4;
+    constexpr Cmper emptyMeasure = 25;
+    constexpr int layerOne = 1;
+    for (const auto policy : {PartVoicingPolicy::Apply, PartVoicingPolicy::Ignore}) {
+        const auto document = denigma::createMusxDocument<denigma::MusxReader>(input, context, policy);
+        for (const auto partId : {SCORE_PARTID, layerOnePart, layerTwoPart}) {
+            const auto makeAssignment = [&](int layer, Inci inci) {
+                auto assignment = std::make_shared<others::MeasureExprAssign>(document, partId, EnigmaBase::ShareMode::All, firstMeasure, inci);
+                assignment->textExprId = expressionId;
+                assignment->staffAssign = staffId;
+                assignment->layer = layer;
+                assignment->staffGroup = staffGroup;
+                return MusxInstance<others::MeasureExprAssign>(assignment);
+            };
+            const auto layerAssignment = makeAssignment(layerTwo, Inci{0});
+            const auto allLayersAssignment = makeAssignment(0, Inci{1});
+            const bool excluded = policy == PartVoicingPolicy::Apply && partId == layerOnePart;
+            const auto expected = excluded ? ExpressionType::Suppress : ExpressionType::TechniqueText;
+            EXPECT_EQ(classifyExpression(layerAssignment).type, expected);
+            EXPECT_EQ(
+                classifyExpression(document->getOthers()->get<others::TextExpressionDef>(partId, expressionId), layerAssignment).type, expected);
+            EXPECT_EQ(classifyExpression(allLayersAssignment).type, ExpressionType::TechniqueText);
+            MusxInstanceList<others::MeasureExprAssign> assignments(document, partId);
+            assignments.push_back(layerAssignment);
+            assignments.push_back(allLayersAssignment);
+            const auto flat = classifyExpressionAssignments(assignments);
+            ASSERT_EQ(flat.size(), 2u);
+            EXPECT_EQ(flat.front().classification.type, expected);
+            EXPECT_EQ(flat.back().classification.type, ExpressionType::TechniqueText);
+            const auto groups = groupExpressionAssignments(assignments);
+            ASSERT_EQ(groups.size(), 1u);
+            EXPECT_EQ(groups.front().members.size(), excluded ? 1u : 2u);
+            EXPECT_EQ(groups.front().classification.type, ExpressionType::TechniqueText);
+        }
+        auto emptyAssignment =
+            std::make_shared<others::MeasureExprAssign>(document, singleLayerPart, EnigmaBase::ShareMode::All, emptyMeasure, Inci{0});
+        emptyAssignment->textExprId = expressionId;
+        emptyAssignment->staffAssign = staffId;
+        emptyAssignment->layer = layerOne;
+        EXPECT_EQ(
+            classifyExpression(emptyAssignment).type, policy == PartVoicingPolicy::Apply ? ExpressionType::Suppress : ExpressionType::TechniqueText);
+    }
 }
 
 TEST(ExpressionClassification, GroupsAssignmentsByStaffGroupAndNamesThemByLowestInci)

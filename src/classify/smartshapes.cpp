@@ -433,10 +433,24 @@ std::optional<KeyboardPedal> classifyKeyboardPedalCustomLine(const musx::dom::Mu
 SmartShapeClassification classifySmartShape(const musx::dom::MusxInstance<musx::dom::others::SmartShape>& shape)
 {
     SmartShapeClassification result;
-    if (!shape) {
+    ASSERT_IF (!shape) {
         return result;
     }
     result.shapeType = shape->shapeType;
+    const auto excludedByVoicing = [&](const musx::dom::smartshape::EndPoint& endpoint) {
+        const auto entry = shape->getDocument()->getEntries()->get(endpoint.entryNumber);
+        if (!entry || !entry->location.found()) {
+            return false;
+        }
+        const auto& location = entry->location;
+        const musx::dom::details::GFrameHoldContext frame(shape->getDocument(), shape->getRequestedPartId(), location.staffId, location.measureId);
+        return frame && !frame.calcPolicyVoicingIncludesLayer(location.layerIndex);
+    };
+    // Excluded layers have no entry frame in the part, but their shapes remain in the shared pool.
+    if (excludedByVoicing(*shape->startTermSeg->endPoint) || excludedByVoicing(*shape->endTermSeg->endPoint)) {
+        result.value = Suppress{};
+        return result;
+    }
     if (!shape->calcIsValid()) {
         return result;
     }
