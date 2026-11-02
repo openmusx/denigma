@@ -60,9 +60,8 @@ bool shouldEmitJumpForStaff(
         return true;
     }
 
-    // A null system means the part's layout is uncalculated (or no system covers the measure), so the
-    // staff list cannot be evaluated. Emitting for every staff is the permissive fallback.
-    const auto system = context.systemForMeasure(assignment->getCmper());
+    // Without a system, the staff list cannot be evaluated. Emitting for every staff is the permissive fallback.
+    const auto system = context.document->calcSystemFromMeasure(context.forPartId, assignment->getCmper());
     if (!system) {
         return true;
     }
