@@ -81,6 +81,7 @@ endfunction()
         musicxml/test_converter.cpp
         musicxml/test_defaults.cpp
         musicxml/test_expressions.cpp
+        musicxml/test_jumps.cpp
         musicxml/test_lyrics.cpp
         musicxml/test_metadata.cpp
         musicxml/test_notes.cpp

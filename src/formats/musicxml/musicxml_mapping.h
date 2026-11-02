@@ -21,7 +21,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
-#include <optional>
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
@@ -153,20 +152,14 @@ struct MusicXmlMusxMapping
     musx::dom::PitchMode pitchMode;
     mx::api::PartData* currentPart{};
 
-    /// True when Finale calculated this part's page layout. When false, nothing that resolves a
-    /// measure to a system or a system to a page can be trusted: Finale retains zero-valued
-    /// placeholders in others::StaffSystem and others::Page until a linked part's layout is updated.
-    /// Saved geometry and saved per-measure flags remain valid either way.
+    /// True when Finale calculated this part's page layout. System-lock export requires a calculated
+    /// layout; system lookup by positive start measures is independent of this state.
     bool partLayoutIsCalculated{};
 
     /// Chord assignments in this document asking for a fretboard drawn with the fretboard font,
     /// which carries no fret positions and so cannot become a MusicXML frame. Document-scoped, so
     /// #clearCurrent leaves it alone.
     int fontFretboardChordCount{};
-
-    /// Lazily fetched backing store for #systemForMeasure. Callers previously hoisted this array out
-    /// of their loops; caching it here keeps the shared lookup equally cheap per call.
-    mutable std::optional<musx::dom::MusxInstanceList<musx::dom::others::StaffSystem>> cachedStaffSystems;
 
     MusicXmlTimingPlan timing;
     MusicXmlCurrentLocation current;
@@ -203,10 +196,6 @@ struct MusicXmlMusxMapping
         deferredArpeggioCandidates.clear();
         deferredArpeggioCandidateKeys.clear();
     }
-
-    /// Returns the staff system containing @p measureId, or a null instance when this part's layout
-    /// is uncalculated (see #partLayoutIsCalculated) or no system covers the measure.
-    musx::dom::MusxInstance<musx::dom::others::StaffSystem> systemForMeasure(musx::dom::MeasCmper measureId) const;
 
     double musicXmlTenthsFromEvpu(double evpu, double backoutScaling = 1.0) const;
     double musicXmlTenthsFromEfix(double efix, double backoutScaling = 1.0) const;

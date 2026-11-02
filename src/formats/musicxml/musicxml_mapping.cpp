@@ -38,30 +38,8 @@ MusicXmlMusxMapping::MusicXmlMusxMapping(const DenigmaContext& context, const mu
     if (pitchMode == PitchMode::CurrentView) {
         pitchMode = finaleOptions.effectivePartGlobals->showTransposed ? PitchMode::Written : PitchMode::ConcertWithOctavePreference;
     }
-    // Mirror musxdom's own guards (Document::calcPageFromMeasure and calcSystemFromMeasure) and
-    // treat a missing PartDefinition as uncalculated.
     const auto part = doc->getOthers()->get<musx::dom::others::PartDefinition>(musx::dom::SCORE_PARTID, partId);
     partLayoutIsCalculated = part && part->isLayoutCalculated();
-}
-
-musx::dom::MusxInstance<musx::dom::others::StaffSystem> MusicXmlMusxMapping::systemForMeasure(musx::dom::MeasCmper measureId) const
-{
-    // An uncalculated layout leaves zero-valued startMeas placeholders, which would defeat the scan
-    // below: it would never break out, so every measure would resolve to the last system.
-    if (!partLayoutIsCalculated) {
-        return {};
-    }
-    if (!cachedStaffSystems) {
-        cachedStaffSystems = document->getOthers()->getArray<musx::dom::others::StaffSystem>(forPartId);
-    }
-    musx::dom::MusxInstance<musx::dom::others::StaffSystem> result;
-    for (const auto& system : *cachedStaffSystems) {
-        if (system->startMeas > measureId) {
-            break;
-        }
-        result = system;
-    }
-    return result;
 }
 
 mx::api::NoteData* noteDataAt(MusicXmlMusxMapping& context, const MusicXmlNoteLocation& location)
