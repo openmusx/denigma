@@ -37,6 +37,8 @@ struct Options final : public IOptions
     /// Options common to all converters.
     CommonOptions common;
     bool includeTempoTool{false};
+    /// Preserve Finale's display setting or override it; concert mode retains Finale's octave preference.
+    PitchDisplayMode pitchDisplayMode{PitchDisplayMode::Preserve};
     /// Shift non-floating whole rests to the SMuFL glyph-origin position.
     /// Preserve Finale's nominal position for non-floating whole rests instead of using the SMuFL default.
     bool useFinaleRestPosition{false};

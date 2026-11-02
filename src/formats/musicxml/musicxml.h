@@ -73,7 +73,6 @@ inline int musicXmlFloatingAnchorVoiceNumber(size_t staffIndex)
     return floatingAnchorVoiceBase + static_cast<int>(staffIndex) + 1;
 }
 
-MusicXmlPitchContext pitchContextForPart(const MusicXmlMusxMapping& context, const std::string& partId);
 struct MusicXmlInstrumentSound
 {
     mx::api::SoundID soundId{};

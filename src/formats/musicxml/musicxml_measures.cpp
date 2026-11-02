@@ -353,7 +353,7 @@ mx::api::TimeChoice createTimeChoice(const MusxInstance<TimeSignature>& timeSign
 }
 
 int musicXmlKeyFifths(const MusicXmlMusxMapping& context, const MusxInstance<KeySignature>& keySignature, MeasCmper measureId,
-    MusicXmlPitchContext pitchContext, bool staffHidesKeySignature)
+    KeySignature::KeyContext keyContext, bool staffHidesKeySignature)
 {
     if (keySignature->keyless || keySignature->hideKeySigShowAccis || staffHidesKeySignature) {
         return 0;
@@ -365,7 +365,7 @@ int musicXmlKeyFifths(const MusicXmlMusxMapping& context, const MusxInstance<Key
     if (!keySignature->isLinear()) {
         return 0;
     }
-    return keySignature->getAlteration(enumConvert<KeySignature::KeyContext>(pitchContext));
+    return keySignature->getAlteration(keyContext);
 }
 
 mx::api::Accidental musicXmlAccidentalFor12EdoAlteration(int alteration)
@@ -417,7 +417,7 @@ void populateNonTraditional12EdoKey(
 }
 
 mx::api::KeyData createKeyData(const MusicXmlMusxMapping& context, const MusxInstance<KeySignature>& keySignature, MeasCmper measureId,
-    MusicXmlPitchContext pitchContext, bool staffHidesKeySignature)
+    KeySignature::KeyContext keyContext, bool staffHidesKeySignature)
 {
     auto key = mx::api::KeyData{};
     const bool keySignatureIsVisible = !(keySignature->keyless || keySignature->hideKeySigShowAccis || staffHidesKeySignature);
@@ -425,7 +425,7 @@ mx::api::KeyData createKeyData(const MusicXmlMusxMapping& context, const MusxIns
         populateNonTraditional12EdoKey(context, keySignature, measureId, key);
         return key;
     }
-    key.fifths = musicXmlKeyFifths(context, keySignature, measureId, pitchContext, staffHidesKeySignature);
+    key.fifths = musicXmlKeyFifths(context, keySignature, measureId, keyContext, staffHidesKeySignature);
     key.mode = musicXmlKeyModeFromMusxKeySignature(keySignature, staffHidesKeySignature);
     return key;
 }
@@ -445,14 +445,16 @@ bool keyDataChanged(const std::optional<mx::api::KeyData>& previous, const mx::a
 }
 
 void assignKeySignatures(const MusicXmlMusxMapping& context, mx::api::MeasureData& measure, const MusxInstance<others::Measure>& musxMeasure,
-    const std::vector<StaffCmper>& staves, MusicXmlPitchContext pitchContext, std::vector<std::optional<mx::api::KeyData>>& prevKeyData)
+    const std::vector<StaffCmper>& staves, std::vector<std::optional<mx::api::KeyData>>& prevKeyData)
 {
     std::vector<mx::api::KeyData> currentKeyData;
     currentKeyData.reserve(staves.size());
     for (size_t staffIndex = 0; staffIndex < staves.size(); ++staffIndex) {
         const auto staff = others::StaffComposite::createCurrent(context.document, context.forPartId, staves[staffIndex], musxMeasure->getCmper(), 0);
-        auto key = createKeyData(context, musxMeasure->createKeySignature(staves[staffIndex]), musxMeasure->getCmper(), pitchContext,
-            staff && staff->hideKeySigsShowAccis);
+        const auto keyContext =
+            staff && staff->calcUsesWrittenPitch(context.pitchMode) ? KeySignature::KeyContext::Written : KeySignature::KeyContext::Concert;
+        auto key = createKeyData(
+            context, musxMeasure->createKeySignature(staves[staffIndex]), musxMeasure->getCmper(), keyContext, staff && staff->hideKeySigsShowAccis);
         key.staffIndex = static_cast<int>(staffIndex);
         currentKeyData.emplace_back(key);
     }
@@ -465,10 +467,6 @@ void assignKeySignatures(const MusicXmlMusxMapping& context, mx::api::MeasureDat
     for (size_t index = 0; index < currentKeyData.size(); ++index) {
         shouldEmit = shouldEmit || keyDataChanged(prevKeyData[index], currentKeyData[index]);
     }
-    if (!shouldEmit) {
-        return;
-    }
-
     bool allStavesShareKey = true;
     for (size_t index = 1; index < currentKeyData.size(); ++index) {
         if (!keyDataEqualIgnoringStaffIndex(currentKeyData.front(), currentKeyData[index])) {
@@ -477,11 +475,11 @@ void assignKeySignatures(const MusicXmlMusxMapping& context, mx::api::MeasureDat
         }
     }
 
-    if (allStavesShareKey && !currentKeyData.empty()) {
+    if (shouldEmit && allStavesShareKey && !currentKeyData.empty()) {
         auto key = currentKeyData.front();
         key.staffIndex = -1;
         measure.keys.emplace_back(key);
-    } else {
+    } else if (shouldEmit) {
         for (const auto& key : currentKeyData) {
             measure.keys.emplace_back(key);
         }
@@ -586,7 +584,7 @@ void assignTimeSignature(const MusicXmlMusxMapping& context, mx::api::MeasureDat
 }
 
 void assignClefs(MusicXmlMusxMapping& context, mx::api::StaffData& staff, StaffCmper staffId, const MusxInstance<others::Measure>& musxMeasure,
-    MusicXmlPitchContext pitchContext, std::optional<ClefIndex>& prevClefIndex)
+    std::optional<ClefIndex>& prevClefIndex)
 {
     const auto& musxDocument = musxMeasure->getDocument();
     const auto measureStartStaff = others::StaffComposite::createCurrent(musxDocument, context.forPartId, staffId, musxMeasure->getCmper(), 0);
@@ -638,11 +636,27 @@ void assignClefs(MusicXmlMusxMapping& context, mx::api::StaffData& staff, StaffC
         prevClefIndex = clefIndex;
     };
 
-    measureStartStaff->iterateClefChangesAtMeasure(
-        musxMeasure->getCmper(), pitchContext == MusicXmlPitchContext::Written, [&](const others::Staff::ClefChange& clefChange) {
-            addClef(clefChange);
+    std::map<Fraction, std::array<std::optional<others::Staff::ClefChange>, 2>> changes;
+    for (const bool written : {false, true}) {
+        measureStartStaff->iterateClefChangesAtMeasure(musxMeasure->getCmper(), written, [&](const others::Staff::ClefChange& change) {
+            changes[change.position][written ? 1 : 0] = change;
             return true;
         });
+    }
+    for (const auto& [position, views] : changes) {
+        const auto staffAtChange =
+            others::StaffComposite::createCurrent(context.document, context.forPartId, staffId, musxMeasure->getCmper(), position.calcEduDuration());
+        const bool written = staffAtChange->calcUsesWrittenPitch(context.pitchMode);
+        if (const auto& selected = views[written ? 1 : 0]) {
+            addClef(*selected);
+        } else {
+            others::Staff::ClefChange change;
+            change.position = position;
+            change.clefIndex = staffAtChange->calcClefIndex(written);
+            change.showClefMode = ShowClefMode::WhenNeeded;
+            addClef(change);
+        }
+    }
 }
 
 /// Writes each change of the part's instrument as a new sound for the part's one MusicXML instrument.
@@ -899,8 +913,7 @@ void processMeasureText(MusicXmlMusxMapping& context, mx::api::StaffData& staff,
     }
 }
 
-void processChords(MusicXmlMusxMapping& context, mx::api::StaffData& staff, const MusxInstance<others::Measure>& musxMeasure, StaffCmper staffId,
-    MusicXmlPitchContext pitchContext)
+void processChords(MusicXmlMusxMapping& context, mx::api::StaffData& staff, const MusxInstance<others::Measure>& musxMeasure, StaffCmper staffId)
 {
     const auto assignments = context.document->getDetails()->getArray<details::ChordAssign>(context.forPartId, staffId, musxMeasure->getCmper());
     if (assignments.empty()) {
@@ -915,7 +928,9 @@ void processChords(MusicXmlMusxMapping& context, mx::api::StaffData& staff, cons
         return;
     }
 
-    const auto keyContext = enumConvert<KeySignature::KeyContext>(pitchContext);
+    const auto staffAtMeasure = others::StaffComposite::createCurrent(context.document, context.forPartId, staffId, musxMeasure->getCmper(), 0);
+    const auto keyContext = staffAtMeasure && staffAtMeasure->calcUsesWrittenPitch(context.pitchMode) ? KeySignature::KeyContext::Written
+                                                                                                      : KeySignature::KeyContext::Concert;
     for (const auto& [assignment, position, classification] : classify::classifyChordAssignments(assignments, keySignature, keyContext)) {
         if (!classification.showRoot) {
             continue;
@@ -1170,7 +1185,6 @@ void createMeasuresForPart(MusicXmlMusxMapping& context, mx::api::PartData& part
     std::vector<std::optional<mx::api::KeyData>> prevKeyData(stavesIt->second.size());
     std::vector<std::optional<ClefIndex>> prevClefIndices(stavesIt->second.size());
     std::vector<std::optional<mx::api::TimeChoice>> prevTimeSigs(stavesIt->second.size());
-    const auto pitchContext = pitchContextForPart(context, part.uniqueId);
     const auto partSymbolIt = context.partIdToPartSymbol.find(part.uniqueId);
     for (size_t measureIndex = 0; measureIndex < musxMeasures.size(); ++measureIndex) {
         const auto& musxMeasure = musxMeasures[measureIndex];
@@ -1188,7 +1202,7 @@ void createMeasuresForPart(MusicXmlMusxMapping& context, mx::api::PartData& part
         /// @todo Export effective staff alternate-notation starts/stops here once mx::api exposes
         /// staff-scoped measure styles for measure repeats and slash notation.
         addMeasureNumber(context, measure, musxMeasure, stavesIt->second, scoreStaves);
-        assignKeySignatures(context, measure, musxMeasure, stavesIt->second, pitchContext, prevKeyData);
+        assignKeySignatures(context, measure, musxMeasure, stavesIt->second, prevKeyData);
         assignTimeSignature(context, measure, musxMeasure, stavesIt->second, prevTimeSigs);
         // The brace or bracket belongs to the part, not to each of its measures. MusicXML carries it
         // in the first measure's <attributes>, where it stays in effect for the rest of the part.
@@ -1200,7 +1214,7 @@ void createMeasuresForPart(MusicXmlMusxMapping& context, mx::api::PartData& part
         for (size_t staffIndex = 0; staffIndex < stavesIt->second.size(); ++staffIndex) {
             const StaffCmper staffId = stavesIt->second[staffIndex];
             auto& staff = measure.staves[staffIndex];
-            assignClefs(context, staff, staffId, musxMeasure, pitchContext, prevClefIndices[staffIndex]);
+            assignClefs(context, staff, staffId, musxMeasure, prevClefIndices[staffIndex]);
             const auto musxStaffAtEnd = others::StaffComposite::createCurrent(
                 context.document, context.forPartId, staffId, musxMeasure->getCmper(), musxMeasure->calcDuration(staffId).calcEduDuration());
             assignBarlines(context, measure, musxMeasure, isFinalMeasure, musxStaffAtEnd);
@@ -1219,7 +1233,7 @@ void createMeasuresForPart(MusicXmlMusxMapping& context, mx::api::PartData& part
         for (size_t staffIndex = 0; staffIndex < stavesIt->second.size(); ++staffIndex) {
             const StaffCmper staffId = stavesIt->second[staffIndex];
             auto& staff = measure.staves[staffIndex];
-            processChords(context, staff, musxMeasure, staffId, pitchContext);
+            processChords(context, staff, musxMeasure, staffId);
             processMeasureText(context, staff, musxMeasure, staffId);
             processJumps(context, staff, musxMeasure, staffId, staffIndex);
             processExpressions(context, measure, staff, musxMeasure, staffId, staffIndex);
@@ -1246,9 +1260,7 @@ MusicXmlTransposition createMusicXmlTransposition(
 
     // A transposed document shows written pitch, as does a concert-pitch document for an octave
     // transposition Finale keeps written. Every other interval is the part's, not the score's.
-    if (context.finaleOptions.effectivePartGlobals->showTransposed
-        || (hasInterval && context.finaleOptions.miscOptions->keepWrittenOctaveInConcertPitch
-            && music_theory::calcTranspositionIsOctave(displacement, alteration))) {
+    if (staff->calcUsesWrittenPitch(context.pitchMode)) {
         if (hasInterval) {
             return mx::api::TransposeData(chromatic, diatonic);
         }

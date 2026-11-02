@@ -196,11 +196,6 @@ BEGIN_ENUM_CONVERSION(smufl_mapping::MusicFontStyle, MusicXmlFontFamilyFallback)
     case smufl_mapping::MusicFontStyle::Handwritten: return MusicXmlFontFamilyFallback::Handwritten;
 END_ENUM_CONVERSION
 
-BEGIN_ENUM_CONVERSION(MusicXmlPitchContext, KeySignature::KeyContext)
-    case MusicXmlPitchContext::Concert: return KeySignature::KeyContext::Concert;
-    case MusicXmlPitchContext::Written: return KeySignature::KeyContext::Written;
-END_ENUM_CONVERSION
-
 BEGIN_ENUM_CONVERSION(music_theory::NoteName, mx::api::Step)
     case music_theory::NoteName::A: return mx::api::Step::a;
     case music_theory::NoteName::B: return mx::api::Step::b;
@@ -261,6 +256,12 @@ BEGIN_ENUM_CONVERSION(classify::notehead::Shape, mx::api::Notehead)
     case classify::notehead::Shape::Circled: return mx::api::Notehead::circled;
     case classify::notehead::Shape::Other: return mx::api::Notehead::other;
     case classify::notehead::Shape::Unclassified: break; // causes a throw; callers must not convert an unclassified shape
+END_ENUM_CONVERSION
+
+BEGIN_ENUM_CONVERSION(PitchDisplayMode, PitchMode)
+    case PitchDisplayMode::Preserve: return PitchMode::CurrentView;
+    case PitchDisplayMode::Written: return PitchMode::Written;
+    case PitchDisplayMode::Concert: return PitchMode::ConcertWithOctavePreference;
 END_ENUM_CONVERSION
 
 BEGIN_ENUM_CONVERSION(options::RepeatOptions::WingStyle, mx::api::RepeatWinged)

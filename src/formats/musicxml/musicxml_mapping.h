@@ -70,11 +70,6 @@ enum class MusicXmlFontScaling {
     Page
 };
 
-enum class MusicXmlPitchContext {
-    Concert,
-    Written
-};
-
 struct MusicXmlTimingPlan
 {
     int divisions{};
@@ -147,14 +142,7 @@ inline std::uint64_t musicXmlMeasureStaffKey(musx::dom::MeasCmper measure, musx:
 
 struct MusicXmlMusxMapping
 {
-    MusicXmlMusxMapping(const DenigmaContext& context, const musx::dom::DocumentPtr& doc, musx::dom::Cmper partId)
-        : denigmaContext(&context), document(doc), finaleOptions(loadFinaleOptions(doc, partId)), forPartId(partId)
-    {
-        // Mirror musxdom's own guards (Document::calcPageFromMeasure and calcSystemFromMeasure) and
-        // treat a missing PartDefinition as uncalculated.
-        const auto part = doc->getOthers()->get<musx::dom::others::PartDefinition>(musx::dom::SCORE_PARTID, partId);
-        partLayoutIsCalculated = part && part->isLayoutCalculated();
-    }
+    MusicXmlMusxMapping(const DenigmaContext& context, const musx::dom::DocumentPtr& doc, musx::dom::Cmper partId);
 
     const DenigmaContext* denigmaContext;
     musx::dom::DocumentPtr document;
@@ -162,6 +150,7 @@ struct MusicXmlMusxMapping
     FinaleOptions finaleOptions;
     std::unique_ptr<mx::api::ScoreData> musicXmlScore;
     musx::dom::Cmper forPartId;
+    musx::dom::PitchMode pitchMode;
     mx::api::PartData* currentPart{};
 
     /// True when Finale calculated this part's page layout. When false, nothing that resolves a
@@ -186,7 +175,6 @@ struct MusicXmlMusxMapping
     std::unordered_map<musx::dom::StaffCmper, std::string> staffToPartId;
     std::unordered_map<std::string, std::vector<musx::dom::StaffCmper>> partIdToStaves;
     std::unordered_map<std::string, mx::api::PartSymbolData> partIdToPartSymbol;
-    std::unordered_map<std::string, MusicXmlPitchContext> partIdToPitchContext;
     std::unordered_map<musx::dom::EntryNumber, MusicXmlNoteLocation> entryNumberToFirstNote;
     std::unordered_map<std::uint64_t, MusicXmlNoteLocation> noteLocations;
     std::unordered_map<musx::dom::EntryNumber, std::vector<mx::api::LyricData>> pendingLyricStops;

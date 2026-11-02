@@ -1573,3 +1573,59 @@ TEST(MusicXmlParts, NameVisibilityChangeRestatesBothNames)
     expectDisplays(2, "Flute", "Fl.", mx::api::Bool::unspecified);
     expectDisplays(3, "Clarinet in B♭", "B♭ Cl.", mx::api::Bool::unspecified);
 }
+
+TEST(MusicXmlParts, ConcertOverrideRetainsUnisonClefWithOctavePreference)
+{
+    setupTestDataPaths();
+    Buffer buffer;
+    readFile(getInputPath() / "reference" / utils::utf8ToPath("notAscii-其れ.enigmaxml"), buffer);
+    for (const bool retainOctaves : {false, true}) {
+        SCOPED_TRACE(retainOctaves);
+        pugi::xml_document document;
+        ASSERT_TRUE(document.load_buffer(buffer.data(), buffer.size()));
+        auto staff = document.select_node("//staffSpec[@cmper='1']").node();
+        ASSERT_TRUE(staff);
+        staff.append_child("transposedClef").text().set(static_cast<musx::dom::ClefIndex>(musx::dom::DefaultClefType::Bass));
+        auto transposition = staff.append_child("transposition");
+        transposition.append_child("setToClef");
+        auto key = transposition.append_child("keysig");
+        key.append_child("interval").text().set(0);
+        key.append_child("adjust").text().set(0);
+        auto misc = document.select_node("//miscOptions").node();
+        ASSERT_TRUE(misc);
+        misc.remove_child("retainOctaveTransInConcertPitch");
+        if (retainOctaves) {
+            misc.append_child("retainOctaveTransInConcertPitch");
+        }
+        std::ostringstream stream;
+        document.save(stream);
+        const auto xml = stream.str();
+        CommandInputData input;
+        input.primaryBuffer.assign(xml.begin(), xml.end());
+        DenigmaContext context(DENIGMA_NAME);
+        context.pitchDisplayMode = PitchDisplayMode::Concert;
+        const auto concert = formats::musicxml::detail::createMusicXmlDocument(input, context);
+        EXPECT_TRUE(concert.concertScore);
+        const auto& measure = concert.parts.front().measures.front();
+        const auto& clefs = measure.staves.front().clefs;
+        ASSERT_FALSE(clefs.empty());
+        EXPECT_EQ(clefs.front().symbol, retainOctaves ? mx::api::ClefSymbol::f : mx::api::ClefSymbol::g);
+        EXPECT_EQ(measure.forParts.empty(), retainOctaves);
+        context.pitchDisplayMode = PitchDisplayMode::Written;
+        const auto written = formats::musicxml::detail::createMusicXmlDocument(input, context);
+        EXPECT_FALSE(written.concertScore);
+        const auto& concertVoices = measure.staves.front().voices;
+        for (const auto& [voiceId, voice] : written.parts.front().measures.front().staves.front().voices) {
+            const auto& concertNotes = concertVoices.at(voiceId).notes;
+            ASSERT_EQ(voice.notes.size(), concertNotes.size());
+            for (size_t index = 0; index < voice.notes.size(); ++index) {
+                if (voice.notes[index].isRest) {
+                    continue;
+                }
+                EXPECT_EQ(voice.notes[index].pitchData.step, concertNotes[index].pitchData.step);
+                EXPECT_EQ(voice.notes[index].pitchData.alter, concertNotes[index].pitchData.alter);
+                EXPECT_EQ(voice.notes[index].pitchData.octave, concertNotes[index].pitchData.octave);
+            }
+        }
+    }
+}

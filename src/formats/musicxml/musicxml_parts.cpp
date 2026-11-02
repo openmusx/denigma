@@ -64,19 +64,12 @@ void populatePartMetadata(
     part.uniqueId = id;
     part.instrumentData.uniqueId = id + "-I1";
     part.instrumentData.name = staff->getPlaybackRouteName();
-    context.partIdToPitchContext[id] = MusicXmlPitchContext::Concert;
     if (const auto sound = musicXmlInstrumentSoundFromUuid(staff->instUuid)) {
         part.instrumentData.soundID = sound->soundId;
         part.instrumentData.soloOrEnsemble = enumConvert<mx::api::SoloOrEnsemble>(sound->soloOrEnsemble);
         if (part.instrumentData.name.empty()) {
             part.instrumentData.name = mx::api::SoundIDToString(sound->soundId);
         }
-    }
-
-    const auto startState = classify::calcStaffState(context.document, context.forPartId, staff->getCmper(), MusicPoint{});
-    // The transposition itself is written into the first measure with the rest of the staff state.
-    if (std::holds_alternative<mx::api::TransposeData>(createMusicXmlTransposition(context, startState.transposition, staff))) {
-        context.partIdToPitchContext[id] = MusicXmlPitchContext::Written;
     }
 
     if (part.instrumentData.name.empty()) {
@@ -249,7 +242,6 @@ void createParts(MusicXmlMusxMapping& context)
     context.musicXmlScore->partGroups.clear();
     context.staffToPartId.clear();
     context.partIdToStaves.clear();
-    context.partIdToPitchContext.clear();
 
     const auto scrollView = context.document->getScrollViewStaves(context.forPartId);
     const std::string scorePartGroup = context.forPartId == SCORE_PARTID ? "score" : "part";
