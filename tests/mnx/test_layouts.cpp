@@ -25,6 +25,7 @@
 #include <string>
 
 #include "core/denigma.h"
+#include "formats/mnx/mnx.h"
 #include "mnxdom.h"
 #include "test_utils.h"
 #include "gtest/gtest.h"
@@ -371,4 +372,17 @@ TEST(MnxLayouts, StaffStyleLabelsKeepUnicodeAccidentals)
         }
     }
     EXPECT_TRUE(foundClarinetLabel);
+}
+
+TEST(MnxLayouts, DistinguishesSquareBracketsBracesAndOrdinaryBrackets)
+{
+    using namespace denigma::formats::mnx::detail;
+    using Style = musx::dom::details::Bracket::BracketStyle;
+    mnx::Document doc;
+    auto layout = doc.ensure_layouts().append();
+    auto group = layout.create_content().appendGroup();
+    group.set_symbol(enumConvert<mnx::LayoutSymbol>(Style::DeskBracket));
+    EXPECT_EQ(nlohmann::json::parse(group.dump())["symbol"], "square");
+    EXPECT_EQ(enumConvert<mnx::LayoutSymbol>(Style::PianoBrace), mnx::LayoutSymbol::Brace);
+    EXPECT_EQ(enumConvert<mnx::LayoutSymbol>(Style::BracketStraightHooks), mnx::LayoutSymbol::Bracket);
 }

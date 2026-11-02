@@ -14,6 +14,7 @@ import { pathToFileURL } from 'node:url';
 
 const defaultSample = resolve(import.meta.dirname, '..', 'data', 'inputs', 'voiced_parts.musx');
 const chordSample = resolve(import.meta.dirname, '..', 'data', 'inputs', 'chords.musx');
+const techniqueSample = resolve(import.meta.dirname, '..', 'data', 'inputs', 'techniques.musx');
 const noteheadSample = resolve(import.meta.dirname, '..', 'data', 'inputs', 'note_shapes.musx');
 const arrowheadSample = resolve(import.meta.dirname, '..', 'data', 'inputs', 'custom_arrowheads.enigmaxml.zip');
 // Each needs more than Emscripten's default 64 KiB stack to export as MusicXML.
@@ -284,7 +285,7 @@ withInput(chordInput, 'chords.musx', (dataPointer, namePointer) => {
       throw new Error(`MNX output declares schema ${mnxDocument.mnx.version}; the module reports ${mnxSchemaVersion}.`);
     }
     const report = gapReport(result);
-    if (report.schemaVersion !== 1) {
+    if (report.schemaVersion !== 2) {
       throw new Error('Chord gap report has invalid envelope metadata.');
     }
     const chordGaps = report.gaps.filter((gap) => gap.type === 'chord-symbol');
@@ -309,6 +310,37 @@ withInput(chordInput, 'chords.musx', (dataPointer, namePointer) => {
     console.log('MNX without gap report: no report returned.');
   } finally {
     Module._denigma_result_destroy(skipped);
+  }
+});
+
+const techniqueInput = await readFile(techniqueSample);
+withInput(techniqueInput, 'techniques.musx', (dataPointer, namePointer) => {
+  const result = convert(dataPointer, techniqueInput.byteLength, namePointer, FORMAT_MNX);
+  try {
+    if (!Module._denigma_result_success(result)) throw new Error(`Text MNX conversion failed:\n${messages(result)}`);
+    const pointer = Module._denigma_result_output_data(result, 0);
+    const size = Module._denigma_result_output_size(result, 0);
+    const document = JSON.parse(new TextDecoder().decode(Module.HEAPU8.slice(pointer, pointer + size)));
+    const texts = document.parts.flatMap((part) => part.measures.flatMap((measure) => measure.text ?? []));
+    const elements = new Map(texts.flatMap((text) => text.text.map((element) => [element.id, element])));
+    const formatting = gapReport(result).gaps.filter((gap) => gap.type === 'text-formatting');
+    if (!texts.length || !formatting.length) throw new Error('MNX text or formatting gaps are missing.');
+    for (const gap of formatting) {
+      if (gap.extent !== 'partial' || !gap.formatting.font.name || !gap.textRanges?.length) {
+        throw new Error('MNX formatting gap has incomplete metadata.');
+      }
+      for (const range of gap.textRanges) {
+        const element = elements.get(range.anchor);
+        if (!element || 'style' in element) throw new Error('MNX formatting range has an invalid target.');
+        const length = element.type === 'smufl' ? element.glyphs.length : Array.from(element.text).length;
+        if (range.offset < 0 || range.length <= 0 || range.offset + range.length > length) {
+          throw new Error('MNX formatting range exceeds its content element.');
+        }
+      }
+    }
+    console.log(`MNX general text: ${texts.length} text objects, ${formatting.length} formatting gaps.`);
+  } finally {
+    Module._denigma_result_destroy(result);
   }
 });
 

@@ -17,3 +17,7 @@ The gap report embeds arrowhead SVGs, and text drawn inside such a shape is size
 ## Staff size in staff configs
 
 MNX `staff-config` carries only the number of staff lines. Finale can also change a staff's size, through staff-style line spacing and through the staff percent in each system's staff list. Once `staff-config` has a size field, `createStaffConfigs` can write it from `classify::StaffState::lineSpace` and `staffScaling`, which the staff-state classifier already reports, as the MusicXML exporter does for `<staff-size>`.
+
+## Complete text-insert occurrence provenance
+
+The current musxdom text parser reports substitutions on emitted chunks without an occurrence identity. Empty substitutions are omitted, and nested expansions can replace an enclosing insert's provenance. MNX insert gaps therefore describe each emitted chunk, joining only the text/glyph runs split from that chunk. Complete replacement of an outer insert, or representing an empty insert as an insertion point, needs parser occurrence boundaries and nested provenance. Preserve the current substitutions until that API exists; never group adjacent inserts by matching commands and parameters.

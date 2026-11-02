@@ -44,6 +44,15 @@ std::string_view insertKindName(classify::text::Insert::Kind kind)
 
 } // namespace
 
+json insertJson(const classify::text::Insert& insert)
+{
+    return {
+        {"kind", insertKindName(insert.kind)},
+        {"command", insert.command},
+        {"parameters", insert.parameters},
+    };
+}
+
 json fontJson(const musx::dom::ResolvedFontInfo& font)
 {
     return {
@@ -69,15 +78,20 @@ json formattedTextJson(const classify::FormattedText& text)
             {"text", run.text},
             {"font", fontJson(run.font)},
         };
+        if (run.baseline) {
+            item["baseline"] = run.baseline;
+        }
+        if (run.superscript) {
+            item["superscript"] = run.superscript;
+        }
+        if (run.tracking) {
+            item["tracking"] = run.tracking;
+        }
         if (run.isGlyphRun()) {
             item["glyphs"] = run.glyphNames;
         }
         if (run.insert) {
-            item["insert"] = {
-                {"kind", insertKindName(run.insert->kind)},
-                {"command", run.insert->command},
-                {"parameters", run.insert->parameters},
-            };
+            item["insert"] = insertJson(*run.insert);
         }
         runs.push_back(std::move(item));
     }

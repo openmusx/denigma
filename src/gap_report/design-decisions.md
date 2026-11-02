@@ -20,15 +20,17 @@ The MNX `processChords` and `processNotehead` functions are the same functions t
 
 A gap carries the `classify` type the exporter already computed, and the serializer writes that type's fields as they are declared. There are no exporter-owned payload structs mirroring classifier types, so adding a reportable feature means adding a classification type to `GapPayload` and a serializer for it, nothing more. A consumer can derive its own types from the classifier headers by inspection.
 
-The one payload that is not a classification is the `PlaybackOnly` marker. It says that the anchored object sounds in Finale without being drawn (a Tempo Tool change, a hidden expression assignment) and that the target cannot hide it. There is nothing to classify about it.
+Text formatting and insert payloads are document-independent source snapshots attached to output text ranges. They retain source characters so converting a legacy character to a canonical glyph remains reversible.
+
+Another payload that is not a classification is the `PlaybackOnly` marker. It says that the anchored object sounds in Finale without being drawn (a Tempo Tool change, a hidden expression assignment) and that the target cannot hide it. There is nothing to classify about it.
 
 ### A gap is recorded by the function that will one day emit the feature
 
 There are no `report…Gaps` functions. `appendTempos` writes tempos and, while MNX has no text on a tempo, records the text as a gap; the `switch` in `processExpressions` has a case for every expression type, and a case whose MNX object does not exist yet records a gap where its export will go. The aspiration is to import everything, and keeping the gap call at the future emission site means the gap disappears by replacing one line, not by finding a parallel function.
 
-### Formatted text is resolved when the report is written, not when the expression is classified
+### Expression classification retains a parsing context until formatted text is needed
 
-Every expression is classified whether or not a report is wanted, and most classifications never become gaps. The text runs with their fonts and glyph names are therefore built by the serializer from the classification's parsing context, through `classify::classifyFormattedText`, and not stored on `ExpressionClassification`. The cost is that the source document must still be alive when the report is written, which the next entry already requires.
+Every expression is classified whether or not a report is wanted, and most classifications never become gaps. `ExpressionClassification` therefore retains a parsing context rather than eagerly building formatted text. The serializer resolves full expression-gap text through `classify::classifyFormattedText` when writing the report; this requires the source document to remain alive, as the next entry requires. An exporter that emits general text resolves that context at emission time instead, because it needs the glyphs for its output, and collects document-independent formatting and insert snapshots with their output ranges.
 
 ### The collector keeps the source document alive
 
@@ -54,7 +56,7 @@ An id records Finale provenance, not target semantics; the semantics are already
 
 ### An expression gap anchors where the target put the expression
 
-A tempo mark that MNX exported as a tempo is anchored to that tempo's id: the object exists, and the gap is what it lacks. An expression of a type MNX treats as global (tempo family, tempo alteration, rehearsal mark; see the MNX design decisions) is anchored to the global measure with a position, once per staff-list assignment group. Any other expression is a staff marking and is anchored to the part measure with its staff and position, one gap per staff it is assigned to. The choice follows the exporter's own routing of the type, not how Finale distributed the assignment.
+A tempo mark that MNX exported as a tempo is anchored to that tempo's id: the object exists, and the gap is what it lacks. An expression of a type MNX treats as global (tempo family, tempo alteration, rehearsal mark; see the MNX design decisions) is anchored to the global measure with a position, once per staff-list assignment group. A staff expression exported as positioned text is anchored to that object, with partial gaps for formatting, inserts, and any specialized semantics general text cannot express. A staff expression with no exported object is anchored to the part measure with its staff and position, one gap per staff it is assigned to. The choice follows the exporter's own routing of the type, not how Finale distributed the assignment.
 
 ### A spanning feature has an end anchor
 
@@ -85,3 +87,11 @@ The image's coordinates are staff spaces at 100% staff size (`SvgConvert::toSvg`
 ### Reference fixtures are named per conversion
 
 `chords.mnx.gaps.json` records the gaps of the MNX conversion of `chords.musx`. The payloads and anchors are format-neutral, but which features are gaps depends on the target, so a MusicXML report of the same file would differ and would carry its own name.
+
+### Text ranges name content elements and use element-local units
+
+Report schema version 2 adds `text-formatting` and `text-insert` payloads, and optional `textRanges` on a gap. Each range has `anchor` (the output content element's id), `offset`, and `length`. Its half-open interval counts Unicode scalar values for text or glyph-list entries for SMuFL content. The gap's main anchor is the owning text object. Ordinary gaps omit `textRanges`.
+
+Formatting contains `font`, `baseline`, `superscript`, `tracking`, and `sourceText`. Inserts contain `kind`, `command`, `parameters`, and `sourceText`. Formatting gaps coalesce identical adjacent formatting within an output element, while each emitted insert chunk remains a separate replacement operation. Both are partial gaps, and their ranges may overlap. Range coordinates describe the original document; consumers must resolve and maintain their own positions through edits.
+
+Text content ids are an exception to deriving every id directly from one Finale object: several canonical content elements can derive from one source chunk, and one element can combine several chunks. They use the expression id plus `.text<ordinal>`, where the zero-based ordinal follows the final minimal text/glyph sequence. These ids are deterministic across conversions and independent of gap collection, but changing that sequence can change its child ids. No JSON pointer or document-wide counter is used.

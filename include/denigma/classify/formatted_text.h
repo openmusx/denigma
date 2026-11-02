@@ -21,6 +21,7 @@
  */
 #pragma once
 
+#include <cstddef>
 #include <optional>
 #include <string>
 #include <vector>
@@ -35,9 +36,8 @@ namespace text {
 /// @struct Insert
 /// @brief The Enigma text insert a run was substituted for.
 ///
-/// The run's text is the substitution musxdom made, so a consumer that has nothing better can use
-/// the run as it stands. One that can render the insert itself (a live page number, its own
-/// playback value) replaces the run as a whole.
+/// The runs contain the substitution musxdom made. A consumer that renders the insert itself
+/// replaces together the runs sharing one Run::sourceChunk.
 struct Insert
 {
     /// @enum Kind
@@ -69,8 +69,15 @@ struct Run
     musx::dom::ResolvedFontInfo font;
     /// @brief One SMuFL glyph name per code point when the run is music glyphs; empty for a text run.
     std::vector<std::string> glyphNames;
-    /// @brief The insert the run was substituted for, when it was. Such a run is never merged with its neighbors.
+    /// @brief The insert the run was substituted for, when it was. Split runs from one substitution share #sourceChunk.
     std::optional<Insert> insert;
+
+    /// @brief Baseline and superscript offsets in EVPU, and tracking in thousandths of an em.
+    musx::dom::Evpu baseline{};
+    musx::dom::Evpu superscript{};
+    int tracking{};
+    /// @brief Parser chunk ordinal; split runs from one substitution share this value.
+    size_t sourceChunk{};
 
     /// @brief True when the run is music glyphs rather than text.
     [[nodiscard]] bool isGlyphRun() const noexcept { return !glyphNames.empty(); }

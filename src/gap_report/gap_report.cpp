@@ -84,6 +84,13 @@ json gapJson(const classify::Gap& gap, gap_report::ArrowheadTable& arrowheads)
         }
         result["placements"] = std::move(placements);
     }
+    if (!gap.textRanges.empty()) {
+        auto ranges = json::array();
+        for (const auto& range : gap.textRanges) {
+            ranges.push_back({{"anchor", range.id}, {"offset", range.offset}, {"length", range.length}});
+        }
+        result["textRanges"] = std::move(ranges);
+    }
     std::visit(
         [&](const auto& payload) {
             using Payload = std::decay_t<decltype(payload)>;
@@ -99,6 +106,19 @@ json gapJson(const classify::Gap& gap, gap_report::ArrowheadTable& arrowheads)
             } else if constexpr (std::is_same_v<Payload, classify::FormattedText>) {
                 result["type"] = "formatted-text";
                 result["text"] = gap_report::formattedTextJson(payload);
+            } else if constexpr (std::is_same_v<Payload, classify::TextFormatting>) {
+                result["type"] = "text-formatting";
+                result["formatting"] = {
+                    {"font", gap_report::fontJson(payload.font)},
+                    {"baseline", payload.baseline},
+                    {"superscript", payload.superscript},
+                    {"tracking", payload.tracking},
+                    {"sourceText", payload.sourceText},
+                };
+            } else if constexpr (std::is_same_v<Payload, classify::TextInsert>) {
+                result["type"] = "text-insert";
+                result["insert"] = gap_report::insertJson(payload.insert);
+                result["insert"]["sourceText"] = payload.sourceText;
             } else if constexpr (std::is_same_v<Payload, classify::PlaybackOnly>) {
                 result["type"] = "playback-only";
             } else if constexpr (std::is_same_v<Payload, classify::SmartShapeClassification>) {
@@ -121,7 +141,7 @@ std::string serializeGapReport(const classify::GapCollector& collector, const Ga
     }
     const auto& producer = options.producer;
     json result{
-        {"schemaVersion", 1},
+        {"schemaVersion", 2},
         {"producer", {{"name", producer.name}, {"version", producer.version}, {"commit", producer.commit}}},
         {"gaps", std::move(gaps)},
     };

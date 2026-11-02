@@ -21,38 +21,22 @@
  */
 #pragma once
 
-#include <functional>
-#include <optional>
 #include <string>
-#include <vector>
 
 #include "FormattedText.h"
-#include "mnxdom.h"
-
-#include "musx/musx.h"
-
+#include "denigma/classify/gaps.h"
 #include "mnx_fwd.h"
-#include "utils/smufl_support.h"
 
 namespace denigma {
 namespace formats {
 namespace mnx {
 namespace detail {
 
-using MnxFormattedTextChunkCallback = std::function<void(const std::string&, const std::vector<std::string>&)>;
+void setFormattedText(
+    mnxdom::FormattedText dst, const classify::FormattedText& src, const std::string& textId, classify::GapCollector* gaps = nullptr);
 
-struct MnxFormattedTextOptions
-{
-    utils::SmuflSymbolPolicy symbolPolicy = utils::SmuflSymbolPolicy::PreferSmufl;
-    bool skipHiddenText = true;
-    bool plainTextOnly = false;
-    std::optional<musx::dom::MusxInstance<musx::dom::FontInfo>> initialFont;
-    MnxFormattedTextChunkCallback onChunk;
-};
-
-void setFormattedText(mnxdom::FormattedText dst, const musx::util::EnigmaParsingContext& src, const MnxFormattedTextOptions& options = {});
-
-mnxdom::FormattedText makeFormattedText(const musx::util::EnigmaParsingContext& src, const MnxFormattedTextOptions& options = {});
+mnxdom::FormattedText makeFormattedText(
+    const musx::util::EnigmaParsingContext& src, const std::string& textId, classify::GapCollector* gaps = nullptr);
 
 } // namespace detail
 } // namespace mnx

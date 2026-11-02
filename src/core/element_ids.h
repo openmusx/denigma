@@ -18,6 +18,7 @@
  */
 #pragma once
 
+#include <cstddef>
 #include <string>
 #include <type_traits>
 
@@ -51,6 +52,9 @@ std::string calcPartMeasureId(const std::string& partId, musx::dom::Cmper cmperV
 /// it assigns, and the assignment's inci within the measure, as `m<cmper>.textExp<def>.inci<n>` or
 /// `m<cmper>.shapeExp<def>.inci<n>`. An assignment with no definition yields an empty string.
 std::string calcExpressionId(const musx::dom::MusxInstance<musx::dom::others::MeasureExprAssign>& assignment);
+
+/// @brief Computes a child id for a canonical text element using its zero-based ordinal.
+std::string calcTextChunkId(const std::string& textId, size_t ordinal);
 
 /// @brief Computes a stable id for an object derived from one Tempo Tool record (`tempoDef`).
 std::string calcTempoDefId(musx::dom::Cmper measureCmper, musx::dom::Inci inci);

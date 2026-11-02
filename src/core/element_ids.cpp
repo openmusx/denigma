@@ -60,6 +60,11 @@ std::string calcExpressionId(const musx::dom::MusxInstance<musx::dom::others::Me
     return {};
 }
 
+std::string calcTextChunkId(const std::string& textId, size_t ordinal)
+{
+    return textId + ".text" + std::to_string(ordinal);
+}
+
 std::string calcTempoDefId(musx::dom::Cmper measureCmper, musx::dom::Inci inci)
 {
     return calcGlobalMeasureId(measureCmper) + ".tempoDef.inci" + std::to_string(inci);

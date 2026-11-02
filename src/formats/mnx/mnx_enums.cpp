@@ -65,7 +65,7 @@ END_ENUM_CONVERSION
 BEGIN_ENUM_CONVERSION(details::Bracket::BracketStyle, mnxdom::LayoutSymbol)
     case details::Bracket::BracketStyle::None: return mnxdom::LayoutSymbol::NoSymbol;
     case details::Bracket::BracketStyle::PianoBrace: return mnxdom::LayoutSymbol::Brace;
-    case details::Bracket::BracketStyle::DeskBracket: return mnxdom::LayoutSymbol::Brace;
+    case details::Bracket::BracketStyle::DeskBracket: return mnxdom::LayoutSymbol::Square;
     case details::Bracket::BracketStyle::ThickLine: return mnxdom::LayoutSymbol::Bracket;
     case details::Bracket::BracketStyle::BracketStraightHooks: return mnxdom::LayoutSymbol::Bracket;
     case details::Bracket::BracketStyle::Unknown4: return mnxdom::LayoutSymbol::NoSymbol;
