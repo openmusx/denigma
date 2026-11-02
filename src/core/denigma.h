@@ -280,6 +280,7 @@ public:
     bool noValidate{};
     bool allFontsAvailable{};
     bool useFinaleRestPosition{};
+    PitchDisplayMode pitchDisplayMode{};
     std::optional<int> cueLayer;
     std::optional<std::filesystem::path> excludeFolder;
     std::optional<std::string> partName;

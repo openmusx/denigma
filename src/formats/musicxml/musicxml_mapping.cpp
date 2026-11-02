@@ -27,12 +27,21 @@ namespace formats {
 namespace musicxml {
 namespace detail {
 
-MusicXmlPitchContext pitchContextForPart(const MusicXmlMusxMapping& context, const std::string& partId)
+MusicXmlMusxMapping::MusicXmlMusxMapping(const DenigmaContext& context, const musx::dom::DocumentPtr& doc, musx::dom::Cmper partId)
+    : denigmaContext(&context),
+      document(doc),
+      finaleOptions(loadFinaleOptions(doc, partId)),
+      forPartId(partId),
+      pitchMode(enumConvert<musx::dom::PitchMode>(context.pitchDisplayMode))
 {
-    if (const auto it = context.partIdToPitchContext.find(partId); it != context.partIdToPitchContext.end()) {
-        return it->second;
+    using musx::dom::PitchMode;
+    if (pitchMode == PitchMode::CurrentView) {
+        pitchMode = finaleOptions.effectivePartGlobals->showTransposed ? PitchMode::Written : PitchMode::ConcertWithOctavePreference;
     }
-    return MusicXmlPitchContext::Concert;
+    // Mirror musxdom's own guards (Document::calcPageFromMeasure and calcSystemFromMeasure) and
+    // treat a missing PartDefinition as uncalculated.
+    const auto part = doc->getOthers()->get<musx::dom::others::PartDefinition>(musx::dom::SCORE_PARTID, partId);
+    partLayoutIsCalculated = part && part->isLayoutCalculated();
 }
 
 musx::dom::MusxInstance<musx::dom::others::StaffSystem> MusicXmlMusxMapping::systemForMeasure(musx::dom::MeasCmper measureId) const

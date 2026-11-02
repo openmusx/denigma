@@ -454,3 +454,35 @@ TEST(Options, ForceOptionBeforeInputPattern)
             [&]() { EXPECT_EQ(denigmaTestMain(forceArgs.argc(), forceArgs.argv()), 0) << "force option before input pattern should overwrite"; });
     }
 }
+
+TEST(Options, PitchDisplay)
+{
+    using Mode = denigma::PitchDisplayMode;
+    for (const auto& [value, expected] :
+        std::vector<std::pair<std::string, Mode>>{{"preserve", Mode::Preserve}, {"written", Mode::Written}, {"concert", Mode::Concert}}) {
+        ArgList args = {DENIGMA_NAME, "--pitch-display", value};
+        DenigmaContext context(DENIGMA_NAME);
+        context.parseOptions(args.argc(), args.argv());
+        EXPECT_EQ(context.pitchDisplayMode, expected);
+    }
+    for (const auto* value : {"invalid", ""}) {
+        ArgList args = {DENIGMA_NAME, "--pitch-display", value};
+        DenigmaContext context(DENIGMA_NAME);
+        EXPECT_THROW(context.parseOptions(args.argc(), args.argv()), std::invalid_argument);
+    }
+}
+
+TEST(Options, MusicXmlPitchIgnoredForOtherOutputs)
+{
+    setupTestDataPaths();
+    for (const auto* mode : {"preserve", "written", "concert"}) {
+        for (const auto* output : {"--mnx", "--mss", "--enigmaxml"}) {
+            ArgList args = {DENIGMA_NAME, "--testing", "export", "notAscii-其れ.musx", output, "--pitch-display", mode};
+            checkStderr("!requires MusicXML", [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0); });
+        }
+        ArgList defaultArgs = {DENIGMA_NAME, "--testing", "export", "notAscii-其れ.musx", "--pitch-display", mode};
+        checkStderr("!requires MusicXML", [&]() { EXPECT_EQ(denigmaTestMain(defaultArgs.argc(), defaultArgs.argv()), 0); });
+        ArgList mixedArgs = {DENIGMA_NAME, "--testing", "export", "notAscii-其れ.musx", "--mnx", "--musicxml", "--pitch-display", mode};
+        checkStderr("!requires MusicXML", [&]() { EXPECT_EQ(denigmaTestMain(mixedArgs.argc(), mixedArgs.argv()), 0); });
+    }
+}

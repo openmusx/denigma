@@ -314,14 +314,15 @@ void inspectInput(
 }
 
 void convertMusicXml(OnlineResult& result, std::span<const std::byte> bytes, const char* sourceName, InputFormat inputFormat, bool includeTempo,
-    bool allFontsAvailable, bool useFinaleRestPosition, int cueLayer, const int* selectedOutputs, std::size_t selectedCount, bool validate,
-    const WasmMusResources* resources)
+    bool allFontsAvailable, bool useFinaleRestPosition, int cueLayer, int pitchDisplayMode, const int* selectedOutputs, std::size_t selectedCount,
+    bool validate, const WasmMusResources* resources)
 {
     denigma::ConversionResult conversionResult;
     auto context = makeConversionContext(result, sourceName, inputFormat, conversionResult, validate);
     context.includeTempoTool = includeTempo;
     context.allFontsAvailable = allFontsAvailable;
     context.useFinaleRestPosition = useFinaleRestPosition;
+    context.pitchDisplayMode = static_cast<denigma::PitchDisplayMode>(pitchDisplayMode);
     context.allPartsAndScore = true;
     if (cueLayer > 0) {
         context.cueLayer = cueLayer;
@@ -434,10 +435,13 @@ OnlineResult* denigma_inspect_with_resources(const std::uint8_t* data, std::size
 }
 
 OnlineResult* denigma_convert_with_resources(const std::uint8_t* data, std::size_t size, const char* sourceName, int format, int includeTempo,
-    int allFontsAvailable, int useFinaleRestPosition, int splitInstruments, int indentSpaces, int cueLayer, const int* selectedOutputs,
-    std::size_t selectedCount, int writeGapReport, int validate, const WasmMusResources* resources)
+    int allFontsAvailable, int useFinaleRestPosition, int splitInstruments, int indentSpaces, int cueLayer, int pitchDisplayMode,
+    const int* selectedOutputs, std::size_t selectedCount, int writeGapReport, int validate, const WasmMusResources* resources)
 {
     return makeResult([&](OnlineResult& result) {
+        if (pitchDisplayMode < 0 || pitchDisplayMode > 2) {
+            throw std::invalid_argument("Invalid pitch display mode (expected 0, 1, or 2)");
+        }
         const auto bytes = inputBytes(data, size);
         const auto sourceFormat = inputFormat(bytes, sourceName);
         switch (format) {
@@ -446,7 +450,7 @@ OnlineResult* denigma_convert_with_resources(const std::uint8_t* data, std::size
                 throw std::invalid_argument("Select the score or at least one linked part.");
             }
             convertMusicXml(result, bytes, sourceName, sourceFormat, includeTempo != 0, allFontsAvailable != 0, useFinaleRestPosition != 0, cueLayer,
-                selectedOutputs, selectedCount, validate != 0, resources);
+                pitchDisplayMode, selectedOutputs, selectedCount, validate != 0, resources);
             break;
         case 1:
             convertMnx(result, bytes, sourceName, sourceFormat, includeTempo != 0, splitInstruments != 0, indentSpaces, cueLayer, writeGapReport != 0,
@@ -464,11 +468,11 @@ OnlineResult* denigma_inspect(const std::uint8_t* data, std::size_t size, const 
 }
 
 OnlineResult* denigma_convert(const std::uint8_t* data, std::size_t size, const char* sourceName, int format, int includeTempo, int allFontsAvailable,
-    int useFinaleRestPosition, int splitInstruments, int indentSpaces, int cueLayer, const int* selectedOutputs, std::size_t selectedCount,
-    int writeGapReport, int validate)
+    int useFinaleRestPosition, int splitInstruments, int indentSpaces, int cueLayer, int pitchDisplayMode, const int* selectedOutputs,
+    std::size_t selectedCount, int writeGapReport, int validate)
 {
     return denigma_convert_with_resources(data, size, sourceName, format, includeTempo, allFontsAvailable, useFinaleRestPosition, splitInstruments,
-        indentSpaces, cueLayer, selectedOutputs, selectedCount, writeGapReport, validate, nullptr);
+        indentSpaces, cueLayer, pitchDisplayMode, selectedOutputs, selectedCount, writeGapReport, validate, nullptr);
 }
 
 int denigma_recognize_mus(const std::uint8_t* data, std::size_t size)

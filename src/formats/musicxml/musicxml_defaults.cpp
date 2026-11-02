@@ -231,7 +231,7 @@ void createDefaults(const MusicXmlMusxMapping& context)
     const auto& pagePrefs = context.finaleOptions.effectivePageFormat;
     score.ticksPerQuarter = context.timing.divisions;
     // See design-decisions.md: a concert-pitch document is a concert score.
-    score.concertScore = !context.finaleOptions.effectivePartGlobals->showTransposed;
+    score.concertScore = context.pitchMode == PitchMode::Concert || context.pitchMode == PitchMode::ConcertWithOctavePreference;
 
     constexpr auto kUnscaledMmPerStaff = EVPU_PER_STANDARD_STAFF / EVPU_PER_MM;
     const auto combinedSystemScaling = pagePrefs->calcCombinedSystemScaling().toDouble();

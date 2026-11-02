@@ -300,7 +300,7 @@ void applyRestPositionIfNeeded(const MusicXmlMusxMapping& context, mx::api::Note
         if (restNoteInfo->getNoteId() != Note::RESTID) {
             return std::nullopt;
         }
-        return restNoteInfo.calcNoteProperties().staffPosition;
+        return restNoteInfo.calcNoteProperties({.pitchMode = context.pitchMode}).staffPosition;
     }();
     if (!staffPosition) {
         return;
@@ -310,25 +310,14 @@ void applyRestPositionIfNeeded(const MusicXmlMusxMapping& context, mx::api::Note
     if (!context.denigmaContext->useFinaleRestPosition && rest.durationData.durationName == mx::api::DurationName::whole && restPositionOffset != 0) {
         adjustedStaffPosition += restPositionOffset;
     }
-    const auto pitch = entryInfo.calcPitchFromStaffPosition(adjustedStaffPosition);
+    const auto pitch = entryInfo.calcPitchFromStaffPosition(adjustedStaffPosition, {.pitchMode = context.pitchMode});
     rest.isDisplayStepOctaveSpecified = true;
     rest.pitchData = mx::api::PitchData(enumConvert<mx::api::Step>(pitch.noteName), 0, pitch.octave);
 }
 
-MusicXmlPitchContext pitchContextForStaff(const MusicXmlMusxMapping& context, StaffCmper staffId)
+mx::api::PitchData createPitchData(MusicXmlMusxMapping& context, const NoteInfoPtr& noteInfo)
 {
-    const auto partIt = context.staffToPartId.find(staffId);
-    if (partIt == context.staffToPartId.end()) {
-        return MusicXmlPitchContext::Written;
-    }
-    return pitchContextForPart(context, partIt->second);
-}
-
-mx::api::PitchData createPitchData(MusicXmlMusxMapping& context, const NoteInfoPtr& noteInfo, MusicXmlPitchContext pitchContext)
-{
-    const auto properties = noteInfo.calcNoteProperties({
-        .pitchMode = pitchContext == MusicXmlPitchContext::Concert ? PitchMode::Concert : PitchMode::Written,
-    });
+    const auto properties = noteInfo.calcNoteProperties({.pitchMode = context.pitchMode});
     const auto octaveAdjustment = calcOttavaOctaveAdjustment(context.current.ottavasApplicableInMeasure, noteInfo, [&](const NoteInfoPtr&) {
         context.logMessage(
             LogMsg() << "skipping ottava octave setting for tied-to note since the tied-from note is not under the ottava", MessageSeverity::Verbose);
@@ -579,7 +568,7 @@ void addSyntheticFullMeasureRest(MusicXmlMusxMapping& context, mx::api::StaffDat
 
 void appendEntryNotes(MusicXmlMusxMapping& context, mx::api::StaffData& staff, mx::api::VoiceData& voice,
     const EntryInfoPtr::InterpretedIterator& entryIt, const MusxInstance<others::Measure>& musxMeasure, int userVoiceNumber, size_t measureIndex,
-    size_t staffIndex, bool hasMultipleLayers, bool hasVoice1Voice2, bool isCue, bool isStaffValueSpecified, MusicXmlPitchContext pitchContext)
+    size_t staffIndex, bool hasMultipleLayers, bool hasVoice1Voice2, bool isCue, bool isStaffValueSpecified)
 {
     const auto& entryInfo = entryIt.getEntryInfo();
     const auto entry = entryInfo->getEntry();
@@ -633,7 +622,7 @@ void appendEntryNotes(MusicXmlMusxMapping& context, mx::api::StaffData& staff, m
         note.userRequestedVoiceNumber = userVoiceNumber;
         note.tickTimePosition = context.timing.calcMusicXmlDivisions(entryIt.getEffectiveElapsedDuration(/*global*/ true));
         note.durationData = createDurationData(context, entryInfo, entryIt.getEffectiveActualDuration(/*global*/ true), entryIt.getEffectiveHidden());
-        note.pitchData = createPitchData(context, noteInfo, pitchContext);
+        note.pitchData = createPitchData(context, noteInfo);
         if (const auto stavesIt = context.partIdToStaves.find(context.currentPart->uniqueId); stavesIt != context.partIdToStaves.end()) {
             ASSERT_IF (staffIndex >= stavesIt->second.size()) {
                 throw std::logic_error("Containing staff index is outside the current MusicXML part staff list.");
@@ -749,7 +738,6 @@ void createNotesForMeasureStaff(MusicXmlMusxMapping& context, mx::api::MeasureDa
         return;
     }
 
-    const auto pitchContext = pitchContextForStaff(context, staffId);
     /// @todo Honor Blank/BlankWithRests alternate notation by suppressing the affected entries and
     /// their attachments with print-object once its layer semantics have been mapped to MusicXML.
     const auto cuePlan = createCueStaffMeasurePlan(staffMeasureContext, context.denigmaContext->cueLayer);
@@ -775,7 +763,7 @@ void createNotesForMeasureStaff(MusicXmlMusxMapping& context, mx::api::MeasureDa
                     continue;
                 }
                 appendEntryNotes(context, staff, voice, entryIt, musxMeasure, userVoiceNumber, measureIndex, staffIndex, hasMultipleLayers, usesV1V2,
-                    isCue, measure.staves.size() > 1, pitchContext);
+                    isCue, measure.staves.size() > 1);
             }
         }
     }

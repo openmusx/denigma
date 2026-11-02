@@ -54,6 +54,7 @@ DenigmaContext makeMusicXmlContext(const Options& options, const std::filesystem
     context.quiet = options.common.quiet;
     context.allFontsAvailable = options.common.allFontsAvailable;
     context.useFinaleRestPosition = options.useFinaleRestPosition;
+    context.pitchDisplayMode = options.pitchDisplayMode;
     context.includeTempoTool = options.includeTempoTool;
     context.cueLayer = options.cueLayer;
     context.allPartsAndScore = options.allPartsAndScore;

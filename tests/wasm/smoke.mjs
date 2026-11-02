@@ -65,11 +65,11 @@ function withSelection(indices, callback) {
 }
 
 function convert(dataPointer, size, namePointer, format, options = {}) {
-  const { includeTempo = 0, allFonts = 0, finaleRestPosition = 0, splitInstruments = 0, cueLayer = 0, selection = [],
+  const { includeTempo = 0, allFonts = 0, finaleRestPosition = 0, splitInstruments = 0, cueLayer = 0, pitchDisplayMode = 0, selection = [],
     writeGapReport = 1, validate = 1, resources = 0 } = options;
   return withSelection(selection, (selectionPointer, selectionCount) => {
     const args = [dataPointer, size, namePointer, format, includeTempo, allFonts, finaleRestPosition,
-      splitInstruments, MNX_INDENT_SPACES, cueLayer, selectionCount ? selectionPointer : 0, selectionCount, writeGapReport, validate];
+      splitInstruments, MNX_INDENT_SPACES, cueLayer, pitchDisplayMode, selectionCount ? selectionPointer : 0, selectionCount, writeGapReport, validate];
     return resources ? Module._denigma_convert_with_resources(...args, resources) : Module._denigma_convert(...args);
   });
 }
@@ -223,6 +223,26 @@ const input = await readFile(resolve(musxArg));
 withInput(input, 'sample.musx', (dataPointer, namePointer) => {
   const size = input.byteLength;
   const parts = inspect(dataPointer, size, namePointer, 'MUSX inspection');
+  for (const pitchDisplayMode of [1, 2]) {
+    const bytes = assertResult(convert(dataPointer, size, namePointer, FORMAT_MUSICXML, { selection: [0], pitchDisplayMode }),
+      `MusicXML pitch mode ${pitchDisplayMode}`, '<score-partwise', { indices: [0] });
+    const xml = new TextDecoder().decode(bytes);
+    if (xml.includes('<concert-score') !== (pitchDisplayMode === 2)) throw new Error('Incorrect concert-score flag');
+    if (pitchDisplayMode === 1 && xml.includes('<for-part')) throw new Error('Written export contains for-part');
+  }
+  for (const pitchDisplayMode of [1, 2]) {
+    assertResult(convert(dataPointer, size, namePointer, FORMAT_MNX, { pitchDisplayMode }),
+      `MNX ignores pitch display mode ${pitchDisplayMode}`, '"mnx"');
+    assertResult(convert(dataPointer, size, namePointer, FORMAT_ENIGMAXML, { pitchDisplayMode }),
+      `EnigmaXML ignores pitch display mode ${pitchDisplayMode}`, '<finale');
+  }
+  const invalidPitch = convert(dataPointer, size, namePointer, FORMAT_MUSICXML, { selection: [0], pitchDisplayMode: 3 });
+  try {
+    if (Module._denigma_result_success(invalidPitch)) throw new Error('Invalid pitch mode succeeded');
+  } finally {
+    Module._denigma_result_destroy(invalidPitch);
+  }
+
 
   assertResult(convert(dataPointer, size, namePointer, FORMAT_MUSICXML, { allFonts: 1, selection: [0] }),
     'MusicXML with all source fonts available', '<score-partwise', { indices: [0] });

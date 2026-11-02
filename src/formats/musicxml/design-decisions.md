@@ -275,15 +275,23 @@ is already an upward roll to a reader.
 
 ### A concert-pitch document is a concert score
 
-A document Finale displays in concert pitch (`showTransposed` off for the score or linked part being exported) is written with `<concert-score/>`, even when none of its instruments transposes. That is the display mode the file is in, and stating it costs nothing.
+The effective pitch display setting defaults to Finale’s `showTransposed` value for the score or linked part being exported. The MusicXML pitch-display override can force written or concert display without modifying the source document. Concert display respects `keepWrittenOctaveInConcertPitch`. The effective display setting is resolved once for each exported score or linked part. Written display uses musxdom’s `PitchMode::Written`; concert display uses `PitchMode::ConcertWithOctavePreference`. Musxdom handles octave retention for the current staff transposition, including unison and instrument changes.
+
+Written display exports transposed pitches with `<transpose>` and no `<for-part>`. The explicit override supports importers that ignore `<for-part>` and would otherwise lose instrument transposition from a concert-score export. Preserve mode remains the default so each score or linked part follows its own Finale setting unless the caller requests an override. Other output formats ignore this option, following the general policy for inapplicable options.
+
+A document exported in concert pitch is written with `<concert-score/>`, even when none of its instruments transposes. That is the display mode the file is in, and stating it costs nothing.
 
 Its transposing instruments are written with `<for-part>`, which describes the part made from the score, rather than `<transpose>`, which MusicXML reserves in a concert score for octave transpositions the score itself shows. The one octave case Finale shows is the one `keepWrittenOctaveInConcertPitch` keeps written, so that stays a `<transpose>` with no for-part, since the part reads exactly what the score does. An octave that is not kept, such as a piccolo at sounding pitch, is a for-part like any other interval.
 
 Only one of the two is in effect at a time, and each replaces whichever was in effect before. A change writes only the element it exports as, so a player changing from English horn to piccolo gets the piccolo's `<transpose>` and no cancelling for-part. A return to concert pitch is a `<transpose>` with no interval, whether it ends a transposition or a for-part. This matches Finale's own export of a concert score.
 
+### Key signatures are evaluated per measure
+
+Finale key changes occur at measure boundaries. The exporter uses musxdom's `Measure::createKeySignature(staffId)` for the effective global or independent staff key, and `Staff::calcUsesWrittenPitch(pitchMode)` to select its written or concert values. Contextual note properties are calculated by musxdom with the same pitch mode.
+
 ### A forced transposition clef is always the part's clef
 
-A Finale transposition that forces a clef (`setToClef`) replaces every clef change on the staff at written pitch. In a concert score that clef is written as the for-part's `<part-clef>` even when it matches the score's clef where the for-part begins, because without it a later clef change in the score would carry over into the part.
+A Finale transposition that forces a clef (`setToClef`) replaces every clef change on the staff at written pitch. When a concert score displays the staff at sounding pitch, that clef is written as the for-part's `<part-clef>` even when it matches the score's clef where the for-part begins, because without it a later clef change in the score would carry over into the part. When octave retention selects written pitch, the forced clef applies to the score itself. This includes unison: enabling octave retention activates a forced written clef even at a zero interval.
 
 ### A part's names follow its top staff, and its sound follows its instrument
 

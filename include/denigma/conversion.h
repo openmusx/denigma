@@ -77,6 +77,13 @@ struct Diagnostic
     std::string message;                 ///< Human-readable diagnostic text.
 };
 
+/// Selects the pitch display setting used for each exported score or linked part.
+enum class PitchDisplayMode {
+    Preserve,
+    Written,
+    Concert
+};
+
 /// @struct CommonOptions
 /// @brief Options common to all public converter adapters.
 struct CommonOptions

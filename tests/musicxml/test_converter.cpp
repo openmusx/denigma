@@ -18,6 +18,7 @@
  */
 #include <cstddef>
 #include <cstring>
+#include <map>
 #include <span>
 #include <sstream>
 #include <string>
@@ -28,6 +29,7 @@
 
 #include "denigma/formats/musicxml.h"
 #include "denigma/io/random_access_reader.h"
+#include "formats/enigmaxml/enigmaxml.h"
 #include "musicxml_test.h"
 #include "test_utils.h"
 
@@ -433,4 +435,121 @@ TEST(MusicXmlChordFixture, WritesDegreeLayoutAttributesFromTheSuffix)
     EXPECT_STREQ(impliedDegree.child_value("degree-value"), "7");
     EXPECT_STREQ(impliedDegree.attribute("print-object").value(), "no");
     EXPECT_FALSE(parenthesized.parent().child("degree").attribute("print-object"));
+}
+
+TEST(ConverterApi, MusicXmlPitchOverrideMatchesFinaleDisplaySetting)
+{
+    setupTestDataPaths();
+    using namespace denigma::formats::musicxml;
+    using denigma::PitchDisplayMode;
+    for (const auto* fixture : {"transposition.musx", "instchange_concert.musx", "large_orchestra.musx"}) {
+        SCOPED_TRACE(fixture);
+        denigma::DenigmaContext context(DENIGMA_NAME);
+        context.inputFilePath = getInputPath() / fixture;
+        const auto source = denigma::formats::enigmaxml::detail::extractMusxInputData(context.inputFilePath, context);
+        for (const bool retainOctaves : {false, true}) {
+            for (const bool sourceWritten : {false, true}) {
+                for (const bool targetWritten : {false, true}) {
+                    SCOPED_TRACE(::testing::Message() << retainOctaves << sourceWritten << targetWritten);
+                    const auto convert = [&](bool storedWritten, PitchDisplayMode mode) {
+                        pugi::xml_document document;
+                        EXPECT_TRUE(document.load_buffer(source.primaryBuffer.data(), source.primaryBuffer.size()));
+                        for (const auto& selected : document.select_nodes("//partGlobals")) {
+                            auto node = selected.node();
+                            node.remove_child("showTransposed");
+                            if (storedWritten) {
+                                node.append_child("showTransposed");
+                            }
+                        }
+                        auto misc = document.select_node("//miscOptions").node();
+                        EXPECT_TRUE(misc);
+                        misc.remove_child("retainOctaveTransInConcertPitch");
+                        if (retainOctaves) {
+                            misc.append_child("retainOctaveTransInConcertPitch");
+                        }
+                        std::ostringstream stream;
+                        document.save(stream);
+                        const auto xml = stream.str();
+                        Options options;
+                        options.pitchDisplayMode = mode;
+                        options.allPartsAndScore = true;
+                        options.common.sourceName = fixture;
+                        std::vector<std::pair<std::string, std::string>> outputs;
+                        const auto result = EnigmaXmlToMusicXmlMultiOutputConverter{}.convert(
+                            std::as_bytes(std::span(xml)),
+                            [&](std::string_view name, std::span<const std::byte> bytes) {
+                                outputs.emplace_back(name, std::string(reinterpret_cast<const char*>(bytes.data()), bytes.size()));
+                            },
+                            options);
+                        EXPECT_FALSE(result.hasError());
+                        EXPECT_FALSE(outputs.empty());
+                        for (const auto& [name, output] : outputs) {
+                            pugi::xml_document exported;
+                            EXPECT_TRUE(exported.load_string(output.c_str()));
+                            EXPECT_EQ(bool(exported.select_node("//concert-score")), !targetWritten) << name;
+                            if (targetWritten) {
+                                EXPECT_FALSE(exported.select_node("//for-part")) << name;
+                            }
+                        }
+                        return outputs;
+                    };
+                    EXPECT_EQ(convert(sourceWritten, targetWritten ? PitchDisplayMode::Written : PitchDisplayMode::Concert),
+                        convert(targetWritten, PitchDisplayMode::Preserve));
+                }
+            }
+        }
+    }
+}
+
+TEST(ConverterApi, MusicXmlWrittenOverridePreservesSoundingPitch)
+{
+    setupTestDataPaths();
+    std::vector<char> input;
+    readFile(getInputPath() / "reference" / utils::utf8ToPath("notAscii-其れ.enigmaxml"), input);
+    pugi::xml_document source;
+    ASSERT_TRUE(source.load_buffer(input.data(), input.size()));
+    auto staff = source.select_node("//staffSpec[@cmper='1']").node();
+    ASSERT_TRUE(staff);
+    staff.remove_child("transposition");
+    auto transposition = staff.append_child("transposition");
+    transposition.append_child("setToClef");
+    auto key = transposition.append_child("keysig");
+    key.append_child("interval").text().set(3);
+    key.append_child("adjust").text().set(-1);
+    std::ostringstream stream;
+    source.save(stream);
+    const auto inputXml = stream.str();
+    const auto convert = [&](denigma::PitchDisplayMode mode) {
+        denigma::formats::musicxml::Options options;
+        options.pitchDisplayMode = mode;
+        std::string xml;
+        const auto result = denigma::formats::musicxml::EnigmaXmlToMusicXmlMultiOutputConverter{}.convert(
+            std::as_bytes(std::span(inputXml)),
+            [&](std::string_view, std::span<const std::byte> bytes) { xml.assign(reinterpret_cast<const char*>(bytes.data()), bytes.size()); },
+            options);
+        EXPECT_FALSE(result.hasError());
+        return xml;
+    };
+    pugi::xml_document written;
+    ASSERT_TRUE(written.load_string(convert(denigma::PitchDisplayMode::Written).c_str()));
+    pugi::xml_document concert;
+    ASSERT_TRUE(concert.load_string(convert(denigma::PitchDisplayMode::Concert).c_str()));
+    EXPECT_FALSE(written.select_node("//for-part"));
+    EXPECT_FALSE(written.select_node("//concert-score"));
+    EXPECT_EQ(written.select_node("//transpose/chromatic").node().text().as_int(), -5);
+    EXPECT_EQ(written.select_node("//transpose/diatonic").node().text().as_int(), -3);
+    EXPECT_TRUE(concert.select_node("//concert-score"));
+    const auto writtenNotes = written.select_nodes("//part[1]//pitch");
+    const auto concertNotes = concert.select_nodes("//part[1]//pitch");
+    ASSERT_GT(writtenNotes.size(), 0u);
+    ASSERT_EQ(writtenNotes.size(), concertNotes.size());
+    const auto semitones = [](pugi::xml_node pitch) {
+        const std::map<std::string, int> steps{{"C", 0}, {"D", 2}, {"E", 4}, {"F", 5}, {"G", 7}, {"A", 9}, {"B", 11}};
+        constexpr int semitonesPerOctave = 12;
+        return semitonesPerOctave * pitch.child("octave").text().as_int() + steps.at(pitch.child("step").text().as_string())
+               + pitch.child("alter").text().as_int();
+    };
+    for (size_t index = 0; index < writtenNotes.size(); ++index) {
+        EXPECT_EQ(semitones(writtenNotes[index].node()) - 5, semitones(concertNotes[index].node()));
+    }
 }

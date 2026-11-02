@@ -197,6 +197,18 @@ std::vector<const arg_char*> DenigmaContext::parseOptions(int argc, arg_char* ar
             useFinaleRestPosition = false;
         } else if (next == _ARG("--finale-rest-position")) {
             useFinaleRestPosition = true;
+        } else if (next == _ARG("--pitch-display")) {
+            const std::string value = std::string(_ARG_CONV(getNextArg()));
+            using Mode = PitchDisplayMode;
+            if (value == "preserve") {
+                pitchDisplayMode = Mode::Preserve;
+            } else if (value == "written") {
+                pitchDisplayMode = Mode::Written;
+            } else if (value == "concert") {
+                pitchDisplayMode = Mode::Concert;
+            } else {
+                throw std::invalid_argument("Invalid or missing value for --pitch-display (expected preserve, written, or concert)");
+            }
         } else if (next == _ARG("--cue-layer")) {
             const std::string layerValue = std::string(_ARG_CONV(getNextArg()));
             if (layerValue.empty()) {
