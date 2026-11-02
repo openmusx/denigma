@@ -194,8 +194,9 @@ TEST(MnxFormattedText, PreservesAccidentalInsertIdentity)
     const auto json = mnxdom::json::parse(formatted.dump());
     ASSERT_EQ(json.size(), 2);
     EXPECT_EQ(json[1]["glyphs"], mnxdom::json::array({"accidentalFlat"}));
-    ASSERT_EQ(gaps.gaps().size(), 3);
-    const auto& insert = std::get<denigma::classify::TextInsert>(gaps.gaps().back().payload);
+    const auto collected = gaps.gaps();
+    ASSERT_EQ(collected.size(), 3);
+    const auto& insert = std::get<denigma::classify::TextInsert>(collected.back().payload);
     EXPECT_EQ(insert.insert.kind, denigma::classify::text::Insert::Kind::Accidental);
     EXPECT_EQ(insert.sourceText, "♭");
 }
