@@ -65,35 +65,41 @@ FormattedText classifyFormattedText(const musx::util::EnigmaParsingContext& text
     }
     const auto chunks =
         text.collectEnigmaTextChunks(musx::util::EnigmaString::EnigmaParsingOptions(musx::util::EnigmaString::AccidentalStyle::Unicode));
-    for (const auto& chunk : chunks) {
+    for (size_t chunkIndex = 0; chunkIndex < chunks.size(); ++chunkIndex) {
+        const auto& chunk = chunks[chunkIndex];
         if (!chunk.styles.font || chunk.styles.font->hidden || chunk.text.empty()) {
             continue;
         }
         const auto resolved = chunk.resolve();
+        std::optional<text::Insert> insert;
+        std::optional<std::string> accidentalGlyph;
         if (chunk.insert) {
-            // An insert's substitution is one run, whatever it contains, so that a consumer can replace it whole.
-            auto [kind, accidentalGlyph] = classifyInsert(chunk.insert->command);
-            text::Run run{chunk.text, resolved.styles.font, {}, text::Insert{kind, chunk.insert->command, chunk.insert->parameters}};
-            if (accidentalGlyph) {
-                run.glyphNames.push_back(std::move(*accidentalGlyph));
-            }
-            result.runs.push_back(std::move(run));
-            result.plainText += chunk.text;
-            continue;
+            auto classified = classifyInsert(chunk.insert->command);
+            insert = text::Insert{classified.first, chunk.insert->command, chunk.insert->parameters};
+            accidentalGlyph = std::move(classified.second);
         }
-        // Alternate between glyph and text runs, coalescing adjacent characters of the same kind.
-        // A chunk always starts a new run, because it may carry a different font.
-        bool chunkStart = true;
-        for (utils::Utf8Iterator iter(chunk.text); !iter.atEnd(); iter.next()) {
-            auto glyphName = detail::glyphNameForFont(chunk.styles.font, iter->codepoint);
-            const bool isGlyph = glyphName.has_value();
-            if (chunkStart || result.runs.back().isGlyphRun() != isGlyph) {
-                result.runs.push_back({{}, resolved.styles.font, {}, std::nullopt});
-            }
-            chunkStart = false;
-            result.runs.back().text.append(chunk.text, iter.offset(), iter->byteCount);
-            if (glyphName) {
-                result.runs.back().glyphNames.push_back(std::move(*glyphName));
+        const auto appendRun = [&]() -> text::Run& {
+            result.runs.push_back(
+                {{}, resolved.styles.font, {}, insert, resolved.styles.baseline, resolved.styles.superscript, resolved.styles.tracking, chunkIndex});
+            return result.runs.back();
+        };
+        if (accidentalGlyph) {
+            auto& run = appendRun();
+            run.text = chunk.text;
+            run.glyphNames.push_back(std::move(*accidentalGlyph));
+        } else {
+            bool chunkStart = true;
+            for (utils::Utf8Iterator iter(chunk.text); !iter.atEnd(); iter.next()) {
+                auto glyphName = detail::glyphNameForFont(chunk.styles.font, iter->codepoint);
+                const bool isGlyph = glyphName.has_value();
+                if (chunkStart || result.runs.back().isGlyphRun() != isGlyph) {
+                    appendRun();
+                }
+                chunkStart = false;
+                result.runs.back().text.append(chunk.text, iter.offset(), iter->byteCount);
+                if (glyphName) {
+                    result.runs.back().glyphNames.push_back(std::move(*glyphName));
+                }
             }
         }
         result.plainText += chunk.text;

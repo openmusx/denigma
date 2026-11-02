@@ -67,6 +67,7 @@ json chordJson(const classify::ChordSymbolClassification& chord);
 json noteheadJson(const classify::NoteheadClassification& notehead);
 json expressionJson(const classify::ExpressionClassification& expression);
 json formattedTextJson(const classify::FormattedText& text);
+json insertJson(const classify::text::Insert& insert);
 json fontJson(const musx::dom::ResolvedFontInfo& font);
 json smartShapeJson(const classify::SmartShapeClassification& smartShape, ArrowheadTable& arrowheads);
 

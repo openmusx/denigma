@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "producer": {
     "name": "denigma",
     "version": "TEST",
@@ -75,41 +75,34 @@
       }
     },
     {
-      "anchor": "P1.m12",
-      "position": {
-        "numerator": 0,
-        "denominator": 1
-      },
-      "extent": "complete",
-      "type": "expression",
-      "expression": {
-        "type": "generic-text",
-        "basis": "finale-category",
-        "scope": "staff",
-        "text": {
-          "plain": "ignored because note-attached",
-          "runs": [
-            {
-              "text": "ignored because note-attached",
-              "font": {
-                "name": "Times",
-                "size": 14,
-                "sizeIsPercent": false,
-                "bold": false,
-                "italic": true,
-                "underline": false,
-                "strikeout": false,
-                "absolute": false,
-                "hidden": false,
-                "isSymbolFont": false,
-                "isSmufl": false
-              }
-            }
-          ]
-        },
-        "genericText": {
-          "text": "ignored because note-attached"
+      "anchor": "m12.textExp54.inci0",
+      "extent": "partial",
+      "textRanges": [
+        {
+          "anchor": "m12.textExp54.inci0.text0",
+          "offset": 0,
+          "length": 29
         }
+      ],
+      "type": "text-formatting",
+      "formatting": {
+        "font": {
+          "name": "Times",
+          "size": 14,
+          "sizeIsPercent": false,
+          "bold": false,
+          "italic": true,
+          "underline": false,
+          "strikeout": false,
+          "absolute": false,
+          "hidden": false,
+          "isSymbolFont": false,
+          "isSmufl": false
+        },
+        "baseline": 0,
+        "superscript": 0,
+        "tracking": 0,
+        "sourceText": "ignored because note-attached"
       }
     },
     {
@@ -693,6 +686,7 @@
                     "isSymbolFont": false,
                     "isSmufl": true
                   },
+                  "baseline": -12,
                   "glyphs": [
                     "octaveParensLeft"
                   ]
@@ -731,6 +725,7 @@
                     "isSymbolFont": false,
                     "isSmufl": true
                   },
+                  "baseline": -12,
                   "glyphs": [
                     "octaveParensRight"
                   ]
@@ -754,7 +749,8 @@
                     "hidden": false,
                     "isSymbolFont": false,
                     "isSmufl": false
-                  }
+                  },
+                  "baseline": -20
                 }
               ]
             }

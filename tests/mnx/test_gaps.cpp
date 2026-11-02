@@ -21,10 +21,12 @@
  */
 #include <algorithm>
 #include <filesystem>
+#include <span>
 #include <sstream>
 #include <string>
 #include <vector>
 
+#include "pugixml.hpp"
 #include "gtest/gtest.h"
 
 #include "core/denigma.h"
@@ -50,7 +52,7 @@ TEST(MnxGapReport, MusxToMnxJsonReportsChordSymbolGaps)
 
     EXPECT_TRUE(result);
     const auto report = nlohmann::json::parse(denigma::serializeGapReport(collector, {{"denigma", "TEST", "abc123"}, {}}));
-    EXPECT_EQ(report["schemaVersion"], 1);
+    EXPECT_EQ(report["schemaVersion"], 2);
     ASSERT_FALSE(report["gaps"].empty());
     const auto& gap = report["gaps"].front();
     EXPECT_EQ(gap["type"], "chord-symbol");
@@ -172,7 +174,7 @@ TEST(MnxGapReport, MusxToMnxJsonReportsStaffListTempoMarksOncePerGroup)
     EXPECT_EQ((*ritGap)["position"]["numerator"], 0);
 }
 
-TEST(MnxGapReport, MusxToMnxJsonReportsStaffExpressionsOnThePartMeasure)
+TEST(MnxGapReport, MusxToMnxJsonExportsStaffTextWithFormattingAndSemanticGaps)
 {
     setupTestDataPaths();
 
@@ -187,16 +189,41 @@ TEST(MnxGapReport, MusxToMnxJsonReportsStaffExpressionsOnThePartMeasure)
     const auto result = denigma::formats::mnx::MusxToMnxJsonConverter{}.convert(input, output, options);
     EXPECT_TRUE(result);
 
+    auto mnx = nlohmann::json::parse(output.str());
+    const auto& text = mnx["parts"][0]["measures"][0]["text"][0];
+    ASSERT_TRUE(text.contains("id"));
+    EXPECT_EQ(text["text"][0]["text"], "pizz.");
+    EXPECT_FALSE(text.contains("type"));
+    EXPECT_FALSE(text.contains("position"));
+    EXPECT_FALSE(text.contains("staff"));
+    EXPECT_FALSE(text["text"][0].contains("style"));
+
     const auto report = nlohmann::json::parse(denigma::serializeGapReport(collector, {{"denigma", "TEST", "abc123"}, {}}));
-    ASSERT_FALSE(report["gaps"].empty());
-    const auto& gap = report["gaps"].front();
-    EXPECT_EQ(gap["anchor"], "P1.m1");
-    EXPECT_EQ(gap["extent"], "complete");
+    const auto& gaps = report["gaps"];
+    const auto semantic = std::find_if(gaps.begin(), gaps.end(), [](const auto& gap) { return gap["type"] == "expression"; });
+    ASSERT_NE(semantic, gaps.end());
+    const auto& gap = *semantic;
+    EXPECT_EQ(gap["anchor"], text["id"]);
+    EXPECT_EQ(gap["extent"], "partial");
     EXPECT_FALSE(gap.contains("placements"));
     EXPECT_EQ(gap["expression"]["type"], "technique-text");
     EXPECT_EQ(gap["expression"]["scope"], "staff");
     EXPECT_EQ(gap["expression"]["technique"]["type"], "pizzicato");
     EXPECT_EQ(gap["expression"]["text"]["plain"], "pizz.");
+    const auto formatting = std::find_if(gaps.begin(), gaps.end(), [](const auto& item) { return item["type"] == "text-formatting"; });
+    ASSERT_NE(formatting, gaps.end());
+    EXPECT_EQ((*formatting)["textRanges"][0]["anchor"], text["text"][0]["id"]);
+    EXPECT_EQ((*formatting)["textRanges"][0]["length"], 5);
+
+    denigma::FileRandomAccessReader secondInput(getInputPath() / "techniques.musx");
+    std::ostringstream withoutGaps;
+    options.common.gapCollector = nullptr;
+    options.common.allFontsAvailable = true;
+    ASSERT_TRUE(denigma::formats::mnx::MusxToMnxJsonConverter{}.convert(secondInput, withoutGaps, options));
+    auto without = nlohmann::json::parse(withoutGaps.str());
+    without["mnx"]["_x"]["mnxdom"].erase("createdAt");
+    mnx["mnx"]["_x"]["mnxdom"].erase("createdAt");
+    EXPECT_EQ(without, mnx);
 }
 
 TEST(MnxGapReport, MusxToMnxJsonReportsTempoToolChangesAsPlaybackOnly)
@@ -417,4 +444,91 @@ TEST(MnxGapReport, CliEmbedsCustomArrowheadsOnce)
         EXPECT_NE(svg.find("<svg "), std::string::npos) << key;
         EXPECT_NE(svg.find("viewBox=\"-0.545898"), std::string::npos) << key << ": coordinates in staff spaces";
     }
+}
+
+TEST(MnxGapReport, GeneralTextAndDynamicFallbackPreservePlacementAndVisibility)
+{
+    setupTestDataPaths();
+    std::vector<char> input;
+    readFile(getInputPath() / "reference" / utils::utf8ToPath("notAscii-其れ.enigmaxml"), input);
+    pugi::xml_document source;
+    ASSERT_TRUE(source.load_buffer(input.data(), input.size()));
+    auto root = source.child("finale");
+    auto others = root.child("others");
+    others.find_child_by_attribute("measSpec", "cmper", "1").append_child("hasExpr");
+    const std::vector<std::string> contents{
+        "^fontid(1)^size(12)^nfx(0)Example ^page()",
+        "^fontid(0)^size(24)^nfx(0)p f",
+        "^fontid(1)^size(12)^nfx(0)più ^fontid(0)^size(24)f",
+        "^fontid(1)^size(12)^nfx(0)hidden assignment",
+        "^fontid(1)^size(12)^nfx(128)hidden font",
+        "^fontid(1)^size(12)^nfx(0)cue text",
+        "^fontid(1)^size(12)^nfx(0)cresc.",
+        "^fontid(1)^size(12)^nfx(0)dim.",
+    };
+    int firstTextId = 0;
+    for (auto block : others.children("textBlock")) {
+        firstTextId = (std::max)(firstTextId, block.attribute("cmper").as_int());
+    }
+    ++firstTextId;
+    for (size_t index = 0; index < contents.size(); ++index) {
+        const auto number = firstTextId + static_cast<int>(index);
+        auto block = others.append_child("textBlock");
+        block.append_attribute("cmper") = number;
+        block.append_child("textID").text() = number;
+        block.append_child("textTag").text() = "expression";
+        auto def = others.append_child("textExprDef");
+        def.append_attribute("cmper") = number;
+        def.append_child("textIDKey").text() = number;
+        def.append_child("vertMeasExprAlign").text() = "manual";
+        def.append_child("yAdjustBaseline").text() = index == 0 ? 24 : -144;
+        auto assignment = others.append_child("measExprAssign");
+        assignment.append_attribute("cmper") = 1;
+        assignment.append_attribute("inci") = static_cast<int>(index);
+        assignment.append_child("textExprID").text() = number;
+        assignment.append_child("staffAssign").text() = 1;
+        assignment.append_child("horzEduOff").text() = static_cast<int>(musx::dom::NoteType::Quarter);
+        if (index == 3) {
+            assignment.append_child("hidden");
+        }
+        if (index == 5) {
+            assignment.append_child("layer").text() = 1;
+        }
+        auto text = root.child("texts").append_child("expression");
+        text.append_attribute("number") = number;
+        text.text() = contents[index].c_str();
+    }
+    std::ostringstream xml;
+    source.save(xml);
+    const auto bytes = xml.str();
+    denigma::classify::GapCollector collector;
+    denigma::formats::mnx::Options options;
+    options.common.gapCollector = &collector;
+    options.cueLayer = 1;
+    std::ostringstream output;
+    const auto result =
+        denigma::formats::mnx::EnigmaXmlToMnxJsonConverter{}.convert(std::as_bytes(std::span(bytes.data(), bytes.size())), output, options);
+    ASSERT_TRUE(result);
+    const auto document = nlohmann::json::parse(output.str());
+    const auto& measure = document["parts"][0]["measures"][0];
+    const auto& text = measure["text"];
+    ASSERT_EQ(text.size(), 4) << text.dump(2);
+    EXPECT_EQ(text[0]["placement"], "above");
+    EXPECT_EQ(text[0]["position"]["fraction"], nlohmann::json::array({1, 4}));
+    EXPECT_EQ(text[0]["text"][0]["text"], "Example #");
+    EXPECT_EQ(text[1]["placement"], "below");
+    EXPECT_EQ(text[1]["text"].size(), 3);
+    ASSERT_EQ(measure["dynamics"].size(), 1);
+    EXPECT_EQ(measure["dynamics"][0]["relativeValue"], "louder");
+    EXPECT_EQ(measure["dynamics"][0]["prefix"], "più");
+    EXPECT_EQ(text[2]["text"][0]["text"], "cresc.");
+    EXPECT_EQ(text[3]["text"][0]["text"], "dim.");
+    const auto report = nlohmann::json::parse(denigma::serializeGapReport(collector, {{"denigma", "TEST", "abc123"}, {}}));
+    const auto& gaps = report["gaps"];
+    const auto dynamic =
+        std::find_if(gaps.begin(), gaps.end(), [](const auto& gap) { return gap["type"] == "expression" && gap["expression"]["type"] == "dynamic"; });
+    ASSERT_NE(dynamic, gaps.end());
+    EXPECT_EQ((*dynamic)["extent"], "partial");
+    EXPECT_EQ((*dynamic)["anchor"], text[1]["id"]);
+    EXPECT_EQ(std::count_if(gaps.begin(), gaps.end(), [](const auto& gap) { return gap["type"] == "expression"; }), 1);
 }

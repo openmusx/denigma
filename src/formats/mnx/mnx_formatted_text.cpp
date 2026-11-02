@@ -21,167 +21,105 @@
  */
 #include "mnx_formatted_text.h"
 
-#include <optional>
-#include <string>
-#include <string_view>
+#include <tuple>
+#include <utility>
 #include <vector>
 
-#include "utils/smufl_support.h"
+#include "core/element_ids.h"
 #include "utils/utf8_iterator.h"
-
-using namespace musx::dom;
-using namespace musx::util;
 
 namespace denigma {
 namespace formats {
 namespace mnx {
 namespace detail {
 
-namespace {
-
-static bool sameFont(const MusxInstance<FontInfo>& lhs, const MusxInstance<FontInfo>& rhs)
+void setFormattedText(mnxdom::FormattedText dst, const classify::FormattedText& src, const std::string& textId, classify::GapCollector* gaps)
 {
-    if (!lhs || !rhs) {
-        return false;
-    }
-    return lhs->isSame(*rhs);
-}
-
-static bool shouldAddStyle(const EnigmaStyles& styles, const MnxFormattedTextOptions& options)
-{
-    if (options.plainTextOnly || !styles.font) {
-        return false;
-    }
-    if (options.initialFont && sameFont(styles.font, options.initialFont.value())) {
-        return false;
-    }
-    return true;
-}
-
-template <typename T>
-static void applyStyle(T item, const EnigmaStyles& styles, const MnxFormattedTextOptions& options)
-{
-    if (!shouldAddStyle(styles, options)) {
-        return;
-    }
-
-    auto style = item.ensure_style();
-    const std::string fontName = styles.font->getName();
-    if (!fontName.empty()) {
-        style.set_font(fontName);
-    }
-    if (styles.font->fontSize > 0) {
-        style.set_size(static_cast<double>(styles.font->fontSize));
-    }
-    style.set_or_clear_fontStyle(styles.font->italic ? mnxdom::FontStyle::Italic : mnxdom::FontStyle::Plain);
-    style.set_or_clear_weight(styles.font->bold ? mnxdom::FontWeight::Bold : mnxdom::FontWeight::Plain);
-}
-
-static void appendTextChunk(
-    mnxdom::FormattedText dst, const std::string& text, const EnigmaStyles& styles, const MnxFormattedTextOptions& options, bool addStyle = true)
-{
-    if (text.empty()) {
-        return;
-    }
-    auto item = dst.appendText(text);
-    if (addStyle) {
-        applyStyle(item, styles, options);
-    }
-    if (options.onChunk) {
-        options.onChunk(text, {});
-    }
-}
-
-static void appendSmuflChunk(mnxdom::FormattedText dst, const std::string& text, const std::vector<std::string>& glyphs, const EnigmaStyles& styles,
-    const MnxFormattedTextOptions& options, bool addStyle = true)
-{
-    if (glyphs.empty()) {
-        return;
-    }
-    auto item = dst.appendSmufl(glyphs);
-    if (addStyle && styles.font && styles.font->calcIsSMuFL()) {
-        applyStyle(item, styles, options);
-    }
-    if (options.onChunk) {
-        options.onChunk(text, glyphs);
-    }
-}
-
-static void appendConvertedChunk(
-    mnxdom::FormattedText dst, const std::string& text, const EnigmaStyles& styles, const MnxFormattedTextOptions& options)
-{
-    if (text.empty() || !styles.font || (options.skipHiddenText && styles.font->hidden)) {
-        return;
-    }
-
-    if (options.plainTextOnly || options.symbolPolicy == utils::SmuflSymbolPolicy::PreserveText) {
-        appendTextChunk(dst, text, styles, options);
-        return;
-    }
-
-    if (options.symbolPolicy == utils::SmuflSymbolPolicy::PreferSmufl) {
-        if (auto glyphs = utils::smuflGlyphNamesForText(styles.font, text); !glyphs.empty()) {
-            appendSmuflChunk(dst, text, glyphs, styles, options);
-        } else {
-            appendTextChunk(dst, text, styles, options);
-        }
-        return;
-    }
-
-    if (options.symbolPolicy == utils::SmuflSymbolPolicy::SplitSmufl) {
-        bool addTextStyle = true;
-        for (const auto& run : utils::smuflSplitRunsByGlyphMapping(styles.font, text)) {
-            if (run.isSmufl) {
-                appendSmuflChunk(dst, run.text, run.glyphs, styles, options, false);
-            } else {
-                appendTextChunk(dst, run.text, styles, options, addTextStyle);
-                addTextStyle = false;
-            }
-        }
-    }
-}
-
-} // namespace
-
-void setFormattedText(mnxdom::FormattedText dst, const EnigmaParsingContext& src, const MnxFormattedTextOptions& options)
-{
-    dst.clear();
-
-    EnigmaString::EnigmaParsingOptions parsingOptions;
-    if (options.plainTextOnly || options.symbolPolicy == utils::SmuflSymbolPolicy::PreserveText) {
-        parsingOptions = EnigmaString::EnigmaParsingOptions(EnigmaString::AccidentalStyle::Unicode);
-    }
-    if (options.plainTextOnly) {
-        parsingOptions.ignoreStyleTags = true;
-    }
-
-    // Adjacent chunks in the same font are converted as one. The parser delivers an insert's
-    // substitution as its own chunk, and MNX has no use for that boundary.
-    std::optional<EnigmaTextChunk> pending;
-    const auto flush = [&]() {
-        if (pending) {
-            appendConvertedChunk(dst, pending->text, pending->styles, options);
-            pending.reset();
-        }
+    struct OutputChunk
+    {
+        std::string text;
+        std::vector<std::string> glyphs;
+        size_t length{};
+        bool isGlyph{};
     };
-    src.parseEnigmaText(
-        [&](const std::string& chunk, const EnigmaStyles& styles) -> bool {
-            if (pending && sameFont(pending->styles.font, styles.font)) {
-                pending->text += chunk;
-                return true;
+    std::vector<OutputChunk> chunks;
+    std::vector<classify::GapTextRange> ranges;
+    for (const auto& run : src.runs) {
+        if (chunks.empty() || chunks.back().isGlyph != run.isGlyphRun()) {
+            chunks.push_back({{}, {}, 0, run.isGlyphRun()});
+        }
+        auto& chunk = chunks.back();
+        size_t length = run.glyphNames.size();
+        if (!run.isGlyphRun()) {
+            for (utils::Utf8Iterator iter(run.text); !iter.atEnd(); iter.next()) {
+                ++length;
             }
-            flush();
-            pending = EnigmaTextChunk{chunk, styles.createDeepCopy(), std::nullopt};
-            return true;
-        },
-        parsingOptions);
-    flush();
+        }
+        ranges.push_back({core::calcTextChunkId(textId, chunks.size() - 1), chunk.length, length});
+        chunk.length += length;
+        chunk.text += run.text;
+        chunk.glyphs.insert(chunk.glyphs.end(), run.glyphNames.begin(), run.glyphNames.end());
+    }
+
+    dst.clear();
+    for (size_t index = 0; index < chunks.size(); ++index) {
+        const auto& chunk = chunks[index];
+        const auto id = core::calcTextChunkId(textId, index);
+        if (chunk.isGlyph) {
+            dst.appendSmufl(chunk.glyphs).set_id(id);
+        } else {
+            dst.appendText(chunk.text).set_id(id);
+        }
+    }
+    if (!gaps) {
+        return;
+    }
+
+    const auto fontKey = [](const musx::dom::ResolvedFontInfo& font) {
+        return std::tie(font.name, font.size, font.sizeIsPercent, font.bold, font.italic, font.underline, font.strikeout, font.absolute, font.hidden,
+            font.isSymbolFont, font.isSmufl);
+    };
+    const auto sameStyle = [&](const classify::text::Run& lhs, const classify::text::Run& rhs) {
+        return fontKey(lhs.font) == fontKey(rhs.font) && lhs.baseline == rhs.baseline && lhs.superscript == rhs.superscript
+               && lhs.tracking == rhs.tracking;
+    };
+    const classify::GapAnchor anchor{textId, std::nullopt, std::nullopt};
+    for (size_t first = 0; first < src.runs.size();) {
+        auto range = ranges[first];
+        const auto& run = src.runs[first];
+        classify::TextFormatting formatting{run.font, run.baseline, run.superscript, run.tracking, run.text};
+        size_t next = first + 1;
+        while (next < src.runs.size() && ranges[next].id == range.id && sameStyle(run, src.runs[next])) {
+            range.length += ranges[next].length;
+            formatting.sourceText += src.runs[next].text;
+            ++next;
+        }
+        gaps->add(anchor, std::move(formatting), classify::GapExtent::Partial, {}, {std::move(range)});
+        first = next;
+    }
+    for (size_t first = 0; first < src.runs.size();) {
+        const auto& run = src.runs[first];
+        if (!run.insert) {
+            ++first;
+            continue;
+        }
+        classify::TextInsert insert{*run.insert, run.text};
+        std::vector<classify::GapTextRange> insertRanges{ranges[first]};
+        size_t next = first + 1;
+        while (next < src.runs.size() && src.runs[next].sourceChunk == run.sourceChunk) {
+            insert.sourceText += src.runs[next].text;
+            insertRanges.push_back(ranges[next]);
+            ++next;
+        }
+        gaps->add(anchor, std::move(insert), classify::GapExtent::Partial, {}, std::move(insertRanges));
+        first = next;
+    }
 }
 
-mnxdom::FormattedText makeFormattedText(const EnigmaParsingContext& src, const MnxFormattedTextOptions& options)
+mnxdom::FormattedText makeFormattedText(const musx::util::EnigmaParsingContext& src, const std::string& textId, classify::GapCollector* gaps)
 {
     mnxdom::FormattedText result;
-    setFormattedText(result, src, options);
+    setFormattedText(result, classify::classifyFormattedText(src), textId, gaps);
     return result;
 }
 

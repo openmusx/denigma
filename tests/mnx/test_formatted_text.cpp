@@ -41,7 +41,7 @@ struct RawTextContext
     musx::util::EnigmaParsingContext parsingContext;
 };
 
-static RawTextContext makeRawTextContext(const std::string& enigmaText)
+static RawTextContext makeRawTextContext(const std::string& enigmaText, bool nestedPartName = false)
 {
     std::string xml = R"xml(<?xml version="1.0" encoding="UTF-8"?>
 <finale>
@@ -75,6 +75,15 @@ static RawTextContext makeRawTextContext(const std::string& enigmaText)
   </texts>
 </finale>)xml";
 
+    if (nestedPartName) {
+        xml.insert(xml.find("  </others>"), R"xml(
+    <partDef cmper="0"><nameID>2</nameID></partDef>
+    <textBlock cmper="2"><textID>2</textID><textTag>block</textTag></textBlock>
+)xml");
+        xml.insert(xml.find("  </texts>"), R"xml(
+    <blockText number="2">Clarinet ^page(2)</blockText>
+)xml");
+    }
     std::vector<char> buffer(xml.begin(), xml.end());
     auto document = musx::factory::DocumentFactory::create<denigma::MusxReader>(buffer);
     auto text = document->getTexts()->get<texts::BlockText>(1);
@@ -83,195 +92,154 @@ static RawTextContext makeRawTextContext(const std::string& enigmaText)
 
 } // namespace
 
-TEST(MnxFormattedText, ConvertsStyledText)
+TEST(MnxFormattedText, MergesFontChangesAndPreservesFormattingRanges)
 {
-    auto ctx = makeRawTextContext("^fontid(1)^size(14)^nfx(3)Bold Italic");
-
-    const auto formatted = makeFormattedText(ctx.parsingContext);
-
+    auto ctx = makeRawTextContext("^fontid(1)^size(14)^nfx(3)Bold^nfx(0) plain^baseline(6)^superscript(3)^tracking(20) raised");
+    denigma::classify::GapCollector gaps;
+    const auto formatted = makeFormattedText(ctx.parsingContext, "expr", &gaps);
     EXPECT_EQ(mnxdom::json::parse(formatted.dump()), mnxdom::json::parse(R"json([
-        {
-            "text": "Bold Italic",
-            "style": {
-                "font": "Times New Roman",
-                "size": 14.0,
-                "fontStyle": "italic",
-                "weight": "bold"
+        {"id":"expr.text0","text":"Bold plain raised"}
+    ])json"));
+    ASSERT_EQ(gaps.gaps().size(), 3);
+    const auto& first = std::get<denigma::classify::TextFormatting>(gaps.gaps()[0].payload);
+    EXPECT_EQ(first.font.name, "Times New Roman");
+    EXPECT_TRUE(first.font.bold);
+    EXPECT_TRUE(first.font.italic);
+    EXPECT_EQ(first.sourceText, "Bold");
+    const auto& last = std::get<denigma::classify::TextFormatting>(gaps.gaps()[2].payload);
+    EXPECT_EQ(last.baseline, 6);
+    EXPECT_EQ(last.superscript, 3);
+    EXPECT_EQ(last.tracking, 20);
+    EXPECT_EQ(gaps.gaps()[2].textRanges[0].offset, 10);
+    EXPECT_EQ(gaps.gaps()[2].textRanges[0].length, 7);
+}
+
+TEST(MnxFormattedText, SplitsMixedLegacySymbolsAndMergesGlyphFonts)
+{
+    auto ctx = makeRawTextContext("^fontid(2)^size(24)^nfx(0)p f^fontid(0)&#xE520;&#xE521;");
+    denigma::classify::GapCollector gaps;
+    const auto formatted = makeFormattedText(ctx.parsingContext, "expr", &gaps);
+    EXPECT_EQ(mnxdom::json::parse(formatted.dump()), mnxdom::json::parse(R"json([
+        {"id":"expr.text0","type":"smufl","glyphs":["dynamicPiano"]},
+        {"id":"expr.text1","text":" "},
+        {"id":"expr.text2","type":"smufl","glyphs":["dynamicForte","dynamicPiano","dynamicMezzo"]}
+    ])json"));
+    ASSERT_EQ(gaps.gaps().size(), 4);
+    const auto& legacy = std::get<denigma::classify::TextFormatting>(gaps.gaps()[2].payload);
+    EXPECT_EQ(legacy.sourceText, "f");
+    EXPECT_EQ(legacy.font.name, "Maestro");
+    EXPECT_EQ(gaps.gaps()[3].textRanges[0].offset, 1);
+    EXPECT_EQ(gaps.gaps()[3].textRanges[0].length, 2);
+}
+
+TEST(MnxFormattedText, CountsUnicodeScalarsAndPreservesWhitespace)
+{
+    auto ctx = makeRawTextContext("^fontid(1)^size(12)^nfx(0)&#x1D12A;é ^nfx(1)B\n ");
+    denigma::classify::GapCollector gaps;
+    const auto formatted = makeFormattedText(ctx.parsingContext, "expr", &gaps);
+    const auto json = mnxdom::json::parse(formatted.dump());
+    ASSERT_EQ(json.size(), 1);
+    EXPECT_EQ(json[0]["text"], "𝄪é B\n ");
+    ASSERT_EQ(gaps.gaps().size(), 2);
+    EXPECT_EQ(gaps.gaps()[1].textRanges[0].offset, 3);
+    EXPECT_EQ(gaps.gaps()[1].textRanges[0].length, 3);
+}
+
+TEST(MnxFormattedText, KeepsRepeatedInsertRangesWithinMergedText)
+{
+    auto ctx = makeRawTextContext("^fontid(1)^size(12)^nfx(0)p.^page(3)^page(3)^^");
+    denigma::classify::GapCollector gaps;
+    const auto formatted = makeFormattedText(ctx.parsingContext, "expr", &gaps);
+    EXPECT_EQ(mnxdom::json::parse(formatted.dump())[0]["text"], "p.##^");
+    ASSERT_EQ(gaps.gaps().size(), 3);
+    EXPECT_EQ(gaps.gaps()[0].textRanges[0].length, 5);
+    for (size_t i = 1; i < gaps.gaps().size(); ++i) {
+        const auto& gap = gaps.gaps()[i];
+        const auto& insert = std::get<denigma::classify::TextInsert>(gap.payload);
+        EXPECT_EQ(insert.insert.command, "page");
+        EXPECT_EQ(insert.insert.parameters, std::vector<std::string>{"3"});
+        EXPECT_EQ(insert.sourceText, "#");
+        EXPECT_EQ(gap.textRanges[0].offset, i + 1);
+        EXPECT_EQ(gap.textRanges[0].length, 1);
+    }
+}
+
+TEST(MnxFormattedText, MapsOneMixedInsertToSeveralOutputElements)
+{
+    auto ctx = makeRawTextContext("^fontid(2)^size(24)^nfx(0)^value()");
+    ctx.parsingContext = musx::util::EnigmaParsingContext(
+        ctx.text, SCORE_PARTID, std::nullopt, [](const std::vector<std::string>& components) -> std::optional<std::string> {
+            if (components[0] == "value") {
+                return "p f";
             }
-        }
-    ])json"));
+            return std::nullopt;
+        });
+    denigma::classify::GapCollector gaps;
+    const auto formatted = makeFormattedText(ctx.parsingContext, "expr", &gaps);
+    ASSERT_EQ(mnxdom::json::parse(formatted.dump()).size(), 3);
+    ASSERT_EQ(gaps.gaps().size(), 4);
+    const auto& insert = gaps.gaps().back();
+    EXPECT_EQ(std::get<denigma::classify::TextInsert>(insert.payload).sourceText, "p f");
+    ASSERT_EQ(insert.textRanges.size(), 3);
+    EXPECT_EQ(insert.textRanges[0].id, "expr.text0");
+    EXPECT_EQ(insert.textRanges[1].id, "expr.text1");
+    EXPECT_EQ(insert.textRanges[2].id, "expr.text2");
 }
 
-TEST(MnxFormattedText, ReplacesExistingContent)
+TEST(MnxFormattedText, PreservesAccidentalInsertIdentity)
 {
-    auto firstCtx = makeRawTextContext("^fontid(1)^size(12)^nfx(0)First");
-    auto secondCtx = makeRawTextContext("^fontid(1)^size(12)^nfx(0)Second");
-    auto formatted = makeFormattedText(firstCtx.parsingContext);
-
-    setFormattedText(formatted, secondCtx.parsingContext);
-
-    EXPECT_EQ(mnxdom::json::parse(formatted.dump()), mnxdom::json::parse(R"json([
-        {
-            "text": "Second",
-            "style": {
-                "font": "Times New Roman",
-                "size": 12.0
-            }
-        }
-    ])json"));
+    auto ctx = makeRawTextContext("^fontid(1)^size(12)^nfx(0)B^flat()");
+    denigma::classify::GapCollector gaps;
+    const auto formatted = makeFormattedText(ctx.parsingContext, "expr", &gaps);
+    const auto json = mnxdom::json::parse(formatted.dump());
+    ASSERT_EQ(json.size(), 2);
+    EXPECT_EQ(json[1]["glyphs"], mnxdom::json::array({"accidentalFlat"}));
+    ASSERT_EQ(gaps.gaps().size(), 3);
+    const auto& insert = std::get<denigma::classify::TextInsert>(gaps.gaps().back().payload);
+    EXPECT_EQ(insert.insert.kind, denigma::classify::text::Insert::Kind::Accidental);
+    EXPECT_EQ(insert.sourceText, "♭");
 }
 
-TEST(MnxFormattedText, ConvertsSmuflGlyphs)
+TEST(MnxFormattedText, DropsHiddenAndEmptySubstitutionsWithoutBreakingMerging)
 {
-    auto ctx = makeRawTextContext("^fontid(0)^size(24)^nfx(0)&#xE520;");
-
-    const auto formatted = makeFormattedText(ctx.parsingContext);
-
-    EXPECT_EQ(mnxdom::json::parse(formatted.dump()), mnxdom::json::parse(R"json([
-        {
-            "type": "smufl",
-            "glyphs": ["dynamicPiano"],
-            "style": {
-                "font": "Finale Maestro",
-                "size": 24.0
-            }
-        }
-    ])json"));
+    auto ctx = makeRawTextContext("^fontid(1)^size(12)^nfx(0)A^composer()^nfx(128)hidden^nfx(0)B");
+    denigma::classify::GapCollector gaps;
+    const auto formatted = makeFormattedText(ctx.parsingContext, "expr", &gaps);
+    EXPECT_EQ(mnxdom::json::parse(formatted.dump())[0]["text"], "AB");
+    ASSERT_EQ(gaps.gaps().size(), 1);
+    EXPECT_EQ(std::get<denigma::classify::TextFormatting>(gaps.gaps()[0].payload).sourceText, "AB");
 }
 
-TEST(MnxFormattedText, PreservesMixedSmuflTextByDefault)
+TEST(MnxFormattedText, ReplacesExistingContentAndIgnoresGapCollectionForOutput)
 {
-    auto ctx = makeRawTextContext("^fontid(2)^size(24)^nfx(0)p f");
-
-    const auto formatted = makeFormattedText(ctx.parsingContext);
-
-    EXPECT_EQ(mnxdom::json::parse(formatted.dump()), mnxdom::json::parse(R"json([
-        {
-            "text": "p f",
-            "style": {
-                "font": "Maestro",
-                "size": 24.0
-            }
-        }
-    ])json"));
+    auto first = makeRawTextContext("^fontid(1)^size(12)^nfx(0)First");
+    auto second = makeRawTextContext("^fontid(1)^size(12)^nfx(0)Second");
+    auto formatted = makeFormattedText(first.parsingContext, "expr");
+    denigma::classify::GapCollector gaps;
+    setFormattedText(formatted, denigma::classify::classifyFormattedText(second.parsingContext), "expr", &gaps);
+    EXPECT_EQ(formatted.dump(), makeFormattedText(second.parsingContext, "expr").dump());
 }
 
-TEST(MnxFormattedText, OmitsLegacyFontStyleFromSmuflGlyphs)
+TEST(MnxFormattedText, OmitsEntirelyHiddenContent)
 {
-    auto ctx = makeRawTextContext("^fontid(2)^size(24)^nfx(0)pf");
-
-    const auto formatted = makeFormattedText(ctx.parsingContext);
-
-    EXPECT_EQ(mnxdom::json::parse(formatted.dump()), mnxdom::json::parse(R"json([
-        {
-            "type": "smufl",
-            "glyphs": ["dynamicPiano", "dynamicForte"]
-        }
-    ])json"));
+    auto ctx = makeRawTextContext("^fontid(1)^size(12)^nfx(128)hidden");
+    denigma::classify::GapCollector gaps;
+    EXPECT_TRUE(makeFormattedText(ctx.parsingContext, "expr", &gaps).empty());
+    EXPECT_TRUE(gaps.gaps().empty());
 }
 
-TEST(MnxFormattedText, SplitsSmuflGlyphsFromMixedTextWhenRequested)
+TEST(MnxFormattedText, ReportsOnlyParserProvidedProvenanceForNestedInserts)
 {
-    auto ctx = makeRawTextContext("^fontid(2)^size(24)^nfx(0)p f");
-    MnxFormattedTextOptions options;
-    options.symbolPolicy = utils::SmuflSymbolPolicy::SplitSmufl;
-
-    const auto formatted = makeFormattedText(ctx.parsingContext, options);
-
-    EXPECT_EQ(mnxdom::json::parse(formatted.dump()), mnxdom::json::parse(R"json([
-        {
-            "type": "smufl",
-            "glyphs": ["dynamicPiano"]
-        },
-        {
-            "text": " ",
-            "style": {
-                "font": "Maestro",
-                "size": 24.0
-            }
-        },
-        {
-            "type": "smufl",
-            "glyphs": ["dynamicForte"]
-        }
-    ])json"));
-}
-
-TEST(MnxFormattedText, CallsOptionalChunkCallback)
-{
-    auto ctx = makeRawTextContext("^fontid(1)^size(12)^nfx(0)Text ^fontid(2)^size(24)^nfx(0)pf");
-    std::vector<std::string> chunks;
-    std::vector<std::vector<std::string>> glyphs;
-    MnxFormattedTextOptions options;
-    options.onChunk = [&](const std::string& chunk, const std::vector<std::string>& chunkGlyphs) {
-        chunks.push_back(chunk);
-        glyphs.push_back(chunkGlyphs);
-    };
-
-    const auto formatted = makeFormattedText(ctx.parsingContext, options);
-
-    EXPECT_EQ(chunks, (std::vector<std::string>{"Text ", "pf"}));
-    EXPECT_EQ(glyphs, (std::vector<std::vector<std::string>>{{}, {"dynamicPiano", "dynamicForte"}}));
-    EXPECT_EQ(mnxdom::json::parse(formatted.dump()), mnxdom::json::parse(R"json([
-        {
-            "text": "Text ",
-            "style": {
-                "font": "Times New Roman",
-                "size": 12.0
-            }
-        },
-        {
-            "type": "smufl",
-            "glyphs": ["dynamicPiano", "dynamicForte"]
-        }
-    ])json"));
-}
-
-TEST(MnxFormattedText, ChunkCallbackPreservesTextPolicy)
-{
-    auto ctx = makeRawTextContext("^fontid(2)^size(24)^nfx(0)pf");
-    std::vector<std::string> chunks;
-    std::vector<std::vector<std::string>> glyphs;
-    MnxFormattedTextOptions options;
-    options.symbolPolicy = utils::SmuflSymbolPolicy::PreserveText;
-    options.onChunk = [&](const std::string& chunk, const std::vector<std::string>& chunkGlyphs) {
-        chunks.push_back(chunk);
-        glyphs.push_back(chunkGlyphs);
-    };
-
-    const auto formatted = makeFormattedText(ctx.parsingContext, options);
-
-    EXPECT_EQ(chunks, (std::vector<std::string>{"pf"}));
-    EXPECT_EQ(glyphs, (std::vector<std::vector<std::string>>{{}}));
-    EXPECT_EQ(mnxdom::json::parse(formatted.dump()), mnxdom::json::parse(R"json([
-        {
-            "text": "pf",
-            "style": {
-                "font": "Maestro",
-                "size": 24.0
-            }
-        }
-    ])json"));
-}
-
-TEST(MnxFormattedText, ChunkCallbackSplitsSmuflPolicy)
-{
-    auto ctx = makeRawTextContext("^fontid(2)^size(24)^nfx(0)p f");
-    std::vector<std::string> chunks;
-    std::vector<std::vector<std::string>> glyphs;
-    MnxFormattedTextOptions options;
-    options.symbolPolicy = utils::SmuflSymbolPolicy::SplitSmufl;
-    options.onChunk = [&](const std::string& chunk, const std::vector<std::string>& chunkGlyphs) {
-        chunks.push_back(chunk);
-        glyphs.push_back(chunkGlyphs);
-    };
-
-    static_cast<void>(makeFormattedText(ctx.parsingContext, options));
-
-    EXPECT_EQ(chunks, (std::vector<std::string>{"p", " ", "f"}));
-    EXPECT_EQ(glyphs, (std::vector<std::vector<std::string>>{
-                          {"dynamicPiano"},
-                          {},
-                          {"dynamicForte"},
-                      }));
+    auto ctx = makeRawTextContext("^fontid(1)^size(12)^nfx(0)^partname()", true);
+    denigma::classify::GapCollector gaps;
+    const auto formatted = makeFormattedText(ctx.parsingContext, "expr", &gaps);
+    EXPECT_EQ(mnxdom::json::parse(formatted.dump())[0]["text"], "Clarinet #");
+    ASSERT_EQ(gaps.gaps().size(), 3);
+    const auto& outer = std::get<denigma::classify::TextInsert>(gaps.gaps()[1].payload);
+    const auto& inner = std::get<denigma::classify::TextInsert>(gaps.gaps()[2].payload);
+    EXPECT_EQ(outer.insert.command, "partname");
+    EXPECT_EQ(outer.sourceText, "Clarinet ");
+    EXPECT_EQ(inner.insert.command, "page");
+    EXPECT_EQ(inner.sourceText, "#");
+    EXPECT_EQ(gaps.gaps()[2].textRanges[0].offset, 9);
 }

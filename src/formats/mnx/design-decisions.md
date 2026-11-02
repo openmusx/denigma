@@ -36,6 +36,28 @@ A beat unit that does not survive that comparison is restated as a count of quar
 
 The classifier says what a marking is; whether it attaches to the global measure or to a part measure is MNX's decision, made by expression type in `processGlobalExpressions`. Tempo marks, metronome marks, tempo alterations and rehearsal marks are one marking of the whole score however Finale distributes them, so the global pass handles them once per staff-list assignment group (`classify::groupExpressionAssignments`), whichever staff the assignment sits on. Everything else is a staff marking even when a staff list copies it onto several staves or a category staff list distributes it: a technique text or a multimeasure-rest number on three staves is three staff expressions, and `processExpressions` handles each with its part measure. The presence of a staff group or a floating staff value therefore never routes an expression on its own.
 
+## General text
+
+### Staff text is exported even when its specialized meaning is unavailable
+
+A visible general or technique expression is a positioned item in the part measure's `text` array. Other unsupported staff text expressions, including dynamics that the dynamic projection cannot spell, use the same fallback. Specialized meanings that general text does not express remain partial expression gaps anchored to that text object's id. A generic expression has no specialized meaning to report. Existing dynamics, fermatas, and other specialized exports are not duplicated as general text.
+
+Tempo, tempo-alteration, and rehearsal text remain global expression gaps. MNX has no global positioned-text collection; choosing staff copies would impose a new layout policy. Hidden assignments, cue-layer expressions, and hidden text chunks are omitted. A text with no visible content creates no positioned-text object.
+
+### Text is converted with its source font, then reduced to alternating text and glyph elements
+
+Music-font characters are resolved to canonical SMuFL glyph names before adjacent content is combined. Glyph and text elements alternate, with no boundaries solely for font changes or inserts. Whitespace, line breaks, and unmapped characters remain intact. Every positioned text and content element receives an id even without gap collection.
+
+MNX carries no font formatting, so glyph conversion is unconditional, including when `allFontsAvailable` is set. That option cannot identify a legacy font to an ordinary MNX reader. Formatting gaps retain the font and original source characters for a gap-aware consumer that deliberately restores the original rendering.
+
+### Formatting and substitutions describe ranges in the exported content
+
+Formatting gaps preserve the full resolved font, baseline and superscript in EVPU, tracking in thousandths of an em, and source characters. Adjacent portions with identical formatting within one output element share a gap. Insert gaps independently preserve command, parameters, meaning, substituted source characters, and all ranges produced from one parser chunk. This includes accidental and fixed-symbol inserts; escaped carets are plain text.
+
+Text offsets count Unicode scalar values; glyph offsets count glyph-array entries. All ranges are zero-based and half-open, measured against the original exported document. Consumers resolve the ranges before editing, and must update formatting coverage when replacing an insert. Formatting and insert ranges intentionally overlap.
+
+The source parser can split or erase insert provenance. A source chunk ordinal joins the mixed text/glyph runs split from one emitted chunk, but never joins successive chunks merely because their commands match. Empty substitutions produce no range, and nested substitutions retain only the provenance the parser emits. Full occurrence reconstruction is deferred in the roadmap.
+
 ## Jumps
 
 ### Jumps and their destinations are written as Finale has them

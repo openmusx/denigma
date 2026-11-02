@@ -30,6 +30,7 @@
 #include "denigma/classify/expressions.h"
 #include "denigma/classify/gaps.h"
 #include "mnx.h"
+#include "mnx_formatted_text.h"
 #include "mnx_gaps.h"
 #include "utils/stringutils.h"
 
@@ -225,28 +226,59 @@ MnxDynamicShape calcDynamicShape(const classify::dynamics::Composition& composit
     return result;
 }
 
+void appendGeneralText(const MnxMusxMappingPtr& context, mnxdom::part::Measure& mnxMeasure, std::optional<int> mnxStaffNumber,
+    const MusxInstance<others::MeasureExprAssign>& asgn, const classify::ExpressionClassification& classification, VerticalPlacement placement)
+{
+    if (!asgn->textExprId || (asgn->layer > 0 && context->current.cuePlan.isCueLayer(asgn->layer - 1))) {
+        return;
+    }
+    auto* const gaps = gapCollectorFor(context);
+    if (!classification.enigmaCtx) {
+        if (gaps) {
+            gaps->add(measureAnchor(mnxMeasure.id_or(""), mnxStaffNumber, asgn->eduPosition), classification);
+        }
+        return;
+    }
+    const auto text = classify::classifyFormattedText(*classification.enigmaCtx);
+    if (text.runs.empty()) {
+        return;
+    }
+    const auto id = core::calcExpressionId(asgn);
+    auto positioned = mnxMeasure.ensure_text().append();
+    positioned.set_id(id);
+    positioned.set_or_clear_staff(mnxStaffNumber.value_or(1));
+    positioned.set_or_clear_placement(enumConvert<mnxdom::Placement>(placement));
+    if (asgn->eduPosition) {
+        positioned.ensure_position(mnxFractionFromEdu(asgn->eduPosition));
+    }
+    setFormattedText(positioned.text(), text, id, gaps);
+    if (gaps && classification.type != classify::ExpressionType::GenericText) {
+        gaps->add({id, std::nullopt, std::nullopt}, classification, classify::GapExtent::Partial);
+    }
+}
+
 void appendDynamic(const MnxMusxMappingPtr& context, mnxdom::part::Measure& mnxMeasure, std::optional<int> mnxStaffNumber,
     const MusxInstance<others::MeasureExprAssign>& asgn, const classify::ExpressionClassification& classification, VerticalPlacement placement)
 {
     if (asgn->layer > 0 && context->current.cuePlan.isCueLayer(asgn->layer - 1)) {
         return;
     }
-    // A dynamic MNX cannot spell is a gap like any other expression it cannot represent.
-    const auto reportGap = [&]() {
-        if (auto* const gapCollector = gapCollectorFor(context)) {
-            gapCollector->add(measureAnchor(mnxMeasure.id_or(""), mnxStaffNumber, asgn->eduPosition), classification);
+    const auto appendFallback = [&]() {
+        if (asgn->textExprId) {
+            appendGeneralText(context, mnxMeasure, mnxStaffNumber, asgn, classification, placement);
+        } else if (auto* const gaps = gapCollectorFor(context)) {
+            gaps->add(measureAnchor(mnxMeasure.id_or(""), mnxStaffNumber, asgn->eduPosition), classification);
         }
     };
-
     auto dynamicClass = projectPrimaryDynamicForMnx(classification);
     if (!dynamicClass) {
-        reportGap();
+        appendFallback();
         return;
     }
 
     const auto shape = calcDynamicShape(dynamicClass->composition);
     if (!shape.value && (dynamicClass->change == classify::dynamics::Change::Absolute || !dynamicClass->containsText())) {
-        reportGap();
+        appendFallback();
         return;
     }
 
@@ -407,7 +439,6 @@ void processExpressions(const MnxMusxMappingPtr& context, const MusxInstance<oth
             }
             const auto classification = classify::classifyExpression(asgn);
             auto placement = asgn->calcVerticalPlacement();
-            const bool isCueLayer = asgn->layer > 0 && context->current.cuePlan.isCueLayer(asgn->layer - 1);
             switch (classification.type) {
             case classify::ExpressionType::Dynamic: appendDynamic(context, mnxMeasure, mnxStaffNumber, asgn, classification, placement); break;
             case classify::ExpressionType::Fermata: {
@@ -442,10 +473,7 @@ void processExpressions(const MnxMusxMappingPtr& context, const MusxInstance<oth
             case classify::ExpressionType::AccordionRegistration:
             case classify::ExpressionType::KeyboardPedal:
             case classify::ExpressionType::MultimeasureRestNumber:
-                // Until MNX has an object for this expression on a staff, its export is a gap.
-                if (auto* const gapCollector = gapCollectorFor(context); gapCollector && !isCueLayer && asgn->textExprId) {
-                    gapCollector->add(measureAnchor(mnxMeasure.id_or(""), mnxStaffNumber, asgn->eduPosition), classification);
-                }
+                appendGeneralText(context, mnxMeasure, mnxStaffNumber, asgn, classification, placement);
                 break;
             case classify::ExpressionType::Suppress: break;
             }

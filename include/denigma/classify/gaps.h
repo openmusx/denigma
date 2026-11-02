@@ -18,6 +18,7 @@
  */
 #pragma once
 
+#include <cstddef>
 #include <optional>
 #include <span>
 #include <string>
@@ -76,8 +77,34 @@ struct GapPlacement
 struct PlaybackOnly
 {};
 
-using GapPayload =
-    std::variant<ChordSymbolClassification, NoteheadClassification, ExpressionClassification, FormattedText, PlaybackOnly, SmartShapeClassification>;
+/// @brief A half-open range in one output text element. Units are Unicode scalar values for
+/// text elements and glyph-list entries for glyph elements, measured before consumer edits.
+struct GapTextRange
+{
+    std::string id;
+    size_t offset{};
+    size_t length{};
+};
+
+/// @brief Source formatting and characters for restoring a range's original appearance.
+struct TextFormatting
+{
+    musx::dom::ResolvedFontInfo font;
+    musx::dom::Evpu baseline{};
+    musx::dom::Evpu superscript{};
+    int tracking{};
+    std::string sourceText;
+};
+
+/// @brief One emitted parser substitution, whose ranges may be replaced together.
+struct TextInsert
+{
+    text::Insert insert;
+    std::string sourceText;
+};
+
+using GapPayload = std::variant<ChordSymbolClassification, NoteheadClassification, ExpressionClassification, FormattedText, PlaybackOnly,
+    SmartShapeClassification, TextFormatting, TextInsert>;
 
 /// @struct Gap
 /// @brief One classified feature omitted, in whole or in part, from a conversion target.
@@ -90,6 +117,8 @@ struct Gap
     /// @brief Where the target would draw the feature. Empty when #anchor alone says so.
     std::vector<GapPlacement> placements;
     GapPayload payload;
+    /// @brief Ordered portions of output text described by this gap; empty for non-text gaps.
+    std::vector<GapTextRange> textRanges;
 };
 
 /// @class GapCollector
@@ -106,16 +135,17 @@ public:
 
     /// Adds one typed gap.
     template <typename Payload>
-    void add(GapAnchor anchor, Payload payload, GapExtent extent = GapExtent::Complete, std::vector<GapPlacement> placements = {})
+    void add(GapAnchor anchor, Payload payload, GapExtent extent = GapExtent::Complete, std::vector<GapPlacement> placements = {},
+        std::vector<GapTextRange> textRanges = {})
     {
-        m_gaps.push_back({std::move(anchor), std::nullopt, extent, std::move(placements), GapPayload(std::move(payload))});
+        m_gaps.push_back({std::move(anchor), std::nullopt, extent, std::move(placements), GapPayload(std::move(payload)), std::move(textRanges)});
     }
 
     /// Adds one typed gap for a feature that spans from @p anchor to @p end.
     template <typename Payload>
     void addSpan(GapAnchor anchor, GapAnchor end, Payload payload, GapExtent extent = GapExtent::Complete)
     {
-        m_gaps.push_back({std::move(anchor), std::move(end), extent, {}, GapPayload(std::move(payload))});
+        m_gaps.push_back({std::move(anchor), std::move(end), extent, {}, GapPayload(std::move(payload)), {}});
     }
 
     /// Returns collected gaps in source traversal order.

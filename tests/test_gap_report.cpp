@@ -168,3 +168,36 @@ TEST(GapReport, SerializesSmartShapeSpansAndPresetArrowheads)
     EXPECT_EQ(arrowhead["origin"], "line-end");
     EXPECT_NE(arrowhead["svg"].get<std::string>().find("<svg "), std::string::npos);
 }
+
+TEST(GapReport, SerializesTextFormattingAndInsertRanges)
+{
+    using namespace denigma::classify;
+    GapCollector collector;
+    TextFormatting formatting;
+    formatting.font.name = "Maestro";
+    formatting.font.size = 24;
+    formatting.baseline = 6;
+    formatting.superscript = 3;
+    formatting.tracking = 20;
+    formatting.sourceText = "p";
+    collector.add({"expr", std::nullopt, std::nullopt}, formatting, GapExtent::Partial, {}, {{"expr.text0", 2, 1}});
+    collector.add({"expr", std::nullopt, std::nullopt}, TextInsert{{text::Insert::Kind::PlaybackValue, "value", {}}, "p f"}, GapExtent::Partial, {},
+        {{"expr.text0", 2, 1}, {"expr.text1", 0, 1}, {"expr.text2", 0, 1}});
+    const auto report = nlohmann::json::parse(denigma::serializeGapReport(collector, {{"denigma", "TEST", "abc123"}, {}}));
+    EXPECT_EQ(report["schemaVersion"], 2);
+    const auto& style = report["gaps"][0];
+    EXPECT_EQ(style["type"], "text-formatting");
+    EXPECT_EQ(style["formatting"]["sourceText"], "p");
+    EXPECT_EQ(style["formatting"]["font"]["name"], "Maestro");
+    EXPECT_EQ(style["formatting"]["baseline"], 6);
+    EXPECT_EQ(style["formatting"]["superscript"], 3);
+    EXPECT_EQ(style["formatting"]["tracking"], 20);
+    EXPECT_EQ(style["textRanges"][0], nlohmann::json({{"anchor", "expr.text0"}, {"offset", 2}, {"length", 1}}));
+    const auto& insert = report["gaps"][1];
+    EXPECT_EQ(insert["type"], "text-insert");
+    EXPECT_EQ(insert["insert"]["kind"], "playback-value");
+    EXPECT_EQ(insert["insert"]["command"], "value");
+    EXPECT_EQ(insert["insert"]["sourceText"], "p f");
+    EXPECT_TRUE(insert["insert"]["parameters"].empty());
+    EXPECT_EQ(insert["textRanges"].size(), 3);
+}
