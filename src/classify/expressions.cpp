@@ -29,6 +29,7 @@
 #include <string>
 #include <string_view>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include "classify/classify.h"
@@ -330,6 +331,89 @@ static std::optional<ExpressionClassification> classifyTechnique(std::string_vie
     result.type = ExpressionType::TechniqueText;
     result.basis = basisForRecognition(categoryType, CategoryType::TechniqueText);
     result.value = std::move(technique);
+    return result;
+}
+
+static std::optional<ExpressionClassification> classifyExpressiveText(
+    std::string_view text, std::string_view normalizedText, CategoryType categoryType)
+{
+    static const std::unordered_set<std::string_view> recognized{
+        "dolce",
+        "dolcemente",
+        "dolcissimo",
+        "dolciss",
+        "cantabile",
+        "cantab",
+        "cantando",
+        "espressivo",
+        "espressiva",
+        "espressivi",
+        "espressive",
+        "expressivo",
+        "expresivo",
+        "espress",
+        "espr",
+        "espressif",
+        "expressif",
+        "expressive",
+        "expressively",
+        "con espressione",
+        "dolce espr",
+        "dolce espressivo",
+        "dolce e cantabile",
+        "dolce cantabile",
+        "leggiero",
+        "leggero",
+        "leggierissimo",
+        "leggerissimo",
+        "leggiermente",
+        "leggermente",
+        "con leggierezza",
+        "con leggerezza",
+        "legg",
+        "grazioso",
+        "con grazia",
+        "teneramente",
+        "con tenerezza",
+        "affettuoso",
+        "con affetto",
+        "con amore",
+        "dolente",
+        "doloroso",
+        "con dolore",
+        "giocoso",
+        "scherzando",
+        "appassionato",
+        "con passione",
+    };
+    static const std::unordered_set<std::string_view> modifiers{
+        "molto",
+        "poco",
+        "sempre",
+    };
+    std::string expressivePhrase;
+    while (!normalizedText.empty()) {
+        const auto separator = normalizedText.find(' ');
+        const auto token = withoutFinalPeriods(normalizedText.substr(0, separator));
+        if (!token.empty() && !modifiers.contains(token)) {
+            if (!expressivePhrase.empty()) {
+                expressivePhrase += ' ';
+            }
+            expressivePhrase += token;
+        }
+        if (separator == std::string_view::npos) {
+            break;
+        }
+        normalizedText.remove_prefix(separator + 1);
+    }
+    const bool recognizedText = recognized.contains(expressivePhrase);
+    if (!recognizedText && categoryType != CategoryType::ExpressiveText) {
+        return std::nullopt;
+    }
+    ExpressionClassification result;
+    result.type = ExpressionType::ExpressiveText;
+    result.basis = recognizedText ? basisForRecognition(categoryType, CategoryType::ExpressiveText) : ClassificationBasis::FinaleCategory;
+    result.value = ExpressiveText{std::string(text)};
     return result;
 }
 
@@ -1180,6 +1264,9 @@ static ExpressionClassification classifyResolvedTextExpressionDefinition(const R
     if (const auto technique = classifyTechnique(resolved.text, normalizedText, categoryType)) {
         return withEnigmaCtx(*technique, resolved);
     }
+    if (const auto expressive = classifyExpressiveText(resolved.text, normalizedText, categoryType)) {
+        return withEnigmaCtx(*expressive, resolved);
+    }
     return withEnigmaCtx(classifyGenericText(resolved.text, categoryType), resolved);
 }
 
@@ -1203,6 +1290,9 @@ static ExpressionClassification classifyAssignedTextExpression(const musx::dom::
     }
     if (const auto technique = classifyTechnique(resolved.text, normalizedText, categoryType)) {
         return withEnigmaCtx(*technique, resolved);
+    }
+    if (const auto expressive = classifyExpressiveText(resolved.text, normalizedText, categoryType)) {
+        return withEnigmaCtx(*expressive, resolved);
     }
     return withEnigmaCtx(classifyGenericText(resolved.text, categoryType), resolved);
 }

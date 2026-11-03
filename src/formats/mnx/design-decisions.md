@@ -44,6 +44,14 @@ A visible general or technique expression is a positioned item in the part measu
 
 Tempo, tempo-alteration, and rehearsal text remain global expression gaps. MNX has no global positioned-text collection; choosing staff copies would impose a new layout policy. Hidden assignments, cue-layer expressions, and hidden text chunks are omitted. A text with no visible content creates no positioned-text object.
 
+### Expressive intent and voice are carried independently
+
+Classified expressive text uses MNX `type: expression`, whether recognized from its wording or from Finale's Expressive Text category. A recognized dynamic that falls back to text uses the same type. Technique text stays general: the richer technique representation needs its own mapping for duration and other semantics. Unrecognized Misc text remains general; its category supplies no expressive intent. A recognized technique keeps its technical classification even when Finale filed it under Expressive Text.
+
+Expressive wording recognition ignores the modifiers `molto`, `poco`, and `sempre`, then requires the remaining phrase to match a known expressive phrase. The original display text is preserved. Ambiguous directions such as `con anima`, `con brio`, and `con fuoco` rely on Finale's category rather than wording recognition.
+
+Text uses the same voice selection as dynamics. An explicit layer, a voice-2 assignment, or an associated voice-2 launch supplies a voice. The associated entry determines voice 1 or 2 and supplies the layer when the assignment does not name one; otherwise the assignment's layer is used. With no such restriction the voice property is omitted and the text applies to all voices on its staff. Text continues to omit a default-valued staff number.
+
 ### Text is converted with its source font, then reduced to alternating text and glyph elements
 
 Music-font characters are resolved to canonical SMuFL glyph names before adjacent content is combined. Glyph and text elements alternate, with no boundaries solely for font changes or inserts. Whitespace, line breaks, and unmapped characters remain intact. Every positioned text and content element receives an id even without gap collection.

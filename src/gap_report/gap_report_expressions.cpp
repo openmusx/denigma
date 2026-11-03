@@ -37,6 +37,7 @@ std::string_view expressionTypeName(ExpressionType type)
 {
     switch (type) {
     case ExpressionType::GenericText: return "generic-text";
+    case ExpressionType::ExpressiveText: return "expressive-text";
     case ExpressionType::Dynamic: return "dynamic";
     case ExpressionType::Fermata: return "fermata";
     case ExpressionType::BreathMark: return "breath-mark";
@@ -375,6 +376,8 @@ void appendValue(json& result, const classify::ExpressionValue& value)
                 result["measureRepeatCount"] = {{"count", payload.count}};
             } else if constexpr (std::is_same_v<Payload, expression::GenericText>) {
                 result["genericText"] = {{"text", payload.text}};
+            } else if constexpr (std::is_same_v<Payload, expression::ExpressiveText>) {
+                result["expressiveText"] = {{"text", payload.text}};
             } else if constexpr (std::is_same_v<Payload, expression::Error>) {
                 result["error"] = {{"message", payload.message}};
             }

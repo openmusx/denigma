@@ -60,6 +60,7 @@ enum class ExpressionType {
     MetronomeMark, ///< A standalone metronome-note equation.
     TempoAlteration, ///< A relative tempo alteration.
     TechniqueText, ///< Text identifying a performance technique.
+    ExpressiveText, ///< Text describing expressive character.
     RehearsalMark, ///< A rehearsal mark.
     MultimeasureRestNumber, ///< A numeric label for a multimeasure rest.
     MeasureRepeatCount, ///< A count of the iterations of a measure repeat.
@@ -127,6 +128,14 @@ struct TechniqueText
 
     /// @brief Semantic technique identified by the classifier.
     Type type{};
+    /// @brief Source display text.
+    std::string text;
+};
+
+/// @struct ExpressiveText
+/// @brief Text describing expressive character, recognized by wording or Finale category.
+struct ExpressiveText
+{
     /// @brief Source display text.
     std::string text;
 };
@@ -312,7 +321,7 @@ struct Suppress
 
 /// @brief Semantic payload associated with one classified expression text run.
 using RunValue = std::variant<std::monostate, dynamics::Mark, DynamicQualifier, Fermata, BreathMark, TempoText, TempoAlteration, TechniqueText,
-    RehearsalMark, GenericText, Error, Suppress>;
+    ExpressiveText, RehearsalMark, GenericText, Error, Suppress>;
 
 /// @struct RunClassification
 /// @brief Classification of one logical run within an expression.
@@ -338,10 +347,11 @@ struct RunClassification
 } // namespace expression
 
 /// @brief Semantic payload associated with an @ref ExpressionClassification.
-using ExpressionValue = std::variant<std::monostate, dynamics::Mark, expression::Fermata, expression::BreathMark, expression::Caesura,
-    articulation::StringMute, articulation::AccordionRegistration, expression::HarpDiagram, keyboardpedal::Type, PseudoTie, expression::NonArpeggio,
-    expression::TempoText, expression::MetronomeMark, expression::TempoAlteration, expression::TechniqueText, expression::RehearsalMark,
-    expression::MultimeasureRestNumber, expression::MeasureRepeatCount, expression::GenericText, expression::Error, expression::Suppress>;
+using ExpressionValue =
+    std::variant<std::monostate, dynamics::Mark, expression::Fermata, expression::BreathMark, expression::Caesura, articulation::StringMute,
+        articulation::AccordionRegistration, expression::HarpDiagram, keyboardpedal::Type, PseudoTie, expression::NonArpeggio, expression::TempoText,
+        expression::MetronomeMark, expression::TempoAlteration, expression::TechniqueText, expression::ExpressiveText, expression::RehearsalMark,
+        expression::MultimeasureRestNumber, expression::MeasureRepeatCount, expression::GenericText, expression::Error, expression::Suppress>;
 
 /// @struct ExpressionClassification
 /// @brief Exporter-neutral semantic classification of one Finale expression.
@@ -447,6 +457,13 @@ public:
     const expression::TechniqueText& techniqueText() const
     {
         return checkedPayload<expression::TechniqueText, ExpressionType::TechniqueText>("TechniqueText");
+    }
+
+    /// @brief Returns the classified expressive text.
+    /// @throws std::logic_error if #type is not ExpressionType::ExpressiveText.
+    const expression::ExpressiveText& expressiveText() const
+    {
+        return checkedPayload<expression::ExpressiveText, ExpressionType::ExpressiveText>("ExpressiveText");
     }
 
     /// @brief Returns the classified rehearsal mark.
