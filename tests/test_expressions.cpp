@@ -510,8 +510,8 @@ TEST(ExpressionClassification, DoesNotClassifyDynamicCategoryTextAsADynamic)
     // "dolce espr." stays text while a level written out as a word is still recognized.
     for (const std::string_view text : {"dolce", "dolce espr.", "cantabile"}) {
         const auto result = classifyTextExpression(std::string(text), ExpressionCategoryType::Dynamics);
-        EXPECT_EQ(result.type, ExpressionType::GenericText) << text;
-        EXPECT_EQ(result.genericText().text, text) << text;
+        ASSERT_EQ(result.type, ExpressionType::ExpressiveText) << text;
+        EXPECT_EQ(result.expressiveText().text, text) << text;
     }
 
     const auto spelledOut = classifyTextExpression("forte", ExpressionCategoryType::Dynamics);
@@ -782,21 +782,21 @@ TEST(ExpressionClassification, ClassifiesStringTechniqueTokens)
     }
 }
 
-TEST(ExpressionClassification, LeavesGenericMuteTextUnclassified)
+TEST(ExpressionClassification, LeavesUnspecifiedMuteTextWithoutTechniqueSemantics)
 {
     for (const std::string_view text : {"con sord.", "mute", "muted", "remove mute", "senza sord.", "open"}) {
         const auto result = classifyTextExpression(std::string(text), ExpressionCategoryType::ExpressiveText);
-        EXPECT_EQ(result.type, ExpressionType::GenericText) << text;
-        EXPECT_EQ(result.genericText().text, text) << text;
+        EXPECT_EQ(result.type, ExpressionType::ExpressiveText) << text;
+        EXPECT_EQ(result.expressiveText().text, text) << text;
     }
 }
 
 TEST(ExpressionClassification, DoesNotClassifyTremoloTextAsTechnique)
 {
     const auto result = classifyTextExpression("tremolo", ExpressionCategoryType::ExpressiveText);
-    EXPECT_EQ(result.type, ExpressionType::GenericText);
+    EXPECT_EQ(result.type, ExpressionType::ExpressiveText);
     EXPECT_EQ(result.basis, ClassificationBasis::FinaleCategory);
-    EXPECT_EQ(result.genericText().text, "tremolo");
+    EXPECT_EQ(result.expressiveText().text, "tremolo");
 }
 
 TEST(ExpressionClassification, ClassifiesTempoPrimoAsTempoAlteration)
@@ -1010,7 +1010,7 @@ TEST(ExpressionClassification, RejectsMultimeasureRestNumberWhenOnlyItsCategoryI
         "      <horzAlign>centerOverMusic</horzAlign>\n"
         "      <justification>center</justification>\n");
 
-    EXPECT_EQ(result.type, ExpressionType::GenericText);
+    EXPECT_EQ(result.type, ExpressionType::ExpressiveText);
 }
 
 TEST(ExpressionClassification, RejectsMultimeasureRestNumberInOtherFont)
@@ -1018,7 +1018,7 @@ TEST(ExpressionClassification, RejectsMultimeasureRestNumberInOtherFont)
     // Font id 0 is Times New Roman here, not the document's multimeasure rest font.
     const auto result = classifyMultimeasureRestNumberCandidate("^fontid(0)^size(24)^nfx(0)12");
 
-    EXPECT_EQ(result.type, ExpressionType::GenericText);
+    EXPECT_EQ(result.type, ExpressionType::ExpressiveText);
 }
 
 TEST(ExpressionClassification, RejectsMultimeasureRestNumberThatIsNotCentered)
@@ -1027,14 +1027,14 @@ TEST(ExpressionClassification, RejectsMultimeasureRestNumberThatIsNotCentered)
         classifyMultimeasureRestNumberCandidate("^fontid(1)^size(24)^nfx(0)12", "      <horzMeasExprAlign>leftEdge</horzMeasExprAlign>\n"
                                                                                 "      <horzExprAlign>left</horzExprAlign>\n");
 
-    EXPECT_EQ(result.type, ExpressionType::GenericText);
+    EXPECT_EQ(result.type, ExpressionType::ExpressiveText);
 }
 
 TEST(ExpressionClassification, RejectsMultimeasureRestNumberWithNonNumericText)
 {
     const auto result = classifyMultimeasureRestNumberCandidate("^fontid(1)^size(24)^nfx(0)12a");
 
-    EXPECT_EQ(result.type, ExpressionType::GenericText);
+    EXPECT_EQ(result.type, ExpressionType::ExpressiveText);
 }
 
 TEST(ExpressionClassification, PrefersRehearsalMarkCategoryOverMultimeasureRestNumber)
@@ -1409,4 +1409,86 @@ TEST(FormattedTextClassification, KeepsUnnamedInsertsWithTheirCommand)
     EXPECT_EQ(text.runs[1].insert->command, "page");
     ASSERT_EQ(text.runs[1].insert->parameters.size(), 1);
     EXPECT_EQ(text.runs[1].insert->parameters[0], "3");
+}
+
+TEST(ExpressionClassification, RecognizesExpressiveTextIndependentlyOfCategory)
+{
+    for (const auto category : {ExpressionCategoryType::Invalid, ExpressionCategoryType::Misc, ExpressionCategoryType::TechniqueText,
+             ExpressionCategoryType::ExpressiveText}) {
+        const auto result = classifyTextExpression("dolce", category);
+        ASSERT_EQ(result.type, ExpressionType::ExpressiveText);
+        EXPECT_EQ(result.expressiveText().text, "dolce");
+        const auto expectedBasis = category == ExpressionCategoryType::ExpressiveText  ? ClassificationBasis::FinaleCategoryConfirmed
+                                   : category == ExpressionCategoryType::TechniqueText ? ClassificationBasis::FinaleCategoryCorrected
+                                                                                       : ClassificationBasis::Heuristic;
+        EXPECT_EQ(result.basis, expectedBasis);
+    }
+    const auto technique = classifyTextExpression("Pizz.", ExpressionCategoryType::ExpressiveText);
+    EXPECT_EQ(technique.type, ExpressionType::TechniqueText);
+    EXPECT_EQ(classifyTextExpression("mf", ExpressionCategoryType::Misc).type, ExpressionType::Dynamic);
+    EXPECT_EQ(classifyTextExpression("Pizz.", ExpressionCategoryType::Misc).type, ExpressionType::TechniqueText);
+}
+
+TEST(ExpressionClassification, RecognizesExpressiveSpellingAndAbbreviationVariants)
+{
+    for (const std::string text : {"Dolce", "DOLCISSIMO", "dolciss.", "Dolcemente", "Cantabile", "Cantab.", "cantando", "espressivo", "expressivo",
+             "expresivo", "espress.", "espr.", "expressif", "espressif", "expressively", "con espressione", "dolce espr.", "dolce e cantabile",
+             "molto dolce", "molto espressivo", "  Cantabile.  "}) {
+        const auto result = classifyTextExpression(text, ExpressionCategoryType::Misc);
+        ASSERT_EQ(result.type, ExpressionType::ExpressiveText) << text;
+        EXPECT_EQ(result.expressiveText().text, text);
+        EXPECT_EQ(result.basis, ClassificationBasis::Heuristic);
+    }
+}
+
+TEST(ExpressionClassification, FallsBackToExpressiveCategoryAndLeavesUnknownMiscTextGeneral)
+{
+    const auto expressive = classifyTextExpression("some unfamiliar direction", ExpressionCategoryType::ExpressiveText);
+    ASSERT_EQ(expressive.type, ExpressionType::ExpressiveText);
+    EXPECT_EQ(expressive.basis, ClassificationBasis::FinaleCategory);
+    for (const auto category : {ExpressionCategoryType::Invalid, ExpressionCategoryType::Misc, ExpressionCategoryType::TechniqueText}) {
+        for (const std::string text : {"some unfamiliar direction", "dolce text extra", "cantilever", "espr. extra"}) {
+            const auto result = classifyTextExpression(text, category);
+            EXPECT_EQ(result.type, ExpressionType::GenericText) << text;
+        }
+    }
+}
+
+TEST(ExpressionClassification, RecognizesAdditionalExpressiveFamilies)
+{
+    for (const std::string text : {"leggiero", "leggero", "leggierissimo", "leggerissimo", "leggiermente", "leggermente", "con leggierezza",
+             "con leggerezza", "legg.", "grazioso", "con grazia", "teneramente", "con tenerezza", "affettuoso", "con affetto", "con amore", "dolente",
+             "doloroso", "con dolore", "giocoso", "scherzando", "appassionato", "con passione"}) {
+        const auto result = classifyTextExpression(text, ExpressionCategoryType::Misc);
+        ASSERT_EQ(result.type, ExpressionType::ExpressiveText) << text;
+        EXPECT_EQ(result.expressiveText().text, text);
+        EXPECT_EQ(result.basis, ClassificationBasis::Heuristic);
+    }
+}
+
+TEST(ExpressionClassification, IgnoresExpressiveModifiersWhilePreservingDisplayText)
+{
+    for (const std::string text : {"molto leggiero", "poco dolce", "sempre cantabile", "dolce molto", "espr. sempre", "sempre molto grazioso",
+             "con molto amore", "poco appassionato", "molto dolce e cantabile", "  Sempre   LEGGERO.  "}) {
+        const auto result = classifyTextExpression(text, ExpressionCategoryType::Misc);
+        ASSERT_EQ(result.type, ExpressionType::ExpressiveText) << text;
+        EXPECT_EQ(result.expressiveText().text, text);
+        EXPECT_EQ(result.basis, ClassificationBasis::Heuristic);
+    }
+    for (const std::string text : {"molto", "poco sempre", "molto unknown", "dolce extra", "non dolce", "poco allegro", "sempre pizzicato"}) {
+        EXPECT_NE(classifyTextExpression(text, ExpressionCategoryType::Misc).type, ExpressionType::ExpressiveText) << text;
+    }
+}
+
+TEST(ExpressionClassification, RequiresExpressiveCategoryForAmbiguousCharacterText)
+{
+    for (const std::string text : {"con anima", "con brio", "con fuoco", "molto con brio", "con fuoco sempre"}) {
+        const auto expressive = classifyTextExpression(text, ExpressionCategoryType::ExpressiveText);
+        ASSERT_EQ(expressive.type, ExpressionType::ExpressiveText) << text;
+        EXPECT_EQ(expressive.basis, ClassificationBasis::FinaleCategory);
+        EXPECT_EQ(expressive.expressiveText().text, text);
+        for (const auto category : {ExpressionCategoryType::Invalid, ExpressionCategoryType::Misc, ExpressionCategoryType::TechniqueText}) {
+            EXPECT_EQ(classifyTextExpression(text, category).type, ExpressionType::GenericText) << text;
+        }
+    }
 }

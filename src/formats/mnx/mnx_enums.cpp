@@ -28,6 +28,7 @@
 #include "denigma/classify/barlines.h"
 #include "denigma/classify/classifier_common.h"
 #include "denigma/classify/dynamics.h"
+#include "denigma/classify/expressions.h"
 #include "formats/enum_conversion_macros.h"
 #include "mnx.h"
 
@@ -90,6 +91,19 @@ BEGIN_ENUM_CONVERSION(classify::articulation::Caesura::Type, mnxdom::CaesuraShap
     case classify::articulation::Caesura::Type::Thick: return mnxdom::CaesuraShape::Thick;
     case classify::articulation::Caesura::Type::Chant: return mnxdom::CaesuraShape::Short;
     case classify::articulation::Caesura::Type::SingleStroke: return mnxdom::CaesuraShape::Normal;
+END_ENUM_CONVERSION
+
+BEGIN_ENUM_CONVERSION(classify::ExpressionType, mnxdom::TextType)
+    case classify::ExpressionType::GenericText: return mnxdom::TextType::General;
+    case classify::ExpressionType::Dynamic: return mnxdom::TextType::Expression;
+    case classify::ExpressionType::ExpressiveText: return mnxdom::TextType::Expression;
+    case classify::ExpressionType::TechniqueText: return mnxdom::TextType::General;
+    case classify::ExpressionType::StringMute: return mnxdom::TextType::General;
+    case classify::ExpressionType::AccordionRegistration: return mnxdom::TextType::General;
+    case classify::ExpressionType::HarpDiagram: return mnxdom::TextType::General;
+    case classify::ExpressionType::KeyboardPedal: return mnxdom::TextType::General;
+    case classify::ExpressionType::MultimeasureRestNumber: return mnxdom::TextType::General;
+    default: break;
 END_ENUM_CONVERSION
 
 BEGIN_ENUM_CONVERSION(classify::articulation::Fermata::Duration, mnxdom::FermataDuration)

@@ -201,3 +201,17 @@ TEST(GapReport, SerializesTextFormattingAndInsertRanges)
     EXPECT_TRUE(insert["insert"]["parameters"].empty());
     EXPECT_EQ(insert["textRanges"].size(), 3);
 }
+
+TEST(GapReport, SerializesExpressiveTextClassification)
+{
+    using namespace denigma::classify;
+    GapCollector collector;
+    ExpressionClassification classification;
+    classification.type = ExpressionType::ExpressiveText;
+    classification.value = expression::ExpressiveText{"dolce"};
+    collector.add({"P1.m1", std::nullopt, std::nullopt}, classification);
+    const auto report = nlohmann::json::parse(denigma::serializeGapReport(collector, {{"denigma", "TEST", "abc123"}, {}}));
+    EXPECT_EQ(report["gaps"][0]["expression"]["type"], "expressive-text");
+    EXPECT_EQ(report["gaps"][0]["expression"]["expressiveText"]["text"], "dolce");
+    EXPECT_FALSE(report["gaps"][0]["expression"].contains("genericText"));
+}

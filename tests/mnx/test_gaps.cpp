@@ -465,6 +465,9 @@ TEST(MnxGapReport, GeneralTextAndDynamicFallbackPreservePlacementAndVisibility)
         "^fontid(1)^size(12)^nfx(0)cue text",
         "^fontid(1)^size(12)^nfx(0)cresc.",
         "^fontid(1)^size(12)^nfx(0)dim.",
+        "^fontid(1)^size(12)^nfx(0)dolce",
+        "^fontid(1)^size(12)^nfx(0)Pizz.",
+        "^fontid(1)^size(12)^nfx(0)Expressivo",
     };
     int firstTextId = 0;
     for (auto block : others.children("textBlock")) {
@@ -480,6 +483,9 @@ TEST(MnxGapReport, GeneralTextAndDynamicFallbackPreservePlacementAndVisibility)
         auto def = others.append_child("textExprDef");
         def.append_attribute("cmper") = number;
         def.append_child("textIDKey").text() = number;
+        if (index == 8 || index == 9) {
+            def.append_child("categoryID").text() = static_cast<int>(denigma::classify::ExpressionCategoryType::ExpressiveText);
+        }
         def.append_child("vertMeasExprAlign").text() = "manual";
         def.append_child("yAdjustBaseline").text() = index == 0 ? 24 : -144;
         auto assignment = others.append_child("measExprAssign");
@@ -488,6 +494,9 @@ TEST(MnxGapReport, GeneralTextAndDynamicFallbackPreservePlacementAndVisibility)
         assignment.append_child("textExprID").text() = number;
         assignment.append_child("staffAssign").text() = 1;
         assignment.append_child("horzEduOff").text() = static_cast<int>(musx::dom::NoteType::Quarter);
+        if (index < 2) {
+            assignment.append_child("layer").text() = 2;
+        }
         if (index == 3) {
             assignment.append_child("hidden");
         }
@@ -512,12 +521,23 @@ TEST(MnxGapReport, GeneralTextAndDynamicFallbackPreservePlacementAndVisibility)
     const auto document = nlohmann::json::parse(output.str());
     const auto& measure = document["parts"][0]["measures"][0];
     const auto& text = measure["text"];
-    ASSERT_EQ(text.size(), 4) << text.dump(2);
+    ASSERT_EQ(text.size(), 7) << text.dump(2);
     EXPECT_EQ(text[0]["placement"], "above");
     EXPECT_EQ(text[0]["position"]["fraction"], nlohmann::json::array({1, 4}));
     EXPECT_EQ(text[0]["text"][0]["text"], "Example #");
     EXPECT_EQ(text[1]["placement"], "below");
     EXPECT_EQ(text[1]["text"].size(), 3);
+    EXPECT_FALSE(text[0].contains("type"));
+    EXPECT_EQ(text[1]["type"], "expression");
+    EXPECT_EQ(text[0]["voice"], "s1layer2");
+    EXPECT_EQ(text[1]["voice"], "s1layer2");
+    EXPECT_FALSE(text[2].contains("voice"));
+    EXPECT_EQ(text[4]["type"], "expression");
+    EXPECT_FALSE(text[4].contains("voice"));
+    EXPECT_EQ(text[5]["text"][0]["text"], "Pizz.");
+    EXPECT_FALSE(text[5].contains("type"));
+    EXPECT_EQ(text[6]["type"], "expression");
+    EXPECT_EQ(text[6]["text"][0]["text"], "Expressivo");
     ASSERT_EQ(measure["dynamics"].size(), 1);
     EXPECT_EQ(measure["dynamics"][0]["relativeValue"], "louder");
     EXPECT_EQ(measure["dynamics"][0]["prefix"], "più");
@@ -530,5 +550,80 @@ TEST(MnxGapReport, GeneralTextAndDynamicFallbackPreservePlacementAndVisibility)
     ASSERT_NE(dynamic, gaps.end());
     EXPECT_EQ((*dynamic)["extent"], "partial");
     EXPECT_EQ((*dynamic)["anchor"], text[1]["id"]);
-    EXPECT_EQ(std::count_if(gaps.begin(), gaps.end(), [](const auto& gap) { return gap["type"] == "expression"; }), 1);
+    EXPECT_EQ(std::count_if(gaps.begin(), gaps.end(), [](const auto& gap) { return gap["type"] == "expression"; }), 2);
+}
+
+TEST(MnxGapReport, TextVoiceFollowsLayerAndAssociatedEntryVoice)
+{
+    setupTestDataPaths();
+    std::vector<char> input;
+    readFile(getInputPath() / "reference" / utils::utf8ToPath("notAscii-其れ.enigmaxml"), input);
+    pugi::xml_document source;
+    ASSERT_TRUE(source.load_buffer(input.data(), input.size()));
+    auto root = source.child("finale");
+    auto others = root.child("others");
+    others.find_child_by_attribute("measSpec", "cmper", "1").append_child("hasExpr");
+    auto frame = root.child("details").find_child_by_attribute("gfhold", "cmper2", "1");
+    frame.remove_child("frame1");
+    auto entries = root.child("entries");
+    entries.find_child_by_attribute("entry", "entnum", "13").append_child("controller");
+    entries.find_child_by_attribute("entry", "entnum", "14").append_child("v2");
+    entries.find_child_by_attribute("entry", "entnum", "15").append_child("v2");
+    constexpr int expressionId = 3;
+    auto block = others.append_child("textBlock");
+    block.append_attribute("cmper") = expressionId;
+    block.append_child("textID").text() = expressionId;
+    block.append_child("textTag").text() = "expression";
+    auto def = others.append_child("textExprDef");
+    def.append_attribute("cmper") = expressionId;
+    def.append_child("textIDKey").text() = expressionId;
+    def.append_child("horzMeasExprAlign").text() = "leftOfPrimaryNotehead";
+    auto text = root.child("texts").append_child("expression");
+    text.append_attribute("number") = expressionId;
+    text.text() = "^fontid(1)^size(12)^nfx(0)Example";
+    struct Case
+    {
+        int layer;
+        bool voice2;
+        musx::dom::Edu position;
+        std::string_view voice;
+    };
+    const auto quarter = static_cast<musx::dom::Edu>(musx::dom::NoteType::Quarter);
+    const std::vector<Case> cases{
+        {0, false, 2 * quarter, {}},
+        {2, false, 2 * quarter, "s1layer2"},
+        {0, true, 0, "s1layer2v2"},
+        {0, false, 0, "s1layer2"},
+        {2, true, quarter, "s1layer2v2"},
+    };
+    for (size_t index = 0; index < cases.size(); ++index) {
+        const auto& item = cases[index];
+        auto assignment = others.append_child("measExprAssign");
+        assignment.append_attribute("cmper") = 1;
+        assignment.append_attribute("inci") = static_cast<int>(index);
+        assignment.append_child("textExprID").text() = expressionId;
+        assignment.append_child("staffAssign").text() = 1;
+        assignment.append_child("layer").text() = item.layer;
+        assignment.append_child("horzEduOff").text() = item.position;
+        if (item.voice2) {
+            assignment.append_child("v2");
+        }
+    }
+    std::ostringstream xml;
+    source.save(xml);
+    const auto bytes = xml.str();
+    std::ostringstream output;
+    const denigma::formats::mnx::Options options;
+    ASSERT_TRUE(denigma::formats::mnx::EnigmaXmlToMnxJsonConverter{}.convert(std::as_bytes(std::span(bytes.data(), bytes.size())), output, options));
+    const auto document = nlohmann::json::parse(output.str());
+    const auto& texts = document["parts"][0]["measures"][0]["text"];
+    ASSERT_EQ(texts.size(), cases.size());
+    for (size_t index = 0; index < cases.size(); ++index) {
+        if (cases[index].voice.empty()) {
+            EXPECT_FALSE(texts[index].contains("voice"));
+        } else {
+            ASSERT_TRUE(texts[index].contains("voice")) << index;
+            EXPECT_EQ(texts[index]["voice"], cases[index].voice) << index;
+        }
+    }
 }
