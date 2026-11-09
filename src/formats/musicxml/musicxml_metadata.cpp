@@ -20,6 +20,7 @@
  * THE SOFTWARE.
  */
 
+#include <iterator>
 #include <string>
 #include <utility>
 
@@ -208,8 +209,11 @@ void createPageTexts(const MusicXmlMusxMapping& context)
                 continue;
             }
             auto& pageText = context.musicXmlScore->pageTextItems.emplace_back();
-            pageText.text = std::move(content->text);
-            pageText.fontData = std::move(content->fontData);
+            pageText.text = std::move(content->segments.front().text);
+            pageText.fontData = std::move(content->segments.front().fontData);
+            for (auto segment = std::next(content->segments.begin()); segment != content->segments.end(); ++segment) {
+                pageText.continuations.emplace_back(std::move(*segment));
+            }
             pageText.creditTypes = std::move(content->creditTypes);
             if (!pageText.creditTypes.empty()) {
                 pageText.description = pageText.creditTypes.front();

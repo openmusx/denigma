@@ -390,7 +390,6 @@ std::optional<MusicXmlPageTextContent> musicXmlPageTextContentFromEnigmaText(
     const MusicXmlMusxMapping& context, const musx::util::EnigmaParsingContext& text, const MusicXmlFormattedTextOptions& options)
 {
     MusicXmlPageTextContent result;
-    bool foundVisibleFont = false;
     const auto addCreditType = [&](std::string_view type) {
         if (std::find(result.creditTypes.begin(), result.creditTypes.end(), type) == result.creditTypes.end()) {
             result.creditTypes.emplace_back(type);
@@ -433,12 +432,15 @@ std::optional<MusicXmlPageTextContent> musicXmlPageTextContentFromEnigmaText(
                 return true;
             }
             const auto fontData = context.musicXmlFontDataFromFontInfo(*styles.font, options.fallback, MusicXmlFontScaling::Page);
-            if (!foundVisibleFont) {
-                result.fontData = fontData;
-                foundVisibleFont = true;
+            if (!chunk.empty()) {
+                if (!result.segments.empty() && result.segments.back().fontData == fontData) {
+                    result.segments.back().text += chunk;
+                } else {
+                    auto& segment = result.segments.emplace_back();
+                    segment.text = chunk;
+                    segment.fontData = fontData;
+                }
             }
-        // TODO: mx::api::PageTextData has one FontData and emits one credit-words element, so later font changes are flattened.
-            result.text += chunk;
             if (options.onChunk) {
                 options.onChunk(fontData, chunk);
             }
@@ -454,7 +456,7 @@ std::optional<MusicXmlPageTextContent> musicXmlPageTextContentFromEnigmaText(
         },
         musx::util::EnigmaString::EnigmaParsingOptions(options.accidentalStyle));
 
-    if (!foundVisibleFont || result.text.empty()) {
+    if (result.segments.empty()) {
         return std::nullopt;
     }
     return result;

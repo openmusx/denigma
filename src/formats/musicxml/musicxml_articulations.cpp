@@ -148,7 +148,15 @@ namespace {
 void appendOrnament(mx::api::NoteData& note, const classify::articulation::Ornament& ornament, VerticalPlacement placement)
 {
     auto mark = musicXmlMark(enumConvert<mx::api::MarkType>(ornament.type), placement);
-    /// @todo Export ornament accidentals once mx::api exposes the placement-bearing accidental-mark children.
+    if (!ornament.accidentals.empty()) {
+        mx::api::OrnamentMarkData data;
+        for (const auto& accidental : ornament.accidentals) {
+            auto& item = data.accidentals.emplace_back();
+            item.accidental = enumConvert<mx::api::Accidental>(accidental.accidental);
+            item.positionData.placement = enumConvert<mx::api::Placement>(accidental.placement);
+        }
+        mark.choice = std::move(data);
+    }
     note.noteAttachmentData.marks.emplace_back(mark);
 }
 

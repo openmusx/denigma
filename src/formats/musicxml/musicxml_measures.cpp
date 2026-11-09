@@ -36,6 +36,7 @@
 #include "denigma/classify/chords.h"
 #include "denigma/classify/clefs.h"
 #include "denigma/classify/staff_states.h"
+#include "utils/stringutils.h"
 
 #include "mx/api/BarlineData.h"
 #include "mx/api/ChordData.h"
@@ -163,8 +164,7 @@ void assignRepeatEndings(const MusicXmlMusxMapping& context, mx::api::PartData& 
         ASSERT_IF (measureIndex >= part.measures.size()) {
             continue;
         }
-        /// @todo Carry the ending's appearance, above all its hidden state, when mx::api exposes the
-        /// `<ending>` appearance attributes. (See mx-api-gaps.md.)
+        /// @todo Preserve ending visibility when mx::api exposes print-object on EndingData.
         auto endingData = mx::api::EndingData{};
         endingData.type = mx::api::EndingType::start;
         if (const auto passList = context.document->getOthers()->get<others::RepeatPassList>(context.forPartId, ending->getCmper())) {
@@ -417,16 +417,19 @@ void populateNonTraditional12EdoKey(
 }
 
 mx::api::KeyData createKeyData(const MusicXmlMusxMapping& context, const MusxInstance<KeySignature>& keySignature, MeasCmper measureId,
-    KeySignature::KeyContext keyContext, bool staffHidesKeySignature)
+    KeySignature::KeyContext keyContext, bool hideKeySignatureAndShowAccidentals, bool hideKeySignature)
 {
     auto key = mx::api::KeyData{};
-    const bool keySignatureIsVisible = !(keySignature->keyless || keySignature->hideKeySigShowAccis || staffHidesKeySignature);
-    if (keySignatureIsVisible && keySignature->isNonLinear() && keySignature->calcEDODivisions() == music_theory::STANDARD_12EDO_STEPS) {
+    if (hideKeySignature) {
+        key.printObject = mx::api::Bool::no;
+    }
+    const bool keySignatureApplies = !(keySignature->keyless || keySignature->hideKeySigShowAccis || hideKeySignatureAndShowAccidentals);
+    if (keySignatureApplies && keySignature->isNonLinear() && keySignature->calcEDODivisions() == music_theory::STANDARD_12EDO_STEPS) {
         populateNonTraditional12EdoKey(context, keySignature, measureId, key);
         return key;
     }
-    key.fifths = musicXmlKeyFifths(context, keySignature, measureId, keyContext, staffHidesKeySignature);
-    key.mode = musicXmlKeyModeFromMusxKeySignature(keySignature, staffHidesKeySignature);
+    key.fifths = musicXmlKeyFifths(context, keySignature, measureId, keyContext, hideKeySignatureAndShowAccidentals);
+    key.mode = musicXmlKeyModeFromMusxKeySignature(keySignature, hideKeySignatureAndShowAccidentals);
     return key;
 }
 
@@ -453,8 +456,8 @@ void assignKeySignatures(const MusicXmlMusxMapping& context, mx::api::MeasureDat
         const auto staff = others::StaffComposite::createCurrent(context.document, context.forPartId, staves[staffIndex], musxMeasure->getCmper(), 0);
         const auto keyContext =
             staff && staff->calcUsesWrittenPitch(context.pitchMode) ? KeySignature::KeyContext::Written : KeySignature::KeyContext::Concert;
-        auto key = createKeyData(
-            context, musxMeasure->createKeySignature(staves[staffIndex]), musxMeasure->getCmper(), keyContext, staff && staff->hideKeySigsShowAccis);
+        auto key = createKeyData(context, musxMeasure->createKeySignature(staves[staffIndex]), musxMeasure->getCmper(), keyContext,
+            staff && staff->hideKeySigsShowAccis, staff && staff->hideKeySigs);
         key.staffIndex = static_cast<int>(staffIndex);
         currentKeyData.emplace_back(key);
     }
@@ -939,6 +942,10 @@ void processChords(MusicXmlMusxMapping& context, mx::api::StaffData& staff, cons
         auto chord = mx::api::ChordData{};
         chord.root = enumConvert<mx::api::Step>(classification.root.noteName);
         chord.rootAlter = classification.root.alteration;
+        if (classification.rootLowerCase) {
+            chord.rootText = std::string{utils::toLowerCase(music_theory::calcNoteNameLetter(classification.root.noteName))};
+        }
+        chord.text = "";
         const auto& suffix = classification.suffix;
         chord.chordKind = suffix.quality ? enumConvert<mx::api::ChordKind>(*suffix.quality) : mx::api::ChordKind::other;
         if (classification.showSuffix) {
@@ -987,6 +994,9 @@ void processChords(MusicXmlMusxMapping& context, mx::api::StaffData& staff, cons
         if (classification.bass) {
             chord.bass = enumConvert<mx::api::Step>(classification.bass->noteName);
             chord.bassAlter = classification.bass->alteration;
+            if (classification.bassLowerCase) {
+                chord.bassText = std::string{utils::toLowerCase(music_theory::calcNoteNameLetter(classification.bass->noteName))};
+            }
         }
 
         // A font fretboard resolves to one character and has no fret positions to export. The

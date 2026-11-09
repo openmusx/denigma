@@ -16,8 +16,10 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+#include <cctype>
 #include <cstddef>
 #include <cstring>
+#include <functional>
 #include <map>
 #include <span>
 #include <sstream>
@@ -347,7 +349,8 @@ TEST(MusicXmlChordFixture, ExportsChordsForInspection)
     const auto firstKind = document.select_node("//harmony[1]/kind").node();
     ASSERT_TRUE(firstKind);
     EXPECT_STREQ(firstKind.child_value(), "major");
-    EXPECT_FALSE(firstKind.attribute("text"));
+    ASSERT_TRUE(firstKind.attribute("text"));
+    EXPECT_STREQ(firstKind.attribute("text").value(), "");
 
     const auto firstFrame = document.select_node("//harmony[1]/frame").node();
     ASSERT_TRUE(firstFrame);
@@ -551,5 +554,145 @@ TEST(ConverterApi, MusicXmlWrittenOverridePreservesSoundingPitch)
     };
     for (size_t index = 0; index < writtenNotes.size(); ++index) {
         EXPECT_EQ(semitones(writtenNotes[index].node()) - 5, semitones(concertNotes[index].node()));
+    }
+}
+
+namespace {
+
+std::string convertEditedMusicXmlFixture(const std::filesystem::path& fixture, const std::function<void(pugi::xml_document&)>& edit)
+{
+    denigma::DenigmaContext context(DENIGMA_NAME);
+    context.inputFilePath = getInputPath() / fixture;
+    pugi::xml_document source;
+    if (fixture.extension() == ".enigmaxml") {
+        std::vector<char> input;
+        readFile(context.inputFilePath, input);
+        EXPECT_TRUE(source.load_buffer(input.data(), input.size()));
+    } else {
+        const auto input = denigma::formats::enigmaxml::detail::extractMusxInputData(context.inputFilePath, context);
+        EXPECT_TRUE(source.load_buffer(input.primaryBuffer.data(), input.primaryBuffer.size()));
+    }
+    edit(source);
+    std::ostringstream stream;
+    source.save(stream);
+    const auto xml = stream.str();
+    std::string output;
+    const auto result = denigma::formats::musicxml::EnigmaXmlToMusicXmlMultiOutputConverter{}.convert(
+        std::as_bytes(std::span(xml)),
+        [&](std::string_view, std::span<const std::byte> bytes) { output.assign(reinterpret_cast<const char*>(bytes.data()), bytes.size()); },
+        denigma::formats::musicxml::Options{});
+    EXPECT_FALSE(result.hasError());
+    return output;
+}
+
+} // namespace
+
+TEST(MusicXmlMetadata, CreditsPreserveVisibleFontRuns)
+{
+    setupTestDataPaths();
+    const auto xml = convertEditedMusicXmlFixture("page_text.musx", [](pugi::xml_document& source) {
+        for (const auto& selected : source.select_nodes("//blockText")) {
+            selected.node().text().set("^fontid(1)^size(12)^nfx(128)Hidden^nfx(0)First^size(18)^nfx(1)Second^nfx(128)Hidden");
+        }
+    });
+    pugi::xml_document document;
+    ASSERT_TRUE(document.load_string(xml.c_str()));
+    const auto credits = document.select_nodes("//credit[credit-words]");
+    ASSERT_FALSE(credits.empty());
+    for (const auto& selected : credits) {
+        const auto words = selected.node().select_nodes("credit-words");
+        ASSERT_EQ(words.size(), 2u);
+        EXPECT_STREQ(words[0].node().child_value(), "First");
+        EXPECT_STREQ(words[1].node().child_value(), "Second");
+        EXPECT_GT(words[1].node().attribute("font-size").as_double(), words[0].node().attribute("font-size").as_double());
+        EXPECT_STREQ(words[1].node().attribute("font-weight").value(), "bold");
+        EXPECT_TRUE(words[0].node().attribute("default-x"));
+        EXPECT_FALSE(words[1].node().attribute("default-x"));
+        EXPECT_FALSE(words[1].node().attribute("default-y"));
+    }
+}
+
+TEST(MusicXmlChordFixture, LowercaseRootAndBassKeepTheirPitch)
+{
+    setupTestDataPaths();
+    const auto xml = convertEditedMusicXmlFixture("chords.musx", [](pugi::xml_document& source) {
+        const auto assignments = source.select_nodes("//chordAssign");
+        ASSERT_FALSE(assignments.empty());
+        for (const auto& selected : assignments) {
+            auto chord = selected.node();
+            chord.remove_child("rootLowerCase");
+            chord.remove_child("bassLowerCase");
+            chord.append_child("rootLowerCase");
+            chord.append_child("bassLowerCase");
+        }
+    });
+    pugi::xml_document document;
+    ASSERT_TRUE(document.load_string(xml.c_str()));
+    const auto roots = document.select_nodes("//root-step");
+    const auto basses = document.select_nodes("//bass-step");
+    ASSERT_FALSE(roots.empty());
+    ASSERT_FALSE(basses.empty());
+    for (const auto& nodes : {roots, basses}) {
+        for (const auto& selected : nodes) {
+            const auto step = selected.node();
+            const std::string upper = step.child_value();
+            ASSERT_EQ(upper.size(), 1u);
+            EXPECT_EQ(std::string(step.attribute("text").value()), std::string(1, static_cast<char>(std::tolower(upper.front()))));
+        }
+    }
+}
+
+TEST(MusicXmlParts, StaffHiddenKeyKeepsAlterationsAndMode)
+{
+    setupTestDataPaths();
+    const auto xml = convertEditedMusicXmlFixture(utils::utf8ToPath("reference/notAscii-其れ.enigmaxml"), [](pugi::xml_document& source) {
+        for (const auto& selected : source.select_nodes("//staffSpec")) {
+            auto staff = selected.node();
+            staff.remove_child("hideKeySigs");
+            staff.append_child("hideKeySigs");
+        }
+        for (const auto& selected : source.select_nodes("//measSpec[not(@part)]")) {
+            auto measure = selected.node();
+            measure.remove_child("keySig");
+            measure.append_child("keySig").append_child("key").text().set(2);
+        }
+    });
+    pugi::xml_document document;
+    ASSERT_TRUE(document.load_string(xml.c_str()));
+    const auto keys = document.select_nodes("//key");
+    ASSERT_FALSE(keys.empty());
+    for (const auto& selected : keys) {
+        EXPECT_STREQ(selected.node().attribute("print-object").value(), "no");
+        EXPECT_EQ(selected.node().child("fifths").text().as_int(), 2);
+        EXPECT_STREQ(selected.node().child_value("mode"), "major");
+    }
+}
+
+TEST(MusicXmlNotes, OrnamentAccidentalsStayWithTheirOrnament)
+{
+    setupTestDataPaths();
+    constexpr int kTurnFlatSharp = 0xF5B6;
+    const auto xml = convertEditedMusicXmlFixture(utils::utf8ToPath("reference/notAscii-其れ.enigmaxml"), [](pugi::xml_document& source) {
+        auto font = source.select_node("//fontName[@cmper='0']/name").node();
+        ASSERT_TRUE(font);
+        font.text().set("Finale Maestro");
+        auto articulation = source.select_node("//articDef[@cmper='1']").node();
+        ASSERT_TRUE(articulation);
+        articulation.child("charMain").text().set(kTurnFlatSharp);
+        articulation.child("charAlt").text().set(kTurnFlatSharp);
+    });
+    pugi::xml_document document;
+    ASSERT_TRUE(document.load_string(xml.c_str()));
+    const auto ornaments = document.select_nodes("//ornaments[turn]");
+    ASSERT_FALSE(ornaments.empty());
+    for (const auto& selected : ornaments) {
+        const auto ornament = selected.node();
+        const auto marks = ornament.select_nodes("accidental-mark");
+        ASSERT_EQ(marks.size(), 2u);
+        EXPECT_STREQ(ornament.first_child().name(), "turn");
+        EXPECT_STREQ(marks[0].node().child_value(), "flat");
+        EXPECT_STREQ(marks[0].node().attribute("placement").value(), "above");
+        EXPECT_STREQ(marks[1].node().child_value(), "sharp");
+        EXPECT_STREQ(marks[1].node().attribute("placement").value(), "below");
     }
 }
