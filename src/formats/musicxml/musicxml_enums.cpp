@@ -237,6 +237,13 @@ BEGIN_ENUM_CONVERSION(SoloOrEnsemble, mx::api::SoloOrEnsemble)
     case SoloOrEnsemble::Ensemble: return mx::api::SoloOrEnsemble::ensemble;
 END_ENUM_CONVERSION
 
+BEGIN_ENUM_CONVERSION(classify::articulation::Ornament::Accidental, mx::api::Accidental)
+    case classify::articulation::Ornament::Accidental::Unspecified: return mx::api::Accidental::none;
+    case classify::articulation::Ornament::Accidental::Flat: return mx::api::Accidental::flat;
+    case classify::articulation::Ornament::Accidental::Natural: return mx::api::Accidental::natural;
+    case classify::articulation::Ornament::Accidental::Sharp: return mx::api::Accidental::sharp;
+END_ENUM_CONVERSION
+
 BEGIN_ENUM_CONVERSION(classify::articulation::Ornament::Type, mx::api::MarkType)
     case classify::articulation::Ornament::Type::InvertedMordent: return mx::api::MarkType::invertedMordent;
     case classify::articulation::Ornament::Type::InvertedTurn: return mx::api::MarkType::invertedTurn;

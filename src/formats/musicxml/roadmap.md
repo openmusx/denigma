@@ -107,7 +107,7 @@ helper rather than in the exporter, so MNX can share it.
 
 The per-note export is not blocked upstream. `mx::api` writes `<string>` and `<fret>` as the
 `MarkType::string_` and `MarkType::fret` technical marks, with the number in `MarkData::name`. The
-staff details are blocked; see the tablature entry in [mx-api-gaps.md](mx-api-gaps.md).
+staff tunings are available through `StaffData::staffTunings`, but capo and show-frets remain API gaps. Reliable source-side string/fret calculation is also needed.
 
 Two neighbours are related but separate. Fretboard diagrams above cover `<frame>` on `<harmony>`,
 which is chord diagrams rather than staff content, though both read `FretInstrument`. Bends
@@ -179,3 +179,13 @@ a typed gap collection, as MNX has, rather than in the log at all.
 
 `mxResultMessage` also reports only the XML path of a failure, although `ApiError::location` now
 carries part, measure, staff, voice, and tick as well.
+
+## Available MX APIs awaiting source mappings
+
+The mx update at `e866c709` exposes these additional capabilities. Adopt them when Finale source semantics can be mapped reliably:
+
+- Grace-note steal-time percentages and make-time ticks. Finale's grace playback duration alone does not establish which neighbouring note supplies that time; do not infer it or substitute make-time.
+- Notehead parentheses and color. Resolve actual per-note authorial settings before populating these; do not infer parentheses from a circled glyph or colors from Finale's editing display.
+- Additional creators and rights statements. Finale's existing single file-info fields do not establish separate people or rights records; do not split their free text heuristically.
+- Figured-bass extension lines. These need a figured-bass export path before they can be used.
+- Additional accidental-mark appearance attributes. Existing ornament classification supplies accidental type and placement, but no independent brackets, size, font, or color.

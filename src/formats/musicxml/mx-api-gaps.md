@@ -26,7 +26,7 @@ Needed API shape: optional package resources with MIME type, stable archive path
 
 MusicXML `<staff-details>` can represent more than line count and staff size, including staff type, staff tuning, capo, and print controls.
 
-`mx::api::StaffData` currently exposes `staffLines`, `staffSize`, and `staffScaling`. Denigma can export those simple staff-detail values, but cannot express the rest of Finale's staff details through `mx::api`.
+`mx::api::StaffData` exposes `staffLines`, `staffSize`, `staffScaling`, and staff tunings. Staff type, capo, show-frets, and the remaining print controls are still unavailable. Denigma-side tablature work is tracked in the roadmap.
 
 Needed API shape: a staff details data object with optional fields for the MusicXML `<staff-details>` children and attributes that MX intends to support.
 
@@ -56,13 +56,13 @@ The shared symbolic `size` attribute belongs to the cross-element gap below. The
 
 MusicXML uses the shared `symbol-size` values `full`, `cue`, `grace-cue`, and `large` on several elements, including note `<type>`, `<accidental>`, `<accidental-mark>`, `<clef>`, and `<level>`. This visual sizing is distinct from the semantic meaning of the element.
 
-`mx::api` does not expose this attribute consistently. In particular, `mx::api::DurationData` carries the note type but not its `size`, while `mx::api::NoteData::isCue` only requests the semantic `<cue/>` element. The writer therefore cannot emit an explicit `<type size="cue">` or `<type size="grace-cue">`.
+`mx::api::SymbolSize` is available for standalone and ornament accidental marks, but the API does not expose this attribute consistently across other elements. In particular, `mx::api::DurationData` carries the note type but not its `size`, while `mx::api::NoteData::isCue` only requests the semantic `<cue/>` element. The writer therefore cannot emit an explicit `<type size="cue">` or `<type size="grace-cue">`.
 
 MusicXML defines an implicit cue size for a note containing `<cue/>`, and an implicit grace-cue size when `<grace>` and `<cue/>` are both present. However, importers do not all honor those defaults consistently. Denigma should retain `<cue/>` for cue semantics and also explicitly set `<type size="cue">` on ordinary cue notes and rests and `<type size="grace-cue">` on cue grace notes. The size must remain independently controllable so that the API can also represent visually cue-sized notes that are not semantic cues.
 
-Needed API shape: one public symbol-size enum, exposed by each API data type whose MusicXML element supports the shared `size` attribute, with complete reader, writer, and comparison support. For notes, the field should belong to the data that writes `<type>` and remain independent of `NoteData::isCue` and grace state.
+Remaining API work: expose the existing public symbol-size enum on each API data type whose MusicXML element supports the shared `size` attribute, with complete reader, writer, and comparison support. For notes, the field should belong to the data that writes `<type>` and remain independent of `NoteData::isCue` and grace state.
 
-This should be addressed as one cross-element MX API feature after the pending MX API pull requests have merged, rather than as a cue-note-only field. Once available, Denigma should explicitly populate it for both cue notes and cue grace notes.
+The remaining elements should share the existing public `SymbolSize` enum rather than adding a cue-note-only field. Once available, Denigma should explicitly populate it for both cue notes and cue grace notes.
 
 ## Ties
 
@@ -156,25 +156,15 @@ Denigma will probably not try to export part-name or part-group positioning over
 
 Needed API shape: position/print data for group-name-display, group-abbreviation-display, and possibly group-symbol placement.
 
-## Page Text and Credits
-
-### Mixed formatting within a credit
-
-Finale page-attached text can change font, size, and style within one text block. MusicXML can preserve this with multiple ordered `<credit-words>` elements in a single `<credit>`, each carrying its own formatting.
-
-`mx::api::PageTextData` contains one string and one `FontData`, and its writer emits exactly one `<credit-words>`. Denigma therefore concatenates all visible Enigma text chunks and applies the first visible chunk's font to the complete credit. Hidden-font chunks are omitted.
-
-Needed API shape: an ordered collection of formatted credit words/symbol chunks within one `PageTextData`, with independent font and position data for each chunk.
-
 ## Barlines and Endings
 
 ### Repeat-ending appearance and visibility
 
-MusicXML `<ending>` carries, besides `number`, `type`, and its display text, the appearance attributes `print-object`, `end-length`, `text-x`, `text-y`, `system`, and the whole `print-style` group. Finale supplies a value for each of them: `RepeatEndingStart::hidden` for `print-object`, `endLineVPos` for `end-length`, `textHPos` and `textVPos` for `text-x` and `text-y`, `topStaffOnly` for `system`, the bracket corner offsets for `default-x` and `default-y`, and `FontOptions::FontType::Ending` for the font. Finale's own export writes them, as in `<ending default-y="40" end-length="30" font-size="8.5" number="4" print-object="yes" system="only-top" type="start">`.
+MusicXML `<ending>` carries, besides `number`, `type`, and its display text, the appearance attributes `print-object`, `end-length`, `text-x`, `text-y`, `system`, and the whole `print-style` group. Finale stores ending visibility, staff selection, font, and bracket/text offsets. Its own export writes appearance attributes, as in `<ending default-y="40" end-length="30" font-size="8.5" number="4" print-object="yes" system="only-top" type="start">`. The correspondence between Finale's stored geometry and MusicXML's coordinate semantics has not been established in Denigma.
 
-`mx::api::EndingData` exposes `type`, `numbers`, and `text` only, so Denigma exports the ending's structure and label but none of its placement, size, or visibility. Hidden endings are the notable loss, because they are structural in Finale rather than decorative: the bracket is suppressed while the repeat still governs playback.
+`mx::api::EndingData` exposes `type`, `numbers`, `text`, `positionData`, `endLength`, `textX`, and `textY`. Visibility, font, and system relation remain unavailable. Hidden endings are the notable loss: the bracket is suppressed while the repeat still governs playback.
 
-Needed API shape: `PositionData` and `FontData` members on `EndingData` in line with other positionable API types, plus a print-object flag, an end-length value, the text offsets, and the `system` placement enum, with reader and writer support for each.
+Remaining API work: expose print-object, font, and system relation on `EndingData`. Denigma deliberately leaves ending geometry to the importer; see [design-decisions.md](design-decisions.md).
 
 ## Directions and Expressions
 
@@ -230,9 +220,7 @@ Needed API shape: direction-level playback or technical modeling for the remaini
 
 A tablature staff needs `<staff-details>` carrying `<staff-tuning>` for each line, with its `<tuning-step>`, `<tuning-octave>`, and `<tuning-alter>`, plus `<capo>` and `<show-frets>` for the numbers-or-letters choice. Finale supplies all of these: the `others::FretInstrument` at `Staff::fretInstId` gives each open string's pitch, `Staff::capoPos` the capo, and `Staff::useTabLetters` the letter display.
 
-`mx::api::StaffData` exposes `staffLines`, `staffSize`, and `staffScaling` only. This is the tablature-specific face of the staff-details gap recorded above under Staff Details, and the two should be solved together rather than as separate features.
-
-Needed API shape: as in that entry, a staff-details data object with optional fields for the `<staff-details>` children, including a staff-tuning collection keyed by line, capo, and show-frets.
+`mx::api::StaffData::staffTunings` now exposes per-line tuning. Capo and show-frets remain unavailable. Source-side string and fret calculations are still needed; they belong in the roadmap.
 
 Denigma-side work is tracked under tablature staves in [roadmap.md](roadmap.md), including the fret computation that Finale leaves implicit.
 

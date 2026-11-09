@@ -298,3 +298,15 @@ A Finale transposition that forces a clef (`setToClef`) replaces every clef chan
 A staff style can change a staff's full or abbreviated name, or whether its names are shown, with or without changing its instrument. Names are therefore tracked as staff state. Each change of the top staff's names or their visibility writes `<part-name-display>` and `<part-abbreviation-display>` in that measure, with `print-object="no"` when the names are hidden. The two are always written together, even when only one of them changed, so a reader never pairs a new name with a stale abbreviation. A change that leaves the texts and their visibility the same, through different text blocks holding the same names, writes neither.
 
 The new sound comes from musxdom's instrument for the part instead, since that is what the part was made from. musxdom already decides whether the staves of a multistaff instrument agree about a change and reports the ones that do not, so Denigma neither repeats nor second-guesses that check, and writes one `<instrument-change>` per change on the part's first staff. That instrument is the score's, so in a linked-part document the sound follows the score's staff styles while names and transpositions follow the part's.
+
+### Repeat-ending geometry is left to the importer
+
+Denigma exports ending structure, pass numbers, and labels, and leaves bracket position, hook length, and label offsets unspecified. MX can represent these fields, but mapping Finale's geometry to MusicXML has not been established. The importer engraves the endings with the rest of the score.
+
+### Credits retain each visible font run
+
+A page text block becomes one credit. Its first visible run carries the existing page anchor, justification, and enclosure; subsequent runs carry their own fonts and continue without explicit positions. Hidden text is omitted and adjacent visible chunks with equal fonts are joined. This preserves formatting without computing glyph positions.
+
+### Staff-hidden key signatures keep their musical meaning
+
+A staff's Display Key Signatures setting hides the exported key with `print-object="no"`, preserving its alterations and mode. Finale's separate keyless and Hide Key Signature and Show Accidentals modes retain their existing zero-fifths, mode-none representation.
