@@ -166,7 +166,7 @@ static void appendDynamicText(
         const DynamicText::SourceSpan sourceSpan{chunkStart + iter.offset(), chunkStart + iter.offset() + iter->byteCount};
         if (font) {
             if (const auto* glyphName = smufl_mapping::getGlyphNameForFont(
-                    font->getName(), iter->codepoint, font->calcIsSMuFL(), smufl_mapping::SmuflGlyphSource::Finale)) {
+                    font->getName(), font->calcDrawnCharacter(iter->codepoint), font->calcIsSMuFL(), smufl_mapping::SmuflGlyphSource::Finale)) {
                 if (const std::string glyphText = glyphNameToDynamicText(*glyphName); !glyphText.empty()) {
                     text.text += glyphText;
                     text.glyphNames.insert(text.glyphNames.end(), glyphText.size(), std::string(*glyphName));

@@ -82,6 +82,16 @@ Finale can freeze a tie's curvature direction on a per-note basis (`details::Tie
 
 Needed API shape: the same tie-notation data model requested above should also carry the shared curve attributes (orientation, placement, position, color) available on `CurveStart`/`CurveStop`, so a paired tie can be decorated without a second, conflicting `<notations>` block or the loss of `<tie>`.
 
+## Noteheads
+
+### Notehead text
+
+The MusicXML spec writes the SMuFL note-name noteheads (U+E150–U+E1AF and U+EEE0–U+EEFF) as `<notehead-text>`, whose `<display-text>` and `<accidental-text>` children name the pitch shown inside the notehead, and says not to write them as `other` with a `smufl` glyph name. Finale draws these from its notehead fonts, and the classifier names their glyphs.
+
+`mx::api::NoteData` exposes `notehead`, `noteheadFilled` and `noteheadSmufl`, but nothing for `<notehead-text>`, so Denigma writes no notehead for these notes and MusicXML draws them as ordinary noteheads.
+
+Needed API shape: an optional notehead-text field on `NoteData` holding a sequence of display-text and accidental-text runs, written as `<notehead-text>` after `<notehead>`.
+
 ## Measures
 
 ### Multimeasure-rest attributes

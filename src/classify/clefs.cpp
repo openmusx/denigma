@@ -71,8 +71,8 @@ ClefClassification classifyClef(
     if (!isBlank) {
         auto clefFont = clefDef->calcFont();
         if (clefFont) {
-            if (const auto* name = smufl_mapping::getGlyphNameForFont(
-                    clefFont->getName(), clefDef->clefChar, clefFont->calcIsSMuFL(), smufl_mapping::SmuflGlyphSource::Finale)) {
+            if (const auto* name = smufl_mapping::getGlyphNameForFont(clefFont->getName(), clefFont->calcDrawnCharacter(clefDef->clefChar),
+                    clefFont->calcIsSMuFL(), smufl_mapping::SmuflGlyphSource::Finale)) {
                 glyphName = std::string(*name);
             }
         }

@@ -100,19 +100,45 @@ NoteheadClassification classifyGlyphName(std::string glyphName)
         {"noteheadCircledWholeLarge", {Shape::Circled, Fill::Unfilled}},
         {"noteheadCircledDoubleWhole", {Shape::Circled, Fill::Unfilled}},
         {"noteheadCircledDoubleWholeLarge", {Shape::Circled, Fill::Unfilled}},
+
+        // CircleX and Plus: their glyphs vary with duration, but the strokes of a cross cannot be filled.
+        {"noteheadCircleX", {Shape::CircleX, Fill::Unspecified}},
+        {"noteheadCircleXHalf", {Shape::CircleX, Fill::Unspecified}},
+        {"noteheadCircleXWhole", {Shape::CircleX, Fill::Unspecified}},
+        {"noteheadCircleXDoubleWhole", {Shape::CircleX, Fill::Unspecified}},
+        {"noteheadPlusBlack", {Shape::Plus, Fill::Unspecified}},
+        {"noteheadPlusHalf", {Shape::Plus, Fill::Unspecified}},
+        {"noteheadPlusWhole", {Shape::Plus, Fill::Unspecified}},
+        {"noteheadPlusDoubleWhole", {Shape::Plus, Fill::Unspecified}},
+
+        // Triangle
+        {"noteheadTriangleUpBlack", {Shape::Triangle, Fill::Filled}},
+        {"noteheadTriangleUpWhite", {Shape::Triangle, Fill::Unfilled}},
+        {"noteheadTriangleUpHalf", {Shape::Triangle, Fill::Unfilled}},
+        {"noteheadTriangleUpWhole", {Shape::Triangle, Fill::Unfilled}},
+        {"noteheadTriangleUpDoubleWhole", {Shape::Triangle, Fill::Unfilled}},
+
+        // TriangleDown
+        {"noteheadTriangleDownBlack", {Shape::TriangleDown, Fill::Filled}},
+        {"noteheadTriangleDownWhite", {Shape::TriangleDown, Fill::Unfilled}},
+        {"noteheadTriangleDownHalf", {Shape::TriangleDown, Fill::Unfilled}},
+        {"noteheadTriangleDownWhole", {Shape::TriangleDown, Fill::Unfilled}},
+        {"noteheadTriangleDownDoubleWhole", {Shape::TriangleDown, Fill::Unfilled}},
+
+        // Square
+        {"noteheadSquareBlack", {Shape::Square, Fill::Filled}},
+        {"noteheadSquareBlackLarge", {Shape::Square, Fill::Filled}},
+        {"noteheadSquareWhite", {Shape::Square, Fill::Unfilled}},
+        {"noteheadSquareBlackWhite", {Shape::Square, Fill::Unfilled}},
     };
 
     const std::string_view glyph = glyphName;
     if (const auto it = glyphTable.find(glyph); it != glyphTable.end()) {
         return makeNotehead(it->second.first, it->second.second, std::move(glyphName));
     }
-    // A real SMuFL notehead-family glyph was resolved, just not one of the specifically recognized
-    // shapes above (e.g. a shape-note, cluster, or arrow notehead). This is a known alternate
-    // notehead, so it should not be reported the same as finding nothing at all.
-    if (glyph.rfind("notehead", 0) == 0) {
-        return makeNotehead(Shape::Other, Fill::Unspecified, std::move(glyphName));
-    }
-    return {};
+    // Any glyph Finale draws as a notehead is one, whether or not SMuFL files it among its noteheads:
+    // shape-note and note-name glyphs are named otherwise, and a user may choose any glyph at all.
+    return makeNotehead(Shape::Other, Fill::Unspecified, std::move(glyphName));
 }
 
 /// Recognizes a literal ASCII 'x'/'X' as a cross notehead, but only in a font that is not a symbol
@@ -132,6 +158,9 @@ NoteheadClassification classifyAsciiX(const musx::dom::MusxInstance<musx::dom::F
 
 NoteheadClassification classifyNoteheadSymbol(const musx::dom::MusxInstance<musx::dom::FontInfo>& fontInfo, char32_t symbol)
 {
+    if (fontInfo) {
+        symbol = fontInfo->calcDrawnCharacter(symbol);
+    }
     NoteheadClassification result;
     if (symbol == U' ') {
         result = makeNotehead(Shape::Null, Fill::Unspecified, std::nullopt);
@@ -172,7 +201,37 @@ bool NoteheadClassification::calcOverridesDefault(musx::dom::NoteType noteType) 
     if (shape == notehead::Shape::Unclassified) {
         return noteheadInfo.source != musx::dom::NoteInfoPtr::NoteheadInfo::Source::Default;
     }
-    return shape != notehead::Shape::Regular || calcFillOverridesDefault(noteType);
+    return calcDiffersFromFamily(notehead::Shape::Regular, noteType);
+}
+
+bool NoteheadClassification::calcDiffersFromFamily(notehead::Shape family, musx::dom::NoteType noteType) const noexcept
+{
+    return shape != family || calcFillOverridesDefault(noteType);
+}
+
+PercussionNoteheadClassification classifyPercussionNotehead(const musx::dom::MusxInstance<musx::dom::others::PercussionNoteInfo>& percussionNote)
+{
+    if (!percussionNote) {
+        return {};
+    }
+    const auto fontInfo = [&]() -> musx::dom::MusxInstance<musx::dom::FontInfo> {
+        if (const auto fontOptions = percussionNote->getDocument()->getOptions()->get<musx::dom::options::FontOptions>()) {
+            return fontOptions->getFontInfo(musx::dom::options::FontOptions::FontType::Percussion);
+        }
+        return nullptr;
+    }();
+    const auto classifySlot = [&](char32_t symbol) {
+        auto slot = classifyNoteheadSymbol(fontInfo, symbol);
+        slot.noteheadInfo.source = musx::dom::NoteInfoPtr::NoteheadInfo::Source::PercussionMap;
+        return slot;
+    };
+    PercussionNoteheadClassification result;
+    result.quarterAndShorter = classifySlot(percussionNote->closedNotehead);
+    result.half = classifySlot(percussionNote->halfNotehead);
+    result.whole = classifySlot(percussionNote->wholeNotehead);
+    result.breveAndLonger = classifySlot(percussionNote->dwholeNotehead);
+    result.family = result.quarterAndShorter.shape;
+    return result;
 }
 
 } // namespace classify

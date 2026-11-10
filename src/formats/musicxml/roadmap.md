@@ -40,6 +40,10 @@ Represent drum kits and other multi-instrument staves with separate MusicXML `<s
 
 Also export Finale percussion pictogram expressions as semantic MusicXML `<percussion>` directions. Add an exporter-neutral classifier for exact `pict*` SMuFL glyphs, including valid beater and stick combinations with tip direction, material, parentheses, dashed circles, and strike location. Map Finale expression enclosures where supported, retain canonical SMuFL overrides, and leave mixed text or unrecognized glyph sequences as general text. Do not infer direction pictograms from percussion-note assignments; note identity and performance-direction symbols are separate concerns.
 
+## Notehead fill on crossed shapes
+
+The `filled` attribute changes the appearance of enclosed shapes, so it says nothing about an X notehead. The classifier still gives X glyphs a fill for their duration variant, which writes `filled` where one disagrees with the note value, such as `noteheadXBlack` on a half note. Omit `filled` for `x` once the effect on other readers is checked. Circled X and plus noteheads already carry no fill.
+
 ## Alternate notation: measure repeats and slash notation
 
 Export effective staff alternate notation as MusicXML measure styles: one- and two-bar repeats, slash notation on beats, and rhythmic notation. This requires start/stop ranges per staff and, for slash notation, dots, stems, and where possible voice exclusions. It also needs a new public MX measure-style API and writer path.

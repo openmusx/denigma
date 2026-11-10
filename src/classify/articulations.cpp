@@ -926,8 +926,8 @@ static PrivateClassification classifySymbol(const musx::dom::MusxInstance<musx::
         return unicodeClassification;
     }
     if (fontInfo) {
-        if (const auto* glyphName =
-                smufl_mapping::getGlyphNameForFont(fontInfo->getName(), symbol, fontInfo->calcIsSMuFL(), smufl_mapping::SmuflGlyphSource::Finale)) {
+        if (const auto* glyphName = smufl_mapping::getGlyphNameForFont(
+                fontInfo->getName(), fontInfo->calcDrawnCharacter(symbol), fontInfo->calcIsSMuFL(), smufl_mapping::SmuflGlyphSource::Finale)) {
             return classifyGlyphName(std::string(*glyphName));
         }
     }

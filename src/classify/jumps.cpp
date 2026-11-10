@@ -108,8 +108,8 @@ Jump classifyVisualJump(const musx::dom::MusxInstance<musx::dom::others::TextRep
     std::optional<std::string_view> glyphNameView;
     if (def->font) {
         if (const auto codepoint = utils::utf8ToCodepoint(repeatText->text)) {
-            if (const auto* glyphName = smufl_mapping::getGlyphNameForFont(
-                    def->font->getName(), codepoint.value(), def->font->calcIsSMuFL(), smufl_mapping::SmuflGlyphSource::Finale)) {
+            if (const auto* glyphName = smufl_mapping::getGlyphNameForFont(def->font->getName(), def->font->calcDrawnCharacter(codepoint.value()),
+                    def->font->calcIsSMuFL(), smufl_mapping::SmuflGlyphSource::Finale)) {
                 glyphNameView = *glyphName;
             }
         }

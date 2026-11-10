@@ -286,7 +286,8 @@ mnxdom::sequence::Note createNormalNote(const MnxMusxMappingPtr& context, mnxdom
 }
 
 mnxdom::sequence::KitNote createKitNote(const MnxMusxMappingPtr& context, mnxdom::sequence::Event& mnxEvent,
-    const MusxInstance<others::PercussionNoteInfo>& percNoteInfo, const MusxInstance<others::Staff>& musxStaff)
+    const MusxInstance<others::PercussionNoteInfo>& percNoteInfo, const classify::PercussionNoteheadClassification& percussionNoteheads,
+    const MusxInstance<others::Staff>& musxStaff)
 {
     auto mnxNote = mnxEvent.ensure_kitNotes().append(calcPercussionKitId(percNoteInfo));
     auto part = mnxNote.getEnclosingElement<mnxdom::Part>();
@@ -297,6 +298,7 @@ mnxdom::sequence::KitNote createKitNote(const MnxMusxMappingPtr& context, mnxdom
     part->ensure_kit();
     if (!part->kit()->contains(mnxNote.kitComponent())) {
         auto kitElement = part->kit()->append(mnxNote.kitComponent(), mnxStaffPosition(musxStaff, percNoteInfo->calcStaffReferencePosition()));
+        processKitComponentNotehead(kitElement, percussionNoteheads);
         const auto& percNoteType = percNoteInfo->getNoteType();
         if (percNoteType.instrumentId != 0) {
             kitElement.set_name(percNoteType.createName(percNoteInfo->getNoteTypeOrderId()));
@@ -321,6 +323,8 @@ static void createNote(const MnxMusxMappingPtr& context, mnxdom::sequence::Event
 {
     static_assert(std::is_base_of_v<mnxdom::sequence::NoteBase, MnxNoteType>, "MnxNoteType must have base type NoteBase.");
 
+    // The notehead family a note draws without a notehead of its own: its kit component's, or the regular one.
+    auto inheritedFamily = classify::notehead::Shape::Regular;
     MnxNoteType mnxNote = [&]() {
         if constexpr (std::is_same_v<MnxNoteType, mnxdom::sequence::Note>) {
             return createNormalNote(context, mnxEvent, musxNote);
@@ -328,13 +332,15 @@ static void createNote(const MnxMusxMappingPtr& context, mnxdom::sequence::Event
             ASSERT_IF (!percNoteInfo) {
                 throw std::logic_error("Kit note requested without PercussionNoteInfo instance.");
             }
-            return createKitNote(context, mnxEvent, percNoteInfo, musxStaff);
+            const auto percussionNoteheads = classify::classifyPercussionNotehead(percNoteInfo);
+            inheritedFamily = calcKitComponentNoteheadFamily(percussionNoteheads);
+            return createKitNote(context, mnxEvent, percNoteInfo, percussionNoteheads, musxStaff);
         }
     }();
     const auto noteId = core::calcNoteId(musxNote);
     mnxNote.set_id(noteId);
     context->noteJsonById.emplace(noteId, mnxNote.pointer());
-    processNotehead(context, noteId, musxNote);
+    processNotehead(context, mnxNote, noteId, musxNote, inheritedFamily);
     if (musxNote->crossStaff && !mnxEvent.staff()) { // createEvent already handled cross-staffing if the entire entry is crossed
         StaffCmper noteStaff = musxNote.calcStaff();
         if (const auto& mnxNoteStaff = context->mnxPartStaffFromStaff(noteStaff)) {

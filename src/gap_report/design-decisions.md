@@ -14,7 +14,7 @@ Deliberate choices behind conversion gap collection and the gap report serialize
 
 ### A gap is recorded where the exporter decides it cannot emit the feature
 
-The MNX `processChords` and `processNotehead` functions are the same functions that will emit chord symbols and notehead shapes once MNX can represent them. Until then their output is a gap. Recording at the decision site keeps one source of truth for what was and was not exported; a separate post-pass over the source document would have to re-derive the exporter's own filtering (hidden assignments, requested-part visibility, layers hidden by alternate notation) and would drift from it.
+The MNX `processChords` function is the same function that will emit chord symbols once MNX can represent them, and until then its output is a gap. `processNotehead` emits notehead shapes and records a gap only for a Finale notehead override whose glyph has no SMuFL name. Recording at the decision site keeps one source of truth for what was and was not exported; a separate post-pass over the source document would have to re-derive the exporter's own filtering (hidden assignments, requested-part visibility, layers hidden by alternate notation) and would drift from it.
 
 ### The payload is the classification, as structured
 

@@ -10,6 +10,7 @@
 
 #include "core/musx_reader.h"
 #include "denigma/classify/jumps.h"
+#include "denigma/classify/noteheads.h"
 #include "formats/enigmaxml/enigmaxml.h"
 #include "input/input.h"
 #include "mnxdom.h"
@@ -46,6 +47,11 @@ constexpr std::string_view mozart = "Worksheets & Repertoire/Repertoire/Classica
 constexpr std::string_view individualSymbols =
     "Worksheets & Repertoire/Worksheets/(6000) Games, Flash Cards, Fingerings/6400 Individual Flash Cards/6401 Individual Symbols.musx";
 constexpr std::string_view threeBlindMice = "Worksheets & Repertoire/Repertoire/Rounds/Three Blind Mice.musx";
+
+// Noteheads in the installed files. The hoedown's drum part uses an X notehead that a half note draws circled; the
+// blues has notes whose notehead override is the regular notehead.
+constexpr std::string_view housetopHoedown = "Worksheets & Repertoire/Repertoire/Holiday Patriotic/Large Ensembles/Housetop Hoedown.musx";
+constexpr std::string_view memphisBlues = "Worksheets & Repertoire/Repertoire/Jazz/Handy The Memphis Blues.musx";
 
 DocumentPtr loadSample(const std::filesystem::path& path)
 {
@@ -90,6 +96,23 @@ std::filesystem::path exportSample(const std::filesystem::path& root, std::strin
     checkStderr({"Processing", pathString(inputPath.filename())},
         [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export: " << pathString(inputPath); });
     return inputPath;
+}
+
+/// Calls @p visit with each note in @p mnx and the event that contains it.
+template <typename Visitor>
+void forEachMnxNote(const nlohmann::json& mnx, std::string_view notesKey, Visitor&& visit)
+{
+    for (const auto& part : mnx["parts"]) {
+        for (const auto& measure : part["measures"]) {
+            for (const auto& sequence : measure["sequences"]) {
+                for (const auto& event : sequence["content"]) {
+                    for (const auto& note : event.value(notesKey, nlohmann::json::array())) {
+                        visit(event, note);
+                    }
+                }
+            }
+        }
+    }
 }
 
 } // namespace
@@ -342,4 +365,81 @@ TEST(FinaleSamples, JumpsExportToMusicXml)
         }
         EXPECT_EQ(next, sample.directions.size()) << sample.path;
     }
+}
+
+TEST(FinaleSamples, KitNoteheadsExportToMnx)
+{
+    const auto root = finaleMusicFilesDir();
+    SKIP_UNLESS_FINALE_MUSIC_FILES(root);
+
+    auto mnxPath = exportSample(root, housetopHoedown);
+    mnxPath.replace_extension(".mnx");
+    nlohmann::json mnx;
+    openJson(mnxPath, mnx);
+
+    // The kit component carries the X family of its quarter notehead, which its quarter notes inherit. Only the
+    // half notes, which the percussion map draws with a circled X, carry a notehead of their own.
+    constexpr std::string_view componentId = "ke27-74";
+    bool foundComponent = false;
+    for (const auto& part : mnx["parts"]) {
+        if (part.contains("kit") && part["kit"].contains(componentId)) {
+            foundComponent = true;
+            EXPECT_EQ(part["kit"][componentId].value("notehead", nlohmann::json()), nlohmann::json({{"shape", "x"}}));
+        }
+    }
+    EXPECT_TRUE(foundComponent);
+    size_t inheritedCount = 0;
+    size_t circledCount = 0;
+    forEachMnxNote(mnx, "kitNotes", [&](const nlohmann::json& event, const nlohmann::json& note) {
+        if (note.value("kitComponent", "") != componentId) {
+            return;
+        }
+        const auto base = event["duration"].value("base", "");
+        if (note.contains("notehead")) {
+            ++circledCount;
+            EXPECT_EQ(base, "half") << note.dump();
+            EXPECT_EQ(note["notehead"], nlohmann::json({{"shape", "circleX"}}));
+        } else {
+            ++inheritedCount;
+            EXPECT_EQ(base, "quarter") << note.dump();
+        }
+    });
+    EXPECT_GT(inheritedCount, 0u);
+    EXPECT_GT(circledCount, 0u);
+}
+
+TEST(FinaleSamples, NoteheadOverridesMatchingTheDefaultExportToMnx)
+{
+    const auto root = finaleMusicFilesDir();
+    SKIP_UNLESS_FINALE_MUSIC_FILES(root);
+
+    // Count the notes whose Finale notehead override is the notehead their duration draws anyway.
+    const auto document = loadSample(root / std::filesystem::path(memphisBlues));
+    ASSERT_TRUE(document);
+    size_t matchingOverrideCount = 0;
+    document->iterateEntries(SCORE_PARTID, [&](const EntryInfoPtr& entryInfo) -> bool {
+        const auto noteType = std::get<0>(entryInfo->getEntry()->calcDurationInfo());
+        for (size_t x = 0; x < entryInfo->getEntry()->notes.size(); x++) {
+            const auto classification = denigma::classify::classifyNotehead(NoteInfoPtr(entryInfo, x));
+            if (classification.noteheadInfo.source == NoteInfoPtr::NoteheadInfo::Source::NoteAlteration
+                && !classification.calcDiffersFromFamily(denigma::classify::notehead::Shape::Regular, noteType)) {
+                ++matchingOverrideCount;
+            }
+        }
+        return true;
+    });
+    ASSERT_GT(matchingOverrideCount, 0u);
+
+    // Each is still written, since the override is the author's choice for that note.
+    auto mnxPath = exportSample(root, memphisBlues);
+    mnxPath.replace_extension(".mnx");
+    nlohmann::json mnx;
+    openJson(mnxPath, mnx);
+    size_t ovalCount = 0;
+    forEachMnxNote(mnx, "notes", [&](const nlohmann::json&, const nlohmann::json& note) {
+        if (note.value("notehead", nlohmann::json()) == nlohmann::json({{"shape", "oval"}})) {
+            ++ovalCount;
+        }
+    });
+    EXPECT_EQ(ovalCount, matchingOverrideCount);
 }

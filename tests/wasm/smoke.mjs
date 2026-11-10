@@ -349,17 +349,19 @@ withInput(noteheadInput, 'note_shapes.musx', (dataPointer, namePointer) => {
   const result = convert(dataPointer, noteheadInput.byteLength, namePointer, FORMAT_MNX);
   try {
     if (!Module._denigma_result_success(result)) throw new Error(`Notehead MNX conversion failed:\n${messages(result)}`);
-    const report = gapReport(result);
-    const noteheadGaps = report.gaps.filter((gap) => gap.type === 'notehead');
-    if (!noteheadGaps.length || noteheadGaps.some((gap) => !gap.anchor.startsWith('ev')
-      || !gap.notehead.shape
-      || !gap.notehead.fill
-      || 'source' in gap
-      || 'cause' in gap)) {
-      throw new Error('Notehead gap report does not contain target-anchored classifications.');
+    // Every notehead in this fixture is classified, so MNX carries each one on its note and none is a gap.
+    const pointer = Module._denigma_result_output_data(result, 0);
+    const size = Module._denigma_result_output_size(result, 0);
+    const document = JSON.parse(new TextDecoder().decode(Module.HEAPU8.slice(pointer, pointer + size)));
+    const noteheads = document.parts.flatMap((part) => part.measures.flatMap((measure) => measure.sequences.flatMap(
+      (sequence) => sequence.content.flatMap((event) => (event.notes ?? []).flatMap((note) => note.notehead ?? [])))));
+    if (!noteheads.length || noteheads.some((notehead) => !notehead.shape)) {
+      throw new Error('MNX notes do not carry notehead shapes.');
     }
-    console.log(`MNX gap report: ${noteheadGaps.length} notehead gaps.`);
-    console.log(`MNX notehead gap example:\n${JSON.stringify(noteheadGaps[0], null, 2)}`);
+    const noteheadGaps = gapReport(result).gaps.filter((gap) => gap.type === 'notehead');
+    if (noteheadGaps.length) throw new Error('MNX reported notehead gaps for classified noteheads.');
+    console.log(`MNX noteheads: ${noteheads.length} notes carry a notehead shape.`);
+    console.log(`MNX notehead example:\n${JSON.stringify(noteheads[0], null, 2)}`);
   } finally {
     Module._denigma_result_destroy(result);
   }

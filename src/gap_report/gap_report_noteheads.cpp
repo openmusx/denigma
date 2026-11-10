@@ -18,6 +18,8 @@
  */
 #include "gap_report_json.h"
 
+#include <cstdint>
+
 namespace denigma {
 namespace gap_report {
 
@@ -39,6 +41,11 @@ std::string_view noteheadShapeName(notehead::Shape shape)
     case notehead::Shape::SmallSlash: return "small-slash";
     case notehead::Shape::LargeSlash: return "large-slash";
     case notehead::Shape::Circled: return "circled";
+    case notehead::Shape::CircleX: return "circle-x";
+    case notehead::Shape::Plus: return "plus";
+    case notehead::Shape::Triangle: return "triangle";
+    case notehead::Shape::TriangleDown: return "triangle-down";
+    case notehead::Shape::Square: return "square";
     }
     return "unclassified";
 }
@@ -63,6 +70,11 @@ json noteheadJson(const classify::NoteheadClassification& notehead)
     };
     if (notehead.glyphName) {
         result["glyph"] = *notehead.glyphName;
+    }
+    // The source character identifies the notehead even when no glyph name does.
+    result["codePoint"] = static_cast<std::uint32_t>(notehead.noteheadInfo.character);
+    if (notehead.noteheadInfo.font) {
+        result["font"] = fontJson(notehead.noteheadInfo.font->resolve());
     }
     return result;
 }

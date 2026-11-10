@@ -237,9 +237,10 @@ inline std::string calcLyricLineId(const std::string& type, Cmper textNumber)
     return type.substr(0, 1) + std::to_string(textNumber);
 }
 
+/// A percussion note's staff position and noteheads belong to its percussion map, so each map gets its own kit component.
 inline std::string calcPercussionKitId(const MusxInstance<others::PercussionNoteInfo>& percNoteInfo)
 {
-    return "ke" + std::to_string(percNoteInfo->percNoteType);
+    return "ke" + std::to_string(percNoteInfo->getCmper()) + "-" + std::to_string(percNoteInfo->percNoteType);
 }
 
 inline std::string calcPercussionSoundId(const MusxInstance<others::PercussionNoteInfo>& percNoteInfo)
