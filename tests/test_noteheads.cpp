@@ -310,7 +310,8 @@ TEST(PercussionNoteheadClassification, ConsistentFamiliesConformAtEveryDuration)
 TEST(PercussionNoteheadClassification, FamilyIsUnclassifiedOnlyWhenQuarterNoteheadIs)
 {
     const auto fontContext = makeFontContext();
-    auto percussionNote = std::make_shared<others::PercussionNoteInfo>(fontContext.document, SCORE_PARTID, EnigmaBase::ShareMode::All, 1, 0);
+    auto percussionNote =
+        std::make_shared<others::PercussionNoteInfo>(fontContext.document, SCORE_PARTID, EnigmaBase::ShareMode::All, Cmper{1}, Inci{0});
 
     // A blank quarter notehead is a null notehead, whatever the longer ones are.
     percussionNote->closedNotehead = U' ';
