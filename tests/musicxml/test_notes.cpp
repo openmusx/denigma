@@ -1400,14 +1400,14 @@ TEST(MusicXmlNotes, ShapeNoteNoteheadsExportSmoke)
     const auto actualScore = loadScoreData(outputPath);
     ASSERT_TRUE(actualScore);
 
-    // note_shapes.musx assigns Finale shape-note noteheads (square, triangle, ...) to some staves.
-    // None of those shapes are in Denigma's specifically-recognized set (Regular/X/Diamond/Slash/Circle),
-    // so they should come through as mx::api::Notehead::other rather than being silently dropped.
-    // Since "other" carries no visual information by itself, each one must also name its SMuFL glyph.
+    // note_shapes.musx assigns Finale shape-note noteheads (square and triangle) to some staves. Both
+    // have MusicXML values of their own. Any notehead that exports as "other" carries no visual
+    // information by itself, so it must also name its SMuFL glyph.
     //
     // The fixture also assigns the hollow half-note glyph as the quarter-note shape on some staves.
     // MusicXML would otherwise draw those solid, from the duration, so they must say filled="no".
-    size_t otherNoteheadCount = 0;
+    size_t squareNoteheadCount = 0;
+    size_t triangleNoteheadCount = 0;
     size_t hollowShortNoteCount = 0;
     for (const auto& part : actualScore->parts) {
         for (const auto& measure : part.measures) {
@@ -1415,10 +1415,15 @@ TEST(MusicXmlNotes, ShapeNoteNoteheadsExportSmoke)
                 for (const auto& [voiceIndex, voice] : staff.voices) {
                     (void)voiceIndex;
                     for (const auto& note : voice.notes) {
+                        if (note.notehead == mx::api::Notehead::square) {
+                            ++squareNoteheadCount;
+                        }
+                        if (note.notehead == mx::api::Notehead::triangle) {
+                            ++triangleNoteheadCount;
+                        }
                         if (note.notehead == mx::api::Notehead::other) {
-                            ++otherNoteheadCount;
                             ASSERT_TRUE(note.noteheadSmufl.has_value());
-                            EXPECT_TRUE(note.noteheadSmufl->starts_with("notehead")) << *note.noteheadSmufl;
+                            EXPECT_FALSE(note.noteheadSmufl->empty());
                         }
                         const bool isShort = note.durationData.durationName >= mx::api::DurationName::quarter;
                         if (isShort && note.noteheadFilled == mx::api::Bool::no) {
@@ -1434,7 +1439,8 @@ TEST(MusicXmlNotes, ShapeNoteNoteheadsExportSmoke)
             }
         }
     }
-    EXPECT_GT(otherNoteheadCount, 0u) << "expected at least one shape-note notehead to export as mx::api::Notehead::other";
+    EXPECT_GT(squareNoteheadCount, 0u) << "expected at least one shape-note notehead to export as mx::api::Notehead::square";
+    EXPECT_GT(triangleNoteheadCount, 0u) << "expected at least one shape-note notehead to export as mx::api::Notehead::triangle";
     EXPECT_GT(hollowShortNoteCount, 0u) << "expected at least one hollow notehead on a quarter note or shorter";
 }
 

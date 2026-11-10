@@ -24,6 +24,8 @@
 #include <string_view>
 
 #include "core/denigma.h"
+#include "denigma/classify/noteheads.h"
+#include "mnxdom.h"
 #include "musx/musx.h"
 
 #include "mnx_fwd.h"
@@ -35,11 +37,23 @@ namespace formats {
 namespace mnx {
 namespace detail {
 
-/// @brief Processes the notehead of one note whose MNX counterpart has the id @p noteId.
+/// @brief Returns the notehead family a kit note inherits from the kit component of @p percussionNoteheads.
 ///
-/// MNX has no notehead-shape encoding yet, so a notehead that differs from the one implied by the note's
-/// duration is reported as a conversion gap anchored to the note when a gap collector is present.
-void processNotehead(const MnxMusxMappingPtr& context, std::string_view noteId, const NoteInfoPtr& musxNote);
+/// This is the regular family when #processKitComponentNotehead writes nothing for the component.
+classify::notehead::Shape calcKitComponentNoteheadFamily(const classify::PercussionNoteheadClassification& percussionNoteheads);
+
+/// @brief Writes the default notehead of @p kitComponent, whose percussion note has the noteheads @p percussionNoteheads.
+///
+/// Nothing is written when the percussion note's notehead family is regular or unrecognized.
+void processKitComponentNotehead(mnxdom::part::KitComponent& kitComponent, const classify::PercussionNoteheadClassification& percussionNoteheads);
+
+/// @brief Writes the notehead of @p mnxNote, whose musx counterpart is @p musxNote.
+///
+/// A notehead is written when the Finale note has its own notehead override, or when its notehead differs
+/// from @p inheritedFamily, the family a note inherits without one. A Finale notehead override that cannot be
+/// classified is reported as a conversion gap anchored to @p noteId when a gap collector is present.
+void processNotehead(const MnxMusxMappingPtr& context, mnxdom::sequence::NoteBase& mnxNote, std::string_view noteId, const NoteInfoPtr& musxNote,
+    classify::notehead::Shape inheritedFamily);
 
 } // namespace detail
 } // namespace mnx

@@ -508,9 +508,10 @@ ChordSuffixClassification classifyChordSuffix(const musx::dom::MusxInstanceList<
             continue;
         }
 
+        const char32_t drawnSymbol = element->font ? element->font->calcDrawnCharacter(element->symbol) : element->symbol;
         if (element->font && !element->font->calcIsSMuFL()) {
             bool resolvedLegacyGlyph{};
-            const auto glyphs = smufl_mapping::getAllLegacyGlyphInfo(element->font->getName(), element->symbol);
+            const auto glyphs = smufl_mapping::getAllLegacyGlyphInfo(element->font->getName(), drawnSymbol);
             for (const auto* glyph : glyphs) {
                 if (const auto text = unicodeTextForGlyph(glyph->name)) {
                     string += *text;
@@ -522,8 +523,8 @@ ChordSuffixClassification classifyChordSuffix(const musx::dom::MusxInstanceList<
                 continue;
             }
         }
-        const auto glyphName = element->font ? smufl_mapping::getGlyphNameForFont(element->font->getName(), element->symbol,
-                                                   element->font->calcIsSMuFL(), smufl_mapping::SmuflGlyphSource::Finale)
+        const auto glyphName = element->font ? smufl_mapping::getGlyphNameForFont(element->font->getName(), drawnSymbol, element->font->calcIsSMuFL(),
+                                                   smufl_mapping::SmuflGlyphSource::Finale)
                                              : nullptr;
         if (glyphName) {
             if (const auto text = unicodeTextForGlyph(*glyphName)) {

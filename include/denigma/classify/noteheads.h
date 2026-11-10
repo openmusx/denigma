@@ -36,8 +36,8 @@ namespace notehead {
 /// @brief Notehead shape families recognized by Denigma's classifier.
 enum class Shape {
     Unclassified,
-    /// A real alternate-notehead glyph was found (the source definitely specifies a non-default
-    /// notehead), but it does not belong to one of the specifically recognized shape families below.
+    /// The notehead is a known SMuFL glyph, named in #NoteheadClassification::glyphName, that does not
+    /// belong to one of the specifically recognized shape families below. Any glyph qualifies.
     Other,
     Null,
     Regular,
@@ -45,7 +45,18 @@ enum class Shape {
     Diamond,
     SmallSlash,
     LargeSlash,
-    Circled
+    /// A notehead drawn inside a circle.
+    Circled,
+    /// An X enclosed in a circle.
+    CircleX,
+    /// A plus sign.
+    Plus,
+    /// A triangle pointing up, irrespective of stem direction.
+    Triangle,
+    /// A triangle pointing down, irrespective of stem direction.
+    TriangleDown,
+    /// A square.
+    Square
 };
 
 /// @enum Fill
@@ -81,14 +92,47 @@ struct NoteheadClassification
 
     /// Returns true when the classified fill changes the fill inferred from the note duration.
     bool calcFillOverridesDefault(musx::dom::NoteType noteType) const noexcept;
+
+    /// Returns true when this classification is not the notehead a note of @p noteType would draw if it
+    /// used the shape @p family with the fill inferred from its duration.
+    bool calcDiffersFromFamily(notehead::Shape family, musx::dom::NoteType noteType) const noexcept;
 };
 
-/// Classifies a notehead symbol from a font and character code.
+/// @struct PercussionNoteheadClassification
+/// @brief Result returned by percussion notehead classification.
+///
+/// A percussion note specifies one notehead for each of four duration ranges. Its family is the shape of
+/// the notehead for quarter notes and shorter, which draws nearly every note that uses it. The other three
+/// do not affect the family: a percussion note whose longer noteheads have a different shape, such as an X
+/// notehead that becomes a circled X on half notes and longer, still belongs to the family of its quarter
+/// notehead. Compare a note's own classification with #family to find the notes that differ from it.
+struct PercussionNoteheadClassification
+{
+    /// Notehead shape family of the percussion note. Unclassified when the quarter notehead is unclassified.
+    notehead::Shape family{notehead::Shape::Unclassified};
+    /// Notehead for quarter notes and shorter.
+    NoteheadClassification quarterAndShorter;
+    /// Notehead for half notes.
+    NoteheadClassification half;
+    /// Notehead for whole notes.
+    NoteheadClassification whole;
+    /// Notehead for breves and longer.
+    NoteheadClassification breveAndLonger;
+
+    /// Returns true when the percussion note's notehead family was recognized.
+    explicit operator bool() const noexcept { return family != notehead::Shape::Unclassified; }
+};
+
+/// Classifies a notehead symbol from a font and character code, as the character the font draws.
+/// (See #musx::dom::FontInfo::calcDrawnCharacter.)
 NoteheadClassification classifyNoteheadSymbol(const musx::dom::MusxInstance<musx::dom::FontInfo>& fontInfo, char32_t symbol);
 
 /// Classifies the effective notehead for a note, resolving the note's font/character
 /// via #musx::dom::NoteInfoPtr::calcNoteheadInfo.
 NoteheadClassification classifyNotehead(const musx::dom::NoteInfoPtr& note);
+
+/// Classifies the noteheads of a percussion note, drawn from the document's percussion notehead font.
+PercussionNoteheadClassification classifyPercussionNotehead(const musx::dom::MusxInstance<musx::dom::others::PercussionNoteInfo>& percussionNote);
 
 } // namespace classify
 } // namespace denigma

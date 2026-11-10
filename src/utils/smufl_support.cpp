@@ -135,6 +135,7 @@ static std::optional<std::string> smuflGlyphNameFromMetadata(const std::filesyst
 
 std::optional<std::string> smuflGlyphNameForFont(const MusxInstance<FontInfo>& fontInfo, char32_t codepoint)
 {
+    codepoint = fontInfo->calcDrawnCharacter(codepoint);
     if (fontInfo->calcIsSMuFL()) {
         if (auto metaDataPath = fontInfo->calcSMuFLMetaDataPath()) {
             if (auto glyphName = smuflGlyphNameFromMetadata(metaDataPath.value(), codepoint)) {

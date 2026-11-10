@@ -53,6 +53,7 @@ std::optional<std::string> glyphNameForFont(const std::shared_ptr<musx::dom::Fon
     if (!font) {
         return std::nullopt;
     }
+    codepoint = font->calcDrawnCharacter(codepoint);
     if (font->calcIsSMuFL()) {
         if (const auto* name = smufl_mapping::getGlyphName(codepoint)) {
             return std::string(*name);

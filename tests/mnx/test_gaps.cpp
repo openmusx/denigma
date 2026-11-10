@@ -30,7 +30,9 @@
 #include "gtest/gtest.h"
 
 #include "core/denigma.h"
+#include "core/musx_reader.h"
 #include "denigma/classify/gaps.h"
+#include "denigma/classify/noteheads.h"
 #include "denigma/formats/mnx.h"
 #include "denigma/gap_report.h"
 #include "denigma/io/random_access_reader.h"
@@ -65,7 +67,7 @@ TEST(MnxGapReport, MusxToMnxJsonReportsChordSymbolGaps)
     EXPECT_FALSE(gap.contains("cause"));
 }
 
-TEST(MnxGapReport, MusxToMnxJsonReportsNoteheadGaps)
+TEST(MnxGapReport, MusxToMnxJsonExportsClassifiedNoteheadsWithoutGaps)
 {
     setupTestDataPaths();
 
@@ -79,14 +81,68 @@ TEST(MnxGapReport, MusxToMnxJsonReportsNoteheadGaps)
 
     const auto result = denigma::formats::mnx::MusxToMnxJsonConverter{}.convert(input, output, options);
 
+    // Every notehead in note_shapes.musx is classified, so MNX carries each one on its note and none is a gap.
     EXPECT_TRUE(result);
     const auto report = nlohmann::json::parse(denigma::serializeGapReport(collector, {{"denigma", "TEST", "abc123"}, {}}));
-    const auto notehead =
-        std::find_if(report["gaps"].begin(), report["gaps"].end(), [](const auto& gap) { return gap.value("type", "") == "notehead"; });
-    ASSERT_NE(notehead, report["gaps"].end());
-    EXPECT_TRUE(notehead->at("anchor").get<std::string>().starts_with("ev"));
-    EXPECT_FALSE(notehead->at("notehead").at("shape").get<std::string>().empty());
-    EXPECT_FALSE(notehead->contains("source"));
+    EXPECT_TRUE(std::none_of(report["gaps"].begin(), report["gaps"].end(), [](const auto& gap) { return gap.value("type", "") == "notehead"; }));
+    const auto mnx = nlohmann::json::parse(output.str());
+    size_t noteheadCount = 0;
+    for (const auto& part : mnx["parts"]) {
+        for (const auto& measure : part["measures"]) {
+            for (const auto& sequence : measure["sequences"]) {
+                for (const auto& event : sequence["content"]) {
+                    for (const auto& note : event.value("notes", nlohmann::json::array())) {
+                        if (note.contains("notehead")) {
+                            ++noteheadCount;
+                            EXPECT_TRUE(note["notehead"].contains("shape"));
+                        }
+                    }
+                }
+            }
+        }
+    }
+    EXPECT_GT(noteheadCount, 0u);
+}
+
+TEST(MnxGapReport, UnclassifiedNoteheadGapNamesItsFontAndCharacter)
+{
+    const std::string xml = R"xml(<?xml version="1.0" encoding="UTF-8"?>
+<finale>
+  <others>
+    <fontName cmper="1">
+      <charsetBank>Mac</charsetBank>
+      <charsetVal>4095</charsetVal>
+      <pitch>0</pitch>
+      <family>0</family>
+      <name>Finale AlphaNotes</name>
+    </fontName>
+  </others>
+</finale>)xml";
+    std::vector<char> buffer(xml.begin(), xml.end());
+    const auto document = musx::factory::DocumentFactory::create<denigma::MusxReader>(buffer);
+    auto fontInfo = std::make_shared<musx::dom::FontInfo>(document);
+    fontInfo->fontId = 1;
+    fontInfo->fontSize = 24;
+    fontInfo->bold = true;
+
+    // Character 130 of Finale AlphaNotes has no SMuFL name, so only the font and character identify it.
+    constexpr char32_t unnamedCharacter = 130;
+    auto classification = denigma::classify::classifyNoteheadSymbol(fontInfo, unnamedCharacter);
+    ASSERT_FALSE(classification);
+    denigma::classify::GapCollector collector;
+    collector.retainDocument(document);
+    collector.add({"ev1n1", std::nullopt, std::nullopt}, std::move(classification));
+
+    const auto report = nlohmann::json::parse(denigma::serializeGapReport(collector, {{"denigma", "TEST", "abc123"}, {}}));
+    ASSERT_EQ(report["gaps"].size(), 1u);
+    const auto& notehead = report["gaps"][0]["notehead"];
+    EXPECT_EQ(notehead["shape"], "unclassified");
+    EXPECT_FALSE(notehead.contains("glyph"));
+    EXPECT_EQ(notehead["codePoint"], 130);
+    EXPECT_EQ(notehead["font"]["name"], "Finale AlphaNotes");
+    EXPECT_EQ(notehead["font"]["size"], 24);
+    EXPECT_EQ(notehead["font"]["bold"], true);
+    EXPECT_EQ(notehead["font"]["italic"], false);
 }
 
 TEST(MnxGapReport, CliWritesReferenceGapReports)

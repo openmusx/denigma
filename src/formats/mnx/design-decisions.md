@@ -78,6 +78,20 @@ A beat-attached slur is a gap as well. The MNX slur path hosts the entry-attache
 
 Every syllable with a Finale word extension gets an `extender`, and `support.useLyricExtenders` says so. The extender's `target` is the event of the entry the word-extension smart shape ends on, when that is a different entry from the syllable's own. Otherwise it has no target, which leaves the length to the reader: a smart extension frequently has both ends on its own entry, with the length resolved at layout time. A legacy extension (smart word extensions off) stores only a drawn length, and its end is inferred from the music by `LyricAssign::calcWordExtensionEndpoint`, so it follows the same rule. A target whose entry is not exported (a cue layer, or a full-measure rest) is removed for the same reason. This matches the MusicXML exporter, which writes a stop `<extend>` only when the end is a different entry. Nothing about an extension is lost, so it is never a gap.
 
+## Noteheads
+
+### A kit component carries the notehead family of its quarter notehead
+
+A Finale percussion note names a notehead for each of four duration ranges, while an MNX notehead names a shape from which the reader picks the glyph for the note value. A kit component therefore takes the family of its percussion note's notehead for quarter notes and shorter (`classify::PercussionNoteheadClassification`), which draws nearly every note it has. Its longer noteheads never block the family: Finale's stock X noteheads become circled X noteheads on half notes and longer, and the half notes say so themselves. A regular or unrecognized family writes nothing. A component's glyph would replace its notehead at every duration, so one is written only where the shape is `custom`.
+
+### A note's notehead is written where it differs from what it inherits, and wherever Finale overrides it
+
+A kit note inherits its component's notehead, and a pitched note the reader's default. A note writes its own notehead when the notehead Finale draws for its duration differs from that in shape or fill. It also writes one whenever Finale's own notehead override supplies it, even when the result matches what it would inherit. The override is the author's choice for that note, so equality with the inherited notehead is a coincidence, and the note keeps its notehead if the component or the reader's default differs. This departs from the exporter's usual preference for omitting defaults. A glyph is written alongside the shape where the shape cannot reproduce it: a `custom` shape, a fill that differs from the note value's, and the two slash sizes MNX does not distinguish. Any glyph Finale names can be a `custom` notehead. Only a notehead with no SMuFL name cannot be carried, and it is a gap only when it comes from Finale's notehead override: a percussion map or shape-note convention whose glyph has no name is most likely the regular notehead in its font, which is no loss.
+
+### Each percussion map has its own kit components
+
+A kit component's id combines the percussion map with the note type, because the staff position and noteheads belong to the map: two maps in one part can place or draw the same instrument differently, and a kit note can override neither. Components from different maps share their name and sound, so playback identity is unchanged.
+
 ## Sequences
 
 ### An empty staff measure is written as a full-measure rest

@@ -261,6 +261,11 @@ BEGIN_ENUM_CONVERSION(classify::notehead::Shape, mx::api::Notehead)
     case classify::notehead::Shape::LargeSlash: return mx::api::Notehead::slash;
     case classify::notehead::Shape::Null: return mx::api::Notehead::none;
     case classify::notehead::Shape::Circled: return mx::api::Notehead::circled;
+    case classify::notehead::Shape::CircleX: return mx::api::Notehead::circleX;
+    case classify::notehead::Shape::Plus: return mx::api::Notehead::cross;
+    case classify::notehead::Shape::Triangle: return mx::api::Notehead::triangle;
+    case classify::notehead::Shape::TriangleDown: return mx::api::Notehead::invertedTriangle;
+    case classify::notehead::Shape::Square: return mx::api::Notehead::square;
     case classify::notehead::Shape::Other: return mx::api::Notehead::other;
     case classify::notehead::Shape::Unclassified: break; // causes a throw; callers must not convert an unclassified shape
 END_ENUM_CONVERSION
