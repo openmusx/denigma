@@ -148,7 +148,21 @@ TEST(MusicXmlSmartShapes, SlursTwoStavesMatchReference)
     const auto referenceScore = loadScoreData(std::filesystem::path("inputs") / "musicxml" / "slurs_2staves-ref.musicxml");
     ASSERT_TRUE(referenceScore.has_value());
 
-    EXPECT_EQ(createComparableSlurEvents(*referenceScore), createComparableSlurEvents(*actualScore));
+    auto expected = createComparableSlurEvents(*referenceScore);
+    // Automatic contours are explicit in this export; the reference leaves them unspecified.
+    const std::vector<mx::api::CurveOrientation> orientations{
+        mx::api::CurveOrientation::overhand,
+        mx::api::CurveOrientation::underhand,
+    };
+    size_t startIndex = 0;
+    for (auto& event : expected) {
+        if (event.endpoint == "start") {
+            ASSERT_LT(startIndex, orientations.size());
+            event.curveOrientation = orientations.at(startIndex++);
+        }
+    }
+    EXPECT_EQ(startIndex, orientations.size());
+    EXPECT_EQ(expected, createComparableSlurEvents(*actualScore));
 }
 
 TEST(MusicXmlSmartShapes, SlursTwoVoicesMatchReference)
@@ -161,7 +175,23 @@ TEST(MusicXmlSmartShapes, SlursTwoVoicesMatchReference)
     const auto referenceScore = loadScoreData(std::filesystem::path("inputs") / "musicxml" / "slurs_2voices-ref.musicxml");
     ASSERT_TRUE(referenceScore.has_value());
 
-    EXPECT_EQ(createComparableSlurEvents(*referenceScore), createComparableSlurEvents(*actualScore));
+    auto expected = createComparableSlurEvents(*referenceScore);
+    // Automatic contours are explicit in this export; the reference leaves them unspecified.
+    const std::vector<mx::api::CurveOrientation> orientations{
+        mx::api::CurveOrientation::overhand,
+        mx::api::CurveOrientation::underhand,
+        mx::api::CurveOrientation::overhand,
+        mx::api::CurveOrientation::underhand,
+    };
+    size_t startIndex = 0;
+    for (auto& event : expected) {
+        if (event.endpoint == "start") {
+            ASSERT_LT(startIndex, orientations.size());
+            event.curveOrientation = orientations.at(startIndex++);
+        }
+    }
+    EXPECT_EQ(startIndex, orientations.size());
+    EXPECT_EQ(expected, createComparableSlurEvents(*actualScore));
 }
 
 TEST(MusicXmlSmartShapes, SlursOverbarsMatchReference)
@@ -174,7 +204,22 @@ TEST(MusicXmlSmartShapes, SlursOverbarsMatchReference)
     const auto referenceScore = loadScoreData(std::filesystem::path("inputs") / "musicxml" / "slurs_overbars-ref.musicxml");
     ASSERT_TRUE(referenceScore.has_value());
 
-    EXPECT_EQ(createComparableSlurEvents(*referenceScore), createComparableSlurEvents(*actualScore));
+    auto expected = createComparableSlurEvents(*referenceScore);
+    // Automatic contours are explicit in this export; the reference leaves them unspecified.
+    const std::vector<mx::api::CurveOrientation> orientations{
+        mx::api::CurveOrientation::underhand,
+        mx::api::CurveOrientation::underhand,
+        mx::api::CurveOrientation::overhand,
+    };
+    size_t startIndex = 0;
+    for (auto& event : expected) {
+        if (event.endpoint == "start") {
+            ASSERT_LT(startIndex, orientations.size());
+            event.curveOrientation = orientations.at(startIndex++);
+        }
+    }
+    EXPECT_EQ(startIndex, orientations.size());
+    EXPECT_EQ(expected, createComparableSlurEvents(*actualScore));
 }
 
 /// MusicXML's number-level contract: two slurs of the same part that overlap in

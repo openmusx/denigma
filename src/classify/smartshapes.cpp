@@ -541,8 +541,9 @@ SmartShapeClassification classifySmartShape(const musx::dom::MusxInstance<musx::
     const auto startEntry = shape->startTermSeg->endPoint->calcAssociatedEntry();
     const auto endEntry = shape->endTermSeg->endPoint->calcAssociatedEntry();
 
-    const auto contour = shape->calcContourDirection();
-    result.value = Slur{startEntry, endEntry, contour};
+    const auto directionInfo = musx::util::Slur::calcEffectiveDirection(*shape);
+    const auto contour = directionInfo.direction;
+    result.value = Slur{startEntry, endEntry, contour, directionInfo};
     if (startEntry) {
         if (shape->calcIsPseudoTie(musx::utils::PseudoTieMode::LaissezVibrer, startEntry)) {
             result.value = PseudoTie{PseudoTie::Type::LaissezVibrer, contour};
@@ -568,7 +569,7 @@ SmartShapeClassification classifySmartShape(const musx::dom::MusxInstance<musx::
         }
     }
 
-    result.value = Slur{startEntry, endEntry, contour};
+    result.value = Slur{startEntry, endEntry, contour, directionInfo};
     return result;
 }
 
