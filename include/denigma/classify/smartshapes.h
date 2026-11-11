@@ -88,6 +88,7 @@ struct Slur
     musx::dom::EntryInfoPtr endEntry;
     /// The slur's resolved curvature direction.
     musx::dom::CurveContourDirection contour{musx::dom::CurveContourDirection::Unspecified};
+    musx::util::Slur::DirectionInfo directionInfo; ///< Contour selection reason and resolution status.
 };
 
 /// @struct ArpeggiatedTie
