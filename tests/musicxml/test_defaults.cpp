@@ -252,15 +252,18 @@ TEST(MusicXmlDefaults, UncalculatedPartLayoutKeepsScoreSystemBreaks)
         if (!score) {
             return -1;
         }
-        return static_cast<int>(std::count_if(
-            score->layout.begin(), score->layout.end(), [](const auto& entry) { return entry.second.system.newSystem == mx::api::Bool::yes; }));
+        // A page break also starts a system, and the exporter writes it without new-system.
+        return static_cast<int>(std::count_if(score->layout.begin(), score->layout.end(), [](const auto& entry) {
+            return entry.second.system.newSystem == mx::api::Bool::yes || entry.second.page.newPage == mx::api::Bool::yes;
+        }));
     };
 
     auto scorePath = inputPath;
     scorePath.replace_extension(".musicxml");
-    // The score's layout is calculated, so its seven locks still produce breaks. The break at the
+    // The score's layout is calculated, so its seven locks still produce breaks, and its four page
+    // starts after the first add two more where they do not coincide with a lock. The break at the
     // first measure is dropped, since MusicXML has nothing to break away from there.
-    EXPECT_EQ(countSystemBreaks(scorePath), 7);
+    EXPECT_EQ(countSystemBreaks(scorePath), 9);
 
     for (const auto& partName : {"Alto", "Viola", "Piano"}) {
         auto partPath = inputPath;
@@ -285,4 +288,31 @@ TEST(MusicXmlDefaults, ExportsAuthoredPageBreaks)
     EXPECT_TRUE(std::none_of(score->layout.begin(), score->layout.end(), [](const auto& entry) {
         return entry.second.page.newPage == mx::api::Bool::yes && entry.second.system.newSystem != mx::api::Bool::unspecified;
     }));
+}
+
+TEST(MusicXmlDefaults, ExportsEveryPageStartWithPageNumber)
+{
+    setupTestDataPaths();
+
+    std::filesystem::path inputPath;
+    copyInputToOutput("zwei_gesange.musx", inputPath);
+    ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), "--musicxml"};
+    checkStderr({"Processing", pathString(inputPath.filename())},
+        [&]() { EXPECT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << "export to musicxml: " << pathString(inputPath); });
+
+    auto scorePath = inputPath;
+    scorePath.replace_extension(".musicxml");
+    const auto score = loadScoreData(scorePath);
+    ASSERT_TRUE(score);
+
+    std::vector<std::string> pageNumbers;
+    for (const auto& [measureIndex, layout] : score->layout) {
+        if (layout.page.newPage == mx::api::Bool::yes) {
+            ASSERT_TRUE(layout.page.pageNumber) << "page break without page-number at measure index " << measureIndex;
+            pageNumbers.push_back(*layout.page.pageNumber);
+        }
+    }
+    EXPECT_EQ(pageNumbers, (std::vector<std::string>{"2", "3", "4", "5"}));
+    ASSERT_TRUE(score->layout.contains(0));
+    EXPECT_EQ(score->layout.at(0).page.pageNumber, std::optional<std::string>("1"));
 }

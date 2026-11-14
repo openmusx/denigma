@@ -28,13 +28,17 @@ A note's `default-x`, a `<measure>`'s `width`, a slur's `bezier-x` and `bezier-y
 
 Denigma does export position for anchors Finale stores directly. Page text blocks carry absolute page coordinates in the document, so `<credit-words>` receives real `default-x` and `default-y` values derived from the page margins and the text block's assignment. That is stored authorial placement, and it is the clearest illustration of where the line falls.
 
-### System and page breaks come from authored sources only
+### System breaks come from authored sources only; page breaks follow Finale's pages
 
-`createSystemBreaks` derives `<print new-system="yes">` from the per-measure "Begin a New Staff System" flag and from `others::SystemLock`. `createPageBreaks` derives `<print new-page="yes">` from the per-measure page-break flag. Neither reads the resolved `others::StaffSystem` or `others::Page` lists. When both break types occur on one measure, the page break takes precedence because it inherently starts a new system.
+`createSystemBreaks` derives `<print new-system="yes">` from the per-measure "Begin a New Staff System" flag and from `others::SystemLock`. It does not read the resolved `others::StaffSystem` list. When both break types occur on one measure, the page break takes precedence because it inherently starts a new system.
 
 A system boundary that exists only because Finale's engraver happened to fill a line there is layout, and re-emitting it freezes one particular rendering into a file the importer is about to re-flow. A lock or an explicit break flag is something the author asked for, and it survives the round trip.
 
 The two sources also differ in trustworthiness. A part whose page layout Finale never calculated leaves zero-valued placeholders in `others::StaffSystem` and `others::Page`, so the resolved layout may describe systems the part does not have. The per-measure flag resolves nothing and stays valid; locks are dropped for such a part rather than exported against a layout that was never computed.
+
+`createPageBreaks` is the exception to the authored-only rule. It derives `<print new-page="yes">` from the per-measure page-break flag and also, when the part's layout is calculated, from the first measure of every nonblank `others::Page`. Each page start carries `page-number` set to the page's cmper, including the first page, whose `<print>` has no `new-page`. A part with an uncalculated layout gets only the flagged breaks.
+
+Exporting only the authored page breaks is the more faithful encoding, but Dorico does not handle it acceptably. Given locked systems throughout and only a few page breaks, such as one at each movement start, it crams every system after a page break onto one or two pages instead of casting them off. Exporting Finale's full pagination keeps both the authored page breaks and a usable layout, at the cost of freezing one rendering's page boundaries. Pagination is the one resolved-layout result exported for that reason; system distances and staff distances still are not.
 
 ### Accidentals and stems are encoded as overrides only
 
