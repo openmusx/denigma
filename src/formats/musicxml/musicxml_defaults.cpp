@@ -211,8 +211,7 @@ void createSystemBreaks(const MusicXmlMusxMapping& context)
 void createPageBreaks(const MusicXmlMusxMapping& context)
 {
     const auto measures = context.document->getOthers()->getArray<others::Measure>(context.forPartId);
-    const auto setPageBreak = [&](size_t index) {
-        auto& layout = context.musicXmlScore->layout[static_cast<mx::api::MeasureIndex>(index)];
+    const auto setPageBreak = [&](mx::api::LayoutData& layout) {
         layout.page.newPage = mx::api::Bool::yes;
         // A page break inherently starts a system, so avoid a redundant new-system attribute when
         // both authored flags or a system lock target the same measure.
@@ -221,7 +220,7 @@ void createPageBreaks(const MusicXmlMusxMapping& context)
 
     for (size_t index = 1; index < measures.size(); ++index) {
         if (measures[index]->pageBreak) {
-            setPageBreak(index);
+            setPageBreak(context.musicXmlScore->layout[static_cast<mx::api::MeasureIndex>(index)]);
         }
     }
 
@@ -239,11 +238,12 @@ void createPageBreaks(const MusicXmlMusxMapping& context)
         if (it == measures.end()) {
             continue;
         }
-        const auto index = static_cast<size_t>(std::distance(measures.begin(), it));
+        const auto index = static_cast<mx::api::MeasureIndex>(std::distance(measures.begin(), it));
+        auto& layout = context.musicXmlScore->layout[index];
         if (index > 0) {
-            setPageBreak(index);
+            setPageBreak(layout);
         }
-        context.musicXmlScore->layout[static_cast<mx::api::MeasureIndex>(index)].page.pageNumber = std::to_string(page->getCmper());
+        layout.page.pageNumber.emplace(std::to_string(page->getCmper()));
     }
 }
 
