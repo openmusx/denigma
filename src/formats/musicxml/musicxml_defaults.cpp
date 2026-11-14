@@ -211,15 +211,39 @@ void createSystemBreaks(const MusicXmlMusxMapping& context)
 void createPageBreaks(const MusicXmlMusxMapping& context)
 {
     const auto measures = context.document->getOthers()->getArray<others::Measure>(context.forPartId);
-    for (size_t index = 1; index < measures.size(); ++index) {
-        if (!measures[index]->pageBreak) {
-            continue;
-        }
+    const auto setPageBreak = [&](size_t index) {
         auto& layout = context.musicXmlScore->layout[static_cast<mx::api::MeasureIndex>(index)];
         layout.page.newPage = mx::api::Bool::yes;
         // A page break inherently starts a system, so avoid a redundant new-system attribute when
         // both authored flags or a system lock target the same measure.
         layout.system.newSystem = mx::api::Bool::unspecified;
+    };
+
+    for (size_t index = 1; index < measures.size(); ++index) {
+        if (measures[index]->pageBreak) {
+            setPageBreak(index);
+        }
+    }
+
+    // Every page start of a calculated layout is exported, not only the authored ones. See
+    // design-decisions.md: an importer given locked systems and only sparse page breaks may cram them.
+    if (!context.partLayoutIsCalculated) {
+        return;
+    }
+    for (const auto& page : context.document->getOthers()->getArray<others::Page>(context.forPartId)) {
+        if (page->isBlank() || !page->firstMeasureId) {
+            continue;
+        }
+        const auto it =
+            std::find_if(measures.begin(), measures.end(), [&](const auto& measure) { return measure->getCmper() == *page->firstMeasureId; });
+        if (it == measures.end()) {
+            continue;
+        }
+        const auto index = static_cast<size_t>(std::distance(measures.begin(), it));
+        if (index > 0) {
+            setPageBreak(index);
+        }
+        context.musicXmlScore->layout[static_cast<mx::api::MeasureIndex>(index)].page.pageNumber = std::to_string(page->getCmper());
     }
 }
 
