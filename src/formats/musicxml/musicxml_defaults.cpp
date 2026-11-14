@@ -211,8 +211,13 @@ void createSystemBreaks(const MusicXmlMusxMapping& context)
 void createPageBreaks(const MusicXmlMusxMapping& context)
 {
     const auto measures = context.document->getOthers()->getArray<others::Measure>(context.forPartId);
+    // insert rather than operator[]: GCC 15 at -O3 reports a false-positive maybe-uninitialized error
+    // for the page number's std::string on the node operator[] discards when the key already exists.
+    const auto layoutAt = [&](size_t index) -> mx::api::LayoutData& {
+        return context.musicXmlScore->layout.insert({static_cast<mx::api::MeasureIndex>(index), mx::api::LayoutData{}}).first->second;
+    };
     const auto setPageBreak = [&](size_t index) {
-        auto& layout = context.musicXmlScore->layout[static_cast<mx::api::MeasureIndex>(index)];
+        auto& layout = layoutAt(index);
         layout.page.newPage = mx::api::Bool::yes;
         // A page break inherently starts a system, so avoid a redundant new-system attribute when
         // both authored flags or a system lock target the same measure.
@@ -243,7 +248,7 @@ void createPageBreaks(const MusicXmlMusxMapping& context)
         if (index > 0) {
             setPageBreak(index);
         }
-        context.musicXmlScore->layout[static_cast<mx::api::MeasureIndex>(index)].page.pageNumber = std::to_string(page->getCmper());
+        layoutAt(index).page.pageNumber = std::to_string(page->getCmper());
     }
 }
 
