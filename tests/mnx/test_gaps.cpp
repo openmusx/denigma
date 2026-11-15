@@ -771,7 +771,7 @@ TEST(MnxGapReport, TextVoiceFollowsLayerAndAssociatedEntryVoice)
             EXPECT_FALSE(texts[index].contains("voice"));
         } else {
             ASSERT_TRUE(texts[index].contains("voice")) << index;
-            EXPECT_EQ(texts[index]["voice"], cases[index].voice) << index;
+            EXPECT_EQ(texts[index]["voice"].get<std::string>(), cases[index].voice) << index;
         }
     }
 }
