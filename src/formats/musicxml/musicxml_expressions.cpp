@@ -644,6 +644,7 @@ void processExpressions(MusicXmlMusxMapping& context, mx::api::MeasureData& meas
             /// half-pedal, special release, hook, and hyphen distinctions.
             [[fallthrough]];
         case classify::ExpressionType::TempoAlteration:
+        case classify::ExpressionType::ExpressiveText:
         case classify::ExpressionType::GenericText: {
             emitGroupedDirection(createWordsExpressionDirection(context, staffIndex, assignment, classification, placement, isStaffValueSpecified));
             break;

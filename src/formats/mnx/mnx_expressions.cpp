@@ -226,6 +226,41 @@ MnxDynamicShape calcDynamicShape(const classify::dynamics::Composition& composit
     return result;
 }
 
+std::optional<unsigned> calcExpressionGraceIndex(
+    const MnxMusxMappingPtr& context, const MusxInstance<others::MeasureExprAssign>& asgn, const EntryInfoPtr& entryInfo)
+{
+    if (entryInfo) {
+        if (entryInfo->graceIndex > 0) {
+            return entryInfo.calcReverseGraceIndex();
+        }
+        if (entryInfo.calcHasGraceNote()) {
+            return 0;
+        }
+    } else if (context->current.staffMeasureContext) {
+        if (const auto measure = context->document->getOthers()->get<others::Measure>(asgn->getRequestedPartId(), context->current.meas)) {
+            if (musx::util::Fraction::fromEdu(asgn->eduPosition) >= measure->calcDuration(context->current.staff)) {
+                // Explicit main position places the expression after any trailing grace notes.
+                return 0;
+            }
+        }
+    }
+    return std::nullopt;
+}
+
+std::optional<std::string> calcExpressionVoice(
+    const MusxInstance<others::MeasureExprAssign>& asgn, std::optional<int> mnxStaffNumber, const EntryInfoPtr& entryInfo)
+{
+    if (asgn->layer == 0 && !asgn->voice2 && !(entryInfo && entryInfo->getEntry()->v2Launch)) {
+        return std::nullopt;
+    }
+    LayerIndex layer = asgn->layer > 0 ? asgn->layer - 1 : 0;
+    if (entryInfo && asgn->layer == 0) {
+        layer = entryInfo.getLayerIndex();
+    }
+    const int entryVoice = entryInfo ? static_cast<int>(entryInfo->getEntry()->voice2) + 1 : 1;
+    return calcVoice(mnxStaffNumber.value_or(1), layer, entryVoice);
+}
+
 void appendGeneralText(const MnxMusxMappingPtr& context, mnxdom::part::Measure& mnxMeasure, std::optional<int> mnxStaffNumber,
     const MusxInstance<others::MeasureExprAssign>& asgn, const classify::ExpressionClassification& classification, VerticalPlacement placement)
 {
@@ -246,13 +281,21 @@ void appendGeneralText(const MnxMusxMappingPtr& context, mnxdom::part::Measure& 
     const auto id = core::calcExpressionId(asgn);
     auto positioned = mnxMeasure.ensure_text().append();
     positioned.set_id(id);
+    positioned.set_or_clear_type(enumConvert<mnxdom::TextType>(classification.type));
     positioned.set_or_clear_staff(mnxStaffNumber.value_or(1));
     positioned.set_or_clear_placement(enumConvert<mnxdom::Placement>(placement));
+    const auto entryInfo = asgn->calcAssociatedEntry();
+    if (const auto voice = calcExpressionVoice(asgn, mnxStaffNumber, entryInfo)) {
+        positioned.set_voice(*voice);
+    }
     if (asgn->eduPosition) {
         positioned.ensure_position(mnxFractionFromEdu(asgn->eduPosition));
     }
+    if (const auto graceIndex = calcExpressionGraceIndex(context, asgn, entryInfo)) {
+        positioned.ensure_position(mnxFractionFromEdu(asgn->eduPosition)).set_graceIndex(*graceIndex);
+    }
     setFormattedText(positioned.text(), text, id, gaps);
-    if (gaps && classification.type != classify::ExpressionType::GenericText) {
+    if (gaps && classification.type != classify::ExpressionType::GenericText && classification.type != classify::ExpressionType::ExpressiveText) {
         gaps->add({id, std::nullopt, std::nullopt}, classification, classify::GapExtent::Partial);
     }
 }
@@ -320,31 +363,13 @@ void appendDynamic(const MnxMusxMappingPtr& context, mnxdom::part::Measure& mnxM
         mnxDynamic.ensure_glyphs().assign(glyphs);
     }
     const auto entryInfo = asgn->calcAssociatedEntry();
-    int entryVoice = 1;
-    LayerIndex voiceLayerIdx = asgn->layer > 0 ? asgn->layer - 1 : 0;
-    if (entryInfo) {
-        entryVoice = static_cast<int>(entryInfo->getEntry()->voice2) + 1;
-        if (asgn->layer == 0) {
-            voiceLayerIdx = entryInfo.getLayerIndex();
-        }
-        if (entryInfo->graceIndex > 0) {
-            mnxDynamic.position().set_graceIndex(entryInfo.calcReverseGraceIndex());
-        } else if (entryInfo.calcHasGraceNote()) {
-            mnxDynamic.position().set_graceIndex(0);
-        }
-    } else if (context->current.staffMeasureContext) {
-        if (const auto measure = context->document->getOthers()->get<others::Measure>(asgn->getRequestedPartId(), context->current.meas)) {
-            if (musx::util::Fraction::fromEdu(asgn->eduPosition) >= measure->calcDuration(context->current.staff)) {
-                // if we are at the end of a measure, explicitly require main position to ignore any grace
-                // notes that might be trailing at the end of the frame
-                mnxDynamic.position().set_graceIndex(0);
-            }
-        }
+    if (const auto graceIndex = calcExpressionGraceIndex(context, asgn, entryInfo)) {
+        mnxDynamic.position().set_graceIndex(*graceIndex);
     }
     mnxDynamic.set_or_clear_placement(mnxMultiStaffPlacementFromVerticalPlacement(mnxStaffNumber, placement));
-    if (asgn->layer > 0 || asgn->voice2 || (entryInfo && entryInfo->getEntry()->v2Launch)) {
+    if (const auto voice = calcExpressionVoice(asgn, mnxStaffNumber, entryInfo)) {
         mnxDynamic.set_staff(mnxStaffNumber.value_or(1));
-        mnxDynamic.set_voice(calcVoice(mnxStaffNumber.value_or(1), voiceLayerIdx, entryVoice));
+        mnxDynamic.set_voice(*voice);
     } else if (mnxStaffNumber > 1) { // we get better import results not specifying the 1st staff number: this could become an option
         mnxDynamic.set_staff(mnxStaffNumber.value());
     }
@@ -468,6 +493,7 @@ void processExpressions(const MnxMusxMappingPtr& context, const MusxInstance<oth
             case classify::ExpressionType::RehearsalMark: break;
             case classify::ExpressionType::TechniqueText:
             case classify::ExpressionType::GenericText:
+            case classify::ExpressionType::ExpressiveText:
             case classify::ExpressionType::StringMute:
             case classify::ExpressionType::HarpDiagram:
             case classify::ExpressionType::AccordionRegistration:
