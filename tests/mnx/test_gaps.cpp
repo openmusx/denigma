@@ -609,6 +609,98 @@ TEST(MnxGapReport, GeneralTextAndDynamicFallbackPreservePlacementAndVisibility)
     EXPECT_EQ(std::count_if(gaps.begin(), gaps.end(), [](const auto& gap) { return gap["type"] == "expression"; }), 2);
 }
 
+TEST(MnxGapReport, TextAndDynamicsPreserveGracePositions)
+{
+    setupTestDataPaths();
+    std::vector<char> input;
+    readFile(getInputPath() / "reference" / utils::utf8ToPath("notAscii-其れ.enigmaxml"), input);
+    pugi::xml_document source;
+    ASSERT_TRUE(source.load_buffer(input.data(), input.size()));
+    auto root = source.child("finale");
+    auto others = root.child("others");
+    others.find_child_by_attribute("measSpec", "cmper", "1").append_child("hasExpr");
+    auto frame = root.child("details").find_child_by_attribute("gfhold", "cmper2", "1");
+    frame.child("frame1").text() = 1;
+    frame.remove_child("frame2");
+    for (const char* entry : {"1", "2"}) {
+        root.child("entries").find_child_by_attribute("entry", "entnum", entry).append_child("graceNote");
+    }
+    struct Case
+    {
+        musx::dom::Edu position;
+        unsigned sourceGraceIndex;
+        std::optional<unsigned> graceIndex;
+        bool alignToEntry;
+    };
+    const auto quarter = static_cast<musx::dom::Edu>(musx::dom::NoteType::Quarter);
+    const std::vector<Case> cases{
+        {0, 1, 2, true},
+        {0, 2, 1, true},
+        {0, 0, 0, true},
+        {quarter, 0, std::nullopt, true},
+        {4 * quarter, 0, 0, true},
+        {0, 0, std::nullopt, false},
+    };
+    int expressionId = 3;
+    int assignmentIndex = 0;
+    for (const char* content : {"Example", "dolce", "f"}) {
+        for (const auto& item : cases) {
+            auto block = others.append_child("textBlock");
+            block.append_attribute("cmper") = expressionId;
+            block.append_child("textID").text() = expressionId;
+            block.append_child("textTag").text() = "expression";
+            auto def = others.append_child("textExprDef");
+            def.append_attribute("cmper") = expressionId;
+            def.append_child("textIDKey").text() = expressionId;
+            def.append_child("horzMeasExprAlign").text() = item.alignToEntry ? "leftOfPrimaryNotehead" : "leftBarline";
+            auto text = root.child("texts").append_child("expression");
+            text.append_attribute("number") = expressionId;
+            text.text() = (std::string("^fontid(1)^size(12)^nfx(0)") + content).c_str();
+            auto assignment = others.append_child("measExprAssign");
+            assignment.append_attribute("cmper") = 1;
+            assignment.append_attribute("inci") = assignmentIndex++;
+            assignment.append_child("textExprID").text() = expressionId++;
+            assignment.append_child("staffAssign").text() = 1;
+            assignment.append_child("layer").text() = 1;
+            assignment.append_child("horzEduOff").text() = item.position;
+            assignment.append_child("graceNoteIndex").text() = item.sourceGraceIndex;
+        }
+    }
+    std::ostringstream xml;
+    source.save(xml);
+    const auto bytes = xml.str();
+    std::ostringstream output;
+    const denigma::formats::mnx::Options options;
+    ASSERT_TRUE(denigma::formats::mnx::EnigmaXmlToMnxJsonConverter{}.convert(std::as_bytes(std::span(bytes.data(), bytes.size())), output, options));
+    const auto document = nlohmann::json::parse(output.str());
+    const auto& measure = document["parts"][0]["measures"][0];
+    ASSERT_EQ(measure["text"].size(), 2 * cases.size());
+    ASSERT_EQ(measure["dynamics"].size(), cases.size());
+    for (const char* key : {"text", "dynamics"}) {
+        const auto& markings = measure[key];
+        for (size_t index = 0; index < markings.size(); ++index) {
+            SCOPED_TRACE(std::string(key) + " " + std::to_string(index));
+            const auto& item = cases[index % cases.size()];
+            const auto& marking = markings[index];
+            if (item.position || item.graceIndex || std::string_view(key) == "dynamics") {
+                ASSERT_TRUE(marking.contains("position"));
+                const auto& position = marking["position"];
+                const auto expectedFraction =
+                    item.position == quarter ? nlohmann::json::array({1, 4}) : nlohmann::json::array({item.position ? 1 : 0, 1});
+                EXPECT_EQ(position["fraction"], expectedFraction);
+                if (item.graceIndex) {
+                    ASSERT_TRUE(position.contains("graceIndex"));
+                    EXPECT_EQ(position["graceIndex"], *item.graceIndex);
+                } else {
+                    EXPECT_FALSE(position.contains("graceIndex"));
+                }
+            } else {
+                EXPECT_FALSE(marking.contains("position"));
+            }
+        }
+    }
+}
+
 TEST(MnxGapReport, TextVoiceFollowsLayerAndAssociatedEntryVoice)
 {
     setupTestDataPaths();

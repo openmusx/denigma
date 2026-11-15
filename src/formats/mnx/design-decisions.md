@@ -52,6 +52,8 @@ Expressive wording recognition ignores the modifiers `molto`, `poco`, and `sempr
 
 Text uses the same voice selection as dynamics. An explicit layer, a voice-2 assignment, or an associated voice-2 launch supplies a voice. The associated entry determines voice 1 or 2 and supplies the layer when the assignment does not name one; otherwise the assignment's layer is used. With no such restriction the voice property is omitted and the text applies to all voices on its staff. Text continues to omit a default-valued staff number.
 
+Text and dynamics also share grace positioning. An associated grace note supplies its reverse grace index; a main note preceded by grace notes requires an explicit zero. Measure-end positions without an associated entry also use zero to follow trailing grace notes. A position object is retained at the start of a measure whenever it carries a grace index.
+
 ### Text is converted with its source font, then reduced to alternating text and glyph elements
 
 Music-font characters are resolved to canonical SMuFL glyph names before adjacent content is combined. Glyph and text elements alternate, with no boundaries solely for font changes or inserts. Whitespace, line breaks, and unmapped characters remain intact. Every positioned text and content element receives an id even without gap collection.
