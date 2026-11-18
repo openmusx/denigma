@@ -182,7 +182,7 @@
         <mmRestOldStyleMaxMeasures>8</mmRestOldStyleMaxMeasures>
         <mmRestOldStyleSpacing>2</mmRestOldStyleSpacing>
         <voltaLineWidth>0.14583</voltaLineWidth>
-        <voltaPosAbove x="0" y="-4"></voltaPosAbove>
+        <voltaPosAbove x="0" y="-6"></voltaPosAbove>
         <voltaHook>3</voltaHook>
         <voltaLineStyle>solid</voltaLineStyle>
         <voltaFontFace>Charcoal</voltaFontFace>
