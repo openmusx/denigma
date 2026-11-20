@@ -298,14 +298,15 @@ static void validateMnxDocument(const mnxdom::Document& mnxDocument, const Denig
 {
     if (!denigmaContext.noValidate) {
         denigmaContext.logMessage(LogMsg() << "Validation starting.", MessageSeverity::Verbose);
-        if (auto validateResult = mnxdom::validation::schemaValidate(mnxDocument, denigmaContext.mnxSchema); !validateResult) {
+        const auto validateResult = mnxdom::validation::schemaValidate(mnxDocument, {.collectIds = true, .jsonSchema = denigmaContext.mnxSchema});
+        if (!validateResult) {
             denigmaContext.logMessage(LogMsg() << "Schema validation errors:", MessageSeverity::Warning);
             for (const auto& error : validateResult.errors) {
                 denigmaContext.logMessage(LogMsg() << "    " << error.to_string(), MessageSeverity::Warning);
             }
         } else {
             denigmaContext.logMessage(LogMsg() << "Schema validation succeeded.");
-            const auto semanticResult = mnxdom::validation::semanticValidate(mnxDocument);
+            const auto semanticResult = mnxdom::validation::semanticValidate(mnxDocument, validateResult.ids.value());
             // Semantic findings are logged one level below their mnxdom severity.
             if (!semanticResult.warnings.empty()) {
                 denigmaContext.logMessage(LogMsg() << "Semantic validation warnings:", MessageSeverity::Info);

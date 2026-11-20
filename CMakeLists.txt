@@ -158,6 +158,7 @@ FetchContent_MakeAvailable(pugixml)
 
 set(NLOHMANN_JSON_VERSION 3.12.0)
 set(JSON_BuildTests OFF CACHE BOOL "Do not build tests for nlohmann_json")
+set(JSON_Install ON)
 FetchContent_Declare(
     nlohmann_json
     URL https://github.com/nlohmann/json/releases/download/v${NLOHMANN_JSON_VERSION}/json.tar.xz
