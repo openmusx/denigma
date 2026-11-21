@@ -164,9 +164,13 @@ void assignRepeatEndings(const MusicXmlMusxMapping& context, mx::api::PartData& 
         ASSERT_IF (measureIndex >= part.measures.size()) {
             continue;
         }
-        /// @todo Preserve ending visibility when mx::api exposes print-object on EndingData.
         auto endingData = mx::api::EndingData{};
         endingData.type = mx::api::EndingType::start;
+        // Only the ending's own Show setting hides it. Its staff list and Top Staff Only choose which
+        // staves of a score display it; see the ending-visibility entry in design-decisions.md.
+        if (ending->hidden) {
+            endingData.printObject = mx::api::Bool::no;
+        }
         if (const auto passList = context.document->getOthers()->get<others::RepeatPassList>(context.forPartId, ending->getCmper())) {
             endingData.numbers = passList->values;
         }
@@ -996,6 +1000,9 @@ void processChords(MusicXmlMusxMapping& context, mx::api::StaffData& staff, cons
             chord.bassAlter = classification.bass->alteration;
             if (classification.bassLowerCase) {
                 chord.bassText = std::string{utils::toLowerCase(music_theory::calcNoteNameLetter(classification.bass->noteName))};
+            }
+            if (classification.bassArrangement) {
+                chord.bassArrangement = enumConvert<mx::api::BassArrangement>(*classification.bassArrangement);
             }
         }
 

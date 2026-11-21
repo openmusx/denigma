@@ -642,6 +642,93 @@ TEST(MusicXmlChordFixture, LowercaseRootAndBassKeepTheirPitch)
     }
 }
 
+TEST(MusicXmlChordFixture, BassArrangementFollowsTheBassPosition)
+{
+    setupTestDataPaths();
+    // chords.musx stores no bass position, which Finale reads as after the root.
+    const std::vector<std::pair<std::string, std::string>> cases = {
+        {"", "horizontal"},
+        {"underRoot", "vertical"},
+        {"subtext", "diagonal"},
+    };
+    for (const auto& [bassPosition, arrangement] : cases) {
+        SCOPED_TRACE(arrangement);
+        const auto xml = convertEditedMusicXmlFixture("chords.musx", [&bassPosition](pugi::xml_document& source) {
+            if (bassPosition.empty()) {
+                return;
+            }
+            const auto assignments = source.select_nodes("//chordAssign");
+            ASSERT_FALSE(assignments.empty());
+            for (const auto& selected : assignments) {
+                auto chord = selected.node();
+                chord.remove_child("bassPosition");
+                chord.append_child("bassPosition").text().set(bassPosition.c_str());
+            }
+        });
+        pugi::xml_document document;
+        ASSERT_TRUE(document.load_string(xml.c_str()));
+        const auto basses = document.select_nodes("//harmony/bass");
+        ASSERT_FALSE(basses.empty());
+        for (const auto& selected : basses) {
+            EXPECT_EQ(std::string(selected.node().attribute("arrangement").value()), arrangement);
+        }
+    }
+}
+
+TEST(MusicXmlMeasures, HiddenEndingIsNotPrinted)
+{
+    setupTestDataPaths();
+    const auto countEndings = [](const std::string& xml, const char* printObject) {
+        pugi::xml_document document;
+        EXPECT_TRUE(document.load_string(xml.c_str()));
+        size_t total = 0;
+        size_t matching = 0;
+        for (const auto& selected : document.select_nodes("//barline/ending")) {
+            total++;
+            if (std::string(selected.node().attribute("print-object").value()) == printObject) {
+                matching++;
+            }
+        }
+        return std::pair{total, matching};
+    };
+
+    const auto shown = convertEditedMusicXmlFixture("repeats.musx", [](pugi::xml_document&) {});
+    const auto [shownTotal, shownUnmarked] = countEndings(shown, "");
+    ASSERT_GT(shownTotal, 0u);
+    EXPECT_EQ(shownUnmarked, shownTotal);
+
+    const auto hidden = convertEditedMusicXmlFixture("repeats.musx", [](pugi::xml_document& source) {
+        const auto endings = source.select_nodes("//repeatEndingStart");
+        ASSERT_FALSE(endings.empty());
+        for (const auto& selected : endings) {
+            auto ending = selected.node();
+            ending.remove_child("hidden");
+            ending.append_child("hidden");
+        }
+    });
+    const auto [hiddenTotal, hiddenUnprinted] = countEndings(hidden, "no");
+    // Hiding the bracket keeps every ending, start and stop, so playback still follows them.
+    EXPECT_EQ(hiddenTotal, shownTotal);
+    EXPECT_EQ(hiddenUnprinted, hiddenTotal);
+}
+
+TEST(MusicXmlNotes, HiddenLegerLinesArePrintLegerNo)
+{
+    setupTestDataPaths();
+    // glissando.musx has one visible entry with Hide Ledger Lines set. Finale's own export writes it
+    // as a C4 with print-leger="no".
+    const auto xml = convertEditedMusicXmlFixture("glissando.musx", [](pugi::xml_document&) {});
+    pugi::xml_document document;
+    ASSERT_TRUE(document.load_string(xml.c_str()));
+    const auto notes = document.select_nodes("//note[@print-leger]");
+    ASSERT_EQ(notes.size(), 1u);
+    const auto note = notes[0].node();
+    EXPECT_STREQ(note.attribute("print-leger").value(), "no");
+    EXPECT_FALSE(note.attribute("print-object"));
+    EXPECT_STREQ(note.child("pitch").child_value("step"), "C");
+    EXPECT_EQ(note.child("pitch").child("octave").text().as_int(), 4);
+}
+
 TEST(MusicXmlParts, StaffHiddenKeyKeepsAlterationsAndMode)
 {
     setupTestDataPaths();

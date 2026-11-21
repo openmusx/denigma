@@ -663,6 +663,8 @@ void appendEntryNotes(MusicXmlMusxMapping& context, mx::api::StaffData& staff, m
         applyMusicXmlTies(context, note, noteInfo);
         if (entryIt.getEffectiveHidden()) {
             note.printData.printObject = mx::api::Bool::no;
+        } else if (entry->noLeger) {
+            note.printLeger = mx::api::Bool::no;
         }
         if (includedPosition == 0) {
             rememberFirstNote(voice.notes.size());

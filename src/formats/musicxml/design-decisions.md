@@ -307,6 +307,10 @@ The new sound comes from musxdom's instrument for the part instead, since that i
 
 Denigma exports ending structure, pass numbers, and labels, and leaves bracket position, hook length, and label offsets unspecified. MX can represent these fields, but mapping Finale's geometry to MusicXML has not been established. The importer engraves the endings with the rest of the score.
 
+### Only an ending's Show setting hides it
+
+An ending whose Show setting is off exports with `print-object="no"` on its `<ending>` elements, so the repeat still governs playback while the bracket stays hidden. An ending's staff list, Top Staff Only setting, per-staff hiding, and a staff's Display Endings and Text Repeats setting do not hide it. They choose which staves of a score display the bracket, which in MusicXML is the ending's system relation, and `mx::api::EndingData` cannot express that. Writing `print-object="no"` on the excluded parts would also hide the ending in parts extracted from the score, where every player needs it.
+
 ### Credits retain each visible font run
 
 A page text block becomes one credit. Its first visible run carries the existing page anchor, justification, and enclosure; subsequent runs carry their own fonts and continue without explicit positions. Hidden text is omitted and adjacent visible chunks with equal fonts are joined. This preserves formatting without computing glyph positions.
