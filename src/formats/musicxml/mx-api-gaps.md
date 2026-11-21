@@ -172,9 +172,9 @@ Needed API shape: position/print data for group-name-display, group-abbreviation
 
 MusicXML `<ending>` carries, besides `number`, `type`, and its display text, the appearance attributes `print-object`, `end-length`, `text-x`, `text-y`, `system`, and the whole `print-style` group. Finale stores ending visibility, staff selection, font, and bracket/text offsets. Its own export writes appearance attributes, as in `<ending default-y="40" end-length="30" font-size="8.5" number="4" print-object="yes" system="only-top" type="start">`. The correspondence between Finale's stored geometry and MusicXML's coordinate semantics has not been established in Denigma.
 
-`mx::api::EndingData` exposes `type`, `numbers`, `text`, `positionData`, `endLength`, `textX`, and `textY`. Visibility, font, and system relation remain unavailable. Hidden endings are the notable loss: the bracket is suppressed while the repeat still governs playback.
+`mx::api::EndingData` exposes `type`, `numbers`, `text`, `positionData`, `endLength`, `textX`, `textY`, and `printObject`, and Denigma writes `print-object="no"` for an ending whose Show setting is off. Font and system relation remain unavailable. Without system relation, an ending's staff list and Top Staff Only setting cannot be expressed, so every part shows the ending.
 
-Remaining API work: expose print-object, font, and system relation on `EndingData`. Denigma deliberately leaves ending geometry to the importer; see [design-decisions.md](design-decisions.md).
+Remaining API work: expose font and system relation on `EndingData`. Denigma deliberately leaves ending geometry to the importer; see [design-decisions.md](design-decisions.md).
 
 ## Directions and Expressions
 
@@ -243,11 +243,3 @@ MusicXML lets each `<degree>` child carry the text that should be printed for it
 `mx::api::Extension` models `extensionType`, `extensionAlter`, `extensionNumber`, and `printObject`, but has no text member, so Denigma cannot place the printed spelling on a degree. Denigma therefore writes the entire displayed suffix in `ChordData::text` and must suppress each degree with `print-object="no"` to avoid rendering the parenthesized text twice, which loses the degree text that Finale exports.
 
 Needed API shape: an optional printed-text member on `Extension` for the `degree-value` and `degree-type` `text` attributes, so an exporter can split a suffix between the kind and its degrees the way Finale does.
-
-### Bass note arrangement
-
-Finale exports an altered-bass chord as `<bass arrangement="horizontal">`, choosing between a horizontal, diagonal, or vertical arrangement of the root and bass.
-
-`mx::api::ChordData` exposes `bass` and `bassAlter` but no arrangement member, so Denigma cannot record Finale's choice and the reading application picks its own layout.
-
-Needed API shape: an optional bass arrangement enumeration on `ChordData` covering the MusicXML `arrangement` values.

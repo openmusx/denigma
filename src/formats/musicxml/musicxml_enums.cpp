@@ -70,6 +70,12 @@ BEGIN_ENUM_CONVERSION(BarlineType, mx::api::BarlineType)
     case BarlineType::Custom: return mx::api::BarlineType::unsupported;
 END_ENUM_CONVERSION
 
+BEGIN_ENUM_CONVERSION(classify::chord::BassArrangement, mx::api::BassArrangement)
+    case classify::chord::BassArrangement::Horizontal: return mx::api::BassArrangement::horizontal;
+    case classify::chord::BassArrangement::Vertical: return mx::api::BassArrangement::vertical;
+    case classify::chord::BassArrangement::Diagonal: return mx::api::BassArrangement::diagonal;
+END_ENUM_CONVERSION
+
 BEGIN_ENUM_CONVERSION(classify::articulation::Caesura::Type, mx::api::MarkType)
     case classify::articulation::Caesura::Type::Normal: return mx::api::MarkType::caesura;
     case classify::articulation::Caesura::Type::Curved: return mx::api::MarkType::caesuraCurved;
