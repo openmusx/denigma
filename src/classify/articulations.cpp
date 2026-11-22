@@ -1089,10 +1089,10 @@ static ArticulationClassification classifyAssignment(const musx::dom::MusxInstan
     const musx::dom::EntryInfoPtr& entryInfo, size_t resultIndex, std::vector<DelimiterCandidate>& delimiterCandidates)
 {
     ArticulationClassification result{};
-    if (const auto pseudoTie = assignment->calcIsPseudoTie(musx::utils::PseudoTieMode::LaissezVibrer, entryInfo)) {
-        result = makePseudoTie(PseudoTie::Type::LaissezVibrer, pseudoTie->shape->calcSlurContour());
-    } else if (const auto pseudoTie = assignment->calcIsPseudoTie(musx::utils::PseudoTieMode::TieEnd, entryInfo)) {
-        result = makePseudoTie(PseudoTie::Type::TieEnd, pseudoTie->shape->calcSlurContour());
+    if (const auto laissezVibrer = assignment->calcIsPseudoTie(musx::utils::PseudoTieMode::LaissezVibrer, entryInfo)) {
+        result = makePseudoTie(PseudoTie::Type::LaissezVibrer, laissezVibrer->shape->calcSlurContour());
+    } else if (const auto tieEnd = assignment->calcIsPseudoTie(musx::utils::PseudoTieMode::TieEnd, entryInfo)) {
+        result = makePseudoTie(PseudoTie::Type::TieEnd, tieEnd->shape->calcSlurContour());
     } else if (const auto symbolContext = assignment->calcSelectedSymbolContext(entryInfo)) {
         auto classification = classifySelectedSymbolContext(symbolContext.value());
         result = std::holds_alternative<AmbiguousMark>(classification)
