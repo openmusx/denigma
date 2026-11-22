@@ -588,8 +588,17 @@ void appendEntryNotes(MusicXmlMusxMapping& context, mx::api::StaffData& staff, m
                                                                                                                .noteIndex = noteIndex,
                                                                                                            });
     };
-    if (entryInfo.calcIsFullMeasureRest() || entryInfo.calcDisplaysAsRest()) {
+    // Finale allows a note entry with no notes. It keeps its duration (and any tuplet it starts) as an invisible rest,
+    // but a zero-note grace entry takes no time and is omitted.
+    const bool isZeroNoteEntry = entry->isNote && entry->notes.empty();
+    if (isZeroNoteEntry && entry->graceNote) {
+        return;
+    }
+    if (isZeroNoteEntry || entryInfo.calcIsFullMeasureRest() || entryInfo.calcDisplaysAsRest()) {
         auto rest = createRestData(context, staff, entryIt, musxMeasure, nullptr, userVoiceNumber, isCue, isStaffValueSpecified);
+        if (isZeroNoteEntry) {
+            rest.printData.printObject = mx::api::Bool::no;
+        }
         rememberFirstNote(voice.notes.size());
         voice.notes.emplace_back(rest);
         return;

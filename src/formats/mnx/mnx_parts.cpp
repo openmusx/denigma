@@ -60,8 +60,8 @@ static void createBeams(const MnxMusxMappingPtr& context, mnxdom::part::Measure 
                     const auto entry = next->getEntry();
                     const EntryNumber entryNumber = entry->getEntryNumber();
                     context->beamedEntries.emplace(entryNumber);
-                    if (isInOmittedZeroLengthTuplet(next)) {
-                        continue; // the entry has no event to beam
+                    if (isInOmittedZeroLengthTuplet(next) || (entry->isNote && entry->notes.empty())) {
+                        continue; // the entry has no event to beam (a zero-note entry is exported as a spacer)
                     }
                     beam.events().push_back(core::calcEventId(next));
                     if (unsigned lowestBeamStart = next.calcLowestBeamStart(/*considerBeamOverBarlines*/ true)) {

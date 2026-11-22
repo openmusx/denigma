@@ -189,7 +189,7 @@ carries part, measure, staff, voice, and tick as well.
 The mx update at `e866c709` exposes these additional capabilities. Adopt them when Finale source semantics can be mapped reliably:
 
 - Grace-note steal-time percentages and make-time ticks. Finale's grace playback duration alone does not establish which neighbouring note supplies that time; do not infer it or substitute make-time.
-- Notehead parentheses and color. Resolve actual per-note authorial settings before populating these; do not infer parentheses from a circled glyph or colors from Finale's editing display.
+- Notehead color. Resolve actual per-note authorial settings before populating it; do not infer colors from Finale's editing display. (Notehead parentheses are written from enclosing articulations; see design-decisions.md. Do not infer them from a circled glyph.)
 - Additional creators and rights statements. Finale's existing single file-info fields do not establish separate people or rights records; do not split their free text heuristically.
 - Figured-bass extension lines. These need a figured-bass export path before they can be used.
 - Additional accidental-mark appearance attributes. Existing ornament classification supplies accidental type and placement, but no independent brackets, size, font, or color.

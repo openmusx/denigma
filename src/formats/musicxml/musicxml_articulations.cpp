@@ -179,13 +179,8 @@ void processArticulations(MusicXmlMusxMapping& context, mx::api::StaffData& staf
         appendComponent(direction);
         staff.directions.emplace_back(std::move(direction));
     };
-    const auto articAssigns = context.document->getDetails()->getArray<details::ArticulationAssign>(SCORE_PARTID, entry->getEntryNumber());
-    for (const auto& asgn : articAssigns) {
-        if (asgn->hide) {
-            continue;
-        }
-        const auto classification = classify::classifyArticulation(asgn, entryInfo);
-        if (!classification) {
+    for (const auto& classification : classify::classifyArticulations(entryInfo)) {
+        if (!classification || classification.assignment->hide) {
             continue;
         }
         std::visit(
@@ -217,6 +212,23 @@ void processArticulations(MusicXmlMusxMapping& context, mx::api::StaffData& staf
                             target->noteAttachmentData.marks.emplace_back(
                                 musicXmlMark(enumConvert<mx::api::MarkType>(classified.type), classification.placement));
                         }
+                    }
+                } else if constexpr (std::is_same_v<Value, classify::articulation::BracketEnclosure>) {
+                    // MusicXML encloses a notehead only in parentheses, so every enclosure is written as parentheses.
+                    // (See design-decisions.md.)
+                    // An enclosure without a note encloses the whole entry, such as a rest.
+                    const auto enclosedId = classified.note ? core::calcNoteId(classified.note) : core::calcEventId(entryInfo);
+                    bool isEnclosed = false;
+                    for (auto& target : notes) {
+                        if (!classified.note || target.id == mx::api::Id{enclosedId}) {
+                            target.noteheadParentheses = mx::api::Bool::yes;
+                            isEnclosed = true;
+                        }
+                    }
+                    if (isEnclosed && classified.type != classify::articulation::BracketEnclosure::Type::Parentheses) {
+                        context.logMessage(
+                            LogMsg() << "Brackets enclosing " << enclosedId << " have no MusicXML equivalent; writing notehead parentheses.",
+                            MessageSeverity::Verbose);
                     }
                 } else if constexpr (std::is_same_v<Value, classify::articulation::TechniqueMark>) {
                     const auto markType = musicXmlTechniqueType(classified);
@@ -254,7 +266,7 @@ void processArticulations(MusicXmlMusxMapping& context, mx::api::StaffData& staf
                         appendArpeggioCandidate(context, classified.candidate.value());
                     }
                 } else if constexpr (std::is_same_v<Value, classify::articulation::VerticalEntryBracket>) {
-                    if (const auto candidate = musx::util::calcNonArpeggioSpanForAssignment(entryInfo, asgn)) {
+                    if (const auto candidate = musx::util::calcNonArpeggioSpanForAssignment(entryInfo, classification.assignment)) {
                         appendArpeggioCandidate(context, candidate.value());
                     }
                 } else if constexpr (std::is_same_v<Value, classify::PseudoTie>) {

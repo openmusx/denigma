@@ -256,6 +256,12 @@ on the fourth fret. Both attributes are omitted when the chord assignment has no
 
 A Finale brass articulation (scoop, plop, falloff, doit) belongs to the entry, but a slide belongs to one note. The articulation classifier deals an entry's slides to its notes and names each one's note in `classify::articulation::NoteSlide`, which documents the rule; the exporter appends the slide to that note and drops one that names none.
 
+### Enclosing articulations become notehead parentheses, including brackets
+
+Finale cannot enclose a note or rest in parentheses or brackets, so an author draws the enclosure with a pair of positioned articulations. The articulation classifier pairs them in `classify::articulation::BracketEnclosure`, which documents the rule and names the enclosed note, or encloses the whole entry for a rest. The exporter writes `parentheses="yes"` on the `<notehead>` of the enclosed note or rest and writes neither articulation. MusicXML allows `<notehead>` on a rest, though importers may not draw its parentheses.
+
+MusicXML has no notehead brackets, so a bracket enclosure is also written as parentheses, with a verbose log message. Brackets and parentheses around a notehead serve the same purposes (an optional, ghost, or cue-like note), so parentheses keep what the enclosure means and are drawn by every importer that supports them. The shape is lost, which matters mainly where brackets distinguish editorial additions from the composer's own parentheses. The alternatives are worse. Dropping the enclosure loses the meaning too. Writing the delimiters as `<other-articulation>` fallback marks keeps the glyphs, but importers would stack them above or below the note without knowing they enclose it, and positioning them beside the notehead would mean computing layout.
+
 ### An arpeggio marks every note it rolls through, and stops at the part boundary
 
 `<arpeggiate>` is a per-note element, not a span: MusicXML draws the roll from the notes that carry

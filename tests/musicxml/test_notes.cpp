@@ -1039,6 +1039,60 @@ TEST(MusicXmlNotes, ArtificialHarmonicsExportSmoke)
     expectArtificialHarmonicNotes(*actualScore, expectedNotes);
 }
 
+TEST(MusicXmlNotes, NoteheadParenthesesFromEnclosingArticulations)
+{
+    setupTestDataPaths();
+
+    const auto outputPath = exportMusicXmlFixture("notehead_enclosures.enigmaxml");
+    const auto score = loadScoreData(outputPath);
+    ASSERT_TRUE(score);
+
+    // The fixture's cases occupy entries 60 to 102; see test_articulations.cpp. The hidden enclosure (entry 93) is not
+    // written.
+    const std::set<std::string> expectedIds = {
+        "ev60n1", // legacy Maestro parentheses
+        "ev61n1", // closing delimiter at the vertical tolerance from the opening
+        "ev63n1", // at the bottom of the note's window
+        "ev65n1", // just under the top of the note's window
+        "ev70n1", // brackets, written as parentheses because MusicXML has no notehead brackets
+        "ev74n1", // lower note of a chord with a second
+        "ev74n2", // upper note of a chord with a second
+        "ev75n1", // SMuFL notehead parentheses
+        "ev76n1", // SMuFL accidental parentheses
+        "ev78n1", // closing delimiter assigned first
+        "ev79n1", // grace note
+        "ev80n1", // closing delimiter right of a grace-size notehead's center
+        "ev82n1", // lower note of a chord with a second, closer to the handle than the upper note
+        "ev83n1", // delimiters centered on the notehead and offset
+        "ev85n1", // centered delimiters on a second drawn left of the primary notehead column
+        "ev87n1", // closing delimiter right of a whole notehead's center
+        "ev89n1", // closing delimiter right of a double whole notehead's center
+        "ev91n1", // manually positioned delimiters on a second drawn left of the primary notehead column
+        "ev94",   // parentheses around a floating rest
+        "ev95",   // parentheses around a positioned rest
+        "ev96",   // brackets around a rest, written as parentheses
+        "ev97",   // at the bottom of the rest's window
+        "ev99",   // just under the top of the rest's window
+        "ev102",  // delimiters centered on the rest and offset
+    };
+    std::set<std::string> actualIds;
+    for (const auto& part : score->parts) {
+        for (const auto& measure : part.measures) {
+            for (const auto& staff : measure.staves) {
+                for (const auto& [voiceNumber, voice] : staff.voices) {
+                    for (const auto& note : voice.notes) {
+                        if (note.noteheadParentheses == mx::api::Bool::yes) {
+                            ASSERT_TRUE(note.id);
+                            actualIds.insert(note.id->value());
+                        }
+                    }
+                }
+            }
+        }
+    }
+    EXPECT_EQ(actualIds, expectedIds);
+}
+
 TEST(MusicXmlNotes, ArtificialHarmonicsWithWrittenSoundingPitch)
 {
     setupTestDataPaths();

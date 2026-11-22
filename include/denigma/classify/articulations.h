@@ -399,7 +399,8 @@ struct VerticalEntryBracket
 ///
 /// Finale assigns the mark to the entry. The marks of one kind (into or out of the note) that an entry's visible
 /// assignments carry are dealt one per note in assignment order, starting from the note furthest from the stem and
-/// moving toward the stem, among the notes included in the part's voicing.
+/// moving toward the stem, among the notes included in the part's voicing. A hidden slide takes the note that the
+/// next visible slide of its kind would.
 struct NoteSlide
 {
     /// @enum Type
@@ -421,6 +422,48 @@ struct NoteSlide
 
     /// Returns true for a slide into the note (scoop or plop), false for one out of it (falloff or doit).
     bool isIntoNote() const noexcept { return type == Type::Scoop || type == Type::Plop; }
+};
+
+/// @struct BracketEnclosure
+/// @brief Classification for a pair of articulations, such as parentheses or brackets, that enclose one note of an
+/// entry, as around a ghost note, or a whole rest entry.
+///
+/// Finale has no such enclosure of its own (its enclosures belong to text), so an author draws one with two positioned
+/// articulations, which classify as one enclosure reported at the opening delimiter's assignment:
+/// - The opening delimiter lies left of what it encloses, with its handle within a vertical window around the
+///   enclosed note's or rest's staff position. A note's window is set mostly below the note, and a rest's is looser.
+///   When the handle lies within the windows of more than one note, as in a chord with a second, it encloses the note
+///   whose window center is closest.
+/// - The closing delimiter draws the same type of enclosure in the same font, is hidden exactly when the opening
+///   delimiter is, has its handle within a small vertical tolerance of the opening delimiter's, and lies right of the
+///   enclosed note's or rest's center. A closing parenthesis curves away from what it encloses, so its handle can sit
+///   close to it.
+///
+/// The enclosed width is a rule-of-thumb estimate: for a note, by note value and scaled by the notehead's size
+/// percentage; for a rest, one width for every rest. Either is scaled by the entry's size and, on a grace entry, by
+/// the grace note size.
+///
+/// A manually positioned delimiter is measured from the entry's origin, the left edge of the primary notehead column or
+/// of the rest. A delimiter positioned horizontally by Finale is centered on that column or rest, moved by the
+/// definition's and the assignment's horizontal offsets. A note of a second drawn on the other side of the stem is
+/// taken to lie one notehead width (before its size percentage) from the column. A delimiter whose position cannot be
+/// determined is not paired. Each note or rest has at most one enclosure, and a delimiter that does not pair
+/// classifies as std::monostate.
+struct BracketEnclosure
+{
+    /// @enum Type
+    /// @brief The delimiters that draw the enclosure.
+    enum class Type {
+        Parentheses,
+        Brackets
+    };
+
+    /// Delimiters that draw the enclosure.
+    Type type{};
+    /// The enclosed note, or falsy when the enclosure encloses the whole entry, as for a rest.
+    musx::dom::NoteInfoPtr note;
+    /// The assignment of the closing delimiter. The opening delimiter's is #ArticulationClassification::assignment.
+    musx::dom::MusxInstance<musx::dom::details::ArticulationAssign> closingAssignment;
 };
 
 /// @struct OtherMark
@@ -446,7 +489,7 @@ struct OtherMark
 using ArticulationValue = std::variant<std::monostate, articulation::ArticulationMarks, articulation::TechniqueMark, articulation::HarmonMute,
     articulation::PluckedDamp, articulation::StringMute, articulation::Tremolo, articulation::Fermata, articulation::BreathMark,
     articulation::Caesura, articulation::Arpeggio, articulation::Ornament, articulation::AccordionRegistration, articulation::VerticalEntryBracket,
-    articulation::NoteSlide, PseudoTie, articulation::OtherMark>;
+    articulation::NoteSlide, articulation::BracketEnclosure, PseudoTie, articulation::OtherMark>;
 
 /// @struct ArticulationClassification
 /// @brief Result returned by articulation classification.
@@ -454,6 +497,9 @@ struct ArticulationClassification
 {
     /// Classified articulation payload, or std::monostate when no articulation was recognized.
     ArticulationValue value{};
+    /// The classified assignment, or null when the classification came from a glyph alone, as through
+    /// #classifyArticulationSymbol. For a #articulation::BracketEnclosure, the opening delimiter's assignment.
+    musx::dom::MusxInstance<musx::dom::details::ArticulationAssign> assignment;
     /// Resolved placement of the assigned articulation, when classified from an assignment.
     musx::dom::VerticalPlacement placement{musx::dom::VerticalPlacement::NotApplicable};
     /// SMuFL glyph name associated with the recognized symbol, when available.
@@ -477,9 +523,13 @@ struct ArticulationClassification
     }
 };
 
-/// Classifies an articulation assignment for an entry.
-ArticulationClassification classifyArticulation(
-    const musx::dom::MusxInstance<musx::dom::details::ArticulationAssign>& assignment, const musx::dom::EntryInfoPtr& entryInfo);
+/// Classifies the articulation assignments of an entry.
+/// @details The result holds one classification per assignment, in assignment order, including hidden assignments
+/// and assignments that classify as std::monostate. Each classification's assignment tells whether it is hidden, and
+/// what to do with a hidden one is left to the caller. The exception is a #articulation::BracketEnclosure, whose two
+/// assignments yield one classification, at the position of the opening delimiter. A delimiter that does not pair
+/// with another classifies as std::monostate.
+std::vector<ArticulationClassification> classifyArticulations(const musx::dom::EntryInfoPtr& entryInfo);
 /// Classifies an articulation symbol from a font and character code.
 ArticulationClassification classifyArticulationSymbol(const musx::dom::MusxInstance<musx::dom::FontInfo>& fontInfo, char32_t symbol);
 

@@ -382,16 +382,14 @@ static void appendNoteSlide(mnxdom::sequence::Event& mnxEvent, const classify::a
 
 void processArticulations(const MnxMusxMappingPtr& context, mnxdom::sequence::Event& mnxEvent, const EntryInfoPtr& musxEntryInfo)
 {
-    const auto musxEntry = musxEntryInfo->getEntry();
     auto mnxPartMeasure = mnxEvent.getEnclosingElement<mnxdom::part::Measure>();
     ASSERT_IF (!mnxPartMeasure) {
         context->logMessage(LogMsg() << "no part measure exists for " << mnxEvent.dump(4), MessageSeverity::Warning);
         return;
     }
-    auto articAssigns = context->document->getDetails()->getArray<details::ArticulationAssign>(SCORE_PARTID, musxEntry->getEntryNumber());
-    for (const auto& asgn : articAssigns) {
-        if (!asgn->hide) { /// @todo eliminate this filter if MNX provides visibility options
-            if (const auto classification = classify::classifyArticulation(asgn, musxEntryInfo)) {
+    for (const auto& classification : classify::classifyArticulations(musxEntryInfo)) {
+        if (!classification.assignment->hide) { /// @todo eliminate this filter if MNX provides visibility options
+            if (classification) {
                 std::visit(
                     [&](const auto& classified) {
                         using Value = std::decay_t<decltype(classified)>;
@@ -408,7 +406,7 @@ void processArticulations(const MnxMusxMappingPtr& context, mnxdom::sequence::Ev
                                 appendArpeggioCandidate(context, mnxPartMeasure.value(), classified.candidate.value());
                             }
                         } else if constexpr (std::is_same_v<Value, classify::articulation::VerticalEntryBracket>) {
-                            if (auto candidate = musx::util::calcNonArpeggioSpanForAssignment(musxEntryInfo, asgn)) {
+                            if (auto candidate = musx::util::calcNonArpeggioSpanForAssignment(musxEntryInfo, classification.assignment)) {
                                 appendArpeggioCandidate(context, mnxPartMeasure.value(), candidate.value());
                             }
                         } else if constexpr (std::is_same_v<Value, classify::PseudoTie>) {
@@ -426,6 +424,8 @@ void processArticulations(const MnxMusxMappingPtr& context, mnxdom::sequence::Ev
                             }
                         } else if constexpr (std::is_same_v<Value, classify::articulation::NoteSlide>) {
                             appendNoteSlide(mnxEvent, classified);
+                        } else if constexpr (std::is_same_v<Value, classify::articulation::BracketEnclosure>) {
+                            /// @todo Enclose the note or rest once MNX can express a bracket enclosure.
                         } else if constexpr (std::is_same_v<Value, classify::articulation::TechniqueMark>) {
                             auto mnxMarkings = mnxEvent.ensure_markings();
                             if (auto mnxMarking = createEventMarking(mnxMarkings, classified)) {
@@ -439,13 +439,12 @@ void processArticulations(const MnxMusxMappingPtr& context, mnxdom::sequence::Ev
     }
 }
 
-void processArticulations(const MnxMusxMappingPtr& context, mnxdom::sequence::FullMeasureRest& mnxFullMeasureRest, const EntryInfoPtr& musxEntryInfo)
+void processArticulations(
+    [[maybe_unused]] const MnxMusxMappingPtr& context, mnxdom::sequence::FullMeasureRest& mnxFullMeasureRest, const EntryInfoPtr& musxEntryInfo)
 {
-    auto articAssigns =
-        context->document->getDetails()->getArray<details::ArticulationAssign>(SCORE_PARTID, musxEntryInfo->getEntry()->getEntryNumber());
-    for (const auto& asgn : articAssigns) {
-        if (!asgn->hide) {
-            if (const auto classification = classify::classifyArticulation(asgn, musxEntryInfo)) {
+    for (const auto& classification : classify::classifyArticulations(musxEntryInfo)) {
+        if (!classification.assignment->hide) {
+            if (classification) {
                 std::visit(
                     [&](const auto& classified) {
                         using Value = std::decay_t<decltype(classified)>;
