@@ -343,7 +343,7 @@ static void writeEntryToZip(zipFile outputZip, const ZipEntryInfo& fileInfo, con
 
     std::size_t offset = 0;
     while (offset < fileContents.size()) {
-        const std::size_t chunkSize = std::min<std::size_t>(fileContents.size() - offset, std::numeric_limits<unsigned>::max());
+        const std::size_t chunkSize = (std::min<std::size_t>)(fileContents.size() - offset, (std::numeric_limits<unsigned>::max)());
         rc = zipWriteInFileInZip(outputZip, fileContents.data() + offset, static_cast<unsigned>(chunkSize));
         if (rc < 0) {
             zipCloseFileInZip(outputZip);

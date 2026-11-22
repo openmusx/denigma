@@ -73,7 +73,7 @@ struct MarkingParts
             return;
         }
         if (direction == value) {
-            strength = std::max(strength, valueStrength);
+            strength = (std::max)(strength, valueStrength);
             return;
         }
         if (valueStrength == strength) {
