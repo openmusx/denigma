@@ -1249,7 +1249,8 @@ static void classifyBracketEnclosures(std::vector<ArticulationClassification>& r
     }
 }
 
-std::vector<ArticulationClassification> classifyArticulations(const musx::dom::EntryInfoPtr& entryInfo)
+std::vector<ArticulationClassification> classifyArticulations(
+    const musx::dom::EntryInfoPtr& entryInfo, const ArticulationClassificationOptions& options)
 {
     std::vector<ArticulationClassification> results;
     if (!entryInfo) {
@@ -1275,6 +1276,9 @@ std::vector<ArticulationClassification> classifyArticulations(const musx::dom::E
     std::vector<DelimiterCandidate> delimiterCandidates;
     results.reserve(assignments.size());
     for (const auto& assignment : assignments) {
+        if (assignment->hide && !options.includeHidden) {
+            continue;
+        }
         const size_t resultIndex = results.size();
         auto& result = results.emplace_back(classifyAssignment(assignment, entryInfo, resultIndex, delimiterCandidates));
         if (auto* slide = std::get_if<NoteSlide>(&result.value)) {

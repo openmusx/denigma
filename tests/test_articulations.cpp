@@ -576,6 +576,28 @@ TEST(ArticulationClassification, ReturnsHiddenAssignments)
     EXPECT_EQ(classifications[1].assignment->getInci(), Inci{1});
 }
 
+TEST(ArticulationClassification, OmitsHiddenAssignmentsOnRequest)
+{
+    const auto document = loadEnclosureFixture();
+    ASSERT_TRUE(document);
+    const auto classifyVisible = [&](EntryNumber caseNumber) {
+        const auto entryInfo = EntryInfoPtr::fromEntryNumber(document, SCORE_PARTID, 60 + caseNumber - 1);
+        EXPECT_TRUE(entryInfo) << "case " << caseNumber;
+        return classifyArticulations(entryInfo, {.includeHidden = false});
+    };
+    // Only the closing delimiter is hidden, so the visible opening delimiter remains, still unpaired.
+    const auto halfHidden = classifyVisible(13);
+    ASSERT_EQ(halfHidden.size(), 1u);
+    EXPECT_FALSE(halfHidden.front().assignment->hide);
+    EXPECT_FALSE(halfHidden.front());
+    // Both delimiters are hidden.
+    EXPECT_TRUE(classifyVisible(34).empty());
+    // A visible enclosure is unaffected.
+    const auto visible = classifyVisible(1);
+    ASSERT_EQ(visible.size(), 1u);
+    EXPECT_TRUE(visible.front().is<articulation::BracketEnclosure>());
+}
+
 TEST(ArticulationClassification, PairsHiddenNoteheadDelimiters)
 {
     const auto document = loadEnclosureFixture();

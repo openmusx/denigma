@@ -179,8 +179,8 @@ void processArticulations(MusicXmlMusxMapping& context, mx::api::StaffData& staf
         appendComponent(direction);
         staff.directions.emplace_back(std::move(direction));
     };
-    for (const auto& classification : classify::classifyArticulations(entryInfo)) {
-        if (!classification || classification.assignment->hide) {
+    for (const auto& classification : classify::classifyArticulations(entryInfo, {.includeHidden = false})) {
+        if (!classification) {
             continue;
         }
         std::visit(

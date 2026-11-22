@@ -523,13 +523,22 @@ struct ArticulationClassification
     }
 };
 
+/// Options for #classifyArticulations.
+struct ArticulationClassificationOptions
+{
+    /// Whether hidden assignments are classified. A caller that skips them can save the cost of classifying them.
+    bool includeHidden{true};
+};
+
 /// Classifies the articulation assignments of an entry.
-/// @details The result holds one classification per assignment, in assignment order, including hidden assignments
-/// and assignments that classify as std::monostate. Each classification's assignment tells whether it is hidden, and
-/// what to do with a hidden one is left to the caller. The exception is a #articulation::BracketEnclosure, whose two
-/// assignments yield one classification, at the position of the opening delimiter. A delimiter that does not pair
-/// with another classifies as std::monostate.
-std::vector<ArticulationClassification> classifyArticulations(const musx::dom::EntryInfoPtr& entryInfo);
+/// @details The result holds one classification per assignment, in assignment order, including assignments that
+/// classify as std::monostate. Hidden assignments are included unless @p options excludes them, and each
+/// classification's assignment tells whether it is hidden. Excluding hidden assignments does not change how the
+/// visible ones classify. The exception is a #articulation::BracketEnclosure, whose two assignments yield one
+/// classification, at the position of the opening delimiter. A delimiter that does not pair with another classifies
+/// as std::monostate.
+std::vector<ArticulationClassification> classifyArticulations(
+    const musx::dom::EntryInfoPtr& entryInfo, const ArticulationClassificationOptions& options = {});
 /// Classifies an articulation symbol from a font and character code.
 ArticulationClassification classifyArticulationSymbol(const musx::dom::MusxInstance<musx::dom::FontInfo>& fontInfo, char32_t symbol);
 
