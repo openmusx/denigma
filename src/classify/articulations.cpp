@@ -21,11 +21,19 @@
  */
 #include "denigma/classify/articulations.h"
 
+#include <algorithm>
+#include <cmath>
+#include <cstddef>
+#include <functional>
+#include <memory>
+#include <optional>
 #include <string_view>
 #include <unordered_map>
 #include <utility>
 #include <vector>
 
+#include "classify.h"
+#include "musx/util/Fraction.h"
 #include "smufl_mapping.h"
 
 namespace denigma {
@@ -430,8 +438,8 @@ static ArticulationClassification classifyShape(const musx::dom::MusxInstance<mu
         std::visit(
             [&](auto& value) {
                 using T = std::decay_t<decltype(value)>;
-                constexpr bool hasGlyphStyle =
-                    !std::is_same_v<T, std::monostate> && !std::is_same_v<T, PseudoTie> && !std::is_same_v<T, AccordionRegistration>;
+                constexpr bool hasGlyphStyle = !std::is_same_v<T, std::monostate> && !std::is_same_v<T, PseudoTie>
+                                               && !std::is_same_v<T, AccordionRegistration> && !std::is_same_v<T, BracketEnclosure>;
 
                 if constexpr (std::is_same_v<T, ArticulationMarks>) {
                     for (auto& mark : value.marks) {
@@ -981,74 +989,315 @@ static PrivateClassification classifySelectedSymbolContext(const musx::dom::deta
     return classifySymbol(context.symbol.font, context.symbol.character);
 }
 
-/// @brief Deals an entry's slides of one kind to its notes; see #NoteSlide.
-static musx::dom::NoteInfoPtr calcNoteSlideNote(
-    const musx::dom::MusxInstance<musx::dom::details::ArticulationAssign>& assignment, const musx::dom::EntryInfoPtr& entryInfo, bool intoNote)
+/// @brief Returns the entry's notes that are included in the part's voicing, from the note furthest from the stem
+/// toward the stem. A rest has none.
+static std::vector<musx::dom::NoteInfoPtr> calcNotesFromStemSide(const musx::dom::EntryInfoPtr& entryInfo)
 {
+    std::vector<musx::dom::NoteInfoPtr> result;
     const auto entry = entryInfo->getEntry();
     if (!entry->isNote) {
-        return {};
+        return result;
     }
-    size_t ordinal = 0;
-    const auto assignments = entry->getDocument()->getDetails()->getArray<musx::dom::details::ArticulationAssign>(
-        assignment->getRequestedPartId(), entry->getEntryNumber());
-    for (const auto& other : assignments) {
-        if (other->getInci() == assignment->getInci()) {
-            break;
+    for (size_t noteIndex = 0; noteIndex < entry->notes.size(); noteIndex++) {
+        if (musx::dom::NoteInfoPtr note(entryInfo, noteIndex); note.calcIsIncludedInVoicing()) {
+            result.push_back(note);
         }
-        if (other->hide) {
-            continue;
+    }
+    // Notes run from lowest to highest, and an up-stem chord has its noteheads at the bottom.
+    if (!entryInfo.calcUpStem()) {
+        std::reverse(result.begin(), result.end());
+    }
+    return result;
+}
+
+namespace {
+
+/// One side of a notehead enclosure, as drawn by a single articulation symbol.
+struct EnclosureDelimiter
+{
+    /// The side of the enclosure the delimiter draws.
+    enum class Side {
+        Opening,
+        Closing
+    };
+    Side side{};
+    BracketEnclosure::Type type{};
+    /// SMuFL glyph name of the symbol, or nullopt for an ASCII delimiter.
+    std::optional<std::string> glyphName;
+};
+
+/// A positioned delimiter that may pair with another to enclose a note or a rest.
+struct DelimiterCandidate
+{
+    size_t resultIndex{};
+    EnclosureDelimiter delimiter;
+    double staffPosition{};
+    /// Horizontal offset in EVPU, from the entry's origin to the handle or, when #isCenteredOnNotehead, from the center
+    /// of the entry's primary notehead column (or of the rest) to the symbol's visible center.
+    double horizontalOffset{};
+    bool isCenteredOnNotehead{};
+    std::shared_ptr<musx::dom::FontInfo> font;
+    bool isConsumed{};
+
+    /// Returns the symbol's horizontal position from the left edge of what it encloses, given that target's width and
+    /// its displacement from the entry's primary notehead column.
+    double calcHorizontalPosition(double targetWidth, double targetDisplacement) const
+    {
+        return (isCenteredOnNotehead ? targetWidth / 2 + horizontalOffset : horizontalOffset) - targetDisplacement;
+    }
+};
+
+} // namespace
+
+/// @brief Recognizes a symbol that draws one side of a notehead enclosure.
+/// @details A symbol that names a glyph is judged by the glyph alone, because a music font can draw an unrelated
+/// glyph at an ASCII delimiter's code point. Only a symbol with no glyph name is read as an ASCII delimiter.
+static std::optional<EnclosureDelimiter> classifyEnclosureDelimiter(const musx::dom::others::ArticulationDef::SelectedSymbol& symbol)
+{
+    using Type = BracketEnclosure::Type;
+    using Side = EnclosureDelimiter::Side;
+    if (symbol.isShape || !symbol.font) {
+        return std::nullopt;
+    }
+    if (auto glyphName = detail::glyphNameForFont(symbol.font, symbol.character)) {
+        static const std::unordered_map<std::string_view, std::pair<Side, Type>> glyphDelimiters = {
+            {"noteheadParenthesisLeft", {Side::Opening, Type::Parentheses}},
+            {"noteheadParenthesisRight", {Side::Closing, Type::Parentheses}},
+            {"accidentalParensLeft", {Side::Opening, Type::Parentheses}},
+            {"accidentalParensRight", {Side::Closing, Type::Parentheses}},
+            {"accidentalBracketLeft", {Side::Opening, Type::Brackets}},
+            {"accidentalBracketRight", {Side::Closing, Type::Brackets}},
+        };
+        const auto it = glyphDelimiters.find(*glyphName);
+        if (it == glyphDelimiters.end()) {
+            return std::nullopt;
         }
-        if (const auto symbolContext = other->calcSelectedSymbolContext(entryInfo)) {
-            const auto classification = classifySelectedSymbolContext(symbolContext.value());
-            if (const auto* otherClassification = std::get_if<ArticulationClassification>(&classification)) {
-                if (const auto* slide = otherClassification->as<NoteSlide>(); slide && slide->isIntoNote() == intoNote) {
-                    ordinal++;
+        return EnclosureDelimiter{it->second.first, it->second.second, std::move(glyphName)};
+    }
+    switch (symbol.font->calcDrawnCharacter(symbol.character)) {
+    case U'(': return EnclosureDelimiter{Side::Opening, Type::Parentheses, std::nullopt};
+    case U')': return EnclosureDelimiter{Side::Closing, Type::Parentheses, std::nullopt};
+    case U'[': return EnclosureDelimiter{Side::Opening, Type::Brackets, std::nullopt};
+    case U']': return EnclosureDelimiter{Side::Closing, Type::Brackets, std::nullopt};
+    default: return std::nullopt;
+    }
+}
+
+/// @brief Classifies one assignment. An assignment that classifies as std::monostate but draws a positioned
+/// enclosure delimiter is added to @p delimiterCandidates under @p resultIndex.
+static ArticulationClassification classifyAssignment(const musx::dom::MusxInstance<musx::dom::details::ArticulationAssign>& assignment,
+    const musx::dom::EntryInfoPtr& entryInfo, size_t resultIndex, std::vector<DelimiterCandidate>& delimiterCandidates)
+{
+    ArticulationClassification result{};
+    if (const auto laissezVibrer = assignment->calcIsPseudoTie(musx::utils::PseudoTieMode::LaissezVibrer, entryInfo)) {
+        result = makePseudoTie(PseudoTie::Type::LaissezVibrer, laissezVibrer->shape->calcSlurContour());
+    } else if (const auto tieEnd = assignment->calcIsPseudoTie(musx::utils::PseudoTieMode::TieEnd, entryInfo)) {
+        result = makePseudoTie(PseudoTie::Type::TieEnd, tieEnd->shape->calcSlurContour());
+    } else if (const auto symbolContext = assignment->calcSelectedSymbolContext(entryInfo)) {
+        auto classification = classifySelectedSymbolContext(symbolContext.value());
+        result = std::holds_alternative<AmbiguousMark>(classification)
+                     ? resolveAmbiguousMark(std::get<AmbiguousMark>(std::move(classification)), entryInfo)
+                     : std::get<ArticulationClassification>(std::move(classification));
+        result.placement = symbolContext->placement;
+        if (auto* arpeggio = std::get_if<Arpeggio>(&result.value)) {
+            arpeggio->candidate = calcArpeggioCandidate(entryInfo, assignment, arpeggio->type);
+        }
+        if (!result) {
+            if (auto delimiter = classifyEnclosureDelimiter(symbolContext->symbol)) {
+                const auto staffPosition = assignment->calcHandleStaffPosition(entryInfo);
+                const auto horizontalOffset = assignment->calcHorizontalOffset(entryInfo);
+                // The notehead a centered delimiter encloses is not known until pairing.
+                const bool isCenteredOnNotehead =
+                    horizontalOffset && horizontalOffset->anchor == musx::dom::details::ArticulationAssign::HorizontalOffset::Anchor::NoteheadCenter;
+                if (staffPosition && horizontalOffset) {
+                    delimiterCandidates.push_back({resultIndex, std::move(*delimiter), *staffPosition, horizontalOffset->offset, isCenteredOnNotehead,
+                        symbolContext->symbol.font});
                 }
             }
         }
     }
-    std::vector<size_t> noteIndices;
-    for (size_t noteIndex = 0; noteIndex < entry->notes.size(); noteIndex++) {
-        if (musx::dom::NoteInfoPtr(entryInfo, noteIndex).calcIsIncludedInVoicing()) {
-            noteIndices.push_back(noteIndex);
-        }
-    }
-    if (ordinal >= noteIndices.size()) {
-        return {};
-    }
-    // Notes run from lowest to highest, and an up-stem chord has its noteheads at the bottom.
-    const size_t position = entryInfo.calcUpStem() ? ordinal : noteIndices.size() - 1 - ordinal;
-    return musx::dom::NoteInfoPtr(entryInfo, noteIndices[position]);
+    result.assignment = assignment;
+    return result;
 }
 
-ArticulationClassification classifyArticulation(
-    const musx::dom::MusxInstance<musx::dom::details::ArticulationAssign>& assignment, const musx::dom::EntryInfoPtr& entryInfo)
+/// @brief Pairs the entry's delimiter candidates into bracket enclosures by the rules of #BracketEnclosure.
+/// @details Each enclosure replaces the opening delimiter's result, and the closing delimiter's result is removed.
+/// Of notes whose windows are equally close to the handle, as in a unison, the one further from the stem is chosen.
+static void classifyBracketEnclosures(std::vector<ArticulationClassification>& results, std::vector<DelimiterCandidate>& candidates,
+    const musx::dom::EntryInfoPtr& entryInfo, const std::vector<musx::dom::NoteInfoPtr>& notesFromStemSide)
 {
-    if (!assignment || !entryInfo) {
-        return {};
+    constexpr double WINDOW_BELOW_NOTE_SPACES = 3.0 / 4.0;
+    constexpr double WINDOW_ABOVE_NOTE_SPACES = 1.0 / 4.0;
+    // Rest glyphs vary in height and placement, so their window is looser than a note's.
+    constexpr double WINDOW_BELOW_REST_SPACES = 1.0;
+    constexpr double WINDOW_ABOVE_REST_SPACES = 1.0;
+    constexpr double ENCLOSURE_VERTICAL_TOLERANCE_EVPU = 4.0;
+    // Rule-of-thumb notehead widths, from a survey of SMuFL fonts.
+    constexpr double NOTEHEAD_WIDTH_SPACES = 1.25;
+    constexpr double WHOLE_NOTEHEAD_WIDTH_SPACES = 1.7;
+    constexpr double DOUBLE_WHOLE_NOTEHEAD_WIDTH_SPACES = 2.25;
+    // Rule-of-thumb rest width.
+    constexpr double REST_WIDTH_SPACES = 1.25;
+
+    const auto staff = entryInfo.createCurrentStaff();
+    if (!staff || staff->lineSpace <= 0) {
+        return;
     }
-    if (const auto pseudoTie = assignment->calcIsPseudoTie(musx::utils::PseudoTieMode::LaissezVibrer, entryInfo)) {
-        return makePseudoTie(PseudoTie::Type::LaissezVibrer, pseudoTie->shape->calcSlurContour());
+    const auto entry = entryInfo->getEntry();
+    const double evpuPerSpace = static_cast<double>(staff->lineSpace);
+    // A resized or grace entry is drawn smaller, though the articulation offsets are not scaled with it.
+    double entryScale = musx::util::Fraction::fromPercent(entryInfo.calcEntrySize()).toDouble();
+    if (entry->graceNote) {
+        if (const auto graceOptions = entry->getDocument()->getOptions()->get<musx::dom::options::GraceNoteOptions>()) {
+            entryScale *= musx::util::Fraction::fromPercent(graceOptions->gracePerc).toDouble();
+        }
     }
-    if (const auto pseudoTie = assignment->calcIsPseudoTie(musx::utils::PseudoTieMode::TieEnd, entryInfo)) {
-        return makePseudoTie(PseudoTie::Type::TieEnd, pseudoTie->shape->calcSlurContour());
+    // Handle positions are built from whole EVPU offsets, so a vertical distance is compared as whole EVPU. Rounding
+    // keeps the staff-position conversion from moving a distance across a boundary.
+    const auto calcVerticalDistanceEvpu = [&](double fromStaffPosition, double toStaffPosition) {
+        return std::round((toStaffPosition - fromStaffPosition) * evpuPerSpace / 2);
+    };
+
+    /// What an enclosure can enclose: one note of a note entry, or a whole rest entry.
+    struct Target
+    {
+        musx::dom::NoteInfoPtr note; ///< Falsy for a rest.
+        double staffPosition{};
+        double windowBelowEvpu{};
+        double windowAboveEvpu{};
+        double width{};
+        /// Horizontal displacement of the target from the entry's primary notehead column.
+        double displacement{};
+        bool isEnclosed{};
+    };
+    std::vector<Target> targets;
+    if (entry->isNote) {
+        const double columnWidthSpaces = [&]() {
+            const auto noteType = std::get<0>(entry->calcDurationInfo());
+            if (noteType >= musx::dom::NoteType::Breve) {
+                return DOUBLE_WHOLE_NOTEHEAD_WIDTH_SPACES;
+            }
+            return noteType == musx::dom::NoteType::Whole ? WHOLE_NOTEHEAD_WIDTH_SPACES : NOTEHEAD_WIDTH_SPACES;
+        }();
+        const double columnWidth = columnWidthSpaces * musx::dom::EVPU_PER_SPACE * entryScale;
+        const bool isUpStem = entryInfo.calcUpStem();
+        targets.reserve(notesFromStemSide.size());
+        for (const auto& note : notesFromStemSide) {
+            // A note of a second drawn on the other side of the stem lies one column width outside the primary
+            // notehead column: to its right on an up-stem entry, or to its left on a down-stem entry.
+            double displacement = 0.0;
+            if (isUpStem && note->upStemSecond) {
+                displacement = columnWidth;
+            } else if (!isUpStem && note->downStemSecond) {
+                displacement = -columnWidth;
+            }
+            targets.push_back({note, static_cast<double>(note.calcNoteProperties().staffPosition), WINDOW_BELOW_NOTE_SPACES * evpuPerSpace,
+                WINDOW_ABOVE_NOTE_SPACES * evpuPerSpace, columnWidth * musx::util::Fraction::fromPercent(note.calcNoteheadInfo().percent).toDouble(),
+                displacement});
+        }
+    } else {
+        targets.push_back(
+            {musx::dom::NoteInfoPtr{}, static_cast<double>(entryInfo.calcTopBottomStaffPositions().first), WINDOW_BELOW_REST_SPACES * evpuPerSpace,
+                WINDOW_ABOVE_REST_SPACES * evpuPerSpace, REST_WIDTH_SPACES * musx::dom::EVPU_PER_SPACE * entryScale, 0.0});
     }
-    if (const auto symbolContext = assignment->calcSelectedSymbolContext(entryInfo)) {
-        auto classification = classifySelectedSymbolContext(symbolContext.value());
-        ArticulationClassification result = std::holds_alternative<AmbiguousMark>(classification)
-                                                ? resolveAmbiguousMark(std::get<AmbiguousMark>(std::move(classification)), entryInfo)
-                                                : std::get<ArticulationClassification>(std::move(classification));
-        result.placement = symbolContext->placement;
+
+    std::vector<size_t> removedIndices;
+    for (const auto& opening : candidates) {
+        if (opening.delimiter.side != EnclosureDelimiter::Side::Opening) {
+            continue;
+        }
+        // The windows of notes a second apart overlap, so the handle encloses the target whose window center is
+        // closest to it.
+        Target* closestTarget = nullptr;
+        double closestDistanceEvpu{};
+        for (auto& candidate : targets) {
+            const double aboveTargetEvpu = calcVerticalDistanceEvpu(candidate.staffPosition, opening.staffPosition);
+            const bool isInWindow = aboveTargetEvpu >= -candidate.windowBelowEvpu && aboveTargetEvpu < candidate.windowAboveEvpu;
+            const double fromWindowCenterEvpu = std::abs(aboveTargetEvpu - (candidate.windowAboveEvpu - candidate.windowBelowEvpu) / 2);
+            if (isInWindow && (!closestTarget || fromWindowCenterEvpu < closestDistanceEvpu)) {
+                closestTarget = &candidate;
+                closestDistanceEvpu = fromWindowCenterEvpu;
+            }
+        }
+        if (!closestTarget || closestTarget->isEnclosed) {
+            continue;
+        }
+        auto& target = *closestTarget;
+        if (opening.calcHorizontalPosition(target.width, target.displacement) >= 0) {
+            continue;
+        }
+        const auto closing = std::find_if(candidates.begin(), candidates.end(), [&](const DelimiterCandidate& candidate) {
+            return candidate.delimiter.side == EnclosureDelimiter::Side::Closing && !candidate.isConsumed
+                   && candidate.delimiter.type == opening.delimiter.type
+                   && results[candidate.resultIndex].assignment->hide == results[opening.resultIndex].assignment->hide
+                   && std::abs(calcVerticalDistanceEvpu(opening.staffPosition, candidate.staffPosition)) <= ENCLOSURE_VERTICAL_TOLERANCE_EVPU
+                   && candidate.font->isSame(*opening.font) && candidate.calcHorizontalPosition(target.width, target.displacement) > target.width / 2;
+        });
+        if (closing == candidates.end()) {
+            continue;
+        }
+        closing->isConsumed = true;
+        target.isEnclosed = true;
+        auto& result = results[opening.resultIndex];
+        result.value = BracketEnclosure{opening.delimiter.type, target.note, results[closing->resultIndex].assignment};
+        result.glyphName = opening.delimiter.glyphName;
+        removedIndices.push_back(closing->resultIndex);
+    }
+    std::sort(removedIndices.begin(), removedIndices.end(), std::greater<>());
+    for (const auto index : removedIndices) {
+        results.erase(results.begin() + static_cast<std::ptrdiff_t>(index));
+    }
+}
+
+std::vector<ArticulationClassification> classifyArticulations(
+    const musx::dom::EntryInfoPtr& entryInfo, const ArticulationClassificationOptions& options)
+{
+    std::vector<ArticulationClassification> results;
+    if (!entryInfo) {
+        return results;
+    }
+    const auto entry = entryInfo->getEntry();
+    const auto assignments = entry->getDocument()->getDetails()->getArray<musx::dom::details::ArticulationAssign>(
+        entryInfo.getFrame()->getRequestedPartId(), entry->getEntryNumber());
+    if (assignments.empty()) {
+        return results;
+    }
+    // Computed only when a slide or an enclosure needs it, since most entries with assignments have neither.
+    std::optional<std::vector<musx::dom::NoteInfoPtr>> notesFromStemSide;
+    const auto getNotesFromStemSide = [&]() -> const std::vector<musx::dom::NoteInfoPtr>& {
+        if (!notesFromStemSide) {
+            notesFromStemSide = calcNotesFromStemSide(entryInfo);
+        }
+        return *notesFromStemSide;
+    };
+    // The slides of each kind are dealt one per note, in assignment order; see #NoteSlide.
+    size_t intoNoteSlides = 0;
+    size_t outOfNoteSlides = 0;
+    std::vector<DelimiterCandidate> delimiterCandidates;
+    results.reserve(assignments.size());
+    for (const auto& assignment : assignments) {
+        if (assignment->hide && !options.includeHidden) {
+            continue;
+        }
+        const size_t resultIndex = results.size();
+        auto& result = results.emplace_back(classifyAssignment(assignment, entryInfo, resultIndex, delimiterCandidates));
         if (auto* slide = std::get_if<NoteSlide>(&result.value)) {
-            slide->note = calcNoteSlideNote(assignment, entryInfo, slide->isIntoNote());
+            auto& ordinal = slide->isIntoNote() ? intoNoteSlides : outOfNoteSlides;
+            if (const auto& notes = getNotesFromStemSide(); ordinal < notes.size()) {
+                slide->note = notes[ordinal];
+            }
+            // Only the visible slides are dealt, so a hidden one takes the next visible slide's note.
+            if (!assignment->hide) {
+                ordinal++;
+            }
         }
-        if (auto* arpeggio = std::get_if<Arpeggio>(&result.value)) {
-            arpeggio->candidate = calcArpeggioCandidate(entryInfo, assignment, arpeggio->type);
-        }
-        return result;
     }
-    return {};
+    const auto isOpening = [](const DelimiterCandidate& candidate) { return candidate.delimiter.side == EnclosureDelimiter::Side::Opening; };
+    if (std::any_of(delimiterCandidates.begin(), delimiterCandidates.end(), isOpening)
+        && !std::all_of(delimiterCandidates.begin(), delimiterCandidates.end(), isOpening) && (!entry->isNote || !getNotesFromStemSide().empty())) {
+        classifyBracketEnclosures(results, delimiterCandidates, entryInfo, getNotesFromStemSide());
+    }
+    return results;
 }
 
 } // namespace classify

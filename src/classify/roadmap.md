@@ -1,17 +1,30 @@
 # Classification roadmap
 
-## Parenthesized noteheads
+## Parenthesized notehead glyphs
 
-Recognize a parenthesized notehead only when both a left and a right parenthesis
-can be reliably associated with the same note. Individual parenthesis glyphs do
-not establish that semantic classification and remain unclassified articulations.
+A pair of delimiting articulations is classified as `articulation::BracketEnclosure`. Still undecided is what to do
+with a notehead glyph that draws its own parentheses, such as `noteheadBlackParens`. These are optional glyphs of
+Finale's SMuFL fonts (Bravura has them too), at private-use code points, not standard SMuFL glyphs. Today such a glyph
+classifies as `notehead::Shape::Other` with its glyph name, so MusicXML writes it as
+`<notehead smufl="…">other</notehead>`, and MNX writes it as a `custom` notehead naming the glyph.
 
-Before implementing pairing, validate articulation handle coordinates independently
-in Finale and establish symbol-specific alignment relative to noteheads. Reject
-ambiguous chord associations, unmatched sides, and pairs enclosing a chord rather
-than one note. Handle coordinates alone are not sufficient to identify the note.
-Keep this analysis in the shared note-level classification layer, with export
-format decisions in the exporters.
+There are two ways forward:
+
+- Classify the glyph in `classifyNotehead` as a parenthesized notehead of its base shape, so that exporters write the
+  regular shape with parentheses. Any reader can draw that.
+- Keep exporting the glyph name. It draws exactly what Finale drew, but only for a reader whose font has Finale's
+  optional glyphs. Other programs and fonts do not recognize the name, so they draw an `other` notehead, and MNX does
+  not currently support non-standard glyphs at all.
+
+The choice also depends on what an enclosure covers, which neither format has settled in merged text. A
+parenthesized notehead glyph encloses only the notehead. The MNX enclosure proposed in w3c-cg/mnx#569 surrounds the
+notehead, its augmentation dots, and any displayed accidental, and is defined for notes but not rests. Whether
+MusicXML's `<notehead parentheses="yes">` encloses the accidental is the question of w3c-cg/musicxml#735. Wait for
+both before deciding. A `BracketEnclosure` does not yet record whether its delimiters enclose the accidental, since
+the opening delimiter only has to lie left of the notehead.
+
+A related open question is how to tell a pair of delimiters enclosing a whole chord from one enclosing one of its
+notes. Handle positions alone may not settle it, so for now a note entry's enclosure always encloses one note.
 
 ## Unmapped Finale AlphaNotes characters
 

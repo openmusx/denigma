@@ -108,7 +108,7 @@ static bool hasInstrumentStaffGroupMapping(const MnxMusxMappingPtr& context, con
 
 static void buildOrderedContent(mnxdom::layout::LayoutContent&& content, const MnxMusxMappingPtr& context,
     const std::vector<details::StaffGroupInfo>& groups, const MusxInstanceList<others::StaffUsed>& systemStaves,
-    const MusxInstance<others::Measure> forMeas, size_t fromIndex = 0, size_t toIndex = std::numeric_limits<size_t>::max(), size_t groupIndex = 0)
+    const MusxInstance<others::Measure> forMeas, size_t fromIndex = 0, size_t toIndex = (std::numeric_limits<size_t>::max)(), size_t groupIndex = 0)
 {
     json retval = json::array();
     size_t index = fromIndex;

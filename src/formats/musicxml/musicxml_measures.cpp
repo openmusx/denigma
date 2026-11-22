@@ -306,7 +306,7 @@ void processTempoChanges(MusicXmlMusxMapping& context, mx::api::MeasureData& mea
         if (!tempoUnit) {
             auto [count, unit] = musxMeasure->createTimeSignature()->calcSimplified();
             static_cast<void>(count);
-            tempoUnit = std::min(unit, NoteType::Quarter);
+            tempoUnit = (std::min)(unit, NoteType::Quarter);
         }
         const auto noteType = tempoUnit.value_or(NoteType::Quarter);
         const double quarterNotesPerMinute = musicXmlQuarterNotesPerMinute(tempoChange->getAbsoluteTempo(noteType), Edu(noteType));

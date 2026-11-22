@@ -104,7 +104,7 @@ void appendShapeDefIds(const std::string& list, std::vector<musx::dom::Cmper>& o
         } catch (...) {
             throw std::invalid_argument("Invalid --shape-def value: \"" + token + "\"");
         }
-        if (parsed <= 0 || parsed > std::numeric_limits<musx::dom::Cmper>::max()) {
+        if (parsed <= 0 || parsed > (std::numeric_limits<musx::dom::Cmper>::max)()) {
             throw std::invalid_argument("Invalid --shape-def value: \"" + token + "\"");
         }
         const auto id = static_cast<musx::dom::Cmper>(parsed);

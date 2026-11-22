@@ -768,8 +768,8 @@ void writeMeasureNumberPrefs(XmlElement& styleElement, const MssPreferencesPtr& 
             setElementValue(styleElement, prefix + "Position", alignJustifyToHorizontalString(justification));
             const double textHeightSp = approximateFontAscentInSpaces(fontInfo.get(), *prefs->denigmaContext) * prefs->spatiumScaling;
             const double normalStaffHeightSp = 4.0;
-            setPointElement(styleElement, prefix + "PosAbove", horizontalSp, std::min(-verticalSp, 0.0));
-            setPointElement(styleElement, prefix + "PosBelow", horizontalSp, std::max(-(verticalSp + normalStaffHeightSp) - textHeightSp, 0.0));
+            setPointElement(styleElement, prefix + "PosAbove", horizontalSp, (std::min)(-verticalSp, 0.0));
+            setPointElement(styleElement, prefix + "PosBelow", horizontalSp, (std::max)(-(verticalSp + normalStaffHeightSp) - textHeightSp, 0.0));
             writeFramePrefs(styleElement, prefix, enclosure);
         };
 

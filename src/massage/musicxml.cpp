@@ -360,7 +360,7 @@ static void massageXmlWithFinaleDocument(pugi::xml_node xmlMeasure, int staffSlo
                     // We compensate by shifting the note type in enigma back by the number of beams and the written note type
                     // Then subtract out quarter note log (if it's >= quaerter), because that's the first non-beamed value.
                     musxNoteType <<=
-                        tremolo.text().as_int() + log2_exact(xmlNoteType) - std::min(10, log2_exact(xmlNoteType)); // 10 is log2(NoteType::Quarter)
+                        tremolo.text().as_int() + log2_exact(xmlNoteType) - (std::min)(10, log2_exact(xmlNoteType)); // 10 is log2(NoteType::Quarter)
                 }
             }
             if (xmlNoteType != musxNoteType) {
@@ -818,7 +818,7 @@ void massageMxl(
                             return name;
                         }
                     }
-                // Without a source document there is no part to name, so trust the file itself.
+                    // Without a source document there is no part to name, so trust the file itself.
                     return isScore ? "Score" : std::string("Part " + std::to_string(context->musxPartId));
                 }();
                 denigmaContext.logMessage(
