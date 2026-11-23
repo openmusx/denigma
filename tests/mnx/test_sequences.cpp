@@ -23,6 +23,7 @@
 #include <fstream>
 #include <functional>
 #include <iterator>
+#include <set>
 #include <string>
 
 #include "core/denigma.h"
@@ -434,6 +435,22 @@ TEST(MnxSequences, WordExtensionTargetsTheEventItEndsOn)
     ASSERT_TRUE(plain.contains("s1"));
     EXPECT_FALSE(plain["s1"].contains("extender"));
     EXPECT_FALSE(plain["s1"].contains("id"));
+}
+
+TEST(MnxSequences, LyricLineOrderListsEveryLineByBaseline)
+{
+    const auto mnx = exportMnxFixture("verse_chorus_section.musx");
+    const auto& lyrics = mnx["global"]["lyrics"];
+    EXPECT_EQ(lyrics["lineOrder"], nlohmann::json::parse(R"(["v1", "c1", "s1", "v2", "c2", "s2"])")) << lyrics.dump(4);
+    std::set<std::string> ordered;
+    for (const auto& lineId : lyrics["lineOrder"]) {
+        EXPECT_TRUE(ordered.insert(lineId.get<std::string>()).second) << lineId;
+    }
+    std::set<std::string> described;
+    for (const auto& [lineId, metadata] : lyrics["lineMetadata"].items()) {
+        described.insert(lineId);
+    }
+    EXPECT_EQ(ordered, described);
 }
 
 TEST(MnxSequences, WordExtensionEndingOnItsOwnEventHasNoTarget)
