@@ -460,8 +460,8 @@ static void createLyricsGlobal(const MnxMusxMappingPtr& context)
     for (const auto& [lineId, label] : linesInTextOrder) {
         if (orderedLineIds.emplace(lineId).second) {
             mnxLineOrder.push_back(lineId);
-            context->logMessage(LogMsg() << label << " has no global baseline. It is placed after the lyric lines that have one.",
-                MessageSeverity::Info);
+            context->logMessage(
+                LogMsg() << label << " has no global baseline. It is placed after the lyric lines that have one.", MessageSeverity::Info);
         }
     }
 }
