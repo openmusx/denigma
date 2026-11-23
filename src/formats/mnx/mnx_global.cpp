@@ -24,6 +24,8 @@
 #include <iostream>
 #include <map>
 #include <unordered_map>
+#include <unordered_set>
+#include <vector>
 
 #include "core/element_ids.h"
 #include "denigma/classify/barlines.h"
@@ -369,6 +371,7 @@ static void createLyricsGlobal(const MnxMusxMappingPtr& context)
     auto& mnxDocument = context->mnxDocument;
     auto& musxDocument = context->document;
 
+    std::vector<std::pair<std::string, std::string>> linesInTextOrder; // line ID and label
     auto addLyrics = [&](const auto& lyricsTexts) {
         using PtrType = typename std::decay_t<decltype(lyricsTexts)>::value_type;
         using T = typename PtrType::element_type;
@@ -383,11 +386,13 @@ static void createLyricsGlobal(const MnxMusxMappingPtr& context)
             }
             auto mnxLineMetadata = mnxLyrics.lineMetadata().value();
             std::string lineId = calcLyricLineId(std::string(T::XmlNodeName), musxLyric->getTextNumber());
-            context->lyricLineIds.emplace(lineId);
             mnxdom::global::LyricLineMetadata metaData = mnxLineMetadata.append(lineId);
             std::string mnxLabel = std::string(T::XmlNodeName) + " " + std::to_string(musxLyric->getTextNumber());
             mnxLabel[0] = char(std::toupper(mnxLabel[0]));
             metaData.set_label(mnxLabel);
+            if (context->lyricLineIds.emplace(lineId).second) {
+                linesInTextOrder.emplace_back(lineId, mnxLabel);
+            }
         }
     };
     addLyrics(musxDocument->getTexts()->getArray<texts::LyricsVerse>());
@@ -441,11 +446,23 @@ static void createLyricsGlobal(const MnxMusxMappingPtr& context)
         return a.second->lyricNumber < b.second->lyricNumber;
     });
 
+    auto mnxLineOrder = mnxDocument->global().lyrics().value().lineOrder();
+    std::unordered_set<std::string> orderedLineIds;
     for (const auto& baseline : baselines) {
-        assert(mnxDocument->global().lyrics().has_value()); // bug if false. see early return statement above.
-        auto mnxLyrics = mnxDocument->global().lyrics().value();
-        auto mnxLineOrder = mnxLyrics.ensure_lineOrder();
-        mnxLineOrder.push_back(calcLyricLineId(baseline.first, baseline.second->lyricNumber.value_or(0)));
+        std::string lineId = calcLyricLineId(baseline.first, baseline.second->lyricNumber.value_or(0));
+        if (orderedLineIds.emplace(lineId).second) {
+            mnxLineOrder.push_back(lineId);
+        }
+    }
+    // MNX requires every lyric line in lineOrder. A line without a global baseline has no score-wide
+    // vertical position to order it by, so it follows the lines that have one. Finale normally creates a
+    // global baseline with each lyric text, so a line without one is unexpected.
+    for (const auto& [lineId, label] : linesInTextOrder) {
+        if (orderedLineIds.emplace(lineId).second) {
+            mnxLineOrder.push_back(lineId);
+            context->logMessage(LogMsg() << label << " has no global baseline. It is placed after the lyric lines that have one.",
+                MessageSeverity::Info);
+        }
     }
 }
 
