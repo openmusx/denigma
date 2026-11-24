@@ -448,6 +448,9 @@ TEST(ExpressionClassification, ClassifiesKeyboardPedalGlyphs)
     expectPedal(u8"\uE651\uE652\uE653\uE654", keyboardpedal::Type::PedalOne);
     expectPedal(u8"\uE650 I", keyboardpedal::Type::PedalOne);
     expectPedal(u8"\uE651\uE652\uE653\uE654 1", keyboardpedal::Type::PedalOne);
+    expectPedal(u8"\uE651", keyboardpedal::Type::PedalOne); // keyboardPedalP
+    expectPedal(u8"\uE651\uE654", keyboardpedal::Type::PedalOne);
+    expectPedal(u8"\uE651 sempre", keyboardpedal::Type::PedalOne);
     expectPedal(u8"\uE650 sempre", keyboardpedal::Type::PedalOne);
     expectPedal(u8"\uE650 II", keyboardpedal::Type::PedalTwo);
     expectPedal(u8"\uE659", keyboardpedal::Type::PedalTwo); // keyboardPedalSost

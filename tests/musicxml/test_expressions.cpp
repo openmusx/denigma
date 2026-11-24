@@ -361,9 +361,13 @@ TEST(MusicXmlExpressions, MetronomeMarkFixtureExportsSemanticDirectionsAndConfig
             EXPECT_EQ(tempo.fontData.fontFamily.front(), *expected[measureIndex].singleFontFamily) << "measure " << (measureIndex + 1);
             EXPECT_EQ(tempo.fontData.sizeType, mx::api::FontSizeType::point) << "measure " << (measureIndex + 1);
             EXPECT_GT(tempo.fontData.sizePoint, 0.0) << "measure " << (measureIndex + 1);
+            EXPECT_TRUE(beatsPerMinute.fontData.fontFamily.empty()) << "measure " << (measureIndex + 1);
         } else {
-            EXPECT_TRUE(tempo.fontData.fontFamily.empty()) << "split-font measure " << (measureIndex + 1);
-            EXPECT_EQ(tempo.fontData.sizeType, mx::api::FontSizeType::unspecified) << "split-font measure " << (measureIndex + 1);
+            ASSERT_EQ(tempo.fontData.fontFamily.size(), 1u) << "split-font measure " << (measureIndex + 1);
+            EXPECT_EQ(tempo.fontData.fontFamily.front(), "Finale Maestro Text") << "split-font measure " << (measureIndex + 1);
+            ASSERT_EQ(beatsPerMinute.fontData.fontFamily.size(), 1u) << "split-font measure " << (measureIndex + 1);
+            EXPECT_EQ(beatsPerMinute.fontData.fontFamily.front(), "Times New Roman Bold") << "split-font measure " << (measureIndex + 1);
+            EXPECT_EQ(beatsPerMinute.fontData.sizeType, mx::api::FontSizeType::point) << "split-font measure " << (measureIndex + 1);
         }
 
         if (expected[measureIndex].playbackQuarterNotesPerMinute) {
@@ -404,6 +408,40 @@ TEST(MusicXmlExpressions, MetronomeMarkReferenceCapturesFinaleFontAndAlignmentBe
     EXPECT_STREQ(splitFontMetronome.attribute("halign").value(), "left");
     EXPECT_STREQ(splitFontMetronome.child("per-minute").attribute("font-family").value(), "Times New Roman Bold");
     EXPECT_STREQ(splitFontMetronome.parent().parent().child("sound").attribute("tempo").value(), "480");
+}
+
+TEST(MusicXmlExpressions, WordsPreserveSpacesAtRunEdges)
+{
+    setupTestDataPaths();
+
+    const auto actualScore = loadScoreData(exportMusicXmlFixture("zwei_gesange.musx"));
+    ASSERT_TRUE(actualScore);
+
+    bool foundEdgeSpace = false;
+    for (const auto& part : actualScore->parts) {
+        for (const auto& measure : part.measures) {
+            for (const auto& staff : measure.staves) {
+                for (const auto& direction : staff.directions) {
+                    for (const auto& choice : direction.directionTypes) {
+                        if (!choice.isWordsRun()) {
+                            continue;
+                        }
+                        for (const auto& item : choice.wordsRun()) {
+                            if (!item.isWords()) {
+                                continue;
+                            }
+                            const auto words = item.words();
+                            const bool hasEdgeSpace = !words.text.empty() && (words.text.front() == ' ' || words.text.back() == ' ');
+                            EXPECT_EQ(words.xmlSpace, hasEdgeSpace ? mx::api::XmlSpace::preserve : mx::api::XmlSpace::unspecified)
+                                << "\"" << words.text << "\"";
+                            foundEdgeSpace = foundEdgeSpace || words.text == "Adagio espressivo ";
+                        }
+                    }
+                }
+            }
+        }
+    }
+    EXPECT_TRUE(foundEdgeSpace);
 }
 
 TEST(MusicXmlExpressions, TempoMarksExportDirectionAndSound)

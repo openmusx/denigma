@@ -169,6 +169,40 @@ TEST(SmartShapeClassification, ClassifiesPedalTextAtEachCustomLinePosition)
     EXPECT_FALSE(pedal->isUnaCorda());
 }
 
+TEST(SmartShapeClassification, ReportsShortFormPedalGlyphs)
+{
+    struct Case
+    {
+        std::string text;
+        keyboardpedal::Type type;
+        bool shortForm;
+    };
+    const std::vector<Case> cases = {
+        {"&#xE651;", keyboardpedal::Type::PedalOne, true},                          // keyboardPedalP
+        {"&#xE651;&#xE654;", keyboardpedal::Type::PedalOne, true},                  // P.
+        {"&#xE651;&#xE652;&#xE653;&#xE654;", keyboardpedal::Type::PedalOne, false}, // P e d . composes Ped.
+        {"&#xE650;", keyboardpedal::Type::PedalOne, false},                         // keyboardPedalPed
+        {"&#xE65A;", keyboardpedal::Type::PedalTwo, true},                          // keyboardPedalS
+        {"&#xE659;", keyboardpedal::Type::PedalTwo, false},                         // keyboardPedalSost
+    };
+    for (const auto& testCase : cases) {
+        const auto context = makeCustomLine("^fontid(0)^size(24)^nfx(0)" + testCase.text, {}, {},
+            "      <lineStyle>solid</lineStyle>\n"
+            "      <solidParams><lineWidth>141</lineWidth></solidParams>\n");
+        const auto* pedal = classifySmartShape(context.shape).as<classifiedshape::KeyboardPedal>();
+        ASSERT_NE(pedal, nullptr) << testCase.text;
+        ASSERT_TRUE(pedal->startText) << testCase.text;
+        EXPECT_EQ(pedal->startText->type, testCase.type) << testCase.text;
+        EXPECT_EQ(pedal->startText->shortForm, testCase.shortForm) << testCase.text;
+    }
+
+    // A typed letter is not a pedal glyph.
+    const auto typed = makeCustomLine("P.", {}, {},
+        "      <lineStyle>solid</lineStyle>\n"
+        "      <solidParams><lineWidth>141</lineWidth></solidParams>\n");
+    EXPECT_EQ(classifySmartShape(typed.shape).as<classifiedshape::KeyboardPedal>(), nullptr);
+}
+
 TEST(SmartShapeClassification, ClassifiesAsciiPedalTextWithOrdinaryHooks)
 {
     const auto context = makeCustomLine("Sost. Ped.", {}, {},

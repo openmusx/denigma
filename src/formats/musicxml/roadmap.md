@@ -22,7 +22,7 @@ Instrument sound coverage is partial in a way that hides itself. `musicXmlInstru
 
 Transposition is complete, including preserve/written/concert display overrides through the CLI, C++ API, and WASM API. `assignStaffAttributes` writes each staff's transposition at the start of the first measure and at each change a staff style makes, including mid-measure, with the staff number on multi-staff parts. `mx::api::PartData::transposition` is an mx convenience with no MusicXML counterpart, so Denigma does not use it. A transposed document writes `<transpose>`. A concert-pitch document is a concert score and writes `<for-part>` instead, except for an octave Finale keeps written; see [design-decisions.md](design-decisions.md).
 
-Sequential instrument changes are exported: each change of the part's instrument writes an `<instrument-change>` sound, and each change of the top staff's names writes part-name displays. Simultaneous instruments remain blocked upstream, since `mx::api::PartData` holds exactly one `InstrumentData`; see simultaneous instruments within a part in [mx-api-gaps.md](mx-api-gaps.md). Sound coverage can proceed independently.
+Sequential instrument changes are exported: each change of the part's instrument writes an `<instrument-change>` sound, and each change of the top staff's names writes part-name displays. Simultaneous instruments are expressible through `mx::api::PartData::additionalInstruments` and are taken up under percussion below. Sound coverage can proceed independently.
 
 Two neighbouring items overlap this one and should stay separate. MIDI channels below covers the playback assignment that hangs off the instrument, and percussion covers the per-note instrument identity that drum kits need.
 
@@ -36,9 +36,20 @@ The source data requires musxdom effort first: Finale's channel assignments live
 
 Export Finale percussion staves using their effective percussion maps rather than treating every staff as one pitched instrument. MUSX DOM exposes the staff or staff-style percussion map, each `PercussionNoteInfo` assignment, per-note `PercussionNoteCode` overrides, and the underlying percussion note-type metadata. Use these together to determine each note's displayed staff position and notehead, semantic instrument identity, and playback mapping in both the score and linked parts.
 
-Represent drum kits and other multi-instrument staves with separate MusicXML `<score-instrument>` / `<midi-instrument>` definitions and a matching `<instrument id="…">` on each unpitched note. Preserve `midi-unpitched`, effective staff-style map changes, duplicated note types distinguished by their order IDs, and custom notehead glyphs. This half is blocked upstream: `mx::api` exposes one `InstrumentData` per part and no per-note instrument reference, so no note can be pointed at an instrument. The unpitched note itself, its display position, `<midi-unpitched>`, and the `<percussion>` pictogram are all already expressible; see per-note instrument assignment in [mx-api-gaps.md](mx-api-gaps.md) for what is and is not available.
+Represent drum kits and other multi-instrument staves with separate MusicXML `<score-instrument>` / `<midi-instrument>` definitions and a matching `<instrument id="…">` on each unpitched note. Preserve `midi-unpitched`, effective staff-style map changes, duplicated note types distinguished by their order IDs, and custom notehead glyphs. `mx::api` expresses all of it. The part's first instrument is `PartData::instrumentData` and the others go in `PartData::additionalInstruments`, each with a `uniqueId` and `midiData.unpitched` for `<midi-unpitched>`. A note names the instruments that play it in `NoteData::instruments`, and the spec expects every note to carry one once a part has more than one instrument. `NoteData::isUnpitched` selects `<unpitched>`, with `pitchData`'s step and octave as the display position, and `PercussionData` models the `<percussion>` pictogram. `drumset.musx` is the natural first fixture.
 
 Also export Finale percussion pictogram expressions as semantic MusicXML `<percussion>` directions. Add an exporter-neutral classifier for exact `pict*` SMuFL glyphs, including valid beater and stick combinations with tip direction, material, parentheses, dashed circles, and strike location. Map Finale expression enclosures where supported, retain canonical SMuFL overrides, and leave mixed text or unrecognized glyph sequences as general text. Do not infer direction pictograms from percussion-note assignments; note identity and performance-direction symbols are separate concerns.
+
+## Custom staff lines
+
+Export Finale staves whose lines are not the standard contiguous set. `Staff::customStaff` lists the
+lines a staff draws, from 0 to 26 with a standard staff at 11 through 15, so a staff can omit inner
+lines, and `Staff::hideStaffLines` draws none at all while keeping their positions. `classify::StaffState`
+reduces both to a line count today, so a gapped staff collapses to a narrower one. MusicXML can draw
+the gaps: write the full span as `staffLines` and hide each missing line with a `LineDetailData` whose
+`printObject` is no, in `StaffData::lineDetails`. Establish how Finale's line numbering relates to
+MusicXML's bottom-line numbering, and how that affects clef and note positions, against the
+`staff_lines.musx` fixture and Finale's own export before writing any of it.
 
 ## Notehead fill on crossed shapes
 
@@ -137,9 +148,11 @@ slides, and the only remaining one Finale attaches to noteheads. They are droppe
 shape type is classified, so both reach the exporter as `std::monostate` and are logged by the
 unclassified-shape path.
 
-Nothing here is blocked upstream in an obvious way, but `mx::api` coverage of `<bend>` has not been
-surveyed. Check it before starting, and record whatever is missing in
-[mx-api-gaps.md](mx-api-gaps.md). Tablature staves above is a neighbour rather than a prerequisite:
+`mx::api` writes a bend as a `MarkType::bend` technical mark whose `BendMarkData` carries `alter` in
+semitones, `kind` (normal, pre-bend, or release), `releaseOffset` in ticks for a release, `withBar`
+for whammy-bar notation, and `shape` (angled or curved). A bend and its release are two marks on one
+note. `bend-sound` is not exposed; record it in [mx-api-gaps.md](mx-api-gaps.md) if the playback
+approximation turns out to matter. Tablature staves above is a neighbour rather than a prerequisite:
 a bend is notated in standard notation too, so this does not wait on TAB support.
 
 ## Shape-replaced stems
@@ -193,3 +206,9 @@ The mx update at `e866c709` exposes these additional capabilities. Adopt them wh
 - Additional creators and rights statements. Finale's existing single file-info fields do not establish separate people or rights records; do not split their free text heuristically.
 - Figured-bass extension lines. These need a figured-bass export path before they can be used.
 - Additional accidental-mark appearance attributes. Existing ornament classification supplies accidental type and placement, but no independent brackets, size, font, or color.
+
+The mx update at `e335eb5f` (v0.7.4) adds these:
+
+- Note accidentals that MusicXML cannot name: `Accidental::other` with a SMuFL glyph in `NoteData::accidentalSmufl`. Pair with the microtonal key signatures above, where an EDO alteration has no MusicXML accidental value.
+- Arrow marks: `MarkType::arrow` with `ArrowMarkData` for style, arrowhead, circular arrows, and a SMuFL glyph. Strum arrows and other arrow articulations would need recognizing in the articulation classifier first.
+- Figured-bass position and print attributes, which need the figured-bass export path noted above.

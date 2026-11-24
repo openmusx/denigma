@@ -365,10 +365,32 @@ std::vector<mx::api::WordsChoice> musicXmlWordsFromEnigmaText(
     return result;
 }
 
+namespace {
+
+/// Marks words whose text begins or ends with a space character so that an importer keeps it.
+/// Finale splits text at every font change, so the space between two runs is often the last
+/// character of one. Edge line breaks are not a reason to preserve: they are trailing returns
+/// in the source text, which an importer is better left free to trim.
+void preserveEdgeSpaces(mx::api::WordsData& words)
+{
+    if (!words.text.empty() && (words.text.front() == ' ' || words.text.back() == ' ')) {
+        words.xmlSpace = mx::api::XmlSpace::preserve;
+    }
+}
+
+} // namespace
+
 void appendMusicXmlWordsRun(mx::api::DirectionData& direction, std::vector<mx::api::WordsChoice> run)
 {
     if (run.empty()) {
         return;
+    }
+    for (auto& item : run) {
+        if (item.isWords()) {
+            auto words = item.words();
+            preserveEdgeSpaces(words);
+            item = mx::api::WordsChoice(std::move(words));
+        }
     }
     direction.directionTypes.emplace_back(std::move(run));
 }
@@ -381,6 +403,7 @@ void appendMusicXmlWordsRun(mx::api::DirectionData& direction, std::vector<mx::a
     std::vector<mx::api::WordsChoice> run;
     run.reserve(words.size());
     for (auto& item : words) {
+        preserveEdgeSpaces(item);
         run.emplace_back(std::move(item));
     }
     direction.directionTypes.emplace_back(std::move(run));

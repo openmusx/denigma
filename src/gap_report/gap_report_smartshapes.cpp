@@ -249,6 +249,7 @@ json keyboardPedalTextJson(const KeyboardPedalClassification& text)
     return {
         {"type", keyboardPedalTypeName(text.type)},
         {"fromGlyph", text.fromGlyph},
+        {"shortForm", text.shortForm},
     };
 }
 

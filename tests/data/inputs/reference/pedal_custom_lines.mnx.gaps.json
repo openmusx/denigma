@@ -192,11 +192,13 @@
           },
           "startText": {
             "type": "pedal-one",
-            "fromGlyph": true
+            "fromGlyph": true,
+            "shortForm": false
           },
           "endText": {
             "type": "pedal-up",
-            "fromGlyph": true
+            "fromGlyph": true,
+            "shortForm": false
           },
           "startCap": "none",
           "endCap": "none"

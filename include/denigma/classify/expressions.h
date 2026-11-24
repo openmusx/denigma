@@ -174,6 +174,10 @@ struct MetronomeMark
     std::size_t augmentationDots{};
     /// @brief Number displayed to the right of the equals sign. It may have a fractional part.
     double displayedBeatsPerMinute{};
+    /// @brief Font of the metronome-note glyph.
+    musx::dom::MusxInstance<musx::dom::FontInfo> noteFont;
+    /// @brief Font of the first digit of #displayedBeatsPerMinute.
+    musx::dom::MusxInstance<musx::dom::FontInfo> beatsPerMinuteFont;
 };
 
 /// @struct TempoAlteration

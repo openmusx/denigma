@@ -26,7 +26,7 @@ Needed API shape: optional package resources with MIME type, stable archive path
 
 MusicXML `<staff-details>` can represent more than line count and staff size, including staff type, staff tuning, capo, and print controls.
 
-`mx::api::StaffData` exposes `staffLines`, `staffSize`, `staffScaling`, and staff tunings. Staff type, capo, show-frets, and the remaining print controls are still unavailable. Denigma-side tablature work is tracked in the roadmap.
+`mx::api::StaffData` exposes `staffLines`, `staffSize`, `staffScaling`, staff tunings, and per-line `<line-detail>` (`lineDetails`: width, color, line type, and visibility of a single line). Staff type, capo, show-frets, and the `print-object` and `print-spacing` attributes of `<staff-details>` itself are still unavailable. Denigma-side tablature work is tracked in the roadmap.
 
 Needed API shape: a staff details data object with optional fields for the MusicXML `<staff-details>` children and attributes that MX intends to support.
 
@@ -34,11 +34,11 @@ Needed API shape: a staff details data object with optional fields for the Music
 
 MusicXML allows `<attributes>` elements mid-measure, and `<attributes>` may include `<staff-details>`. The spec says mid-measure attributes affect the music in score order.
 
-`mx::api::StaffData::staffLines`, `staffSize`, and `staffScaling` are currently single scalars with no tick position. MX writes them during the measure-start attributes phase, so Denigma can only express measure-start staff detail changes through the current API.
+`mx::api::StaffData::staffLines`, `lineDetails`, `staffSize`, and `staffScaling` carry no tick position. MX writes them during the measure-start attributes phase, so Denigma can only express measure-start staff detail changes through the current API.
 
 Until then, `assignStaffAttributes` writes a mid-measure change at the next barline, with the state Finale has there. A staff style that begins mid-measure takes effect a measure late, one that ends mid-measure lasts to the next barline, and one that begins and ends within a single measure is lost.
 
-Needed API shape: positionable staff details data, likely a vector on `StaffData`, with `tickTimePosition` and fields such as `staffLines`, `staffSize`, and `staffScaling`.
+Needed API shape: positionable staff details data, likely a vector on `StaffData`, with `tickTimePosition` and fields such as `staffLines`, `lineDetails`, `staffSize`, and `staffScaling`.
 
 ## Clefs
 
@@ -114,37 +114,17 @@ Full Finale fidelity is not possible through measure style alone. `altLayer` has
 
 ## Instruments and Sound
 
-### Simultaneous instruments within a part
-
-MusicXML supports multiple instruments per part through several `<score-instrument>` and `<midi-instrument>` definitions in one `<score-part>`.
-
-`mx::api::PartData` has one `InstrumentData instrumentData` for the part. A sequential change, such as a player doubling on a second instrument, is expressible: `SoundData::instrumentChange` redefines the part's one instrument from a `<sound>` in the music, `MeasureData::partNameDisplay` and `partAbbreviationDisplay` show the new names, and `MeasureData::transpositions` or `forParts` carry the new transposition. Denigma exports Finale's instrument-change staff styles this way. Several instruments sounding at once, as on a drum kit, cannot be expressed.
-
-Needed API shape: multiple score instruments per part, designed together with the per-note instrument references below.
-
 ### Mid-part MIDI instrument
 
 MusicXML lets a `<sound>` carry a `<midi-instrument id="...">` that changes the MIDI program, bank, and volume of an existing `<score-instrument>`. `mx::api::SoundData` models `<instrument-change>` but not `<midi-instrument>`, so an instrument change can carry its new virtual instrument but not its MIDI settings. Denigma exports no MIDI data yet (see MIDI channels in [roadmap.md](roadmap.md)), so this matters only once that work lands.
 
-Needed API shape: an optional `midi-instrument` member on `SoundData`, keyed to the part's instrument, with the same fields as `MidiData`.
+Needed API shape: an optional `midi-instrument` member on `SoundData`, keyed to one of the part's instruments by its `uniqueId`, with the same fields as `MidiData`.
 
 ### Formatted runs in mid-part name displays
 
 Finale writes a mid-part `<part-name-display>` as alternating `<display-text>` and `<accidental-text>` runs, as in `Clarinet in B` followed by `<accidental-text>flat</accidental-text>`. `mx::api::NameDisplayData` holds one string, so Denigma writes the accidental as a Unicode character within one `<display-text>`, as it already does for `<part-name>`.
 
 Needed API shape: an ordered collection of display-text and accidental-text runs on `NameDisplayData`, each with its own font.
-
-### Per-note instrument assignment
-
-MusicXML assigns a note to one of a part's instruments with `<note><instrument id="..."/>`, an IDREF back to a `<score-instrument>`. The spec is explicit about when it is required: "If multiple score-instruments are specified in a score-part, there should be an instrument element for each note in the part." A note shared between instruments may carry more than one. This is what makes a drum kit expressible, since each staff position is a different instrument within one part.
-
-Most of the surrounding percussion vocabulary is already available, and it is worth recording so it is not re-derived. `mx::api::NoteData::isUnpitched` selects `<unpitched>` over `<pitch>`, with `pitchData`'s step and octave serving as display step and octave, which is what the spec requires for notes in a percussion clef. `MidiData::unpitched` carries `<midi-unpitched>`. `PercussionData` models the `<percussion>` pictogram direction.
-
-What is missing is the link between a note and an instrument: `NoteData` has no instrument member, so every note in a part is implicitly the part's single instrument. Combined with `PartData` holding one `InstrumentData` (see simultaneous instruments within a part, above), a multi-instrument percussion staff cannot be expressed at all: neither the several `<score-instrument>` definitions nor the per-note references to them. Denigma consequently exports a drum kit as one pitched instrument.
-
-Needed API shape: an instrument reference on `NoteData`, allowing more than one, keyed to whatever identity the multiple-score-instruments support settles on. The two are one feature in practice and should be designed together; per-note references are useless without several instruments to point at, and several instruments are unusable without per-note references, since the spec expects one on every note once a part has more than one instrument.
-
-Denigma-side work is tracked under percussion in [roadmap.md](roadmap.md).
 
 ### Nested sound children
 
@@ -160,11 +140,11 @@ Needed API shape: optional support for nested sound children that matter for Den
 
 MusicXML name-display elements can carry formatting and position data, including placement controls that matter when multiple brackets or braces overlap.
 
-`mx::api::PartGroupData` currently stores group names, abbreviations, bracket type, group barline, and number, but not display positioning data for group names or symbols.
+`mx::api::PartGroupData` stores group names, abbreviations, bracket type, group barline, and number, and the position and color of the group symbol (`bracketPositionData`, `bracketColor`), but no position or print data for the group name and abbreviation displays.
 
 Denigma will probably not try to export part-name or part-group positioning overrides, or will export very few of them. This is therefore a low-priority gap for Denigma, but it remains a possible API limitation for applications that need exact layout round-tripping.
 
-Needed API shape: position/print data for group-name-display, group-abbreviation-display, and possibly group-symbol placement.
+Needed API shape: position/print data for group-name-display and group-abbreviation-display.
 
 ## Barlines and Endings
 
@@ -178,23 +158,6 @@ Remaining API work: expose font and system relation on `EndingData`. Denigma del
 
 ## Directions and Expressions
 
-### Per-minute font in metronome marks
-
-MusicXML lets `<per-minute>` carry its own font attributes, independently of the enclosing
-`<metronome>`. Finale uses that distinction when the metronome note and its number come from
-different fonts. In `metronome_marks.musx`, Finale writes Finale Maestro Text on `<metronome>` and
-Times New Roman Bold on `<per-minute>` for the split-font whole-note mark.
-
-`mx::api::TempoData::fontData` can represent the enclosing metronome font, but
-`mx::api::BeatsPerMinute` stores only the per-minute string. `MetronomeReader` consequently
-discards the child font attributes, and `DirectionWriter` cannot emit them. Denigma can preserve a
-single font on the enclosing metronome, but cannot fully preserve a split-font mark through the
-current API.
-
-Needed API shape: add `FontData` for the per-minute value to `BeatsPerMinute`, with reader, writer,
-and comparison support. A default-constructed `FontData` should leave the child attributes
-unstated so it inherits the enclosing metronome font.
-
 ### Keyboard pedal appearance, identity, and playback
 
 Finale custom-line smart shapes can use independent start, continuation, and end text; visible or blank lines;
@@ -202,9 +165,15 @@ ordinary hooks; four custom pedal-cap shapes; and solid, dashed, or character-ba
 directions also support `line`, `sign`, `abbreviated`, and `number` attributes.
 
 `mx::api::PedalLineData` exposes the complete MusicXML pedal-line event vocabulary, including sostenuto, change,
-continue, discontinue, and resume, and its `number` field distinguishes overlapping lines. Denigma now assigns the
-same smart-shape identity to each pedal line's start and stop events. The API still always emits `line="yes"` for
-pedal-line events and does not expose sign selection or abbreviation.
+continue, discontinue, and resume, its `number` field distinguishes overlapping lines, and `sign` and `abbreviated`
+select the Ped. and * signs drawn with the line and their short forms. Sign-only pedals (`line="no"`) are
+`MarkType::pedal` and `MarkType::damp` marks, whose `PedalMarkData` carries `number`, `sign`, and `abbreviated`.
+
+`PedalMarkData::number` is a plain integer that mx writes as given, clamped to MusicXML's range. A pedal line's
+`number` is a `SpannerNumber` that mx's spanner resolver turns into a free MusicXML number and pairs with its stop,
+but a mark never reaches the resolver, and a pedal written as a line is always `line="yes"`. Denigma therefore
+leaves sign-only pedals unnumbered, so a reader pairs each * with the nearest open Ped., which is wrong only when
+two sign-only pedals overlap.
 
 MusicXML does not provide dash or hook geometry on `<pedal>`, nor a visual pedal type for una corda / Pedal III;
 visible notation for those cases uses words and bracket/dashes directions. It does represent una-corda playback through
@@ -213,8 +182,9 @@ attribute. Denigma can preserve visible una-corda text and brackets through gene
 cannot preserve its playback semantics. Finale custom hook geometry, continuation text, and character-based line
 bodies have no direct MusicXML pedal equivalent.
 
-Remaining API work: expose sign selection and abbreviation on `PedalLineData`, and MusicXML's `soft-pedal`
-playback attribute on `SoundData`.
+Remaining API work: make `PedalMarkData::number` a `SpannerNumber` resolved and paired the way a pedal line's is,
+so an exporter can pass a source identity for each Ped. and * pair; and expose MusicXML's `soft-pedal` playback
+attribute on `SoundData`.
 
 ### Direction-level technique playback
 

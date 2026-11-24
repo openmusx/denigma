@@ -17,6 +17,9 @@
  * THE SOFTWARE.
  */
 
+#include "core/denigma.h"
+#include "formats/enigmaxml/enigmaxml.h"
+#include "formats/musicxml/musicxml.h"
 #include "musicxml_test.h"
 #include "gtest/gtest.h"
 
@@ -24,12 +27,15 @@
 #include <filesystem>
 #include <ostream>
 #include <set>
+#include <sstream>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
 #include "mx/api/CurveData.h"
+#include "mx/api/Diagnostics.h"
 #include "mx/api/GlissandoData.h"
+#include "mx/api/MusicXml.h"
 #include "mx/api/NoteData.h"
 #include "mx/api/ScoreData.h"
 #include "mx/api/WavyLineData.h"
@@ -498,6 +504,144 @@ TEST(MusicXmlSmartShapes, BlankLinePedalExportsAsSignOnlyMarks)
     }
     EXPECT_TRUE(foundPedalStart);
     EXPECT_TRUE(foundPedalStop);
+}
+
+namespace {
+
+/// Exports pedal_custom_lines.musx after editing its pedal line, whose style 5 draws the Ped. and *
+/// glyphs with a blank line. @p visibleLine draws it as a solid line instead; @p shortForm replaces
+/// the Ped. glyph with the single-letter P glyph.
+mx::api::ScoreData exportEditedPedalFixture(bool visibleLine, bool shortForm)
+{
+    const auto inputPath = getInputPath() / "pedal_custom_lines.musx";
+    denigma::DenigmaContext context(DENIGMA_NAME);
+    context.inputFilePath = inputPath;
+    auto inputData = denigma::formats::enigmaxml::detail::extractMusxInputData(inputPath, context);
+    std::string xml(inputData.primaryBuffer.begin(), inputData.primaryBuffer.end());
+
+    if (visibleLine) {
+        const auto stylePos = xml.find("<ssLineStyle cmper=\"5\">");
+        EXPECT_NE(stylePos, std::string::npos);
+        const auto bodyStart = xml.find("<lineStyle>char</lineStyle>", stylePos);
+        const std::string charParamsEnd = "</charParams>";
+        const auto bodyEnd = xml.find(charParamsEnd, stylePos);
+        EXPECT_NE(bodyStart, std::string::npos);
+        EXPECT_NE(bodyEnd, std::string::npos);
+        if (stylePos != std::string::npos && bodyStart != std::string::npos && bodyEnd != std::string::npos && bodyStart < bodyEnd) {
+            xml.replace(bodyStart, bodyEnd + charParamsEnd.size() - bodyStart,
+                "<lineStyle>solid</lineStyle><solidParams><lineWidth>141</lineWidth></solidParams>");
+        }
+    }
+    if (shortForm) {
+        const std::string pedGlyph = "\xEE\x99\x90"; // U+E650 keyboardPedalPed
+        const std::string pGlyph = "\xEE\x99\x91";   // U+E651 keyboardPedalP
+        const auto textPos = xml.find("<smartShapeText number=\"3\">");
+        const auto glyphPos = textPos == std::string::npos ? std::string::npos : xml.find(pedGlyph, textPos);
+        EXPECT_NE(glyphPos, std::string::npos);
+        if (glyphPos != std::string::npos) {
+            xml.replace(glyphPos, pedGlyph.size(), pGlyph);
+        }
+    }
+    inputData.primaryBuffer.assign(xml.begin(), xml.end());
+    return denigma::formats::musicxml::detail::createMusicXmlDocument(inputData, context);
+}
+
+struct PedalDirections
+{
+    std::vector<mx::api::PedalLineData> lines;
+    std::vector<mx::api::MarkData> marks;
+};
+
+/// Writes @p score through mx and returns the <pedal> elements of the result.
+std::vector<std::string> writtenPedalElements(const mx::api::ScoreData& score)
+{
+    std::vector<std::string> result;
+    auto diagnostics = mx::api::Diagnostics([](const mx::api::Diagnostic&) {});
+    auto documentResult = mx::api::fromScore(score, diagnostics);
+    EXPECT_TRUE(documentResult.ok());
+    if (!documentResult.ok()) {
+        return result;
+    }
+    std::ostringstream output;
+    EXPECT_TRUE(documentResult.value().writeToStream(output, diagnostics).ok());
+    pugi::xml_document document;
+    const std::string xml = output.str();
+    EXPECT_TRUE(document.load_buffer(xml.data(), xml.size()));
+    for (const auto& node : document.select_nodes("//pedal")) {
+        std::ostringstream element;
+        node.node().print(element, "", pugi::format_raw);
+        result.emplace_back(element.str());
+    }
+    return result;
+}
+
+PedalDirections collectPedalDirections(const mx::api::ScoreData& score)
+{
+    PedalDirections result;
+    for (const auto& part : score.parts) {
+        for (const auto& measure : part.measures) {
+            for (const auto& staff : measure.staves) {
+                for (const auto& direction : staff.directions) {
+                    for (const auto& choice : direction.directionTypes) {
+                        if (choice.isPedal()) {
+                            result.lines.emplace_back(choice.pedal());
+                        }
+                    }
+                    for (const auto& mark : directionMarks(direction)) {
+                        if (mark.markType == mx::api::MarkType::pedal || mark.markType == mx::api::MarkType::damp) {
+                            result.marks.emplace_back(mark);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return result;
+}
+
+} // namespace
+
+TEST(MusicXmlSmartShapes, VisiblePedalLineWithSignTextExportsSigns)
+{
+    setupTestDataPaths();
+    const auto pedals = collectPedalDirections(exportEditedPedalFixture(true, false));
+    EXPECT_TRUE(pedals.marks.empty());
+    ASSERT_EQ(pedals.lines.size(), 2u);
+    EXPECT_EQ(pedals.lines[0].kind, mx::api::PedalLineKind::start);
+    EXPECT_EQ(pedals.lines[0].sign, mx::api::Bool::yes);
+    EXPECT_EQ(pedals.lines[0].abbreviated, mx::api::Bool::unspecified);
+    EXPECT_EQ(pedals.lines[1].kind, mx::api::PedalLineKind::stop);
+    EXPECT_EQ(pedals.lines[1].sign, mx::api::Bool::yes);
+}
+
+TEST(MusicXmlSmartShapes, ShortFormPedalGlyphExportsAbbreviated)
+{
+    setupTestDataPaths();
+
+    const auto lineScore = exportEditedPedalFixture(true, true);
+    const auto linePedals = collectPedalDirections(lineScore);
+    ASSERT_EQ(linePedals.lines.size(), 2u);
+    EXPECT_EQ(linePedals.lines[0].sign, mx::api::Bool::yes);
+    EXPECT_EQ(linePedals.lines[0].abbreviated, mx::api::Bool::yes);
+    EXPECT_EQ(linePedals.lines[1].abbreviated, mx::api::Bool::unspecified);
+
+    const auto writtenLines = writtenPedalElements(lineScore);
+    ASSERT_EQ(writtenLines.size(), 2u);
+    EXPECT_NE(writtenLines[0].find("abbreviated=\"yes\""), std::string::npos) << writtenLines[0];
+
+    const auto markScore = exportEditedPedalFixture(false, true);
+    const auto markPedals = collectPedalDirections(markScore);
+    const auto writtenMarks = writtenPedalElements(markScore);
+    ASSERT_EQ(writtenMarks.size(), 2u);
+    EXPECT_NE(writtenMarks[0].find("abbreviated=\"yes\""), std::string::npos) << writtenMarks[0];
+    EXPECT_EQ(writtenMarks[1].find("abbreviated"), std::string::npos) << writtenMarks[1];
+    EXPECT_TRUE(markPedals.lines.empty());
+    ASSERT_EQ(markPedals.marks.size(), 2u);
+    EXPECT_EQ(markPedals.marks[0].markType, mx::api::MarkType::pedal);
+    ASSERT_TRUE(markPedals.marks[0].choice.isPedal());
+    EXPECT_EQ(markPedals.marks[0].choice.pedal().abbreviated, mx::api::Bool::yes);
+    EXPECT_EQ(markPedals.marks[1].markType, mx::api::MarkType::damp);
+    EXPECT_FALSE(markPedals.marks[1].choice.isPedal());
 }
 
 namespace {
