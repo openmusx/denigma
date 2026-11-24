@@ -514,6 +514,8 @@ static std::optional<ExpressionClassification> classifyMetronomeMark(const Resol
     size_t augmentationDots = 0;
     std::string displayedBeatsPerMinute;
     bool seenDecimalPoint = false;
+    musx::dom::MusxInstance<musx::dom::FontInfo> noteFont;
+    musx::dom::MusxInstance<musx::dom::FontInfo> beatsPerMinuteFont;
     for (const auto& chunk : chunks) {
         const auto& font = chunk.styles.font;
         if (!font) {
@@ -543,6 +545,7 @@ static std::optional<ExpressionClassification> classifyMetronomeMark(const Resol
                 }
                 noteType = *resolvedNoteType;
                 noteGlyphName = *glyphName;
+                noteFont = font;
                 state = ParseState::DotsOrEquals;
                 continue;
             }
@@ -568,6 +571,9 @@ static std::optional<ExpressionClassification> classifyMetronomeMark(const Resol
             if (codepoint < U'0' || codepoint > U'9') {
                 return std::nullopt;
             }
+            if (displayedBeatsPerMinute.empty()) {
+                beatsPerMinuteFont = font;
+            }
             displayedBeatsPerMinute.push_back(static_cast<char>(codepoint));
         }
     }
@@ -591,7 +597,8 @@ static std::optional<ExpressionClassification> classifyMetronomeMark(const Resol
     ExpressionClassification result;
     result.type = ExpressionType::MetronomeMark;
     result.basis = basisForRecognition(resolved.categoryType, CategoryType::TempoMarks);
-    result.value = MetronomeMark{std::move(tempo), noteType, std::move(noteGlyphName), augmentationDots, *displayedValue};
+    result.value = MetronomeMark{
+        std::move(tempo), noteType, std::move(noteGlyphName), augmentationDots, *displayedValue, std::move(noteFont), std::move(beatsPerMinuteFont)};
     return result;
 }
 

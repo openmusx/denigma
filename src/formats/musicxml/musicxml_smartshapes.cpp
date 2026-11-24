@@ -512,6 +512,18 @@ bool isPedalChange(const std::optional<classify::KeyboardPedalClassification>& m
            || (marking && marking->type == classify::keyboardpedal::Type::PedalChange);
 }
 
+bool isPedalDownSign(const std::optional<classify::KeyboardPedalClassification>& marking)
+{
+    using Type = classify::keyboardpedal::Type;
+    return marking && (marking->type == Type::PedalOne || marking->type == Type::PedalTwo);
+}
+
+bool isPedalUpSign(const std::optional<classify::KeyboardPedalClassification>& marking)
+{
+    using Type = classify::keyboardpedal::Type;
+    return marking && (marking->type == Type::PedalUp || marking->type == Type::PedalUpNotch || marking->type == Type::PedalUpSpecial);
+}
+
 void appendGeneralLine(MusicXmlMusxMapping& context, mx::api::StaffData& staff, StaffCmper staffId, size_t staffIndex,
     const MusxInstance<others::SmartShape>& shape, const classify::smartshape::GeneralLine& line);
 
@@ -547,7 +559,15 @@ void appendKeyboardPedal(MusicXmlMusxMapping& context, mx::api::StaffData& staff
             return;
         }
         // mx::api's pedal marks are the way to request sign="yes" with line="no".
-        startDirection.directionTypes.emplace_back(mx::api::MarkData{enumConvert<mx::api::Placement>(placement), mx::api::MarkType::pedal});
+        /// @todo Number each Ped. and * pair with smartShapeSpannerNumber(shape) once
+        /// mx::api::PedalMarkData::number is a resolved SpannerNumber, as PedalLineData::number is.
+        auto pedalMark = mx::api::MarkData{enumConvert<mx::api::Placement>(placement), mx::api::MarkType::pedal};
+        if (pedal.startText && pedal.startText->shortForm) {
+            mx::api::PedalMarkData payload;
+            payload.abbreviated = mx::api::Bool::yes;
+            pedalMark.choice = mx::api::MarkDataChoice(payload);
+        }
+        startDirection.directionTypes.emplace_back(std::move(pedalMark));
         stopDirection.directionTypes.emplace_back(mx::api::MarkData{enumConvert<mx::api::Placement>(placement), mx::api::MarkType::damp});
     } else {
         auto start = mx::api::PedalLineData{};
@@ -563,6 +583,18 @@ void appendKeyboardPedal(MusicXmlMusxMapping& context, mx::api::StaffData& staff
                          ? mx::api::PedalLineKind::change
                          : (pedal.isSostPedal() ? mx::api::PedalLineKind::sostenuto : mx::api::PedalLineKind::start);
         stop.kind = isPedalChange(pedal.endText, pedal.endCap) ? mx::api::PedalLineKind::change : mx::api::PedalLineKind::stop;
+        // A line whose text names its pedal action draws the Ped. or * sign as well as the line.
+        // Pedal caps are hooks on the line itself, so a line marked only by its caps is a plain
+        // pedal bracket.
+        if (start.kind != mx::api::PedalLineKind::change && isPedalDownSign(pedal.startText)) {
+            start.sign = mx::api::Bool::yes;
+            if (pedal.startText->shortForm) {
+                start.abbreviated = mx::api::Bool::yes;
+            }
+        }
+        if (stop.kind == mx::api::PedalLineKind::stop && isPedalUpSign(pedal.endText)) {
+            stop.sign = mx::api::Bool::yes;
+        }
         startDirection.directionTypes.emplace_back(std::move(start));
         stopDirection.directionTypes.emplace_back(std::move(stop));
     }

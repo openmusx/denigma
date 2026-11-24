@@ -459,17 +459,20 @@ mx::api::TempoData musicXmlMetronomeMark(const MusicXmlMusxMapping& context, con
     beatsPerMinute.durationName = enumConvert<mx::api::DurationName>(metronomeMark.noteType);
     beatsPerMinute.dots = static_cast<int>(metronomeMark.augmentationDots);
     beatsPerMinute.beatsPerMinute = musicXmlPerMinuteText(metronomeMark.displayedBeatsPerMinute);
-    /// @todo Preserve split fonts by assigning the left-hand font to TempoData::fontData and the
-    /// right-hand font to the per-minute element once mx::api::BeatsPerMinute exposes its FontData.
-    /// See mx-api-gaps.md.
 
     mx::api::TempoData result;
-    result.choice = mx::api::TempoChoice(std::move(beatsPerMinute));
-    if (classification.enigmaCtx) {
-        if (const auto font = classify::singleVisibleFont(*classification.enigmaCtx)) {
-            result.fontData = context.musicXmlFontDataFromFontInfo(*font);
+    const auto singleFont = classification.enigmaCtx ? classify::singleVisibleFont(*classification.enigmaCtx) : nullptr;
+    if (singleFont) {
+        result.fontData = context.musicXmlFontDataFromFontInfo(*singleFont);
+    } else if (metronomeMark.noteFont && metronomeMark.beatsPerMinuteFont) {
+        // <metronome> carries the note's font, and <per-minute> overrides it only for a number in
+        // another font.
+        result.fontData = context.musicXmlFontDataFromFontInfo(*metronomeMark.noteFont);
+        if (!metronomeMark.noteFont->isSame(*metronomeMark.beatsPerMinuteFont)) {
+            beatsPerMinute.fontData = context.musicXmlFontDataFromFontInfo(*metronomeMark.beatsPerMinuteFont);
         }
     }
+    result.choice = mx::api::TempoChoice(std::move(beatsPerMinute));
     result.positionData.horizontalAlignment = musicXmlHorizontalAlignmentForTextExpression(assignment);
     result.justify = musicXmlJustifyForTextExpression(assignment);
     return result;

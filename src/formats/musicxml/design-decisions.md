@@ -174,6 +174,18 @@ The digits are assembled from integer conversions rather than from a floating-po
 
 Only the printed number is fractional. Finale's playback tempo, which is what reaches `<sound tempo>`, is an integer in the document, and the Tempo tool's own values are rounded to an integer inside musxdom before Denigma sees them.
 
+### A split-font metronome mark keeps both fonts
+
+A metronome mark whose note and number come from different fonts, typically a music text font for the note and a text font for the number, writes the note's font on `<metronome>` and the number's on `<per-minute>`, which is what Finale's own export writes. A mark in one font writes that font on `<metronome>` alone. The equals sign and any dots are not given a font of their own, since MusicXML has nowhere to put one.
+
+### Words keep the spaces at their ends
+
+A `<words>` element whose text begins or ends with a space is written with `xml:space="preserve"`. Finale splits text at every font change and Denigma splits it again around music-font characters, so the space separating "Adagio espressivo" from the ♩ that follows, or "più" from its dynamic, is the last character of a run. An importer that trims the ends of each element would join the two. Leading and trailing line breaks do not count: they are returns left at the end of Finale text, and an importer is better left free to drop them.
+
+### A pedal line's signs come from its text, not its caps
+
+A visible pedal line writes `sign="yes"` on its start when the line's start text names a pedal, and on its stop when the end text is a release, so a "Ped. ____*" line draws its signs and a bare bracket does not. Finale's pedal caps are hooks drawn on the line itself, not the Ped. and * signs, so a line marked only by its caps stays a plain bracket. A start marking written with the single-letter P or S pedal glyph also writes `abbreviated="yes"`, on the line or on a sign-only pedal. Typed letters are not read as the short form, since a typed "P." is as likely to be a dynamic.
+
 ### Tuplet ratios are reduced, and the printed spelling travels separately
 
 `<time-modification>` is written from the entry's cumulative ratio, so a Finale tuplet of six sixteenths in the space of four is exported as `3:2`. Finale's own export writes the unreduced `6:4`. The printed numbers are unaffected: `<tuplet-actual>` and `<tuplet-normal>` carry Finale's display number and reference number with their durations, so the tuplet still reads as "6 in the space of 4" on the page.
