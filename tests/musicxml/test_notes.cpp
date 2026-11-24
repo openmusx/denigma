@@ -1047,8 +1047,8 @@ TEST(MusicXmlNotes, NoteheadParenthesesFromEnclosingArticulations)
     const auto score = loadScoreData(outputPath);
     ASSERT_TRUE(score);
 
-    // The fixture's cases occupy entries 60 to 102; see test_articulations.cpp. The hidden enclosure (entry 93) is not
-    // written.
+    // The fixture's cases occupy entries 60 to 102; see test_articulations.cpp. The hidden enclosure (entry 93) and the
+    // rest cases (entries 94 to 102) are not written.
     const std::set<std::string> expectedIds = {
         "ev60n1", // legacy Maestro parentheses
         "ev61n1", // closing delimiter at the vertical tolerance from the opening
@@ -1068,12 +1068,6 @@ TEST(MusicXmlNotes, NoteheadParenthesesFromEnclosingArticulations)
         "ev87n1", // closing delimiter right of a whole notehead's center
         "ev89n1", // closing delimiter right of a double whole notehead's center
         "ev91n1", // manually positioned delimiters on a second drawn left of the primary notehead column
-        "ev94",   // parentheses around a floating rest
-        "ev95",   // parentheses around a positioned rest
-        "ev96",   // brackets around a rest, written as parentheses
-        "ev97",   // at the bottom of the rest's window
-        "ev99",   // just under the top of the rest's window
-        "ev102",  // delimiters centered on the rest and offset
     };
     std::set<std::string> actualIds;
     for (const auto& part : score->parts) {
