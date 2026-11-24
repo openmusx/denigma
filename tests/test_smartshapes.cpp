@@ -189,7 +189,8 @@ TEST(SmartShapeClassification, ReportsShortFormPedalGlyphs)
         const auto context = makeCustomLine("^fontid(0)^size(24)^nfx(0)" + testCase.text, {}, {},
             "      <lineStyle>solid</lineStyle>\n"
             "      <solidParams><lineWidth>141</lineWidth></solidParams>\n");
-        const auto* pedal = classifySmartShape(context.shape).as<classifiedshape::KeyboardPedal>();
+        const auto classification = classifySmartShape(context.shape);
+        const auto* pedal = classification.as<classifiedshape::KeyboardPedal>();
         ASSERT_NE(pedal, nullptr) << testCase.text;
         ASSERT_TRUE(pedal->startText) << testCase.text;
         EXPECT_EQ(pedal->startText->type, testCase.type) << testCase.text;
@@ -200,7 +201,8 @@ TEST(SmartShapeClassification, ReportsShortFormPedalGlyphs)
     const auto typed = makeCustomLine("P.", {}, {},
         "      <lineStyle>solid</lineStyle>\n"
         "      <solidParams><lineWidth>141</lineWidth></solidParams>\n");
-    EXPECT_EQ(classifySmartShape(typed.shape).as<classifiedshape::KeyboardPedal>(), nullptr);
+    const auto typedClassification = classifySmartShape(typed.shape);
+    EXPECT_EQ(typedClassification.as<classifiedshape::KeyboardPedal>(), nullptr);
 }
 
 TEST(SmartShapeClassification, ClassifiesAsciiPedalTextWithOrdinaryHooks)
