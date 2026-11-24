@@ -217,10 +217,15 @@ void processArticulations(MusicXmlMusxMapping& context, mx::api::StaffData& staf
                     // MusicXML encloses a notehead only in parentheses, so every enclosure is written as parentheses.
                     // (See design-decisions.md.)
                     // An enclosure without a note encloses the whole entry, such as a rest.
-                    const auto enclosedId = classified.note ? core::calcNoteId(classified.note) : core::calcEventId(entryInfo);
+                    /// @todo Write a whole-entry enclosure as <level parentheses="yes"/> or <level bracket="yes"/> once
+                    /// mx::api supports <level>. (See mx-api-gaps.md.)
+                    if (!classified.note) {
+                        return;
+                    }
+                    const auto enclosedId = core::calcNoteId(classified.note);
                     bool isEnclosed = false;
                     for (auto& target : notes) {
-                        if (!classified.note || target.id == mx::api::Id{enclosedId}) {
+                        if (target.id == mx::api::Id{enclosedId}) {
                             target.noteheadParentheses = mx::api::Bool::yes;
                             isEnclosed = true;
                         }

@@ -92,6 +92,16 @@ The MusicXML spec writes the SMuFL note-name noteheads (U+E150–U+E1AF and U+EE
 
 Needed API shape: an optional notehead-text field on `NoteData` holding a sequence of display-text and accidental-text runs, written as `<notehead-text>` after `<notehead>`.
 
+## Editorial Information
+
+### Editorial level
+
+MusicXML's `<level>` element marks material as editorial and displays it in parentheses, in brackets, or at a different size. It appears in the editorial groups of `<note>`, `<direction>`, `<barline>`, `<harmony>`, and other elements. `mx::core` supports it, but `mx::api` does not expose it on any element.
+
+Denigma needs it for an enclosed rest. A rest has no notehead, so `<notehead parentheses="yes">` does not describe it, and `<level parentheses="yes"/>` or `<level bracket="yes"/>` on the `<note>` is the encoding the MusicXML community recommends. Until `mx::api` supports `<level>`, Denigma does not write an enclosed rest's parentheses or brackets.
+
+Needed API shape: `<level>`'s content and attributes on every element whose editorial group carries it. Tracked upstream as [webern/mx#559](https://github.com/webern/mx/issues/559).
+
 ## Measures
 
 ### Multimeasure-rest attributes
