@@ -48,18 +48,21 @@ std::filesystem::path exportMusicXmlFixture(const std::string& musxFile, bool us
     return outputPath;
 }
 
-std::optional<mx::api::ScoreData> createScoreDataFromMusicXmlFixture(const std::string& musxFile)
+std::optional<mx::api::ScoreData> createScoreDataFromMusicXmlFixture(
+    const std::string& musxFile, const std::shared_ptr<const MusResources>& musResources)
 {
     std::filesystem::path inputPath;
     copyInputToOutput(musxFile, inputPath);
 
-    return createScoreDataFromMusxPath(inputPath);
+    return createScoreDataFromMusxPath(inputPath, musResources);
 }
 
-std::optional<mx::api::ScoreData> createScoreDataFromMusxPath(const std::filesystem::path& musxPath)
+std::optional<mx::api::ScoreData> createScoreDataFromMusxPath(
+    const std::filesystem::path& musxPath, const std::shared_ptr<const MusResources>& musResources)
 {
     DenigmaContext denigmaContext(DENIGMA_NAME);
     denigmaContext.inputFilePath = musxPath;
+    denigmaContext.musResources = musResources;
     MusxLoggerScope musxLogger(makeMusxLogCallback(denigmaContext));
 
     try {

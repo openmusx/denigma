@@ -286,10 +286,10 @@ mnxdom::sequence::Note createNormalNote(const MnxMusxMappingPtr& context, mnxdom
 }
 
 mnxdom::sequence::KitNote createKitNote(const MnxMusxMappingPtr& context, mnxdom::sequence::Event& mnxEvent,
-    const MusxInstance<others::PercussionNoteInfo>& percNoteInfo, const classify::PercussionNoteheadClassification& percussionNoteheads,
+    const classify::PercussionNoteClassification& percussionNote, const classify::PercussionNoteheadClassification& percussionNoteheads,
     const MusxInstance<others::Staff>& musxStaff)
 {
-    auto mnxNote = mnxEvent.ensure_kitNotes().append(calcPercussionKitId(percNoteInfo));
+    auto mnxNote = mnxEvent.ensure_kitNotes().append(calcPercussionKitId(percussionNote.mapNote));
     auto part = mnxNote.getEnclosingElement<mnxdom::Part>();
     MNX_ASSERT_IF(!part.has_value())
     {
@@ -297,19 +297,18 @@ mnxdom::sequence::KitNote createKitNote(const MnxMusxMappingPtr& context, mnxdom
     }
     part->ensure_kit();
     if (!part->kit()->contains(mnxNote.kitComponent())) {
-        auto kitElement = part->kit()->append(mnxNote.kitComponent(), mnxStaffPosition(musxStaff, percNoteInfo->calcStaffReferencePosition()));
+        auto kitElement = part->kit()->append(mnxNote.kitComponent(), mnxStaffPosition(musxStaff, percussionNote.staffReferencePosition));
         processKitComponentNotehead(kitElement, percussionNoteheads);
-        const auto& percNoteType = percNoteInfo->getNoteType();
-        if (percNoteType.instrumentId != 0) {
-            kitElement.set_name(percNoteType.createName(percNoteInfo->getNoteTypeOrderId()));
-            kitElement.set_sound(calcPercussionSoundId(percNoteInfo));
+        if (percussionNote.name) {
+            kitElement.set_name(*percussionNote.name);
+            kitElement.set_sound(calcPercussionSoundId(percussionNote.sound));
             auto sounds = context->mnxDocument->global().ensure_sounds();
             if (!sounds.contains(kitElement.sound().value())) {
                 auto sound = sounds.append(kitElement.sound().value());
                 sound.set_name(kitElement.name().value());
-                if (percNoteType.generalMidi >= 0) {
+                if (percussionNote.generalMidiKey) {
                     /// @todo revisit this if there is better support for multiple synth patches
-                    sound.set_midiNumber(percNoteType.generalMidi);
+                    sound.set_midiNumber(*percussionNote.generalMidiKey);
                 }
             }
         }
@@ -319,7 +318,7 @@ mnxdom::sequence::KitNote createKitNote(const MnxMusxMappingPtr& context, mnxdom
 
 template <typename MnxNoteType>
 static void createNote(const MnxMusxMappingPtr& context, mnxdom::sequence::Event& mnxEvent, const NoteInfoPtr& musxNote,
-    const MusxInstance<others::Staff>& musxStaff, const MusxInstance<others::PercussionNoteInfo>& percNoteInfo)
+    const MusxInstance<others::Staff>& musxStaff, const classify::PercussionNoteClassification& percussionNote)
 {
     static_assert(std::is_base_of_v<mnxdom::sequence::NoteBase, MnxNoteType>, "MnxNoteType must have base type NoteBase.");
 
@@ -329,12 +328,12 @@ static void createNote(const MnxMusxMappingPtr& context, mnxdom::sequence::Event
         if constexpr (std::is_same_v<MnxNoteType, mnxdom::sequence::Note>) {
             return createNormalNote(context, mnxEvent, musxNote);
         } else {
-            ASSERT_IF (!percNoteInfo) {
+            ASSERT_IF (!percussionNote) {
                 throw std::logic_error("Kit note requested without PercussionNoteInfo instance.");
             }
-            const auto percussionNoteheads = classify::classifyPercussionNotehead(percNoteInfo);
+            const auto percussionNoteheads = classify::classifyPercussionNotehead(percussionNote.percussionNote);
             inheritedFamily = calcKitComponentNoteheadFamily(percussionNoteheads);
-            return createKitNote(context, mnxEvent, percNoteInfo, percussionNoteheads, musxStaff);
+            return createKitNote(context, mnxEvent, percussionNote, percussionNoteheads, musxStaff);
         }
     }();
     const auto noteId = core::calcNoteId(musxNote);
@@ -361,10 +360,10 @@ static void createNotes(const MnxMusxMappingPtr& context, mnxdom::sequence::Even
 
     for (size_t x = 0; x < musxEntry->notes.size(); x++) {
         const auto mnxNote = NoteInfoPtr(musxEntryInfo, x);
-        if (const auto percNoteInfo = mnxNote.calcPercussionNoteInfo()) {
-            createNote<mnxdom::sequence::KitNote>(context, mnxEvent, mnxNote, musxStaff, percNoteInfo);
+        if (const auto percussionNote = classify::classifyPercussionNote(mnxNote)) {
+            createNote<mnxdom::sequence::KitNote>(context, mnxEvent, mnxNote, musxStaff, percussionNote);
         } else {
-            createNote<mnxdom::sequence::Note>(context, mnxEvent, mnxNote, musxStaff, nullptr);
+            createNote<mnxdom::sequence::Note>(context, mnxEvent, mnxNote, musxStaff, percussionNote);
         }
     }
 }

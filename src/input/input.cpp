@@ -8,6 +8,7 @@
 
 #include "core/musx_reader.h"
 #include "formats/enigmaxml/enigmaxml.h"
+#include "musx/factory/PlaybackResourcesFactory.h"
 #include "utils/ziputils.h"
 
 namespace denigma {
@@ -36,9 +37,10 @@ finale_mus_reader::MusRecognition recognizeMus(std::span<const std::byte> bytes)
 
 struct MusResources::Impl
 {
-    explicit Impl(finale_mus_reader::Reader value)
-        : reader(std::move(value))
+    Impl(musx::dom::PlaybackResourcesPtr resources, finale_mus_reader::Reader value)
+        : playbackResources(std::move(resources)), reader(std::move(value))
     {}
+    musx::dom::PlaybackResourcesPtr playbackResources;
     finale_mus_reader::Reader reader;
 };
 
@@ -49,6 +51,9 @@ MusResources::~MusResources() = default;
 
 std::shared_ptr<const MusResources> MusResources::create(std::span<const MusResource> resources)
 {
+    // The playback resources are built once and shared: the reader uses them to import legacy
+    // files, and every document, whatever its source format, keeps them for playback lookups.
+    musx::factory::PlaybackResourceInputs playbackInputs;
     finale_mus_reader::ReaderOptions options;
     std::unordered_set<MusResourceKind> singletons;
     for (const auto& resource : resources) {
@@ -66,21 +71,30 @@ std::shared_ptr<const MusResources> MusResources::create(std::span<const MusReso
             if (resource.name.empty()) {
                 throw std::invalid_argument("A percussion mapping resource requires a filename.");
             }
-            options.percussionMappingXml.push_back({resource.name, bytes});
+            playbackInputs.deviceAnnotations.emplace_back(resource.name, bytes.data(), bytes.size());
             break;
         case MusResourceKind::PercussionConversionTable: options.percussionMapConversionTable = bytes; break;
-        case MusResourceKind::Soundmap: options.soundmapXml.push_back(bytes); break;
-        case MusResourceKind::InstrumentCatalog: options.instrumentCatalogXml = bytes; break;
+        case MusResourceKind::Soundmap: playbackInputs.soundmaps.emplace_back(resource.name, bytes.data(), bytes.size()); break;
+        case MusResourceKind::InstrumentCatalog: playbackInputs.instrumentCatalogs.emplace_back(resource.name, bytes.data(), bytes.size()); break;
         default: throw std::invalid_argument("Unknown MUS resource kind.");
         }
     }
-    return std::shared_ptr<const MusResources>(new MusResources(std::make_unique<Impl>(finale_mus_reader::Reader::create<MusxReader>(options))));
+    auto playbackResources = musx::factory::PlaybackResourcesFactory::create<MusxReader>(playbackInputs);
+    options.playbackResources = playbackResources;
+    auto reader = finale_mus_reader::Reader::create<MusxReader>(options);
+    return std::shared_ptr<const MusResources>(new MusResources(std::make_unique<Impl>(std::move(playbackResources), std::move(reader))));
 }
 
 struct MusResourcesAccess
 {
     static const finale_mus_reader::Reader& reader(const MusResources& resources) { return resources.m_impl->reader; }
+    static const musx::dom::PlaybackResourcesPtr& playbackResources(const MusResources& resources) { return resources.m_impl->playbackResources; }
 };
+
+musx::dom::PlaybackResourcesPtr playbackResources(const DenigmaContext& context)
+{
+    return context.musResources ? MusResourcesAccess::playbackResources(*context.musResources) : nullptr;
+}
 
 musx::dom::DocumentPtr readMusDocument(std::span<const std::byte> bytes, const DenigmaContext& context, musx::dom::PartVoicingPolicy policy)
 {

@@ -140,7 +140,7 @@ TEST(MusInput, ResourcesOwnBuffersValidateAndReuse)
     setupTestDataPaths();
     const auto resources = [] {
         const std::string fonts = "Maestro\nPetaluma\n";
-        const std::string map = "<Finale><PercussionNoteMap name=\"Example\"/></Finale>";
+        const std::string map = "<FinaleNameDocument><MasterDeviceNames><NoteNameList Name=\"Example\"/></MasterDeviceNames></FinaleNameDocument>";
         const std::string soundmap = "<Soundmap><Description><Name>Example</Name></Description></Soundmap>";
         const std::string catalog = "<InstrumentCatalog/>";
         const std::vector<MusResource> inputs = {
@@ -170,6 +170,38 @@ TEST(MusInput, ResourcesOwnBuffersValidateAndReuse)
     const std::vector<MusResource> unnamed = {{MusResourceKind::PercussionMap, "", textBytes("<Finale/>")}};
     EXPECT_THROW((void)MusResources::create(unnamed), std::invalid_argument);
     EXPECT_TRUE(MusResources::create());
+}
+
+TEST(MusInput, PlaybackResourcesReachEveryDocument)
+{
+    setupTestDataPaths();
+    const std::string soundmap = "<Soundmap><Description><Name>Example</Name></Description></Soundmap>";
+    const std::string deviceList = "<FinaleNameDocument><MasterDeviceNames><NoteNameList Name=\"Example\"/></MasterDeviceNames></FinaleNameDocument>";
+    const std::vector<MusResource> inputs = {
+        {MusResourceKind::Soundmap, "example.soundmap", textBytes(soundmap)},
+        {MusResourceKind::PercussionMap, "Example.xml", textBytes(deviceList)},
+    };
+    DenigmaContext context("test");
+    context.musResources = MusResources::create(inputs);
+    const auto resources = playbackResources(context);
+    ASSERT_TRUE(resources);
+
+    // The legacy reader and MUSX document creation share one resources object.
+    const auto musBuffer = legacyFixture("F100-note.mus");
+    const auto musDocument = createMusxDocument<MusxReader>(prepareMusInput(std::as_bytes(std::span(musBuffer))), context);
+    ASSERT_TRUE(musDocument);
+    EXPECT_EQ(musDocument->getPlaybackResources(), resources);
+
+    const auto musxDocument = createMusxDocument<MusxReader>(prepareInput(getInputPath() / "drumset.musx", context), context);
+    ASSERT_TRUE(musxDocument);
+    EXPECT_EQ(musxDocument->getPlaybackResources(), resources);
+
+    // Without resources, documents have none.
+    DenigmaContext bareContext("test");
+    EXPECT_FALSE(playbackResources(bareContext));
+    const auto bareDocument = createMusxDocument<MusxReader>(prepareInput(getInputPath() / "drumset.musx", bareContext), bareContext);
+    ASSERT_TRUE(bareDocument);
+    EXPECT_FALSE(bareDocument->getPlaybackResources());
 }
 
 TEST(MusInput, CliDiscoveryDefaultsAndUnsupportedOutputs)
@@ -207,7 +239,7 @@ TEST(MusInput, CliWildcardsExclusionsAndResourcePaths)
     std::filesystem::copy_file(source, folder / "keep.binary");
     std::filesystem::copy_file(source, folder / "excluded/hidden.binary");
     std::ofstream(folder / "fonts.txt") << "Maestro\n";
-    std::ofstream(folder / "map.xml") << "<Finale/>";
+    std::ofstream(folder / "map.xml") << "<FinaleNameDocument/>";
     std::ofstream(folder / "table.txt") << "// no conversions\n";
     std::ofstream(folder / "first.soundmap") << "<Soundmap/>";
     std::ofstream(folder / "second.soundmap") << "<Soundmap/>";

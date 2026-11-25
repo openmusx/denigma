@@ -283,6 +283,14 @@ void applyTupletData(mx::api::NoteData& note, const EntryInfoPtr& entryInfo)
     }
 }
 
+// The display step and octave of a staff position under the clef in effect at entryInfo. MusicXML places
+// rests and unpitched notes by these.
+mx::api::PitchData createDisplayPitchData(const MusicXmlMusxMapping& context, const EntryInfoPtr& entryInfo, int staffPosition)
+{
+    const auto pitch = entryInfo.calcPitchFromStaffPosition(staffPosition, {.pitchMode = context.pitchMode});
+    return mx::api::PitchData(enumConvert<mx::api::Step>(pitch.noteName), 0, pitch.octave);
+}
+
 void applyRestPositionIfNeeded(const MusicXmlMusxMapping& context, mx::api::NoteData& rest, const EntryInfoPtr& entryInfo)
 {
     if (!entryInfo) {
@@ -310,19 +318,8 @@ void applyRestPositionIfNeeded(const MusicXmlMusxMapping& context, mx::api::Note
     if (!context.denigmaContext->useFinaleRestPosition && rest.durationData.durationName == mx::api::DurationName::whole && restPositionOffset != 0) {
         adjustedStaffPosition += restPositionOffset;
     }
-    const auto pitch = entryInfo.calcPitchFromStaffPosition(adjustedStaffPosition, {.pitchMode = context.pitchMode});
     rest.isDisplayStepOctaveSpecified = true;
-    rest.pitchData = mx::api::PitchData(enumConvert<mx::api::Step>(pitch.noteName), 0, pitch.octave);
-}
-
-mx::api::PitchData createPitchData(MusicXmlMusxMapping& context, const NoteInfoPtr& noteInfo)
-{
-    const auto properties = noteInfo.calcNoteProperties({.pitchMode = context.pitchMode});
-    const auto octaveAdjustment = calcOttavaOctaveAdjustment(context.current.ottavasApplicableInMeasure, noteInfo, [&](const NoteInfoPtr&) {
-        context.logMessage(
-            LogMsg() << "skipping ottava octave setting for tied-to note since the tied-from note is not under the ottava", MessageSeverity::Verbose);
-    });
-    return mx::api::PitchData(enumConvert<mx::api::Step>(properties.noteName), properties.alteration, properties.octave + octaveAdjustment);
+    rest.pitchData = createDisplayPitchData(context, entryInfo, adjustedStaffPosition);
 }
 
 void applyAccidentalData(mx::api::NoteData& note, const NoteInfoPtr& noteInfo)
@@ -333,6 +330,29 @@ void applyAccidentalData(mx::api::NoteData& note, const NoteInfoPtr& noteInfo)
 
     note.pitchData.showAccidental();
     note.pitchData.isAccidentalParenthetical = noteInfo->parenAcci;
+}
+
+// A note's pitch, or for a percussion note its display position and the kit piece that plays it.
+mx::api::NoteData createNoteData(MusicXmlMusxMapping& context, const NoteInfoPtr& noteInfo)
+{
+    mx::api::NoteData note;
+    if (const auto percussionNote = classify::classifyPercussionNote(noteInfo, context.pitchMode); percussionNote.isOnPercussionStaff) {
+        note.isUnpitched = true;
+        note.isDisplayStepOctaveSpecified = true;
+        note.pitchData = createDisplayPitchData(context, noteInfo.getEntryInfo(), percussionNote.staffReferencePosition);
+        if (auto instrumentId = ensurePercussionInstrument(context, percussionNote)) {
+            note.instruments.emplace_back(std::move(*instrumentId));
+        }
+        return note;
+    }
+    const auto properties = noteInfo.calcNoteProperties({.pitchMode = context.pitchMode});
+    const auto octaveAdjustment = calcOttavaOctaveAdjustment(context.current.ottavasApplicableInMeasure, noteInfo, [&](const NoteInfoPtr&) {
+        context.logMessage(
+            LogMsg() << "skipping ottava octave setting for tied-to note since the tied-from note is not under the ottava", MessageSeverity::Verbose);
+    });
+    note.pitchData = mx::api::PitchData(enumConvert<mx::api::Step>(properties.noteName), properties.alteration, properties.octave + octaveAdjustment);
+    applyAccidentalData(note, noteInfo);
+    return note;
 }
 
 std::uint64_t noteKey(const NoteInfoPtr& noteInfo)
@@ -619,7 +639,7 @@ void appendEntryNotes(MusicXmlMusxMapping& context, mx::api::StaffData& staff, m
     for (size_t includedPosition = 0; includedPosition < includedNoteIndices.size(); ++includedPosition) {
         const size_t noteIndex = includedNoteIndices[includedPosition];
         NoteInfoPtr noteInfo(entryInfo, noteIndex);
-        auto note = mx::api::NoteData{};
+        auto note = createNoteData(context, noteInfo);
         note.id = mx::api::Id{core::calcNoteId(noteInfo)};
         note.isCue = isCue;
         // MX uses this as "is in a chord group"; it suppresses <chord/> on the first note internally.
@@ -631,7 +651,6 @@ void appendEntryNotes(MusicXmlMusxMapping& context, mx::api::StaffData& staff, m
         note.userRequestedVoiceNumber = userVoiceNumber;
         note.tickTimePosition = context.timing.calcMusicXmlDivisions(entryIt.getEffectiveElapsedDuration(/*global*/ true));
         note.durationData = createDurationData(context, entryInfo, entryIt.getEffectiveActualDuration(/*global*/ true), entryIt.getEffectiveHidden());
-        note.pitchData = createPitchData(context, noteInfo);
         if (const auto stavesIt = context.partIdToStaves.find(context.currentPart->uniqueId); stavesIt != context.partIdToStaves.end()) {
             ASSERT_IF (staffIndex >= stavesIt->second.size()) {
                 throw std::logic_error("Containing staff index is outside the current MusicXML part staff list.");
@@ -648,7 +667,6 @@ void appendEntryNotes(MusicXmlMusxMapping& context, mx::api::StaffData& staff, m
                 }
             }
         }
-        applyAccidentalData(note, noteInfo);
         applyNoteheadData(note, noteInfo, entryNoteheads);
         if (includedPosition == 0) {
             note.beams = createBeamData(context, entryInfo);

@@ -62,7 +62,7 @@ void populatePartMetadata(
     MusicXmlMusxMapping& context, mx::api::PartData& part, const std::string& id, const MusxInstance<others::StaffComposite>& staff)
 {
     part.uniqueId = id;
-    part.instrumentData.uniqueId = id + "-I1";
+    part.instrumentData.uniqueId = createPartInstrumentId(id);
     part.instrumentData.name = staff->getPlaybackRouteName();
     if (const auto sound = musicXmlInstrumentSoundFromUuid(staff->instUuid)) {
         part.instrumentData.soundID = sound->soundId;

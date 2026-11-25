@@ -51,12 +51,13 @@ static int showHelpPage(const std::string_view& programName)
     std::cout << "Usage: " << programName << " [<command>] <input-pattern> [--options]" << std::endl;
     std::cout << std::endl;
 
-    std::cout << "Legacy MUS resources (optional paths, resolved from the working directory):" << std::endl;
+    std::cout << "Finale resources (optional paths, resolved from the working directory):" << std::endl;
     std::cout << "  --mus-symbol-fonts path" << std::endl;
     std::cout << "  --mus-percussion-map path       Repeat for multiple mapping XML files" << std::endl;
     std::cout << "  --mus-percussion-conversion-table path" << std::endl;
     std::cout << "  --mus-soundmap path             Repeat in desired lookup order" << std::endl;
     std::cout << "  --mus-instrument-catalog path" << std::endl;
+    std::cout << "  Soundmaps, percussion maps, and the catalog also supply playback data for MUSX and EnigmaXML input." << std::endl;
     std::cout << std::endl;
 
     // General options

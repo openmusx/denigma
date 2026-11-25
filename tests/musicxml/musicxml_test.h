@@ -19,17 +19,22 @@
 #pragma once
 
 #include <filesystem>
+#include <memory>
 #include <optional>
 #include <string>
 #include <vector>
 
+#include "denigma/mus_resources.h"
 #include "mx/api/ScoreData.h"
 
 namespace denigma::test::musicxml {
 
 std::filesystem::path exportMusicXmlFixture(const std::string& musxFile, bool useFinaleRestPosition = false);
-std::optional<mx::api::ScoreData> createScoreDataFromMusicXmlFixture(const std::string& musxFile);
-std::optional<mx::api::ScoreData> createScoreDataFromMusxPath(const std::filesystem::path& musxPath);
+/// @p musResources, when given, supplies the Finale resources a CLI run gets from its `--mus-*` options.
+std::optional<mx::api::ScoreData> createScoreDataFromMusicXmlFixture(
+    const std::string& musxFile, const std::shared_ptr<const MusResources>& musResources = nullptr);
+std::optional<mx::api::ScoreData> createScoreDataFromMusxPath(
+    const std::filesystem::path& musxPath, const std::shared_ptr<const MusResources>& musResources = nullptr);
 std::optional<mx::api::ScoreData> loadScoreData(const std::filesystem::path& path);
 
 /// @brief Returns where a direction is drawn after applying its optional MusicXML offset.

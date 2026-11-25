@@ -39,6 +39,7 @@
 
 #include "denigma/classify/gaps.h"
 #include "denigma/classify/jumps.h"
+#include "denigma/classify/percussion.h"
 #include "mnx_articulations.h"
 #include "mnx_fwd.h"
 #include "mnx_mapping.h"
@@ -238,16 +239,16 @@ inline std::string calcLyricLineId(const std::string& type, Cmper textNumber)
 }
 
 /// A percussion note's staff position and noteheads belong to its percussion map, so each map gets its own kit component.
-inline std::string calcPercussionKitId(const MusxInstance<others::PercussionNoteInfo>& percNoteInfo)
+inline std::string calcPercussionKitId(const classify::percussion::MapNoteIdentity& mapNote)
 {
-    return "ke" + std::to_string(percNoteInfo->getCmper()) + "-" + std::to_string(percNoteInfo->percNoteType);
+    return "ke" + std::to_string(mapNote.percussionMapId) + "-" + std::to_string(mapNote.noteTypeId);
 }
 
-inline std::string calcPercussionSoundId(const MusxInstance<others::PercussionNoteInfo>& percNoteInfo)
+inline std::string calcPercussionSoundId(const classify::percussion::SoundIdentity& sound)
 {
-    std::string result = "pn" + std::to_string(percNoteInfo->getBaseNoteTypeId());
-    if (auto orderId = percNoteInfo->getNoteTypeOrderId()) {
-        result += "o" + std::to_string(orderId + 1);
+    std::string result = "pn" + std::to_string(sound.baseNoteTypeId);
+    if (sound.orderId) {
+        result += "o" + std::to_string(sound.orderId + 1);
     }
     return result;
 }

@@ -21,6 +21,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <set>
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
@@ -31,6 +32,7 @@
 #include "core/denigma.h"
 #include "core/finale_options.h"
 #include "core/ottavas.h"
+#include "denigma/classify/percussion.h"
 #include "musx/musx.h"
 #include "musx/util/Arpeggio.h"
 #include "mx/api/CurveData.h"
@@ -179,6 +181,10 @@ struct MusicXmlMusxMapping
     std::unordered_set<musx::dom::EntryNumber> deferredPseudoLvTieEntryNumbers;
     std::vector<musx::util::ArpeggioSpanCandidate> deferredArpeggioCandidates;
     std::unordered_set<std::string> deferredArpeggioCandidateKeys;
+    /// The percussion sounds the current part has declared a kit piece for.
+    std::set<classify::percussion::SoundIdentity> percussionSounds;
+    /// The MIDI keys the current part has declared an instrument for, for percussion notes no map assigns.
+    std::set<int> percussionMidiKeys;
 
     void clearCurrent()
     {
@@ -195,6 +201,8 @@ struct MusicXmlMusxMapping
         deferredPseudoLvTieEntryNumbers.clear();
         deferredArpeggioCandidates.clear();
         deferredArpeggioCandidateKeys.clear();
+        percussionSounds.clear();
+        percussionMidiKeys.clear();
     }
 
     double musicXmlTenthsFromEvpu(double evpu, double backoutScaling = 1.0) const;
