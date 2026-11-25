@@ -10,21 +10,15 @@ The existing ZIP utilities and MXL massage support can supply archive mechanics,
 
 ## Microtonal key signatures
 
-Extend the nontraditional key-signature mapping to microtonal signatures by converting Finale's EDO divisions into MusicXML semitone alterations and suitable accidental values. Preserve the effective written or concert-pitch signature independently for each staff, as the exporter already does for traditional keys.
+Extend the nontraditional key-signature mapping to microtonal signatures by converting Finale's EDO divisions into MusicXML semitone alterations and suitable accidental values. Preserve the effective written or concert-pitch signature independently for each staff.
 
-## Instruments, transpositions, and instrument changes
-
-Treat a part's instrument as one subject rather than the handful of unrelated fields it is today. `populatePartMetadata` sets `instrumentData.uniqueId`, its required name, and, when the staff's `instUuid` is recognized, `instrumentData.soundID`. It emits `soloOrEnsemble` only when both solo and ensemble UUIDs map to that SoundID and the value is needed to disambiguate them.
-
-The instrument name uses Finale's playback route name when one is available, matching Finale's own MusicXML export. It falls back to the standardized SoundID string and then to the raw instrument UUID. Part and instrument display names are intentionally excluded from this fallback chain.
+## Instruments
 
 Instrument sound coverage is partial in a way that hides itself. `musicXmlInstrumentSoundFromUuid` maps a fixed table of Finale instrument uuids, several entries are commented out, and an unrecognized uuid simply yields no `<instrument-sound>` with no diagnostic. Decide whether an unmapped instrument deserves a Verbose log, and extend the table.
 
-Transposition is complete, including preserve/written/concert display overrides through the CLI, C++ API, and WASM API. `assignStaffAttributes` writes each staff's transposition at the start of the first measure and at each change a staff style makes, including mid-measure, with the staff number on multi-staff parts. `mx::api::PartData::transposition` is an mx convenience with no MusicXML counterpart, so Denigma does not use it. A transposed document writes `<transpose>`. A concert-pitch document is a concert score and writes `<for-part>` instead, except for an octave Finale keeps written; see [design-decisions.md](design-decisions.md).
+Finale's own export writes `<virtual-instrument>` on most staff instruments (105 of the staff instruments in its exports of the 66 installed repertoire files that have drum kits), though every one seen so far is empty: `<virtual-instrument/>`. Denigma writes none. mx models the element through `MidiData::virtualLibrary` and `virtualName`. Come back to this to find out whether Finale ever fills it, and from what, before deciding whether Denigma should write it. Finale writes it only on staff instruments, never on drum-kit pieces.
 
-Sequential instrument changes are exported: each change of the part's instrument writes an `<instrument-change>` sound, and each change of the top staff's names writes part-name displays. Simultaneous instruments are expressible through `mx::api::PartData::additionalInstruments` and are taken up under percussion below. Sound coverage can proceed independently.
-
-Two neighbouring items overlap this one and should stay separate. MIDI channels below covers the playback assignment that hangs off the instrument, and percussion covers the per-note instrument identity that drum kits need.
+Two neighbouring items overlap this one and should stay separate. MIDI channels below covers the playback assignment that hangs off the instrument, and percussion covers drum-kit pictograms.
 
 ## MIDI channels
 
@@ -34,11 +28,20 @@ The source data requires musxdom effort first: Finale's channel assignments live
 
 ## Percussion
 
-Export Finale percussion staves using their effective percussion maps rather than treating every staff as one pitched instrument. MUSX DOM exposes the staff or staff-style percussion map, each `PercussionNoteInfo` assignment, per-note `PercussionNoteCode` overrides, and the underlying percussion note-type metadata. Use these together to determine each note's displayed staff position and notehead, semantic instrument identity, and playback mapping in both the score and linked parts.
+Two percussion cases in the installed repertoire differ from Finale's own export and need study
+before Denigma changes:
 
-Represent drum kits and other multi-instrument staves with separate MusicXML `<score-instrument>` / `<midi-instrument>` definitions and a matching `<instrument id="…">` on each unpitched note. Preserve `midi-unpitched`, effective staff-style map changes, duplicated note types distinguished by their order IDs, and custom notehead glyphs. `mx::api` expresses all of it. The part's first instrument is `PartData::instrumentData` and the others go in `PartData::additionalInstruments`, each with a `uniqueId` and `midiData.unpitched` for `<midi-unpitched>`. A note names the instruments that play it in `NoteData::instruments`, and the spec expects every note to carry one once a part has more than one instrument. `NoteData::isUnpitched` selects `<unpitched>`, with `pitchData`'s step and octave as the display position, and `PercussionData` models the `<percussion>` pictogram. `drumset.musx` is the natural first fixture.
+- Staves with a percussion clef but no percussion map. The rhythm worksheets (2200 to 2312) have a
+  one-line standard-notation staff, Finale's default clef 12, and no percussion map. Finale writes a
+  percussion clef and `<unpitched>` notes; Denigma writes a treble clef and pitched notes. Find out
+  what makes Finale treat these notes as unpitched, and why the clef classifies differently from
+  `drumset.musx`, whose percussion staff uses the same clef.
+- The key of a note that a percussion map does not assign. Denigma plays such a note as the MIDI key
+  of its concert pitch, which matches Finale in `drumset.musx`. In the Jingle Bells vocal score's
+  percussion part, Finale's key is seven semitones from Denigma's, as well as four steps lower in
+  display (a one-line staff). Find out how Finale derives the key there.
 
-Also export Finale percussion pictogram expressions as semantic MusicXML `<percussion>` directions. Add an exporter-neutral classifier for exact `pict*` SMuFL glyphs, including valid beater and stick combinations with tip direction, material, parentheses, dashed circles, and strike location. Map Finale expression enclosures where supported, retain canonical SMuFL overrides, and leave mixed text or unrecognized glyph sequences as general text. Do not infer direction pictograms from percussion-note assignments; note identity and performance-direction symbols are separate concerns.
+Export Finale percussion pictogram expressions as semantic MusicXML `<percussion>` directions. Add an exporter-neutral classifier for exact `pict*` SMuFL glyphs, including valid beater and stick combinations with tip direction, material, parentheses, dashed circles, and strike location. Map Finale expression enclosures where supported, retain canonical SMuFL overrides, and leave mixed text or unrecognized glyph sequences as general text. Do not infer direction pictograms from percussion-note assignments; note identity and performance-direction symbols are separate concerns.
 
 ## Custom staff lines
 
@@ -51,9 +54,16 @@ the gaps: write the full span as `staffLines` and hide each missing line with a 
 MusicXML's bottom-line numbering, and how that affects clef and note positions, against the
 `staff_lines.musx` fixture and Finale's own export before writing any of it.
 
+One-line staves need the same study. A Finale one-line staff can sit on any line of the five-line
+staff, depending on how it is configured, so no single rule places it. In the installed repertoire,
+Finale's own export of several one-line staves (the Housetop Hoedown woodblocks, the Melodic
+Dictation woodblocks, and the rhythm worksheets) puts their notes four steps lower than Denigma does,
+on the line MusicXML counts as the bottom one. Establish what in the staff's configuration decides
+the line before changing either note or clef positions.
+
 ## Notehead fill on crossed shapes
 
-The `filled` attribute changes the appearance of enclosed shapes, so it says nothing about an X notehead. The classifier still gives X glyphs a fill for their duration variant, which writes `filled` where one disagrees with the note value, such as `noteheadXBlack` on a half note. Omit `filled` for `x` once the effect on other readers is checked. Circled X and plus noteheads already carry no fill.
+The `filled` attribute changes the appearance of enclosed shapes, so it says nothing about an X notehead. The classifier still gives X glyphs a fill for their duration variant, which writes `filled` where one disagrees with the note value, such as `noteheadXBlack` on a half note. Omit `filled` for `x` once the effect on other readers is checked.
 
 ## Alternate notation: measure repeats and slash notation
 
@@ -63,7 +73,7 @@ Layer-only behavior, blank notation, and Finale's independent hiding of articula
 
 ## Fretboard diagrams
 
-Export Finale fretboard diagrams through MusicXML `<frame>` data on their associated `<harmony>` elements. This does not refer to simultaneous note chords: those are already represented by MusicXML `<chord/>` note groups.
+Export Finale fretboard diagrams through MusicXML `<frame>` data on their associated `<harmony>` elements. This does not refer to simultaneous note chords.
 
 MUSX DOM exposes the fretboard groups, styles, and diagrams referenced by `details::ChordAssign`. `mx::api::ChordData::frameData` can represent the basic string/fret grid, first fret, barre, and fingering data.
 
@@ -71,9 +81,7 @@ First export the basic diagram and its note/fingering/barre details, then assess
 
 ## Accordion registration: combining glyph sequences and legacy fonts
 
-Denigma classifies and exports only a single precomposed accordion-registration glyph today (e.g. `accdnRH3RanksClarinet`), matching the standard right-hand three-/four-rank and left-hand two-/three-rank diagrams. SMuFL also defines combining glyphs (`accdnCombRH3RanksEmpty`, `accdnCombDot`, and their siblings) meant for a custom diagram outside that fixed set, but Denigma does not attempt to reassemble one from source glyphs.
-
-An earlier version of this classifier tried to recognize a combining sequence by reading multiple font-character runs from a Finale Text Expression, using each run's baseline/superscript shift as a dot's position. That was removed: nothing confirmed it matches how Finale users actually build these diagrams, and Shape Designer's `DrawChar` instruction is arguably the more natural tool for placing dots at arbitrary positions, which would make it a Shape Expression instead. `classifyAssignedShapeExpression` has no accordion case, and `musx::dom::KnownShapeDefType` has no accordion entry, so that route is equally unhandled.
+SMuFL defines combining glyphs (`accdnCombRH3RanksEmpty`, `accdnCombDot`, and their siblings) for a custom accordion-registration diagram outside the standard precomposed set. Exporting one means reassembling it from source glyphs, and how Finale users build such a diagram is unconfirmed. It could be several font-character runs in a Text Expression, each run's baseline or superscript shift placing a dot, or a Shape Designer shape whose `DrawChar` instructions place the dots, which would make it a Shape Expression. `classifyAssignedShapeExpression` has no accordion case, and `musx::dom::KnownShapeDefType` has no accordion entry.
 
 Revisit this only when a real Finale file exhibits a custom accordion registration, and let that fixture settle which route (Shape Designer shape vs. baseline-shifted text runs, or both) is worth supporting. The same discipline applies to legacy, pre-SMuFL accordion registration fonts: `smufl_mapping` has no such font mappings today, and none should be added speculatively — add one only against a real fixture that needs it.
 
@@ -129,8 +137,7 @@ which is chord diagrams rather than staff content, though both read `FretInstrum
 (`BendHat`, `BendCurve`) are guitar technique under `<technical>` and are noted with the glissando
 work below.
 
-Percussion staves have a parallel gap and are covered by the percussion item above. One detail
-belongs here because it is shared: any future notion of "the same note" on a percussion staff would
+One detail is shared with percussion staves: any future notion of "the same note" on a percussion staff would
 have to compare percussion note type, not merely staff position, since one position can host
 different instruments and one instrument can move position. Nothing depends on that today.
 
@@ -157,7 +164,7 @@ a bend is notated in standard notation too, so this does not wait on TAB support
 
 ## Shape-replaced stems
 
-Export the Finale custom stems from `details::CustomStem` (`CustomUpStem` / `CustomDownStem`) that replace the stem with a Shape Designer shape. A custom stem that merely hides the stem already exports as `<stem>none</stem>`; a shape-replaced one keeps its ordinary direction, and the shape itself is dropped, as it is in Finale's own export.
+Export the Finale custom stems from `details::CustomStem` (`CustomUpStem` / `CustomDownStem`) that replace the stem with a Shape Designer shape. A shape-replaced stem keeps its ordinary direction, and the shape itself is dropped, as it is in Finale's own export.
 
 An arbitrary stem shape has no MusicXML equivalent, so the case worth pursuing is a shape drawing one of SMuFL's combining tremolo stems, such as `stemPendereckiTremolo`. That is a tremolo in every sense except how Finale stores it, and it could export as `MarkType::tremoloUnmeasured` carrying the glyph name, exactly like the equivalent articulation. Recognizing it requires shape recognition in MUSX DOM, the same upstream dependency described below.
 
@@ -171,9 +178,7 @@ This is gated on evidence. Revisit it when a real-world Finale file actually spe
 
 ## Extend the font-availability assertion to MNX
 
-The shared `allFontsAvailable` export option and its `--all-fonts-available` CLI spelling tell Denigma that every source font will be available where the output is read. MusicXML uses it to select `utils::SmuflSymbolPolicy::PreserveText`; its default remains `SplitSmufl`.
-
-Apply the same option to MNX once MNX has official formatted strings. Until then, leave its current `PreferSmufl` behavior alone rather than designing around a provisional text representation. At that point, reconcile MNX with MusicXML's two meaningful choices: without the fonts use `SplitSmufl`; with them use `PreserveText`. The intermediate `PreferSmufl` has no identified long-term use case.
+Apply the shared `allFontsAvailable` export option (`--all-fonts-available`), which says every source font will be available where the output is read, to MNX once MNX has official formatted strings. Until then, leave its current `PreferSmufl` behavior alone rather than designing around a provisional text representation. At that point, reconcile MNX with MusicXML's two meaningful choices: without the fonts use `SplitSmufl`; with them use `PreserveText`. The intermediate `PreferSmufl` has no identified long-term use case.
 
 The assertion may eventually inform other portability choices too. Generic font-family fallbacks are the obvious neighbor because they exist for the same missing-font case, but changing them should be decided separately rather than folded into formatted-text preservation.
 
@@ -202,7 +207,7 @@ carries part, measure, staff, voice, and tick as well.
 The mx update at `e866c709` exposes these additional capabilities. Adopt them when Finale source semantics can be mapped reliably:
 
 - Grace-note steal-time percentages and make-time ticks. Finale's grace playback duration alone does not establish which neighbouring note supplies that time; do not infer it or substitute make-time.
-- Notehead color. Resolve actual per-note authorial settings before populating it; do not infer colors from Finale's editing display. (Notehead parentheses are written from enclosing articulations; see design-decisions.md. Do not infer them from a circled glyph.)
+- Notehead color. Resolve actual per-note authorial settings before populating it; do not infer colors from Finale's editing display.
 - Additional creators and rights statements. Finale's existing single file-info fields do not establish separate people or rights records; do not split their free text heuristically.
 - Figured-bass extension lines. These need a figured-bass export path before they can be used.
 - Additional accidental-mark appearance attributes. Existing ornament classification supplies accidental type and placement, but no independent brackets, size, font, or color.

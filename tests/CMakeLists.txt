@@ -49,6 +49,7 @@ endfunction()
         test_font_names.cpp
         test_general_lines.cpp
         test_noteheads.cpp
+        test_percussion.cpp
         test_octave_lines.cpp
         test_staff_states.cpp
         test_dynamics.cpp

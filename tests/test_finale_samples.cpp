@@ -1,7 +1,10 @@
 // Copyright (c) 2026 Robert G. Patterson
 // SPDX-License-Identifier: MIT
+#include <algorithm>
 #include <filesystem>
+#include <map>
 #include <optional>
+#include <set>
 #include <sstream>
 #include <string>
 #include <string_view>
@@ -52,6 +55,13 @@ constexpr std::string_view threeBlindMice = "Worksheets & Repertoire/Repertoire/
 // blues has notes whose notehead override is the regular notehead.
 constexpr std::string_view housetopHoedown = "Worksheets & Repertoire/Repertoire/Holiday Patriotic/Large Ensembles/Housetop Hoedown.musx";
 constexpr std::string_view memphisBlues = "Worksheets & Repertoire/Repertoire/Jazz/Handy The Memphis Blues.musx";
+
+// Drum kits in the installed files. These have the most percussion notes and note types.
+constexpr std::string_view jingleBellsEnsemble = "Worksheets & Repertoire/Repertoire/Holiday Patriotic/Large Ensembles/Jingle Bells.musx";
+constexpr std::string_view tutorial10 = "Tutorials/Tutorial 10.musx";
+// Kits whose playback devices give keys other than General MIDI, or do not list every note type.
+constexpr std::string_view allenGenMixup = "Worksheets & Repertoire/Repertoire/Large Ensembles/Allen Gen Mixup USA.musx";
+constexpr std::string_view heyTheresAMouse = "Worksheets & Repertoire/Repertoire/Large Ensembles/Rasmussen Hey Theres a Mouse.musx";
 
 DocumentPtr loadSample(const std::filesystem::path& path)
 {
@@ -442,4 +452,132 @@ TEST(FinaleSamples, NoteheadOverridesMatchingTheDefaultExportToMnx)
         }
     });
     EXPECT_EQ(ovalCount, matchingOverrideCount);
+}
+
+TEST(FinaleSamples, KitPiecesExportToMusicXml)
+{
+    const auto root = finaleMusicFilesDir();
+    SKIP_UNLESS_FINALE_MUSIC_FILES(root);
+
+    struct Sample
+    {
+        std::string_view path;
+        std::map<std::string, size_t> kitPiecesByPart; ///< the parts with kit pieces, and how many each has
+    };
+    const Sample samples[] = {
+        {jingleBellsEnsemble, {{"P17", 13}}},
+        {tutorial10, {{"P5", 9}}},
+        {housetopHoedown, {{"P16", 6}, {"P17", 2}, {"P18", 2}}},
+    };
+
+    for (const auto& sample : samples) {
+        auto musicXmlPath = exportSample(root, sample.path);
+        musicXmlPath.replace_extension(".musicxml");
+        const auto score = denigma::test::musicxml::loadScoreData(musicXmlPath);
+        ASSERT_TRUE(score) << sample.path;
+        std::map<std::string, size_t> kitPiecesByPart;
+        for (const auto& part : score->parts) {
+            std::set<std::string> declared;
+            for (const auto& instrument : part.additionalInstruments) {
+                declared.emplace(instrument.uniqueId);
+            }
+            if (!declared.empty()) {
+                kitPiecesByPart.emplace(part.uniqueId, declared.size());
+            }
+            // In a part with kit pieces, every note names one instrument: a kit piece, or the part's own
+            // instrument. Every kit piece is played. A part without kit pieces names no instruments.
+            std::set<std::string> played;
+            for (const auto& measure : part.measures) {
+                for (const auto& staff : measure.staves) {
+                    for (const auto& [voiceNumber, voice] : staff.voices) {
+                        for (const auto& note : voice.notes) {
+                            if (note.isRest || declared.empty()) {
+                                EXPECT_TRUE(note.instruments.empty()) << sample.path << " " << part.uniqueId;
+                                continue;
+                            }
+                            ASSERT_EQ(note.instruments.size(), 1u) << sample.path << " " << part.uniqueId;
+                            const auto& instrumentId = note.instruments.front();
+                            if (instrumentId == part.instrumentData.uniqueId) {
+                                continue;
+                            }
+                            EXPECT_TRUE(note.isUnpitched) << sample.path << " " << instrumentId;
+                            EXPECT_TRUE(declared.contains(instrumentId)) << sample.path << " " << instrumentId;
+                            played.emplace(instrumentId);
+                        }
+                    }
+                }
+            }
+            EXPECT_EQ(played, declared) << sample.path << " " << part.uniqueId;
+        }
+        EXPECT_EQ(kitPiecesByPart, sample.kitPiecesByPart) << sample.path;
+    }
+}
+
+TEST(FinaleSamples, KitPiecesPlayTheirDeviceKeys)
+{
+    const auto root = finaleMusicFilesDir();
+    SKIP_UNLESS_FINALE_MUSIC_FILES(root);
+    // The installation's playback resources sit beside its music files.
+    const auto installation = root.parent_path();
+    const auto soundmap = installation / "Data" / "GIFF.soundmap";
+    const auto deviceFolder = installation / "MIDI Device Annotation";
+    if (!std::filesystem::is_regular_file(soundmap) || !std::filesystem::is_directory(deviceFolder)) {
+        GTEST_SKIP() << "Finale playback resources not found in \"" << installation.string() << "\".";
+    }
+    const auto addResourceArgs = [&](ArgList& args) {
+        args.add(_ARG("--mus-soundmap"));
+        args.add(pathString(soundmap));
+        for (const auto& entry : std::filesystem::directory_iterator(deviceFolder)) {
+            if (entry.path().extension() == ".xml") {
+                args.add(_ARG("--mus-percussion-map"));
+                args.add(pathString(entry.path()));
+            }
+        }
+    };
+
+    // Instrument name and its <midi-unpitched> by part. No value means the part declares no such piece.
+    struct Expected
+    {
+        std::string partId;
+        std::string instrumentName;
+        std::optional<int> midiUnpitched;
+    };
+    struct Sample
+    {
+        std::string_view path;
+        std::vector<Expected> expected;
+    };
+    const Sample samples[] = {
+        // Garritan's Basic Orchestral Percussion plays the snare and bass drums on its own keys, and has no woodblock.
+        {allenGenMixup, {{"P20", "Snare Drum", 61}, {"P20", "Bass Drum", 37}, {"P21", "High Woodblock", std::nullopt}}},
+        // The Jazz Fusion kit does not list the rim shot, which plays as its parent instrument, the snare drum.
+        {heyTheresAMouse, {{"P17", "Snare Rim Shot", 39}, {"P17", "Snare Drum", 39}}},
+        // The VDLite General MIDI map plays the sustained police whistle as its parent, the long whistle.
+        {housetopHoedown, {{"P16", "Police Whistle Sustained", 73}}},
+    };
+    for (const auto& sample : samples) {
+        const auto sourcePath = root / std::filesystem::path(sample.path);
+        auto inputPath = getOutputPath() / "finale_samples_playback" / sourcePath.filename();
+        std::filesystem::create_directories(inputPath.parent_path());
+        std::filesystem::copy(sourcePath, inputPath, std::filesystem::copy_options::overwrite_existing);
+        ArgList args = {DENIGMA_NAME, "export", pathString(inputPath), "--musicxml", "--force", "--no-log"};
+        addResourceArgs(args);
+        ASSERT_EQ(denigmaTestMain(args.argc(), args.argv()), 0) << sample.path;
+        auto musicXmlPath = inputPath;
+        musicXmlPath.replace_extension(".musicxml");
+        const auto score = denigma::test::musicxml::loadScoreData(musicXmlPath);
+        ASSERT_TRUE(score) << sample.path;
+        for (const auto& expected : sample.expected) {
+            const auto part = std::find_if(score->parts.begin(), score->parts.end(), [&](const auto& p) { return p.uniqueId == expected.partId; });
+            ASSERT_NE(part, score->parts.end()) << sample.path << " " << expected.partId;
+            const auto instrument = std::find_if(part->additionalInstruments.begin(), part->additionalInstruments.end(),
+                [&](const auto& i) { return i.name == expected.instrumentName; });
+            if (!expected.midiUnpitched) {
+                EXPECT_EQ(instrument, part->additionalInstruments.end()) << sample.path << " " << expected.instrumentName;
+                continue;
+            }
+            ASSERT_NE(instrument, part->additionalInstruments.end()) << sample.path << " " << expected.instrumentName;
+            EXPECT_EQ(instrument->midiData.unpitched, *expected.midiUnpitched) << sample.path << " " << expected.instrumentName;
+        }
+    }
 }

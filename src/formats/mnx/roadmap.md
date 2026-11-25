@@ -22,6 +22,15 @@ MNX `staff-config` carries only the number of staff lines. Finale can also chang
 
 The current musxdom text parser reports substitutions on emitted chunks without an occurrence identity. Empty substitutions are omitted, and nested expansions can replace an enclosing insert's provenance. MNX insert gaps therefore describe each emitted chunk, joining only the text/glyph runs split from that chunk. Complete replacement of an outer insert, or representing an empty insert as an insertion point, needs parser occurrence boundaries and nested provenance. Preserve the current substitutions until that API exists; never group adjacent inserts by matching commands and parameters.
 
+## Kit sounds from the playback device
+
+MNX kit sounds write the note type's General MIDI key as `midiNumber`. The MusicXML exporter instead
+writes the key the note's playback device plays, from the document's playback resources
+(`classify::PercussionNoteClassification::calcMidiKey`), which matches Finale's own export when the
+device maps percussion to other keys. Decide whether MNX `midiNumber` should follow the device too.
+One MNX sound can serve kit components from more than one percussion map, so a sound whose notes
+play different keys on different devices would need a rule.
+
 ## Semantic technique markings
 
 Recognized technique text remains general text with a partial expression gap. MNX technique objects also carry duration and other semantics, so exporting them requires a separate mapping of those properties from Finale rather than assigning a semantic technique from its displayed words alone.

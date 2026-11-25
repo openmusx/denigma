@@ -16,6 +16,8 @@ CommandInputData prepareInput(const std::filesystem::path& path, const DenigmaCo
 CommandInputData prepareMusInput(std::span<const std::byte> bytes);
 musx::dom::DocumentPtr readMusDocument(std::span<const std::byte> bytes, const DenigmaContext& context, musx::dom::PartVoicingPolicy policy);
 void loadMusResources(DenigmaContext& context);
+/// The playback resources in @p context's MUS resources, which every document it creates keeps. Null when none were supplied.
+musx::dom::PlaybackResourcesPtr playbackResources(const DenigmaContext& context);
 
 template <typename Reader>
 musx::dom::DocumentPtr createMusxDocument(const CommandInputData& inputData, const DenigmaContext& denigmaContext,
@@ -35,6 +37,7 @@ musx::dom::DocumentPtr createMusxDocument(const CommandInputData& inputData, con
 
     musx::factory::DocumentFactory::CreateOptions createOptions(
         denigmaContext.inputFilePath, inputData.notationMetadata.value_or(Buffer{}), std::move(embeddedGraphicFiles), partVoicingPolicy);
+    createOptions.playbackResources = playbackResources(denigmaContext);
 
     return musx::factory::DocumentFactory::create<Reader>(inputData.primaryBuffer, std::move(createOptions));
 }

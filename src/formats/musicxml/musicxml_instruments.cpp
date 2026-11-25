@@ -27,9 +27,11 @@
 #include <map>
 #include <optional>
 #include <set>
+#include <string>
 #include <string_view>
 
 #include "musx/dom/InstrumentUuids.h"
+#include "mx/api/PartData.h"
 #include "mx/api/SoundID.h"
 
 using namespace musx::dom;
@@ -899,6 +901,63 @@ std::optional<MusicXmlInstrumentSound> musicXmlInstrumentSoundFromUuid(std::stri
 
     const auto soloOrEnsemble = ambiguousSoundIds.contains(iter->soundId) ? instrumentSoloOrEnsembleFromUuid(instUuid) : SoloOrEnsemble::Unspecified;
     return MusicXmlInstrumentSound{iter->soundId, soloOrEnsemble};
+}
+
+std::optional<std::string> ensurePercussionInstrument(MusicXmlMusxMapping& context, const classify::PercussionNoteClassification& percussionNote)
+{
+    ASSERT_IF (!context.currentPart) {
+        throw std::logic_error("Percussion instrument requested outside a part.");
+    }
+    auto& part = *context.currentPart;
+    const auto addInstrument = [&](const std::string& instrumentId, std::string name, std::optional<int> midiKey) {
+        auto& instrument = part.additionalInstruments.emplace_back();
+        instrument.uniqueId = instrumentId;
+        instrument.name = std::move(name);
+        if (midiKey) {
+            // MusicXML numbers MIDI notes from 1.
+            instrument.midiData.unpitched = *midiKey + 1;
+        }
+    };
+    if (percussionNote.name) {
+        // A playback device that does not list the note type plays no kit piece for it, so Finale
+        // declares none, and the part's own instrument stands for the note.
+        if (!percussionNote.isPlayedByDevice()) {
+            return std::nullopt;
+        }
+        auto instrumentId = createPercussionInstrumentId(part.uniqueId, percussionNote.sound);
+        if (context.percussionSounds.insert(percussionNote.sound).second) {
+            addInstrument(instrumentId, *percussionNote.name, percussionNote.calcMidiKey());
+        }
+        return instrumentId;
+    }
+    if (percussionNote.unmappedMidiKey) {
+        const int midiKey = *percussionNote.unmappedMidiKey;
+        auto instrumentId = createPercussionMidiKeyInstrumentId(part.uniqueId, midiKey);
+        if (context.percussionMidiKeys.insert(midiKey).second) {
+            // Finale names an instrument it knows only by its key after the key, counted from 1.
+            addInstrument(instrumentId, "MIDI" + std::to_string(midiKey + 1), midiKey);
+        }
+        return instrumentId;
+    }
+    return std::nullopt;
+}
+
+void assignPartInstrumentToUnassignedNotes(mx::api::PartData& part)
+{
+    if (part.additionalInstruments.empty()) {
+        return;
+    }
+    for (auto& measure : part.measures) {
+        for (auto& staff : measure.staves) {
+            for (auto& [voiceNumber, voice] : staff.voices) {
+                for (auto& note : voice.notes) {
+                    if (!note.isRest && note.instruments.empty()) {
+                        note.instruments.emplace_back(part.instrumentData.uniqueId);
+                    }
+                }
+            }
+        }
+    }
 }
 
 } // namespace detail

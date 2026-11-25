@@ -29,6 +29,7 @@
 #include "core/denigma.h"
 #include "denigma/classify/entries.h"
 #include "denigma/classify/expressions.h"
+#include "denigma/classify/percussion.h"
 #include "denigma/classify/staff_states.h"
 #include "musicxml_mapping.h"
 #include "mx/api/AccordionRegistrationData.h"
@@ -53,6 +54,31 @@ ToEnum enumConvert(FromEnum);
 inline std::string createPartId(int partNumber)
 {
     return "P" + std::to_string(partNumber);
+}
+
+/// The id of the instrument a part's staff names, which plays every note that names no kit piece.
+inline std::string createPartInstrumentId(const std::string& partId)
+{
+    return partId + "-I1";
+}
+
+/// The id of the kit piece instrument that plays @p sound in part @p partId. It is built from the
+/// percussion note type and its copy number, so it leads back to the note type in the source document.
+inline std::string createPercussionInstrumentId(const std::string& partId, const classify::percussion::SoundIdentity& sound)
+{
+    std::string result = partId + "-pn" + std::to_string(sound.baseNoteTypeId);
+    if (sound.orderId) {
+        // The first copy of a note type has no number, so later copies count from 2, as Finale names them.
+        result += "o" + std::to_string(sound.orderId + 1);
+    }
+    return result;
+}
+
+/// The id of the instrument that plays MIDI key @p midiKey in part @p partId, for a percussion staff note
+/// its percussion map does not assign. The key counts from 0, as Finale numbers it.
+inline std::string createPercussionMidiKeyInstrumentId(const std::string& partId, int midiKey)
+{
+    return partId + "-M" + std::to_string(midiKey);
 }
 
 inline int musicXmlVoiceNumber(size_t staffIndex, musx::dom::LayerIndex layer, int v1v2)
@@ -80,6 +106,16 @@ struct MusicXmlInstrumentSound
 };
 
 std::optional<MusicXmlInstrumentSound> musicXmlInstrumentSoundFromUuid(std::string_view instUuid);
+
+/// Returns the id of the current part's instrument for the kit piece @p percussionNote plays, adding the
+/// instrument to the part the first time a note plays it. A note its percussion map does not assign plays
+/// an instrument for its MIDI key. Returns no value for a percussion note whose note type Finale does not
+/// know, or that the note's playback device does not play; the part's own instrument stands for those.
+std::optional<std::string> ensurePercussionInstrument(MusicXmlMusxMapping& context, const classify::PercussionNoteClassification& percussionNote);
+
+/// Names the part's own instrument on every note of @p part that names no instrument, once the part has
+/// kit pieces. MusicXML expects every note of a part with more than one instrument to name the ones that play it.
+void assignPartInstrumentToUnassignedNotes(mx::api::PartData& part);
 
 /// How a staff's transposition is exported: not at all, as a transposition of the file's own
 /// notation, or, in a concert score, as the transposition of the part made from it.

@@ -40,6 +40,7 @@
 #include "mx/api/MarkDataChoice.h"
 #include "mx/api/ScoreData.h"
 #include "pugixml.hpp"
+#include "test_playback_resources.h"
 #include "test_utils.h"
 #include "gtest/gtest.h"
 
@@ -1738,4 +1739,132 @@ TEST(MusicXmlNotes, NotesShorterThan1024thExportWithoutType)
     EXPECT_EQ(typelessInTuplet, 3u);
     // The 2048th triplet keeps its notation even though MusicXML cannot name its durations.
     EXPECT_EQ(tupletNotations, 2u);
+}
+
+TEST(MusicXmlNotes, KitPiecesPlayTheirDeviceKeys)
+{
+    setupTestDataPaths();
+
+    // The instrument each kit note in drumset.musx names, and the <midi-unpitched> of every declared instrument.
+    struct Expected
+    {
+        std::vector<std::pair<std::string, int>> unpitchedByInstrument;
+        std::map<std::string, std::string> instrumentByNote;
+    };
+    const auto exportWith = [](const std::optional<std::vector<std::pair<int, int>>>& keysByNoteType) {
+        return createScoreDataFromMusicXmlFixture(
+            "drumset.musx", denigma::test::createSyntheticPlaybackResources(denigma::test::DRUMSET_SOUND_UUID, keysByNoteType));
+    };
+    const auto check = [](const std::optional<mx::api::ScoreData>& score, const Expected& expected, const std::string& label) {
+        ASSERT_TRUE(score) << label;
+        ASSERT_EQ(score->parts.size(), 1u) << label;
+        const auto& part = score->parts[0];
+        std::vector<std::pair<std::string, int>> unpitchedByInstrument;
+        for (const auto& instrument : part.additionalInstruments) {
+            unpitchedByInstrument.emplace_back(instrument.uniqueId, instrument.midiData.unpitched);
+        }
+        EXPECT_EQ(unpitchedByInstrument, expected.unpitchedByInstrument) << label;
+        std::map<std::string, std::string> instrumentByNote;
+        for (const auto& measure : part.measures) {
+            for (const auto& staff : measure.staves) {
+                for (const auto& [voiceNumber, voice] : staff.voices) {
+                    for (const auto& note : voice.notes) {
+                        if (note.id && expected.instrumentByNote.contains(note.id->value())) {
+                            EXPECT_TRUE(note.isUnpitched) << label << " " << note.id->value();
+                            ASSERT_EQ(note.instruments.size(), 1u) << label << " " << note.id->value();
+                            instrumentByNote.emplace(note.id->value(), note.instruments.front());
+                        }
+                    }
+                }
+            }
+        }
+        EXPECT_EQ(instrumentByNote, expected.instrumentByNote) << label;
+    };
+
+    // The device's keys replace General MIDI's (kick 36, low woodblock 77), and the low woodblock, which the
+    // device does not list, plays its parent instrument, the high woodblock (note type 10).
+    check(exportWith({{{2, 40}, {10, 50}}}), {{{"P1-pn2", 41}, {"P1-pn11", 51}, {"P1-M75", 76}}, {{"ev125n1", "P1-pn2"}, {"ev126n1", "P1-pn11"}}},
+        "parent instrument");
+    // A device that lists neither the woodblock nor its parent plays no kit piece for it, so the staff's
+    // instrument stands for it.
+    check(exportWith({{{2, 40}}}), {{{"P1-pn2", 41}, {"P1-M75", 76}}, {{"ev125n1", "P1-pn2"}, {"ev126n1", "P1-I1"}}}, "unlisted");
+    // A sound with no percussion map leaves General MIDI's keys in place.
+    check(exportWith(std::nullopt), {{{"P1-pn2", 37}, {"P1-pn11", 78}, {"P1-M75", 76}}, {{"ev125n1", "P1-pn2"}, {"ev126n1", "P1-pn11"}}},
+        "no percussion map");
+}
+
+TEST(MusicXmlNotes, PercussionKitNotesAreUnpitchedKitPieces)
+{
+    setupTestDataPaths();
+
+    const auto score = createScoreDataFromMusicXmlFixture("drumset.musx");
+    ASSERT_TRUE(score);
+    ASSERT_EQ(score->parts.size(), 1u);
+    const auto& part = score->parts[0];
+
+    // The staff's own instrument stays first, and each kit piece a note plays follows it. Kit pieces are
+    // named by note type, and an instrument for a key no map assigns by that key.
+    EXPECT_EQ(part.instrumentData.uniqueId, "P1-I1");
+    EXPECT_EQ(part.instrumentData.soundID, mx::api::SoundID::drumGroupSet);
+    std::vector<std::string> additionalIds;
+    for (const auto& instrument : part.additionalInstruments) {
+        additionalIds.emplace_back(instrument.uniqueId);
+    }
+    EXPECT_EQ(additionalIds, (std::vector<std::string>{"P1-pn2", "P1-pn11", "P1-M75"}));
+
+    // Finale's own export of drumset.musx is the reference for every note: whether it is unpitched, where it
+    // is displayed, and which instrument plays it. The instrument ids differ, so instruments are compared by
+    // name and MIDI key.
+    const auto reference = loadScoreData(getInputPath() / "musicxml/drumset-ref.musicxml");
+    ASSERT_TRUE(reference);
+    ASSERT_EQ(reference->parts.size(), 1u);
+    const auto& referencePart = reference->parts[0];
+
+    struct PlayedNote
+    {
+        bool isUnpitched{};
+        mx::api::Step step{};
+        int alter{};
+        int octave{};
+        std::string instrumentName;
+        int midiUnpitched{};
+        bool operator==(const PlayedNote&) const = default;
+    };
+    const auto collectNotes = [](const mx::api::PartData& musicXmlPart) {
+        std::map<std::string, const mx::api::InstrumentData*> instruments{{musicXmlPart.instrumentData.uniqueId, &musicXmlPart.instrumentData}};
+        for (const auto& instrument : musicXmlPart.additionalInstruments) {
+            instruments.emplace(instrument.uniqueId, &instrument);
+        }
+        std::vector<PlayedNote> result;
+        for (const auto& measure : musicXmlPart.measures) {
+            for (const auto& staff : measure.staves) {
+                for (const auto& [voiceNumber, voice] : staff.voices) {
+                    for (const auto& note : voice.notes) {
+                        if (note.isRest) {
+                            continue;
+                        }
+                        PlayedNote played{note.isUnpitched, note.pitchData.step, note.pitchData.alter, note.pitchData.octave, {}, {}};
+                        if (note.instruments.size() == 1) {
+                            if (const auto it = instruments.find(note.instruments.front()); it != instruments.end()) {
+                                played.instrumentName = it->second->name;
+                                played.midiUnpitched = it->second->midiData.unpitched;
+                            }
+                        }
+                        result.emplace_back(played);
+                    }
+                }
+            }
+        }
+        return result;
+    };
+    const auto actualNotes = collectNotes(part);
+    const auto expectedNotes = collectNotes(referencePart);
+    ASSERT_EQ(actualNotes.size(), expectedNotes.size());
+    for (size_t index = 0; index < actualNotes.size(); ++index) {
+        EXPECT_EQ(actualNotes[index], expectedNotes[index]) << "note " << index;
+    }
+    // Every note names one instrument, and the reference confirms which.
+    for (const auto& note : actualNotes) {
+        EXPECT_FALSE(note.instrumentName.empty());
+    }
 }

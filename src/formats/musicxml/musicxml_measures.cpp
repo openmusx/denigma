@@ -1262,6 +1262,7 @@ void createMeasuresForPart(MusicXmlMusxMapping& context, mx::api::PartData& part
 
     assignStaffAttributes(context, part, musxMeasures, stavesIt->second);
     assignInstrumentChanges(context, part, stavesIt->second);
+    assignPartInstrumentToUnassignedNotes(part);
 }
 
 } // namespace

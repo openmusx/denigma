@@ -24,7 +24,10 @@ struct MusResource
     std::span<const std::byte> bytes;
 };
 
-/// @brief Immutable, reusable parsed resources for legacy MUS imports.
+/// @brief Immutable, reusable parsed Finale resources.
+/// @details Legacy MUS imports use all of them. Soundmaps, percussion maps and instrument catalogs
+/// also become the playback resources that every document keeps, whatever its source format, so
+/// playback lookups such as a percussion note's MIDI key work for MUSX documents too.
 class MusResources
 {
 public:

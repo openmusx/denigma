@@ -14,6 +14,7 @@ set(DENIGMA_CLASSIFY_SOURCES
     ${CMAKE_CURRENT_LIST_DIR}/lyrics.cpp
     ${CMAKE_CURRENT_LIST_DIR}/noteheads.cpp
     ${CMAKE_CURRENT_LIST_DIR}/octaves.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/percussion.cpp
     ${CMAKE_CURRENT_LIST_DIR}/smartshapes.cpp
     ${CMAKE_CURRENT_LIST_DIR}/staff_states.cpp
     ${CMAKE_CURRENT_LIST_DIR}/tuplets.cpp
