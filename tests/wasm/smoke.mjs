@@ -485,7 +485,8 @@ try {
     assertStatus(Module._denigma_inspect_with_resources(dataPointer, input.length, namePointer, resources), false, 'Unfinalized resources');
   });
   for (const [kind, name, text] of [[0, 'MacSymbolFonts.txt', 'Maestro\nPetaluma\n'],
-    [1, 'Example.xml', '<Finale/>'], [2, 'conversion.txt', '// empty table\n'],
+    [1, 'Example.xml', '<FinaleNameDocument><MasterDeviceNames><NoteNameList Name="Example"/></MasterDeviceNames></FinaleNameDocument>'],
+    [2, 'conversion.txt', '// empty table\n'],
     [3, 'first.soundmap', '<Soundmap><Description><Name>First</Name></Description></Soundmap>'],
     [3, 'second.soundmap', '<Soundmap><Description><Name>Second</Name></Description></Soundmap>'],
     [4, 'catalog.xml', '<InstrumentCatalog/>']]) {
@@ -508,6 +509,31 @@ try {
   Module._denigma_mus_resources_destroy(resources);
   Module._denigma_mus_resources_destroy(otherResources);
   Module._denigma_mus_resources_destroy(badResources);
+}
+
+// The same resources supply playback data for MUSX input. drumset.musx routes its drum staff to this sound, which a
+// synthetic soundmap gives a device list playing the kick drum (note type 2) on key 40: <midi-unpitched> 41. Without
+// resources the kick drum plays its General MIDI key, 36: <midi-unpitched> 37.
+const drumset = await readFile(resolve(import.meta.dirname, '..', 'data', 'inputs', 'drumset.musx'));
+const playbackResources = Module._denigma_mus_resources_create();
+try {
+  for (const [kind, name, text] of [
+    [3, 'Synthetic.soundmap', '<Soundmap><Description><Name>Synthetic</Name><PluginID>SYNT</PluginID></Description>'
+      + '<Sound id="Kit" uuid="db30b478-5871-3ba5-9553-6f964bb3aeb7"><Name>Synthetic Kit</Name>'
+      + '<PercMIDIMap>Synthetic Kit</PercMIDIMap><PercMIDIMapFile>Synthetic.xml</PercMIDIMapFile></Sound></Soundmap>'],
+    [1, 'Synthetic.xml', '<FinaleNameDocument><MasterDeviceNames><NoteNameList Name="Synthetic Kit">'
+      + '<Note Number="40" PercNoteType="2"/></NoteNameList></MasterDeviceNames></FinaleNameDocument>']]) {
+    assertStatus(addResource(playbackResources, kind, name, text), true, 'Add playback resource');
+  }
+  assertStatus(Module._denigma_mus_resources_finalize(playbackResources), true, 'Finalize playback resources');
+  withInput(drumset, 'drumset.musx', (dataPointer, namePointer) => {
+    assertResult(convert(dataPointer, drumset.length, namePointer, FORMAT_MUSICXML, { selection: [0], resources: playbackResources }),
+      'MUSX kit with device keys', '<midi-unpitched>41</midi-unpitched>');
+    assertResult(convert(dataPointer, drumset.length, namePointer, FORMAT_MUSICXML, { selection: [0] }),
+      'MUSX kit without resources', '<midi-unpitched>37</midi-unpitched>');
+  });
+} finally {
+  Module._denigma_mus_resources_destroy(playbackResources);
 }
 
 const voicedMus = await readFile(resolve(legacyDirectory, 'F2008-parts-voiced.mus'));
