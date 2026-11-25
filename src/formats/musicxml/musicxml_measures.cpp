@@ -507,7 +507,13 @@ mx::api::ClefData musicXmlClefFromMusxClef(
         result.printObject = mx::api::Bool::no;
     } else {
         result.symbol = enumConvert<mx::api::ClefSymbol>(clef.type);
-        result.line = 5 + (clefDef->staffPosition / 2);
+        if (isPercussionClef(clef.type)) {
+            // MusicXML places notes under a percussion clef at treble positions whatever its line, and Finale
+            // writes none.
+            result.isLineSpecified = false;
+        } else {
+            result.line = musicXmlStaffPosition(staff, clefDef->staffPosition) / 2;
+        }
         result.octaveChange = clef.octave;
         if (clef.isBlank) {
             result.printObject = mx::api::Bool::no;
@@ -798,11 +804,11 @@ void assignStaffAttributes(MusicXmlMusxMapping& context, mx::api::PartData& part
         // mx::api can write staff lines and staff size only at the start of a measure (see
         // mx-api-gaps.md). A change within a measure is written at the next barline with the state
         // Finale has there, so a change that is undone within the same measure is lost.
-        std::map<MeasCmper, classify::StaffState> barlineStates;
+        std::map<MeasCmper, std::pair<classify::StaffState, MusxInstance<others::StaffComposite>>> barlineStates;
         classify::iterateStaffStateChanges(context.document, context.forPartId, staffId, {}, [&](const classify::StaffStateChange& change) {
             const MeasCmper barline = change.point.position == 0 ? change.point.measureId : change.point.measureId + 1;
             if (size_t(barline) <= part.measures.size()) {
-                barlineStates[barline] = change.current;
+                barlineStates[barline] = {change.current, change.staff};
             }
 
             const bool transpositionChanged = change.current.transposition != change.previous.transposition;
@@ -831,8 +837,11 @@ void assignStaffAttributes(MusicXmlMusxMapping& context, mx::api::PartData& part
         });
 
         classify::StaffState written;
-        for (const auto& [measureId, state] : barlineStates) {
-            const bool linesChanged = state.numberOfLines != written.numberOfLines;
+        MusicXmlStaffLines writtenLines;
+        for (const auto& [measureId, stateAndStaff] : barlineStates) {
+            const auto& [state, barlineStaff] = stateAndStaff;
+            const auto lines = musicXmlStaffLines(barlineStaff);
+            const bool linesChanged = lines != writtenLines;
             const bool sizeChanged = state.lineSpace != written.lineSpace || state.staffScaling != written.staffScaling;
             if (!linesChanged && !sizeChanged) {
                 continue;
@@ -843,13 +852,19 @@ void assignStaffAttributes(MusicXmlMusxMapping& context, mx::api::PartData& part
             }
             auto& staffData = measure->staves[staffIndex];
             if (linesChanged) {
-                staffData.staffLines = state.numberOfLines;
+                staffData.staffLines = lines.count;
+                for (const int hiddenLine : lines.hiddenLines) {
+                    auto& lineDetail = staffData.lineDetails.emplace_back();
+                    lineDetail.line = hiddenLine;
+                    lineDetail.printObject = mx::api::Bool::no;
+                }
             }
             if (sizeChanged) {
                 const Fraction lineSpaceFactor{state.lineSpace, Evpu(EVPU_PER_SPACE)};
                 context.layout.setStaffSize(staffData, staffId, lineSpaceFactor * state.staffScaling, state.staffScaling);
             }
             written = state;
+            writtenLines = lines;
         }
     }
 }

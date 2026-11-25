@@ -283,11 +283,42 @@ void applyTupletData(mx::api::NoteData& note, const EntryInfoPtr& entryInfo)
     }
 }
 
-// The display step and octave of a staff position under the clef in effect at entryInfo. MusicXML places
-// rests and unpitched notes by these.
-mx::api::PitchData createDisplayPitchData(const MusicXmlMusxMapping& context, const EntryInfoPtr& entryInfo, int staffPosition)
+// The staff whose lines the measure's MusicXML staff details describe, for the staff the clef is on. MusicXML can
+// change staff lines only at a barline, so the staff as at the start of the measure applies to all of it.
+MusxInstance<others::StaffComposite> declaredLinesStaff(const EntryInfoPtr& entryInfo, const EffectiveClef& clef)
 {
-    const auto pitch = entryInfo.calcPitchFromStaffPosition(staffPosition, {.pitchMode = context.pitchMode});
+    return entryInfo.getFrame()->createCurrentStaff(0, clef.staff->getCmper());
+}
+
+// Whether the clef exports as a percussion clef.
+bool exportsAsPercussionClef(const EffectiveClef& clef)
+{
+    return clef && isPercussionClef(clef.calcInfo().first);
+}
+
+// The display step and octave of a staff position under clef, the clef in effect at entryInfo. MusicXML places
+// rests and unpitched notes by these.
+mx::api::PitchData createDisplayPitchData(
+    const MusicXmlMusxMapping& context, const EntryInfoPtr& entryInfo, const EffectiveClef& clef, int staffPosition)
+{
+    if (exportsAsPercussionClef(clef)) {
+        // A percussion clef reads positions as a treble clef does, counted from the bottom line the staff has,
+        // so the position moves with the staff's lines.
+        constexpr int trebleClefLinePosition = 4; // MusicXML line 2
+        const music_theory::Pitch g4{music_theory::NoteName::G, 4};
+        int octave = 0;
+        const auto step = music_theory::positiveModulus(
+            int(g4.noteName) + musicXmlStaffPosition(declaredLinesStaff(entryInfo, clef), staffPosition) - trebleClefLinePosition,
+            music_theory::STANDARD_DIATONIC_STEPS, &octave);
+        return mx::api::PitchData(enumConvert<mx::api::Step>(music_theory::NoteName(step)), 0, g4.octave + octave);
+    }
+    // Under a pitched clef the clef's line moves with the staff's lines, so the position relative to the clef,
+    // and with it the pitch, is the one Finale shows.
+    std::optional<StaffCmper> forStaffId;
+    if (clef) {
+        forStaffId = clef.staff->getCmper();
+    }
+    const auto pitch = entryInfo.calcPitchFromStaffPosition(staffPosition, {.pitchMode = context.pitchMode, .forStaffId = forStaffId});
     return mx::api::PitchData(enumConvert<mx::api::Step>(pitch.noteName), 0, pitch.octave);
 }
 
@@ -300,14 +331,18 @@ void applyRestPositionIfNeeded(const MusicXmlMusxMapping& context, mx::api::Note
     if (entry->floatRest) {
         return;
     }
+    EffectiveClef clef;
     const auto staffPosition = [&]() -> std::optional<int> {
         if (entry->notes.empty()) {
+            clef = entryInfo.calcEffectiveClef(context.pitchMode);
             return entryInfo.calcZeroNotePosition();
         }
         const NoteInfoPtr restNoteInfo(entryInfo, 0);
         if (restNoteInfo->getNoteId() != Note::RESTID) {
             return std::nullopt;
         }
+        // A rest's note can be crossed to another staff, whose clef then places it.
+        clef = restNoteInfo.calcEffectiveClef(context.pitchMode);
         return restNoteInfo.calcNoteProperties({.pitchMode = context.pitchMode}).staffPosition;
     }();
     if (!staffPosition) {
@@ -319,7 +354,7 @@ void applyRestPositionIfNeeded(const MusicXmlMusxMapping& context, mx::api::Note
         adjustedStaffPosition += restPositionOffset;
     }
     rest.isDisplayStepOctaveSpecified = true;
-    rest.pitchData = createDisplayPitchData(context, entryInfo, adjustedStaffPosition);
+    rest.pitchData = createDisplayPitchData(context, entryInfo, clef, adjustedStaffPosition);
 }
 
 void applyAccidentalData(mx::api::NoteData& note, const NoteInfoPtr& noteInfo)
@@ -336,16 +371,25 @@ void applyAccidentalData(mx::api::NoteData& note, const NoteInfoPtr& noteInfo)
 mx::api::NoteData createNoteData(MusicXmlMusxMapping& context, const NoteInfoPtr& noteInfo)
 {
     mx::api::NoteData note;
+    const auto clef = noteInfo.calcEffectiveClef(context.pitchMode);
     if (const auto percussionNote = classify::classifyPercussionNote(noteInfo, context.pitchMode); percussionNote.isOnPercussionStaff) {
         note.isUnpitched = true;
         note.isDisplayStepOctaveSpecified = true;
-        note.pitchData = createDisplayPitchData(context, noteInfo.getEntryInfo(), percussionNote.staffReferencePosition);
+        note.pitchData = createDisplayPitchData(context, noteInfo.getEntryInfo(), clef, percussionNote.staffReferencePosition);
         if (auto instrumentId = ensurePercussionInstrument(context, percussionNote)) {
             note.instruments.emplace_back(std::move(*instrumentId));
         }
         return note;
     }
     const auto properties = noteInfo.calcNoteProperties({.pitchMode = context.pitchMode});
+    // Finale exports a note under a percussion clef as unpitched, at its staff position, even without a
+    // percussion map.
+    if (exportsAsPercussionClef(clef)) {
+        note.isUnpitched = true;
+        note.isDisplayStepOctaveSpecified = true;
+        note.pitchData = createDisplayPitchData(context, noteInfo.getEntryInfo(), clef, properties.staffPosition);
+        return note;
+    }
     const auto octaveAdjustment = calcOttavaOctaveAdjustment(context.current.ottavasApplicableInMeasure, noteInfo, [&](const NoteInfoPtr&) {
         context.logMessage(
             LogMsg() << "skipping ottava octave setting for tied-to note since the tied-from note is not under the ottava", MessageSeverity::Verbose);

@@ -23,6 +23,7 @@
 
 #include <functional>
 #include <optional>
+#include <vector>
 
 #include "musx/musx.h"
 
@@ -56,6 +57,11 @@ struct StaffState
 {
     /// Number of staff lines. Zero means the staff draws no lines.
     int numberOfLines{music_theory::STANDARD_NUMBER_OF_STAFFLINES};
+    /// Staff positions, from top to bottom, of the lines the staff leaves out between its top and bottom
+    /// lines, as `others::Staff::calcOmittedLinePositions` reports. Empty when the lines are contiguous.
+    std::vector<int> omittedLinePositions;
+    /// Whether the staff hides all its lines while keeping their positions, as `others::Staff::hideStaffLines` reports.
+    bool hideStaffLines{};
     /// Distance between staff lines.
     musx::dom::Evpu lineSpace{static_cast<musx::dom::Evpu>(musx::dom::EVPU_PER_SPACE)};
     /// Staff scaling of the system containing the point, from its staff list. It is 1 when the
