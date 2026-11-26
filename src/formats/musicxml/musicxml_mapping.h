@@ -141,6 +141,36 @@ inline std::uint64_t musicXmlMeasureStaffKey(musx::dom::MeasCmper measure, musx:
     return (std::uint64_t(measure) << 32) | std::uint64_t(static_cast<std::uint32_t>(staff));
 }
 
+/// Converts a Finale staff position on @p staff to a MusicXML staff position.
+///
+/// A MusicXML staff position counts steps, a line or a space each, upward on MusicXML's line numbering, which
+/// starts at 1 for the bottom line the staff has. Position 2n is the staff-line-position n, so the bottom line is
+/// position 2 and position 0 is the first ledger line below the staff. A Finale staff position also counts steps
+/// upward, but from the staff's reference line. A staff with no lines counts as a standard five-line staff.
+int musicXmlStaffPosition(const musx::dom::MusxInstance<musx::dom::others::Staff>& staff, int musxStaffPosition);
+
+/// Returns true if @p clefType is a percussion clef, under which MusicXML places notes at treble positions.
+inline bool isPercussionClef(music_theory::ClefType clefType)
+{
+    return clefType == music_theory::ClefType::Percussion1 || clefType == music_theory::ClefType::Percussion2;
+}
+
+/// The lines of a staff as MusicXML describes them: their count, from the bottom line to the top line, and the
+/// numbers of the lines among them that the staff does not draw.
+struct MusicXmlStaffLines
+{
+    int count{music_theory::STANDARD_NUMBER_OF_STAFFLINES};
+    std::vector<int> hiddenLines;
+
+    bool operator==(const MusicXmlStaffLines&) const = default;
+};
+
+/// Describes the lines of @p staff in MusicXML terms. A staff whose lines are contiguous gets their count and no
+/// hidden lines. A custom staff that leaves lines out between its top and bottom lines counts them as well and
+/// lists them as hidden, because MusicXML's line numbering includes hidden lines. A staff that hides its lines
+/// lists every line as hidden.
+MusicXmlStaffLines musicXmlStaffLines(const musx::dom::MusxInstance<musx::dom::others::Staff>& staff);
+
 struct MusicXmlMusxMapping
 {
     MusicXmlMusxMapping(const DenigmaContext& context, const musx::dom::DocumentPtr& doc, musx::dom::Cmper partId);

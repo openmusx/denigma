@@ -67,6 +67,8 @@ public:
             throw std::invalid_argument("Staff " + std::to_string(m_staffId) + " does not exist in part " + std::to_string(m_partId) + ".");
         }
         state.numberOfLines = staff->calcNumberOfStafflines();
+        state.omittedLinePositions = staff->calcOmittedLinePositions();
+        state.hideStaffLines = staff->hideStaffLines;
         state.lineSpace = staff->lineSpace;
         const auto [displacement, alteration] = staff->calcTranspositionInterval();
         state.transposition = {displacement, alteration, std::nullopt};

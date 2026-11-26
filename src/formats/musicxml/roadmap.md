@@ -28,38 +28,28 @@ The source data requires musxdom effort first: Finale's channel assignments live
 
 ## Percussion
 
-Two percussion cases in the installed repertoire differ from Finale's own export and need study
-before Denigma changes:
-
-- Staves with a percussion clef but no percussion map. The rhythm worksheets (2200 to 2312) have a
-  one-line standard-notation staff, Finale's default clef 12, and no percussion map. Finale writes a
-  percussion clef and `<unpitched>` notes; Denigma writes a treble clef and pitched notes. Find out
-  what makes Finale treat these notes as unpitched, and why the clef classifies differently from
-  `drumset.musx`, whose percussion staff uses the same clef.
-- The key of a note that a percussion map does not assign. Denigma plays such a note as the MIDI key
-  of its concert pitch, which matches Finale in `drumset.musx`. In the Jingle Bells vocal score's
-  percussion part, Finale's key is seven semitones from Denigma's, as well as four steps lower in
-  display (a one-line staff). Find out how Finale derives the key there.
-
 Export Finale percussion pictogram expressions as semantic MusicXML `<percussion>` directions. Add an exporter-neutral classifier for exact `pict*` SMuFL glyphs, including valid beater and stick combinations with tip direction, material, parentheses, dashed circles, and strike location. Map Finale expression enclosures where supported, retain canonical SMuFL overrides, and leave mixed text or unrecognized glyph sequences as general text. Do not infer direction pictograms from percussion-note assignments; note identity and performance-direction symbols are separate concerns.
 
 ## Custom staff lines
 
-Export Finale staves whose lines are not the standard contiguous set. `Staff::customStaff` lists the
-lines a staff draws, from 0 to 26 with a standard staff at 11 through 15, so a staff can omit inner
-lines, and `Staff::hideStaffLines` draws none at all while keeping their positions. `classify::StaffState`
-reduces both to a line count today, so a gapped staff collapses to a narrower one. MusicXML can draw
-the gaps: write the full span as `staffLines` and hide each missing line with a `LineDetailData` whose
-`printObject` is no, in `StaffData::lineDetails`. Establish how Finale's line numbering relates to
-MusicXML's bottom-line numbering, and how that affects clef and note positions, against the
-`staff_lines.musx` fixture and Finale's own export before writing any of it.
+Restate a pitched clef when the staff's lines change under it. A clef is written only where it
+changes, so when a staff style moves the staff's bottom line under an unchanged pitched clef, the
+clef's line is not restated, and a reader places the notes off by the distance the bottom line moved
+(`custom_staves_1.musx`, measures 3, 5 and 6). Finale's own export does the same. Write the clef with
+its new line where the line changes.
 
-One-line staves need the same study. A Finale one-line staff can sit on any line of the five-line
-staff, depending on how it is configured, so no single rule places it. In the installed repertoire,
-Finale's own export of several one-line staves (the Housetop Hoedown woodblocks, the Melodic
-Dictation woodblocks, and the rhythm worksheets) puts their notes four steps lower than Denigma does,
-on the line MusicXML counts as the bottom one. Establish what in the staff's configuration decides
-the line before changing either note or clef positions.
+## Hidden staves
+
+Open question: how to export a staff that Finale hides. A staff can be hidden by its own Force Hide
+Staff setting (`Staff::hideMode`) or by a staff style that sets it. A staff that an optimized system
+leaves out is layout, and is settled in the design decisions. The Jingle Bells vocal score
+(`Repertoire/Holiday Patriotic/Vocal/Jingle Bells.musx`) hides its percussion staff with its own
+setting (`hideMode` cutaway). The Melodic Dictation answer worksheets (7212 to 7217) hide staves 2
+and 3 for the whole piece with a "Hide Staff" style. Finale's own export keeps these staves as parts
+and writes `<staff-details print-object="no">` on them. Denigma exports them as visible staves.
+Decide whether to follow Finale, how the hide modes (cutaway, collapse in score and parts, collapse
+in score only) should differ, and how a style that hides a staff for only some measures should
+export, since MusicXML's staff details apply from a measure onward.
 
 ## Notehead fill on crossed shapes
 

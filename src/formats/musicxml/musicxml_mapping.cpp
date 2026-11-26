@@ -19,6 +19,7 @@
 
 #include "musicxml.h"
 
+#include <algorithm>
 #include <cmath>
 #include <limits>
 
@@ -95,6 +96,37 @@ double MusicXmlMusxMapping::musicXmlTenthsFromEvpu(double evpu, double backoutSc
 double MusicXmlMusxMapping::musicXmlTenthsFromEfix(double efix, double backoutScaling) const
 {
     return musicXmlTenthsFromEvpu(efix / musx::dom::EFIX_PER_EVPU, backoutScaling);
+}
+
+int musicXmlStaffPosition(const musx::dom::MusxInstance<musx::dom::others::Staff>& staff, int musxStaffPosition)
+{
+    // MusicXML line 1 is the bottom line, at twice its staff-line-position.
+    constexpr int bottomLinePosition = 2;
+    int musxBottomLinePosition = staff->calcBottomLinePosition();
+    if (staff->calcNumberOfStafflines() == 0) {
+        musxBottomLinePosition = -2 * (music_theory::STANDARD_NUMBER_OF_STAFFLINES - 1);
+    }
+    return musxStaffPosition - musxBottomLinePosition + bottomLinePosition;
+}
+
+MusicXmlStaffLines musicXmlStaffLines(const musx::dom::MusxInstance<musx::dom::others::Staff>& staff)
+{
+    MusicXmlStaffLines result;
+    result.count = staff->calcNumberOfStafflines();
+    for (const int position : staff->calcOmittedLinePositions()) {
+        result.hiddenLines.push_back(musicXmlStaffPosition(staff, position) / 2);
+    }
+    result.count += int(result.hiddenLines.size());
+    if (staff->hideStaffLines) {
+        result.hiddenLines.clear();
+        for (int line = 1; line <= result.count; ++line) {
+            result.hiddenLines.push_back(line);
+        }
+        return result;
+    }
+    // MusicXML lists lines from the bottom up.
+    std::sort(result.hiddenLines.begin(), result.hiddenLines.end());
+    return result;
 }
 
 } // namespace detail

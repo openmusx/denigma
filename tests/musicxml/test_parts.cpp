@@ -1629,3 +1629,41 @@ TEST(MusicXmlParts, ConcertOverrideRetainsUnisonClefWithOctavePreference)
         }
     }
 }
+
+// nokey-transp.musx has a Bass Clarinet in B-flat and a Horn in F that ignore key signatures, in a score in D
+// major. Each reads its notes in concert C major, so each is written in C major transposed: D major and G major,
+// with its notes transposed to match, as Finale shows them.
+TEST(MusicXmlParts, StaffThatIgnoresKeySignaturesIsInCMajor)
+{
+    setupTestDataPaths();
+
+    const auto score = createScoreDataFromMusicXmlFixture("nokey-transp.musx");
+    ASSERT_TRUE(score);
+    ASSERT_EQ(score->parts.size(), 2u);
+
+    const auto firstMeasure = [&](size_t partIndex) {
+        const auto& measure = score->parts[partIndex].measures.front();
+        std::vector<std::string> pitches;
+        for (const auto& [voiceNumber, voice] : measure.staves.front().voices) {
+            for (const auto& note : voice.notes) {
+                if (!note.isRest) {
+                    pitches.push_back(std::to_string(int(note.pitchData.step)) + "/" + std::to_string(note.pitchData.alter) + "/"
+                                      + std::to_string(note.pitchData.octave));
+                }
+            }
+        }
+        return std::make_pair(measure.keys.empty() ? -99 : measure.keys.front().fifths, pitches);
+    };
+    const auto pitch = [](mx::api::Step step, int alter, int octave) {
+        return std::to_string(int(step)) + "/" + std::to_string(alter) + "/" + std::to_string(octave);
+    };
+    using mx::api::Step;
+
+    const auto [clarinetFifths, clarinetPitches] = firstMeasure(0);
+    EXPECT_EQ(clarinetFifths, 2);
+    EXPECT_EQ(clarinetPitches, (std::vector<std::string>{pitch(Step::a, 0, 5), pitch(Step::g, 1, 5), pitch(Step::f, 1, 5), pitch(Step::e, 0, 5)}));
+
+    const auto [hornFifths, hornPitches] = firstMeasure(1);
+    EXPECT_EQ(hornFifths, 1);
+    EXPECT_EQ(hornPitches, (std::vector<std::string>{pitch(Step::c, 0, 5), pitch(Step::b, 0, 4), pitch(Step::a, 0, 4), pitch(Step::g, 0, 4)}));
+}
