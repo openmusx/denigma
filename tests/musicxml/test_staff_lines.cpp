@@ -162,7 +162,7 @@ TEST(MusicXmlStaffLines, StaffPositionsCountFromTheBottomLine)
 
     using musx::dom::others::Staff;
     const auto createStaff = [&](std::optional<int> staffLines, std::optional<std::vector<int>> customStaff) {
-        auto staff = std::make_shared<Staff>(document, musx::dom::SCORE_PARTID, Staff::ShareMode::All, 1);
+        auto staff = std::make_shared<Staff>(document, musx::dom::SCORE_PARTID, Staff::ShareMode::All, musx::dom::Cmper(1));
         staff->staffLines = staffLines;
         staff->customStaff = std::move(customStaff);
         return musx::dom::MusxInstance<Staff>(staff);
