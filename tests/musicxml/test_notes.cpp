@@ -1099,7 +1099,10 @@ TEST(MusicXmlNotes, LevelFromEnclosingArticulations)
 
     // Brackets around a note, and any enclosure around a rest, are written as <level>, which keeps brackets as
     // brackets. Parentheses around a note stay notehead parentheses.
-    enum class Kind { Parentheses, Brackets };
+    enum class Kind {
+        Parentheses,
+        Brackets
+    };
     const std::map<std::string, Kind> expectedLevels = {
         {"ev70n1", Kind::Brackets},   // brackets around a note
         {"ev94", Kind::Parentheses},  // parentheses around a floating rest
