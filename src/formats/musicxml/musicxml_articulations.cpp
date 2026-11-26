@@ -23,6 +23,7 @@
 #include "musicxml.h"
 
 #include <algorithm>
+#include <optional>
 #include <span>
 #include <stdexcept>
 #include <string_view>
@@ -30,6 +31,7 @@
 
 #include "core/element_ids.h"
 #include "denigma/classify/articulations.h"
+#include "mx/api/LevelData.h"
 #include "mx/api/MarkData.h"
 
 using namespace musx::dom;
@@ -214,26 +216,28 @@ void processArticulations(MusicXmlMusxMapping& context, mx::api::StaffData& staf
                         }
                     }
                 } else if constexpr (std::is_same_v<Value, classify::articulation::BracketEnclosure>) {
-                    // MusicXML encloses a notehead only in parentheses, so every enclosure is written as parentheses.
-                    // (See design-decisions.md.)
-                    // An enclosure without a note encloses the whole entry, such as a rest.
-                    /// @todo Write a whole-entry enclosure as <level parentheses="yes"/> or <level bracket="yes"/> once
-                    /// mx::api supports <level>. (See mx-api-gaps.md.)
-                    if (!classified.note) {
-                        return;
-                    }
-                    const auto enclosedId = core::calcNoteId(classified.note);
-                    bool isEnclosed = false;
+                    // Parentheses around a note are notehead parentheses. MusicXML has no notehead brackets, and a rest
+                    // has no notehead, so brackets, and any enclosure around a rest, are an editorial level, which draws
+                    // either. An enclosure without a note encloses the whole entry, such as a rest. (See
+                    // design-decisions.md.)
+                    const bool isBrackets = classified.type == classify::articulation::BracketEnclosure::Type::Brackets;
+                    const std::optional<mx::api::Id> enclosedId =
+                        classified.note ? std::optional<mx::api::Id>{core::calcNoteId(classified.note)} : std::nullopt;
                     for (auto& target : notes) {
-                        if (target.id == mx::api::Id{enclosedId}) {
-                            target.noteheadParentheses = mx::api::Bool::yes;
-                            isEnclosed = true;
+                        if (enclosedId && target.id != enclosedId) {
+                            continue;
                         }
-                    }
-                    if (isEnclosed && classified.type != classify::articulation::BracketEnclosure::Type::Parentheses) {
-                        context.logMessage(
-                            LogMsg() << "Brackets enclosing " << enclosedId << " have no MusicXML equivalent; writing notehead parentheses.",
-                            MessageSeverity::Verbose);
+                        if (enclosedId && !isBrackets) {
+                            target.noteheadParentheses = mx::api::Bool::yes;
+                            continue;
+                        }
+                        mx::api::LevelData level;
+                        if (isBrackets) {
+                            level.bracket = mx::api::Bool::yes;
+                        } else {
+                            level.parentheses = mx::api::Bool::yes;
+                        }
+                        target.level = std::move(level);
                     }
                 } else if constexpr (std::is_same_v<Value, classify::articulation::TechniqueMark>) {
                     const auto markType = musicXmlTechniqueType(classified);
