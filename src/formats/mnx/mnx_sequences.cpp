@@ -322,8 +322,8 @@ static void createNote(const MnxMusxMappingPtr& context, mnxdom::sequence::Event
 {
     static_assert(std::is_base_of_v<mnxdom::sequence::NoteBase, MnxNoteType>, "MnxNoteType must have base type NoteBase.");
 
-    // The notehead family a note draws without a notehead of its own: its kit component's, or the regular one.
-    auto inheritedFamily = classify::notehead::Shape::Regular;
+    // The notehead a note draws without one of its own: its kit component's, or the reader's default.
+    MnxNotehead inheritedNotehead;
     MnxNoteType mnxNote = [&]() {
         if constexpr (std::is_same_v<MnxNoteType, mnxdom::sequence::Note>) {
             return createNormalNote(context, mnxEvent, musxNote);
@@ -332,14 +332,13 @@ static void createNote(const MnxMusxMappingPtr& context, mnxdom::sequence::Event
                 throw std::logic_error("Kit note requested without PercussionNoteInfo instance.");
             }
             const auto percussionNoteheads = classify::classifyPercussionNotehead(percussionNote.percussionNote);
-            inheritedFamily = calcKitComponentNoteheadFamily(percussionNoteheads);
+            inheritedNotehead = calcKitComponentNotehead(percussionNoteheads);
             return createKitNote(context, mnxEvent, percussionNote, percussionNoteheads, musxStaff);
         }
     }();
     const auto noteId = core::calcNoteId(musxNote);
-    mnxNote.set_id(noteId);
-    context->noteJsonById.emplace(noteId, mnxNote.pointer());
-    processNotehead(context, mnxNote, noteId, musxNote, inheritedFamily);
+    context->mnxDocument->assignId(mnxNote, noteId);
+    processNotehead(context, mnxNote, noteId, musxNote, inheritedNotehead);
     if (musxNote->crossStaff && !mnxEvent.staff()) { // createEvent already handled cross-staffing if the entire entry is crossed
         StaffCmper noteStaff = musxNote.calcStaff();
         if (const auto& mnxNoteStaff = context->mnxPartStaffFromStaff(noteStaff)) {
@@ -519,7 +518,7 @@ static std::optional<mnxdom::sequence::Event> createEvent(const MnxMusxMappingPt
         }
     }
     auto mnxEvent = content.appendEvent(noteValue.base, noteValue.dots);
-    mnxEvent.set_id(core::calcEventId(musxEntryInfo));
+    context->mnxDocument->assignId(mnxEvent, core::calcEventId(musxEntryInfo));
     context->entryTargetByNumber.insert_or_assign(musxEntry->getEntryNumber(), EntryTarget{EntryTargetKind::Event, mnxEvent.pointer()});
     if (const auto& crossedStaffId = musxEntryInfo.calcCrossedStaffForAll()) {
         if (const auto& mnxPartStaff = context->mnxPartStaffFromStaff(crossedStaffId.value())) {
@@ -850,12 +849,11 @@ void finalizeJumpTies(const MnxMusxMappingPtr& context)
     std::unordered_set<std::string> clearedLvTies;
     std::unordered_map<std::string, mnxdom::SlurTieSide> consensusSides;
     for (const auto& deferred : context->deferredJumpTies) {
-        const auto noteIt = context->noteJsonById.find(deferred.startNoteId);
-        if (noteIt == context->noteJsonById.end()) {
+        const auto startNoteOpt = context->mnxDocument->getEntityMap().tryGet<mnxdom::sequence::NoteBase>(deferred.startNoteId);
+        if (!startNoteOpt) {
             continue;
         }
-
-        mnxdom::sequence::NoteBase startNote(context->mnxDocument->root(), noteIt->second);
+        auto startNote = startNoteOpt.value();
         // The side the note's other ties agree on, or Auto if any of them leaves it open or they disagree.
         const auto consensusSide = [&]() -> mnxdom::SlurTieSide {
             if (const auto cached = consensusSides.find(deferred.startNoteId); cached != consensusSides.end()) {

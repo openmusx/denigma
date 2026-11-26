@@ -96,7 +96,7 @@ A Finale percussion note names a notehead for each of four duration ranges, whil
 
 ### A note's notehead is written where it differs from what it inherits, and wherever Finale overrides it
 
-A kit note inherits its component's notehead, and a pitched note the reader's default. A note writes its own notehead when the notehead Finale draws for its duration differs from that in shape or fill. It also writes one whenever Finale's own notehead override supplies it, even when the result matches what it would inherit. The override is the author's choice for that note, so equality with the inherited notehead is a coincidence, and the note keeps its notehead if the component or the reader's default differs. This departs from the exporter's usual preference for omitting defaults. A glyph is written alongside the shape where the shape cannot reproduce it: a `custom` shape, a fill that differs from the note value's, and the two slash sizes MNX does not distinguish. Any glyph Finale names can be a `custom` notehead. Only a notehead with no SMuFL name cannot be carried, and it is a gap only when it comes from Finale's notehead override: a percussion map or shape-note convention whose glyph has no name is most likely the regular notehead in its font, which is no loss.
+A kit note inherits its component's notehead, and a pitched note the reader's default. A note writes its own notehead when the notehead MNX would write for it, shape and glyph, differs from the one it inherits. The comparison is made in MNX terms, so a difference MNX cannot express, such as the size of a circle, writes nothing. It also writes one whenever Finale's own notehead override supplies it, even when the result matches what it would inherit. The override is the author's choice for that note, so equality with the inherited notehead is a coincidence, and the note keeps its notehead if the component or the reader's default differs. This departs from the exporter's usual preference for omitting defaults. A glyph is written alongside the shape where the shape cannot reproduce it: a `custom` shape, a fill that differs from the note value's, and a glyph the classifier prefers to be named because it is not the standard glyph of its shape. The MusicXML exporter follows the same preference. For slashes, the standard glyph is of normal size with vertical ends, so a small slash or one with horizontal ends names its glyph. MNX has no round shape, so a round notehead is written as `custom` with its glyph, as MusicXML writes it as `other`. The classifier tells a large circled notehead from a regular one, but the size is an engraving choice rather than a different notehead, so both are written as `circled` and the size is left to the reader, as MusicXML leaves it. Any glyph Finale names can be a `custom` notehead. Only a notehead with no SMuFL name cannot be carried, and it is a gap only when it comes from Finale's notehead override: a percussion map or shape-note convention whose glyph has no name is most likely the regular notehead in its font, which is no loss.
 
 ### Each percussion map has its own kit components
 
@@ -158,6 +158,16 @@ MNX `auto` placement leaves the side to the reader, so Finale's beam-side and no
 
 Finale ends an entry that completes a tuplet at the tuplet's endpoint, even when its written duration would carry it further, and `musxdom` reports that shortened actual duration. MNX has no event positions: a reader sums written durations. So the event is written with the note value that, scaled by the enclosing tuplet ratios, fills the rest of the tuplet. The change is logged at info level. When no note value fits, the written duration is kept and a warning says that the MNX tuplet is overfilled. A hidden entry's space takes the fitted duration in every case, because a space accepts any fraction.
 
+## Layouts
+
+### A part's name is referred to, and the scroll view leaves its form to the reader
+
+A staff or group name is written in one of two ways. A part-name label is the name of an MNX part: a single-staff instrument's staff name, or a multi-staff instrument's own group name. A plain label is text that no part carries: a group that is not an instrument, or a staff inside a multi-staff instrument. That staff has its own name, and the part's name belongs to the instrument's group.
+
+The scroll-view layout has no system of its own, so which form of the name to show depends on where the reader breaks systems. Its part-name labels are therefore a `labelRef` with the default `auto`. A group's `labelRef` always names its target part, because MNX gives a group no default target.
+
+Each system layout belongs to one Finale system, which shows either full or abbreviated names. MNX cannot make `auto` show the full name on a given system, so a system's part-name label names the form Finale draws there. It does so only when Finale's text is exactly the part's `name` or `shortName`. Otherwise the text is written as a `label`. That covers a staff style that renames the staff, a linked part's own group name, and a name that continues past a line break, since a part's name ends at its first line break. Plain labels are written as text, using the full name in the scroll view.
+
 ## Schema items not exported
 
 Each of these is omitted on purpose. Revisit one if Finale data turns out to carry it.
@@ -171,7 +181,7 @@ Each of these is omitted on purpose. Revisit one if Finale data turns out to car
 - `dynamic-group.staffEnd`: Finale hairpins do not cross staves.
 - `slur.sideEnd`: Finale has no mid-slur side change.
 - `slur.startNote` and `endNote`: a Finale slur attaches to an entry, never to one note of a chord.
-- Layout `staff.label`, `labelref` and `symbol`: a Finale staff has one source, so labels go on the source, and a bracket on a single staff is already a group.
+- Layout `staff-source.label` and `labelRef`, and `staff.symbol`: a Finale staff has one source, so its name goes on the staff, and a bracket on a single staff is already a group.
 - `measure-repeat.displayNumber` and `staffPosition`: Finale draws both by convention.
 - `lyric-line-metadata.lang` and `_c`: Finale has no source for either.
 - `perform`: the schema defines it as an empty object.

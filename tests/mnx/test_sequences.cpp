@@ -28,7 +28,9 @@
 
 #include "core/denigma.h"
 #include "denigma/classify/articulations.h"
+#include "denigma/classify/noteheads.h"
 #include "formats/mnx/mnx.h"
+#include "formats/mnx/mnx_noteheads.h"
 #include "test_utils.h"
 #include "gtest/gtest.h"
 
@@ -78,6 +80,82 @@ TEST(MnxSequences, CalcPointing)
     EXPECT_EQ(enumConvert<mnxdom::MarkingUpDownAuto>(Placement::Below), mnxdom::MarkingUpDownAuto::Down);
     EXPECT_EQ(enumConvert<mnxdom::MarkingUpDownAuto>(Placement::Automatic), mnxdom::MarkingUpDownAuto::Auto);
     EXPECT_EQ(enumConvert<mnxdom::MarkingUpDownAuto>(classify::GlyphStyle{}.placement), mnxdom::MarkingUpDownAuto::Auto);
+}
+
+TEST(MnxSequences, NoteheadShapesUseSchemaShapes)
+{
+    using formats::mnx::detail::enumConvert;
+    using Shape = classify::notehead::Shape;
+
+    EXPECT_EQ(enumConvert<mnxdom::NoteheadShape>(Shape::Circled), mnxdom::NoteheadShape::Circled);
+    EXPECT_EQ(enumConvert<mnxdom::NoteheadShape>(Shape::LargeCircled), mnxdom::NoteheadShape::Circled);
+    EXPECT_EQ(enumConvert<mnxdom::NoteheadShape>(Shape::Round), mnxdom::NoteheadShape::Custom);
+    EXPECT_EQ(enumConvert<mnxdom::NoteheadShape>(Shape::Slashed), mnxdom::NoteheadShape::Slashed);
+    EXPECT_EQ(enumConvert<mnxdom::NoteheadShape>(Shape::BackSlashed), mnxdom::NoteheadShape::BackSlashed);
+}
+
+namespace {
+
+classify::NoteheadClassification makeNoteheadClassification(
+    classify::notehead::Shape shape, classify::notehead::Fill fill, std::string glyphName, bool glyphPreferred = false)
+{
+    classify::NoteheadClassification result;
+    result.shape = shape;
+    result.fill = fill;
+    result.glyphName = std::move(glyphName);
+    result.glyphPreferred = glyphPreferred;
+    return result;
+}
+
+classify::PercussionNoteheadClassification makeKit(const classify::NoteheadClassification& quarter, const classify::NoteheadClassification& half)
+{
+    classify::PercussionNoteheadClassification result;
+    result.family = quarter.shape;
+    result.quarterAndShorter = quarter;
+    result.half = half;
+    result.whole = half;
+    result.breveAndLonger = half;
+    return result;
+}
+
+} // namespace
+
+TEST(MnxSequences, NoteheadsAreComparedAsMnxWritesThem)
+{
+    using namespace formats::mnx::detail;
+    using Shape = classify::notehead::Shape;
+    using Fill = classify::notehead::Fill;
+    using musx::dom::NoteType;
+
+    // A circle's size is not written, so a large circle inherits its component's regular circle.
+    const auto circled = makeNoteheadClassification(Shape::Circled, Fill::Filled, "noteheadCircledBlack");
+    const auto largeCircled = makeNoteheadClassification(Shape::LargeCircled, Fill::Filled, "noteheadCircledBlackLarge");
+    const auto circledKit = calcKitComponentNotehead(makeKit(circled, circled));
+    EXPECT_EQ(circledKit, (MnxNotehead{mnxdom::NoteheadShape::Circled, std::nullopt}));
+    EXPECT_EQ(calcNoteNotehead(largeCircled, NoteType::Quarter), circledKit);
+
+    // A standard slash inherits its component's slash; a slash whose glyph is preferred does not.
+    const auto slash = makeNoteheadClassification(Shape::LargeSlash, Fill::Filled, "noteheadSlashVerticalEnds");
+    const auto smallSlash = makeNoteheadClassification(Shape::SmallSlash, Fill::Filled, "noteheadSlashVerticalEndsSmall", true);
+    const auto slashKit = calcKitComponentNotehead(makeKit(slash, slash));
+    EXPECT_EQ(calcNoteNotehead(slash, NoteType::Quarter), slashKit);
+    EXPECT_NE(calcNoteNotehead(smallSlash, NoteType::Quarter), slashKit);
+    EXPECT_EQ(calcNoteNotehead(smallSlash, NoteType::Quarter).glyph, std::optional<std::string>("noteheadSlashVerticalEndsSmall"));
+
+    // A custom component names its quarter glyph, so a half note that draws a different glyph writes it.
+    const auto roundQuarter = makeNoteheadClassification(Shape::Round, Fill::Filled, "noteheadRoundBlack");
+    const auto roundHalf = makeNoteheadClassification(Shape::Round, Fill::Unfilled, "noteheadRoundWhite");
+    const auto roundKit = calcKitComponentNotehead(makeKit(roundQuarter, roundHalf));
+    EXPECT_EQ(calcNoteNotehead(roundQuarter, NoteType::Quarter), roundKit);
+    EXPECT_NE(calcNoteNotehead(roundHalf, NoteType::Half), roundKit);
+
+    // A regular component writes nothing, so its notes inherit the reader's default oval.
+    const auto black = makeNoteheadClassification(Shape::Regular, Fill::Filled, "noteheadBlack");
+    const auto regularKit = calcKitComponentNotehead(makeKit(black, makeNoteheadClassification(Shape::Regular, Fill::Unfilled, "noteheadHalf")));
+    EXPECT_EQ(regularKit, MnxNotehead{});
+    EXPECT_EQ(calcNoteNotehead(black, NoteType::Quarter), regularKit);
+    // A filled notehead on a half note names its glyph, because MNX would otherwise draw it hollow.
+    EXPECT_NE(calcNoteNotehead(black, NoteType::Half), regularKit);
 }
 
 TEST(MnxSequences, Voice2TripletAtEnd)

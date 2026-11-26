@@ -21,6 +21,8 @@
  */
 #pragma once
 
+#include <optional>
+#include <string>
 #include <string_view>
 
 #include "core/denigma.h"
@@ -37,10 +39,24 @@ namespace formats {
 namespace mnx {
 namespace detail {
 
-/// @brief Returns the notehead family a kit note inherits from the kit component of @p percussionNoteheads.
+/// @struct MnxNotehead
+/// @brief A notehead as MNX writes it: a shape and, where one is named, a glyph.
+struct MnxNotehead
+{
+    mnxdom::NoteheadShape shape{mnxdom::NoteheadShape::Oval}; ///< The MNX notehead shape.
+    std::optional<std::string> glyph;                         ///< The SMuFL glyph name, when one is written.
+
+    bool operator==(const MnxNotehead&) const = default;
+};
+
+/// @brief Returns the notehead a kit note inherits from the kit component of @p percussionNoteheads.
 ///
-/// This is the regular family when #processKitComponentNotehead writes nothing for the component.
-classify::notehead::Shape calcKitComponentNoteheadFamily(const classify::PercussionNoteheadClassification& percussionNoteheads);
+/// This is the reader's default oval notehead when #processKitComponentNotehead writes nothing for the component.
+MnxNotehead calcKitComponentNotehead(const classify::PercussionNoteheadClassification& percussionNoteheads);
+
+/// @brief Returns the notehead MNX writes for a note of @p noteType whose notehead is @p classification.
+/// @pre @p classification is classified.
+MnxNotehead calcNoteNotehead(const classify::NoteheadClassification& classification, musx::dom::NoteType noteType);
 
 /// @brief Writes the default notehead of @p kitComponent, whose percussion note has the noteheads @p percussionNoteheads.
 ///
@@ -49,11 +65,11 @@ void processKitComponentNotehead(mnxdom::part::KitComponent& kitComponent, const
 
 /// @brief Writes the notehead of @p mnxNote, whose musx counterpart is @p musxNote.
 ///
-/// A notehead is written when the Finale note has its own notehead override, or when its notehead differs
-/// from @p inheritedFamily, the family a note inherits without one. A Finale notehead override that cannot be
-/// classified is reported as a conversion gap anchored to @p noteId when a gap collector is present.
+/// A notehead is written when the Finale note has its own notehead override, or when the notehead MNX would
+/// write for it differs from @p inherited, the notehead the note draws without one. A Finale notehead override
+/// that cannot be classified is reported as a conversion gap anchored to @p noteId when a gap collector is present.
 void processNotehead(const MnxMusxMappingPtr& context, mnxdom::sequence::NoteBase& mnxNote, std::string_view noteId, const NoteInfoPtr& musxNote,
-    classify::notehead::Shape inheritedFamily);
+    const MnxNotehead& inherited);
 
 } // namespace detail
 } // namespace mnx

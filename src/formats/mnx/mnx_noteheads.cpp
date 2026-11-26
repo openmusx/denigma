@@ -51,32 +51,47 @@ std::optional<std::string> calcGlyphName(const classify::NoteheadClassification&
 
 } // namespace
 
-classify::notehead::Shape calcKitComponentNoteheadFamily(const classify::PercussionNoteheadClassification& percussionNoteheads)
+MnxNotehead calcKitComponentNotehead(const classify::PercussionNoteheadClassification& percussionNoteheads)
 {
-    return percussionNoteheads ? percussionNoteheads.family : classify::notehead::Shape::Regular;
+    if (!percussionNoteheads || percussionNoteheads.family == classify::notehead::Shape::Regular) {
+        return {};
+    }
+    MnxNotehead result{enumConvert<mnxdom::NoteheadShape>(percussionNoteheads.family), std::nullopt};
+    // A component's glyph would replace the notehead at every duration, so it is written only where MNX
+    // requires one to name the shape at all.
+    if (result.shape == mnxdom::NoteheadShape::Custom) {
+        result.glyph = calcGlyphName(percussionNoteheads.quarterAndShorter);
+    }
+    return result;
+}
+
+MnxNotehead calcNoteNotehead(const classify::NoteheadClassification& classification, musx::dom::NoteType noteType)
+{
+    MnxNotehead result{enumConvert<mnxdom::NoteheadShape>(classification.shape), std::nullopt};
+    // MNX derives the glyph from the shape and the note value. Name the glyph where that derivation cannot
+    // reproduce it: a custom shape, a fill that differs from the note value's, or a glyph the classifier
+    // prefers to be named because it is not the standard glyph of its shape.
+    if (result.shape == mnxdom::NoteheadShape::Custom || classification.calcFillOverridesDefault(noteType) || classification.glyphPreferred) {
+        result.glyph = calcGlyphName(classification);
+    }
+    return result;
 }
 
 void processKitComponentNotehead(mnxdom::part::KitComponent& kitComponent, const classify::PercussionNoteheadClassification& percussionNoteheads)
 {
-    const auto family = calcKitComponentNoteheadFamily(percussionNoteheads);
-    if (family == classify::notehead::Shape::Regular) {
+    const auto notehead = calcKitComponentNotehead(percussionNoteheads);
+    if (notehead == MnxNotehead{}) {
         return;
     }
-    const auto mnxShape = enumConvert<mnxdom::NoteheadShape>(family);
-    auto mnxNotehead = kitComponent.ensure_notehead(mnxShape);
-    // A component's glyph would replace the notehead at every duration, so it is written only where MNX
-    // requires one to name the shape at all.
-    if (mnxShape == mnxdom::NoteheadShape::Custom) {
-        if (const auto glyphName = calcGlyphName(percussionNoteheads.quarterAndShorter)) {
-            mnxNotehead.set_glyph(*glyphName);
-        }
+    auto mnxNotehead = kitComponent.ensure_notehead(notehead.shape);
+    if (notehead.glyph) {
+        mnxNotehead.set_glyph(*notehead.glyph);
     }
 }
 
 void processNotehead(const MnxMusxMappingPtr& context, mnxdom::sequence::NoteBase& mnxNote, std::string_view noteId, const NoteInfoPtr& musxNote,
-    classify::notehead::Shape inheritedFamily)
+    const MnxNotehead& inherited)
 {
-    using Shape = classify::notehead::Shape;
     using Source = NoteInfoPtr::NoteheadInfo::Source;
     const auto noteType = std::get<0>(musxNote.getEntryInfo()->getEntry()->calcDurationInfo());
     auto classification = classify::classifyNotehead(musxNote);
@@ -91,22 +106,16 @@ void processNotehead(const MnxMusxMappingPtr& context, mnxdom::sequence::NoteBas
         }
         return;
     }
+    const auto notehead = calcNoteNotehead(classification, noteType);
     // A Finale notehead override is the author's choice for this note, so it is written even where it
-    // matches what the note would inherit.
-    if (classification.noteheadInfo.source != Source::NoteAlteration && !classification.calcDiffersFromFamily(inheritedFamily, noteType)) {
+    // matches what the note would inherit. Otherwise the note writes a notehead only where MNX would
+    // draw something different without one.
+    if (classification.noteheadInfo.source != Source::NoteAlteration && notehead == inherited) {
         return;
     }
-    const auto mnxShape = enumConvert<mnxdom::NoteheadShape>(classification.shape);
-    auto mnxNotehead = mnxNote.ensure_notehead(mnxShape);
-    // MNX derives the glyph from the shape and the note value. Name the glyph where that derivation cannot
-    // reproduce it: a custom shape, a fill that differs from the note value's, or a slash size MNX does not
-    // distinguish.
-    const bool needsGlyph = mnxShape == mnxdom::NoteheadShape::Custom || classification.calcFillOverridesDefault(noteType)
-                            || classification.shape == Shape::SmallSlash || classification.shape == Shape::LargeSlash;
-    if (needsGlyph) {
-        if (const auto glyphName = calcGlyphName(classification)) {
-            mnxNotehead.set_glyph(*glyphName);
-        }
+    auto mnxNotehead = mnxNote.ensure_notehead(notehead.shape);
+    if (notehead.glyph) {
+        mnxNotehead.set_glyph(*notehead.glyph);
     }
 }
 

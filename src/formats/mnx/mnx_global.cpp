@@ -260,7 +260,7 @@ static void createTempoToolTempos(
         }
         const auto noteType = tempoUnit.value_or(NoteType::Quarter);
         auto tempo = mnxMeasure.ensure_tempos().append(tempoChange->getAbsoluteTempo(noteType), mnxNoteValueFromEdu(Edu(noteType)));
-        tempo.set_id(id);
+        context->mnxDocument->assignId(tempo, id);
         if (tempoChange->eduPosition) {
             tempo.ensure_location(mnxFractionFromEdu(tempoChange->eduPosition));
         }
@@ -349,7 +349,7 @@ static void createGlobalMeasures(const MnxMusxMappingPtr& context)
     std::optional<mnxdom::TimeSignatureDisplay> prevTimeSigDisplay;
     for (const auto& musxMeasure : musxMeasures) {
         auto mnxMeasure = mnxDocument->global().measures().append();
-        mnxMeasure.set_id(core::calcGlobalMeasureId(musxMeasure->getCmper()));
+        context->mnxDocument->assignId(mnxMeasure, core::calcGlobalMeasureId(musxMeasure->getCmper()));
         assignBarline(mnxMeasure, musxMeasure, musxBarlineOptions, musxMeasure->getCmper() == musxMeasures.size());
         createEnding(mnxMeasure, musxMeasure);
         createBarlineFermata(context, mnxMeasure, musxMeasure);

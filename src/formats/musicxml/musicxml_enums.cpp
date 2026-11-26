@@ -260,20 +260,24 @@ BEGIN_ENUM_CONVERSION(classify::articulation::Ornament::Type, mx::api::MarkType)
 END_ENUM_CONVERSION
 
 BEGIN_ENUM_CONVERSION(classify::notehead::Shape, mx::api::Notehead)
-    case classify::notehead::Shape::Regular: return mx::api::Notehead::normal;
-    case classify::notehead::Shape::X: return mx::api::Notehead::x;
-    case classify::notehead::Shape::Diamond: return mx::api::Notehead::diamond;
-    case classify::notehead::Shape::SmallSlash: return mx::api::Notehead::slash;
-    case classify::notehead::Shape::LargeSlash: return mx::api::Notehead::slash;
-    case classify::notehead::Shape::Null: return mx::api::Notehead::none;
+    case classify::notehead::Shape::Unclassified: break; // causes a throw; callers must not convert an unclassified shape
+    case classify::notehead::Shape::BackSlashed: return mx::api::Notehead::backSlashed;
     case classify::notehead::Shape::Circled: return mx::api::Notehead::circled;
     case classify::notehead::Shape::CircleX: return mx::api::Notehead::circleX;
+    case classify::notehead::Shape::Diamond: return mx::api::Notehead::diamond;
+    case classify::notehead::Shape::LargeCircled: return mx::api::Notehead::circled;
+    case classify::notehead::Shape::LargeSlash: return mx::api::Notehead::slash;
+    case classify::notehead::Shape::Null: return mx::api::Notehead::none;
     case classify::notehead::Shape::Plus: return mx::api::Notehead::cross;
+    case classify::notehead::Shape::Regular: return mx::api::Notehead::normal;
+    case classify::notehead::Shape::Round: return mx::api::Notehead::other;
+    case classify::notehead::Shape::Slashed: return mx::api::Notehead::slashed;
+    case classify::notehead::Shape::SmallSlash: return mx::api::Notehead::slash;
+    case classify::notehead::Shape::Square: return mx::api::Notehead::square;
     case classify::notehead::Shape::Triangle: return mx::api::Notehead::triangle;
     case classify::notehead::Shape::TriangleDown: return mx::api::Notehead::invertedTriangle;
-    case classify::notehead::Shape::Square: return mx::api::Notehead::square;
+    case classify::notehead::Shape::X: return mx::api::Notehead::x;
     case classify::notehead::Shape::Other: return mx::api::Notehead::other;
-    case classify::notehead::Shape::Unclassified: break; // causes a throw; callers must not convert an unclassified shape
 END_ENUM_CONVERSION
 
 BEGIN_ENUM_CONVERSION(PitchDisplayMode, PitchMode)

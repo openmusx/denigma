@@ -26,6 +26,7 @@
 #include <vector>
 
 #include "core/element_ids.h"
+#include "mnxdom.h"
 #include "utils/utf8_iterator.h"
 
 namespace denigma {
@@ -33,7 +34,8 @@ namespace formats {
 namespace mnx {
 namespace detail {
 
-void setFormattedText(mnxdom::FormattedText dst, const classify::FormattedText& src, const std::string& textId, classify::GapCollector* gaps)
+void setFormattedText(mnxdom::FormattedText dst, const classify::FormattedText& src, const std::string& textId, mnxdom::Document& document,
+    classify::GapCollector* gaps)
 {
     struct OutputChunk
     {
@@ -66,9 +68,11 @@ void setFormattedText(mnxdom::FormattedText dst, const classify::FormattedText& 
         const auto& chunk = chunks[index];
         const auto id = core::calcTextChunkId(textId, index);
         if (chunk.isGlyph) {
-            dst.appendSmufl(chunk.glyphs).set_id(id);
+            auto smufl = dst.appendSmufl(chunk.glyphs);
+            document.assignId(smufl, id);
         } else {
-            dst.appendText(chunk.text).set_id(id);
+            auto text = dst.appendText(chunk.text);
+            document.assignId(text, id);
         }
     }
     if (!gaps) {
@@ -118,8 +122,9 @@ void setFormattedText(mnxdom::FormattedText dst, const classify::FormattedText& 
 
 mnxdom::FormattedText makeFormattedText(const musx::util::EnigmaParsingContext& src, const std::string& textId, classify::GapCollector* gaps)
 {
-    mnxdom::FormattedText result;
-    setFormattedText(result, classify::classifyFormattedText(src), textId, gaps);
+    mnxdom::Document document;
+    auto result = document.parts().append().create_measures().append().ensure_text().append().text();
+    setFormattedText(result, classify::classifyFormattedText(src), textId, document, gaps);
     return result;
 }
 

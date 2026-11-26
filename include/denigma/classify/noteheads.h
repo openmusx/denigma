@@ -36,27 +36,35 @@ namespace notehead {
 /// @brief Notehead shape families recognized by Denigma's classifier.
 enum class Shape {
     Unclassified,
-    /// The notehead is a known SMuFL glyph, named in #NoteheadClassification::glyphName, that does not
-    /// belong to one of the specifically recognized shape families below. Any glyph qualifies.
-    Other,
-    Null,
-    Regular,
-    X,
-    Diamond,
-    SmallSlash,
-    LargeSlash,
-    /// A notehead drawn inside a circle.
+    /// A regular notehead crossed by a slash from top left to bottom right.
+    BackSlashed,
+    /// A notehead drawn inside a circle of regular size.
     Circled,
     /// An X enclosed in a circle.
     CircleX,
+    Diamond,
+    /// A notehead drawn inside a circle larger than that of #Circled.
+    LargeCircled,
+    LargeSlash,
+    Null,
     /// A plus sign.
     Plus,
+    Regular,
+    /// A notehead that is a circle rather than an ellipse.
+    Round,
+    /// A regular notehead crossed by a slash from bottom left to top right.
+    Slashed,
+    SmallSlash,
+    /// A square.
+    Square,
     /// A triangle pointing up, irrespective of stem direction.
     Triangle,
     /// A triangle pointing down, irrespective of stem direction.
     TriangleDown,
-    /// A square.
-    Square
+    X,
+    /// The notehead is a known SMuFL glyph, named in #NoteheadClassification::glyphName, that does not
+    /// belong to one of the specifically recognized shape families above. Any glyph qualifies.
+    Other
 };
 
 /// @enum Fill
@@ -80,6 +88,11 @@ struct NoteheadClassification
     notehead::Fill fill{notehead::Fill::Unspecified};
     /// SMuFL glyph name associated with the recognized symbol, when available.
     std::optional<std::string> glyphName;
+    /// True when #glyphName is not the standard glyph of #shape, so that a target which names only the shape
+    /// would draw something else. The classifier then prefers that the glyph be named. This is a preference, not a
+    /// requirement: a target may still name the glyph for its own reasons, such as a fill that differs from
+    /// the note value's (see #calcFillOverridesDefault). Always true for #notehead::Shape::Other.
+    bool glyphPreferred{};
     /// The resolved font, character, size, and offset that produced this classification.
     musx::dom::NoteInfoPtr::NoteheadInfo noteheadInfo;
 
