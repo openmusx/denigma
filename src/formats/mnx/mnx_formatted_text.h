@@ -32,8 +32,13 @@ namespace formats {
 namespace mnx {
 namespace detail {
 
-void setFormattedText(
-    mnxdom::FormattedText dst, const classify::FormattedText& src, const std::string& textId, classify::GapCollector* gaps = nullptr);
+/// Replaces the content of @p dst, which belongs to @p document, with @p src. Each chunk's id is assigned
+/// through @p document, which maps it for lookup during export.
+void setFormattedText(mnxdom::FormattedText dst, const classify::FormattedText& src, const std::string& textId, mnxdom::Document& document,
+    classify::GapCollector* gaps = nullptr);
+
+/// Returns @p src as formatted text. The text belongs to a document of its own, because MNX ids can only be
+/// assigned through a document.
 
 mnxdom::FormattedText makeFormattedText(
     const musx::util::EnigmaParsingContext& src, const std::string& textId, classify::GapCollector* gaps = nullptr);

@@ -454,7 +454,7 @@ static void createMeasures(const MnxMusxMappingPtr& context, mnxdom::Part& part)
     for (const auto& musxMeasure : musxMeasures) {
         auto mnxMeasure = mnxMeasures.at(measureIndex++);
         if (const auto partId = part.id()) {
-            mnxMeasure.set_id(core::calcPartMeasureId(partId.value(), musxMeasure->getCmper()));
+            context->mnxDocument->assignId(mnxMeasure, core::calcPartMeasureId(partId.value(), musxMeasure->getCmper()));
         }
         for (size_t x = 0; x < context->currPartStaves.size(); x++) {
             const StaffCmper staffCmper = context->currPartStaves[x];
@@ -518,7 +518,7 @@ static void populatePartMetadata(const MnxMusxMappingPtr& context, mnxdom::Part&
 {
     const auto musxMiscOptions = context->finaleOptions.miscOptions;
 
-    part.set_id(id);
+    context->mnxDocument->assignId(part, id);
     const auto fullName = staff->getFullInstrumentName(EnigmaString::AccidentalStyle::Unicode);
     if (!fullName.empty()) {
         part.set_name(utils::trimNewLineFromString(fullName));

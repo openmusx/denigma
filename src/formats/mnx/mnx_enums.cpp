@@ -154,20 +154,24 @@ BEGIN_ENUM_CONVERSION(classify::dynamics::Level, mnxdom::DynamicValue)
 END_ENUM_CONVERSION
 
 BEGIN_ENUM_CONVERSION(classify::notehead::Shape, mnxdom::NoteheadShape)
-    case classify::notehead::Shape::Other: return mnxdom::NoteheadShape::Custom;
-    case classify::notehead::Shape::Null: return mnxdom::NoteheadShape::Custom;
-    case classify::notehead::Shape::Regular: return mnxdom::NoteheadShape::Oval;
-    case classify::notehead::Shape::X: return mnxdom::NoteheadShape::X;
-    case classify::notehead::Shape::Diamond: return mnxdom::NoteheadShape::Diamond;
-    case classify::notehead::Shape::SmallSlash: return mnxdom::NoteheadShape::Slash;
-    case classify::notehead::Shape::LargeSlash: return mnxdom::NoteheadShape::Slash;
-    case classify::notehead::Shape::Circled: return mnxdom::NoteheadShape::Custom;
+    case classify::notehead::Shape::Unclassified: break; // causes a throw; callers must not convert an unclassified shape
+    case classify::notehead::Shape::BackSlashed: return mnxdom::NoteheadShape::BackSlashed;
+    case classify::notehead::Shape::Circled: return mnxdom::NoteheadShape::Circled;
     case classify::notehead::Shape::CircleX: return mnxdom::NoteheadShape::CircleX;
+    case classify::notehead::Shape::Diamond: return mnxdom::NoteheadShape::Diamond;
+    case classify::notehead::Shape::LargeCircled: return mnxdom::NoteheadShape::Circled;
+    case classify::notehead::Shape::LargeSlash: return mnxdom::NoteheadShape::Slash;
+    case classify::notehead::Shape::Null: return mnxdom::NoteheadShape::Custom;
     case classify::notehead::Shape::Plus: return mnxdom::NoteheadShape::Plus;
+    case classify::notehead::Shape::Regular: return mnxdom::NoteheadShape::Oval;
+    case classify::notehead::Shape::Round: return mnxdom::NoteheadShape::Custom;
+    case classify::notehead::Shape::Slashed: return mnxdom::NoteheadShape::Slashed;
+    case classify::notehead::Shape::SmallSlash: return mnxdom::NoteheadShape::Slash;
+    case classify::notehead::Shape::Square: return mnxdom::NoteheadShape::Square;
     case classify::notehead::Shape::Triangle: return mnxdom::NoteheadShape::Triangle;
     case classify::notehead::Shape::TriangleDown: return mnxdom::NoteheadShape::TriangleDown;
-    case classify::notehead::Shape::Square: return mnxdom::NoteheadShape::Square;
-    case classify::notehead::Shape::Unclassified: break; // causes a throw; callers must not convert an unclassified shape
+    case classify::notehead::Shape::X: return mnxdom::NoteheadShape::X;
+    case classify::notehead::Shape::Other: return mnxdom::NoteheadShape::Custom;
 END_ENUM_CONVERSION
 
 BEGIN_ENUM_CONVERSION(music_theory::NoteName, mnxdom::NoteStep)

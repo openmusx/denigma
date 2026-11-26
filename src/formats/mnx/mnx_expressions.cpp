@@ -280,7 +280,7 @@ void appendGeneralText(const MnxMusxMappingPtr& context, mnxdom::part::Measure& 
     }
     const auto id = core::calcExpressionId(asgn);
     auto positioned = mnxMeasure.ensure_text().append();
-    positioned.set_id(id);
+    context->mnxDocument->assignId(positioned, id);
     positioned.set_or_clear_type(enumConvert<mnxdom::TextType>(classification.type));
     positioned.set_or_clear_staff(mnxStaffNumber.value_or(1));
     positioned.set_or_clear_placement(enumConvert<mnxdom::Placement>(placement));
@@ -294,7 +294,7 @@ void appendGeneralText(const MnxMusxMappingPtr& context, mnxdom::part::Measure& 
     if (const auto graceIndex = calcExpressionGraceIndex(context, asgn, entryInfo)) {
         positioned.ensure_position(mnxFractionFromEdu(asgn->eduPosition)).set_graceIndex(*graceIndex);
     }
-    setFormattedText(positioned.text(), text, id, gaps);
+    setFormattedText(positioned.text(), text, id, *context->mnxDocument, gaps);
     if (gaps && classification.type != classify::ExpressionType::GenericText && classification.type != classify::ExpressionType::ExpressiveText) {
         gaps->add({id, std::nullopt, std::nullopt}, classification, classify::GapExtent::Partial);
     }
@@ -573,7 +573,7 @@ void appendTempos(
 
     for (const auto& [position, candidate] : temposAtPositions) {
         auto tempo = mnxMeasure.ensure_tempos().append(candidate.tempo.bpm, candidate.tempo.noteValue);
-        tempo.set_id(candidate.id);
+        context->mnxDocument->assignId(tempo, candidate.id);
         if (position) {
             tempo.ensure_location(mnxFractionFromFraction(Fraction::fromEdu(position)));
         }

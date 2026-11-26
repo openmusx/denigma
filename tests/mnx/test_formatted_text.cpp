@@ -26,6 +26,7 @@
 
 #include "core/musx_reader.h"
 #include "formats/mnx/mnx_formatted_text.h"
+#include "mnxdom.h"
 #include "musx/musx.h"
 
 namespace mnxdom = ::mnx;
@@ -217,7 +218,9 @@ TEST(MnxFormattedText, ReplacesExistingContentAndIgnoresGapCollectionForOutput)
     auto second = makeRawTextContext("^fontid(1)^size(12)^nfx(0)Second");
     auto formatted = makeFormattedText(first.parsingContext, "expr");
     denigma::classify::GapCollector gaps;
-    setFormattedText(formatted, denigma::classify::classifyFormattedText(second.parsingContext), "expr", &gaps);
+    // A fresh document wrapper has an empty id mapping, so the replaced chunks' ids can be assigned again.
+    auto document = formatted.document();
+    setFormattedText(formatted, denigma::classify::classifyFormattedText(second.parsingContext), "expr", document, &gaps);
     EXPECT_EQ(formatted.dump(), makeFormattedText(second.parsingContext, "expr").dump());
 }
 

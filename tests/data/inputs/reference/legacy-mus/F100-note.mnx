@@ -23,7 +23,6 @@
                 {
                     "sources": [
                         {
-                            "labelref": "name",
                             "part": "P1",
                             "staff": 1
                         }
@@ -39,7 +38,7 @@
             "useBeams": true,
             "useLyricExtenders": true
         },
-        "version": 55
+        "version": 57
     },
     "parts": [
         {

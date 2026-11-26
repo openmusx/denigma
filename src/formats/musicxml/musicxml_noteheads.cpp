@@ -104,7 +104,6 @@ bool calcIsNoteNameNotehead(const std::optional<std::string>& glyphName)
 void applyNoteheadData(mx::api::NoteData& note, const NoteInfoPtr& noteInfo, const classify::EntryNoteheadClassification& entryNoteheads)
 {
     using Fill = classify::notehead::Fill;
-    using Shape = classify::notehead::Shape;
     const auto classification = classify::classifyNotehead(noteInfo);
     /// @todo Write a note-name notehead as <notehead-text> once mx::api exposes it. Until then it is left out,
     /// because the MusicXML spec says not to write one as `other` with a SMuFL glyph name.
@@ -121,14 +120,10 @@ void applyNoteheadData(mx::api::NoteData& note, const NoteInfoPtr& noteInfo, con
             note.noteheadFilled = mx::api::Bool::no;
         }
 
-        // The MusicXML value identifies the glyph for every shape Denigma models except these two:
-        // `other` carries no visual information at all, and both slash sizes share the `slash` value.
-        // Naming the glyph lets a consumer draw what Finale drew.
-        switch (classification.shape) {
-        case Shape::Other:
-        case Shape::SmallSlash:
-        case Shape::LargeSlash: note.noteheadSmufl = classification.glyphName; break;
-        default: break;
+        // Name the glyph where the MusicXML value names no shape (`other`), which carries no visual information
+        // at all, and where the classifier prefers it because the glyph is not the standard glyph of its shape.
+        if (note.notehead == mx::api::Notehead::other || classification.glyphPreferred) {
+            note.noteheadSmufl = classification.glyphName;
         }
     }
 

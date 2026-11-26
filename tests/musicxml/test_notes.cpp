@@ -32,6 +32,7 @@
 #include <vector>
 
 #include "denigma/classify/articulations.h"
+#include "denigma/classify/noteheads.h"
 #include "denigma/formats/musicxml.h"
 #include "denigma/io/random_access_reader.h"
 #include "formats/musicxml/musicxml.h"
@@ -1313,6 +1314,18 @@ TEST(MusicXmlNotes, CaesuraVariantsMapToMusicXml)
     EXPECT_EQ(convert(CaesuraType::Thick), mx::api::MarkType::caesuraThick);
     EXPECT_EQ(convert(CaesuraType::SingleStroke), mx::api::MarkType::caesuraSingle);
     EXPECT_EQ(convert(CaesuraType::Chant), mx::api::MarkType::caesura);
+}
+
+TEST(MusicXmlNotes, SlashedAndCircledNoteheadsMapToMusicXml)
+{
+    using Shape = classify::notehead::Shape;
+    const auto convert = [](Shape shape) { return formats::musicxml::detail::enumConvert<mx::api::Notehead>(shape); };
+
+    EXPECT_EQ(convert(Shape::Circled), mx::api::Notehead::circled);
+    EXPECT_EQ(convert(Shape::LargeCircled), mx::api::Notehead::circled);
+    EXPECT_EQ(convert(Shape::Round), mx::api::Notehead::other);
+    EXPECT_EQ(convert(Shape::Slashed), mx::api::Notehead::slashed);
+    EXPECT_EQ(convert(Shape::BackSlashed), mx::api::Notehead::backSlashed);
 }
 
 TEST(MusicXmlNotes, UnmappedTechniquesCarryTheirSmuflGlyph)

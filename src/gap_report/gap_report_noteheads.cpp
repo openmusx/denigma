@@ -36,16 +36,20 @@ std::string_view noteheadShapeName(notehead::Shape shape)
     case notehead::Shape::Other: return "other";
     case notehead::Shape::Null: return "null";
     case notehead::Shape::Regular: return "regular";
+    case notehead::Shape::Round: return "round";
     case notehead::Shape::X: return "x";
     case notehead::Shape::Diamond: return "diamond";
     case notehead::Shape::SmallSlash: return "small-slash";
     case notehead::Shape::LargeSlash: return "large-slash";
     case notehead::Shape::Circled: return "circled";
+    case notehead::Shape::LargeCircled: return "large-circled";
     case notehead::Shape::CircleX: return "circle-x";
     case notehead::Shape::Plus: return "plus";
     case notehead::Shape::Triangle: return "triangle";
     case notehead::Shape::TriangleDown: return "triangle-down";
     case notehead::Shape::Square: return "square";
+    case notehead::Shape::Slashed: return "slashed";
+    case notehead::Shape::BackSlashed: return "back-slashed";
     }
     return "unclassified";
 }

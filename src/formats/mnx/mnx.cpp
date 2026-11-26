@@ -265,6 +265,8 @@ static std::unique_ptr<mnxdom::Document> createMnxDocument(const CommandInputDat
     }
     auto context = std::make_shared<MnxMusxMapping>(denigmaContext, document);
     context->sourceFormat = inputData.sourceFormat;
+    // Every id is assigned with Document::assignId, which maps it as it is set. Export can then look objects up
+    // by id through getEntityMap, before validation rebuilds the mapping from the finished document.
     context->mnxDocument = std::make_unique<mnxdom::Document>();
     context->musxParts = others::PartDefinition::getInUserOrder(document);
     MusxLoggerScope mnxMusxLogger(makeMusxLogCallback(context));
