@@ -1049,14 +1049,14 @@ TEST(MusicXmlNotes, NoteheadParenthesesFromEnclosingArticulations)
     const auto score = loadScoreData(outputPath);
     ASSERT_TRUE(score);
 
-    // The fixture's cases occupy entries 60 to 102; see test_articulations.cpp. The hidden enclosure (entry 93) and the
-    // rest cases (entries 94 to 102) are not written.
+    // The fixture's cases occupy entries 60 to 102; see test_articulations.cpp. The hidden enclosure (entry 93) is not
+    // written, and the brackets (entry 70) and the rest cases (entries 94 to 102) are written as levels; see
+    // LevelFromEnclosingArticulations.
     const std::set<std::string> expectedIds = {
         "ev60n1", // legacy Maestro parentheses
         "ev61n1", // closing delimiter at the vertical tolerance from the opening
         "ev63n1", // at the bottom of the note's window
         "ev65n1", // just under the top of the note's window
-        "ev70n1", // brackets, written as parentheses because MusicXML has no notehead brackets
         "ev74n1", // lower note of a chord with a second
         "ev74n2", // upper note of a chord with a second
         "ev75n1", // SMuFL notehead parentheses
@@ -1087,6 +1087,51 @@ TEST(MusicXmlNotes, NoteheadParenthesesFromEnclosingArticulations)
         }
     }
     EXPECT_EQ(actualIds, expectedIds);
+}
+
+TEST(MusicXmlNotes, LevelFromEnclosingArticulations)
+{
+    setupTestDataPaths();
+
+    const auto outputPath = exportMusicXmlFixture("notehead_enclosures.enigmaxml");
+    const auto score = loadScoreData(outputPath);
+    ASSERT_TRUE(score);
+
+    // Brackets around a note, and any enclosure around a rest, are written as <level>, which keeps brackets as
+    // brackets. Parentheses around a note stay notehead parentheses.
+    enum class Kind { Parentheses, Brackets };
+    const std::map<std::string, Kind> expectedLevels = {
+        {"ev70n1", Kind::Brackets},   // brackets around a note
+        {"ev94", Kind::Parentheses},  // parentheses around a floating rest
+        {"ev95", Kind::Parentheses},  // parentheses around a positioned rest
+        {"ev96", Kind::Brackets},     // brackets around a rest
+        {"ev97", Kind::Parentheses},  // at the bottom of the rest's window
+        {"ev99", Kind::Parentheses},  // just under the top of the rest's window
+        {"ev102", Kind::Parentheses}, // delimiters centered on the rest and offset
+    };
+    std::map<std::string, Kind> actualLevels;
+    for (const auto& part : score->parts) {
+        for (const auto& measure : part.measures) {
+            for (const auto& staff : measure.staves) {
+                for (const auto& [voiceNumber, voice] : staff.voices) {
+                    for (const auto& note : voice.notes) {
+                        if (!note.level) {
+                            continue;
+                        }
+                        ASSERT_TRUE(note.id);
+                        EXPECT_EQ(note.noteheadParentheses, mx::api::Bool::unspecified) << note.id->value();
+                        EXPECT_TRUE(note.level->text.empty()) << note.id->value();
+                        const bool parentheses = note.level->parentheses == mx::api::Bool::yes;
+                        const bool brackets = note.level->bracket == mx::api::Bool::yes;
+                        EXPECT_NE(parentheses, brackets) << note.id->value();
+                        EXPECT_TRUE(brackets || note.isRest) << note.id->value();
+                        actualLevels.emplace(note.id->value(), brackets ? Kind::Brackets : Kind::Parentheses);
+                    }
+                }
+            }
+        }
+    }
+    EXPECT_EQ(actualLevels, expectedLevels);
 }
 
 TEST(MusicXmlNotes, ArtificialHarmonicsWithWrittenSoundingPitch)

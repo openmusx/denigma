@@ -207,3 +207,5 @@ The mx update at `e335eb5f` (v0.7.4) adds these:
 - Note accidentals that MusicXML cannot name: `Accidental::other` with a SMuFL glyph in `NoteData::accidentalSmufl`. Pair with the microtonal key signatures above, where an EDO alteration has no MusicXML accidental value.
 - Arrow marks: `MarkType::arrow` with `ArrowMarkData` for style, arrowhead, circular arrows, and a SMuFL glyph. Strum arrows and other arrow articulations would need recognizing in the articulation classifier first.
 - Figured-bass position and print attributes, which need the figured-bass export path noted above.
+
+The mx update at `9fb57380` adds `<footnote>` through `mx::api::FootnoteData`. Finale has no footnote element, but it may become possible to detect text that serves as a footnote or header note and attach it to the element it annotates.
