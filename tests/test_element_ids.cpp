@@ -75,7 +75,8 @@ TEST(ElementIdsTest, CalcScoreAndPageIds)
 TEST(ElementIdsTest, CalcMeasureTextId)
 {
     // The assignment records provenance without consulting its document, so a detached one suffices.
-    auto assign = std::make_shared<details::MeasureTextAssign>(DocumentWeakPtr{}, SCORE_PARTID, CommonClassBase::ShareMode::All, Cmper{2}, Cmper{7}, Inci{1});
+    auto assign =
+        std::make_shared<details::MeasureTextAssign>(DocumentWeakPtr{}, SCORE_PARTID, CommonClassBase::ShareMode::All, Cmper{2}, Cmper{7}, Inci{1});
     assign->block = 5;
     EXPECT_EQ(core::calcMeasureTextId(assign), "m7.s2.textBlock5.inci1");
 }
