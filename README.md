@@ -109,6 +109,8 @@ absolute `fret` values, plus optional numeric `fingering` and `barre` endpoint.
 The gap's part-measure anchor and staff identify the source instrument; the
 fretboard payload itself has no part identifier. Font-based fretboards are not
 included because they do not contain recoverable string or fret positions.
+Finale can place a barre below a stopped note at an endpoint; the frame-note
+barre markers do not preserve that independent barre fret.
 
 Serialized reports use these compatibility rules:
 
