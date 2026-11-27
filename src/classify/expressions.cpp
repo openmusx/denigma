@@ -1545,6 +1545,10 @@ std::vector<ExpressionAssignmentGroup> groupExpressionAssignments(
     auto groups = collectAssignmentGroups(assignments, false);
     for (auto& group : groups) {
         group.classification = classifyAssignmentGroup(group);
+        group.classification.members.reserve(group.members.size());
+        for (const auto& member : group.members) {
+            group.classification.members.push_back({classifyExpressionScope(member), member->staffAssign, member->calcVerticalPlacement()});
+        }
     }
     return groups;
 }

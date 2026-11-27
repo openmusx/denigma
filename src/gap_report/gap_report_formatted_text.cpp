@@ -70,13 +70,13 @@ json fontJson(const musx::dom::ResolvedFontInfo& font)
     };
 }
 
-json formattedTextJson(const classify::FormattedText& text)
+json formattedTextJson(const classify::FormattedText& text, FontTable& fonts)
 {
     auto runs = json::array();
     for (const auto& run : text.runs) {
         json item{
             {"text", run.text},
-            {"font", fontJson(run.font)},
+            {"font", fonts.reference(run.font)},
         };
         if (run.baseline) {
             item["baseline"] = run.baseline;
@@ -99,6 +99,22 @@ json formattedTextJson(const classify::FormattedText& text)
         {"plain", text.plainText},
         {"runs", std::move(runs)},
     };
+}
+
+std::string FontTable::reference(const musx::dom::ResolvedFontInfo& font)
+{
+    auto entry = fontJson(font);
+    auto [it, inserted] = m_keyByFont.emplace(entry.dump(), std::string());
+    if (inserted) {
+        it->second = std::to_string(m_keyByFont.size());
+        m_fonts[it->second] = std::move(entry);
+    }
+    return it->second;
+}
+
+json FontTable::toJson() const
+{
+    return m_fonts;
 }
 
 } // namespace gap_report

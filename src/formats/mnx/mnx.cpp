@@ -31,6 +31,7 @@
 #include "core/musx_reader.h"
 #include "mnx.h"
 #include "mnx_smartshapes.h"
+#include "mnx_text_blocks.h"
 #include "utils/stringutils.h"
 
 using namespace musx::dom;
@@ -213,12 +214,14 @@ static void createMnx(const MnxMusxMappingPtr& context)
 static void createScores(const MnxMusxMappingPtr& context)
 {
     auto& mnxDocument = context->mnxDocument;
+    std::vector<size_t> pageCounts;
     for (const auto& linkedPart : context->musxParts) {
         auto partGlobals = context->document->getOthers()->get<others::PartGlobals>(linkedPart->getCmper(), MUSX_GLOBALS_CMPER);
         // This name is written into the MNX file, so it keeps proper accidental glyphs and its own
         // fallback. calcLinkedPartDisplayName is deliberately not used here: that helper exists for
         // filenames and log messages, where ASCII is the rule.
         auto mnxScore = mnxDocument->ensure_scores().append(linkedPart->getName(EnigmaString::AccidentalStyle::Unicode));
+        mnxDocument->assignId(mnxScore, core::calcScoreId(linkedPart->getCmper()));
         if (mnxScore.name().empty()) {
             mnxScore.set_name(linkedPart->isScore() ? std::string("Score") : std::string("Part ") + std::to_string(linkedPart->getCmper()));
         }
@@ -237,8 +240,9 @@ static void createScores(const MnxMusxMappingPtr& context)
                                                       : MusxInstanceList<others::Page>(context->document, linkedPart->getCmper());
         for (size_t x = 0; x < pages.size(); x++) {
             auto mnxPage = mnxScore.ensure_pages().append();
-            auto mnxSystems = mnxPage.systems();
             auto page = pages[x];
+            mnxDocument->assignId(mnxPage, core::calcPageId(linkedPart->getCmper(), page->getCmper()));
+            auto mnxSystems = mnxPage.systems();
             if (!page->isBlank() && page->lastSystemId.has_value()) {
                 for (SystemCmper sysId = page->firstSystemId; sysId <= page->lastSystemId.value(); sysId++) {
                     auto system = context->document->getOthers()->get<others::StaffSystem>(linkedPart->getCmper(), sysId);
@@ -251,10 +255,12 @@ static void createScores(const MnxMusxMappingPtr& context)
                 }
             }
         }
+        pageCounts.push_back(pages.size());
         if (partGlobals && !partGlobals->showTransposed) {
             mnxScore.set_useWritten(true);
         }
     }
+    processPageTexts(context, pageCounts);
 }
 
 static std::unique_ptr<mnxdom::Document> createMnxDocument(const CommandInputData& inputData, const DenigmaContext& denigmaContext)

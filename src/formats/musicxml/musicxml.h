@@ -156,7 +156,7 @@ mx::api::ScoreData createMusicXmlDocument(const CommandInputData& inputData, con
 void createDefaults(const MusicXmlMusxMapping& context);
 void createMeasures(MusicXmlMusxMapping& context);
 void createMetaData(const MusicXmlMusxMapping& context);
-void createPageTexts(const MusicXmlMusxMapping& context);
+void processPageTexts(const MusicXmlMusxMapping& context);
 void createNotesForMeasureStaff(MusicXmlMusxMapping& context, mx::api::MeasureData& measure, mx::api::StaffData& staff,
     const musx::dom::MusxInstance<musx::dom::others::Measure>& musxMeasure, musx::dom::StaffCmper staffId, size_t measureIndex, size_t staffIndex);
 int syntheticRestVoiceNumber(const mx::api::PartData& part, size_t staffIndex);

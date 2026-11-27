@@ -17,6 +17,7 @@ set(DENIGMA_CLASSIFY_SOURCES
     ${CMAKE_CURRENT_LIST_DIR}/percussion.cpp
     ${CMAKE_CURRENT_LIST_DIR}/smartshapes.cpp
     ${CMAKE_CURRENT_LIST_DIR}/staff_states.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/text_blocks.cpp
     ${CMAKE_CURRENT_LIST_DIR}/tuplets.cpp
 )
 

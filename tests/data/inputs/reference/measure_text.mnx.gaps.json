@@ -1,0 +1,328 @@
+{
+  "schemaVersion": 3,
+  "producer": {
+    "name": "denigma",
+    "version": "TEST",
+    "commit": "<commit>"
+  },
+  "gaps": [
+    {
+      "anchor": "m1.s1.textBlock2.inci0",
+      "extent": "partial",
+      "type": "text-formatting",
+      "formatting": {
+        "font": "1",
+        "baseline": 0,
+        "superscript": 0,
+        "tracking": 0,
+        "sourceText": "Measure One Text",
+        "ranges": [
+          {
+            "anchor": "m1.s1.textBlock2.inci0.text0",
+            "offset": 0,
+            "length": 16
+          }
+        ]
+      }
+    },
+    {
+      "anchor": "m1.s1.textBlock2.inci0",
+      "extent": "partial",
+      "type": "text-block",
+      "textBlock": {
+        "unit": "evpu",
+        "horizontalOffset": 0,
+        "verticalOffset": -178,
+        "verticalOrigin": "staff-top-line",
+        "frame": {
+          "unit": "evpu",
+          "width": 0,
+          "height": 0,
+          "handleOffsetX": 0,
+          "handleOffsetY": 0,
+          "wordWrap": true,
+          "noExpandSingleWord": false,
+          "justify": "left",
+          "inset": 0.0,
+          "lineSpacingPercent": 100,
+          "showBorder": true,
+          "borderThickness": 0.0,
+          "cornerRadius": 8.0,
+          "positionFromFrameEdge": true,
+          "hasCustomShape": false
+        }
+      }
+    },
+    {
+      "anchor": "m1.s1.textBlock3.inci1",
+      "extent": "partial",
+      "type": "text-formatting",
+      "formatting": {
+        "font": "1",
+        "baseline": 0,
+        "superscript": 0,
+        "tracking": 0,
+        "sourceText": "Measure One Right Shifted",
+        "ranges": [
+          {
+            "anchor": "m1.s1.textBlock3.inci1.text0",
+            "offset": 0,
+            "length": 25
+          }
+        ]
+      }
+    },
+    {
+      "anchor": "m1.s1.textBlock3.inci1",
+      "extent": "partial",
+      "type": "text-block",
+      "textBlock": {
+        "unit": "evpu",
+        "horizontalOffset": 0,
+        "verticalOffset": 73,
+        "verticalOrigin": "staff-top-line",
+        "frame": {
+          "unit": "evpu",
+          "width": 0,
+          "height": 0,
+          "handleOffsetX": 0,
+          "handleOffsetY": 0,
+          "wordWrap": true,
+          "noExpandSingleWord": false,
+          "justify": "left",
+          "inset": 0.0,
+          "lineSpacingPercent": 100,
+          "showBorder": true,
+          "borderThickness": 0.0,
+          "cornerRadius": 8.0,
+          "positionFromFrameEdge": true,
+          "hasCustomShape": false
+        }
+      }
+    },
+    {
+      "anchor": "m2.s1.textBlock5.inci0",
+      "extent": "partial",
+      "type": "text-formatting",
+      "formatting": {
+        "font": "2",
+        "baseline": 0,
+        "superscript": 0,
+        "tracking": 0,
+        "sourceText": "Measure 2 Text Left Shifted",
+        "ranges": [
+          {
+            "anchor": "m2.s1.textBlock5.inci0.text0",
+            "offset": 0,
+            "length": 27
+          }
+        ]
+      }
+    },
+    {
+      "anchor": "m2.s1.textBlock5.inci0",
+      "extent": "partial",
+      "type": "text-block",
+      "textBlock": {
+        "unit": "evpu",
+        "horizontalOffset": -240,
+        "verticalOffset": 119,
+        "verticalOrigin": "staff-top-line",
+        "frame": {
+          "unit": "evpu",
+          "width": 0,
+          "height": 0,
+          "handleOffsetX": 0,
+          "handleOffsetY": 0,
+          "wordWrap": true,
+          "noExpandSingleWord": false,
+          "justify": "left",
+          "inset": 0.0,
+          "lineSpacingPercent": 100,
+          "showBorder": true,
+          "borderThickness": 0.0,
+          "cornerRadius": 8.0,
+          "positionFromFrameEdge": true,
+          "hasCustomShape": false
+        }
+      }
+    },
+    {
+      "anchor": "m4.s1.textBlock6.inci0",
+      "extent": "partial",
+      "type": "text-formatting",
+      "formatting": {
+        "font": "1",
+        "baseline": 0,
+        "superscript": 0,
+        "tracking": 0,
+        "sourceText": "Text containing ",
+        "ranges": [
+          {
+            "anchor": "m4.s1.textBlock6.inci0.text0",
+            "offset": 0,
+            "length": 16
+          }
+        ]
+      }
+    },
+    {
+      "anchor": "m4.s1.textBlock6.inci0",
+      "extent": "partial",
+      "type": "text-formatting",
+      "formatting": {
+        "font": "3",
+        "baseline": 0,
+        "superscript": 0,
+        "tracking": 0,
+        "sourceText": "",
+        "ranges": [
+          {
+            "anchor": "m4.s1.textBlock6.inci0.text1",
+            "offset": 0,
+            "length": 1
+          }
+        ]
+      }
+    },
+    {
+      "anchor": "m4.s1.textBlock6.inci0",
+      "extent": "partial",
+      "type": "text-formatting",
+      "formatting": {
+        "font": "1",
+        "baseline": 0,
+        "superscript": 0,
+        "tracking": 0,
+        "sourceText": " glyph and ",
+        "ranges": [
+          {
+            "anchor": "m4.s1.textBlock6.inci0.text2",
+            "offset": 0,
+            "length": 11
+          }
+        ]
+      }
+    },
+    {
+      "anchor": "m4.s1.textBlock6.inci0",
+      "extent": "partial",
+      "type": "text-formatting",
+      "formatting": {
+        "font": "4",
+        "baseline": 0,
+        "superscript": 0,
+        "tracking": 0,
+        "sourceText": "Ç",
+        "ranges": [
+          {
+            "anchor": "m4.s1.textBlock6.inci0.text3",
+            "offset": 0,
+            "length": 1
+          }
+        ]
+      }
+    },
+    {
+      "anchor": "m4.s1.textBlock6.inci0",
+      "extent": "partial",
+      "type": "text-formatting",
+      "formatting": {
+        "font": "1",
+        "baseline": 0,
+        "superscript": 0,
+        "tracking": 0,
+        "sourceText": " glyph",
+        "ranges": [
+          {
+            "anchor": "m4.s1.textBlock6.inci0.text4",
+            "offset": 0,
+            "length": 6
+          }
+        ]
+      }
+    },
+    {
+      "anchor": "m4.s1.textBlock6.inci0",
+      "extent": "partial",
+      "type": "text-block",
+      "textBlock": {
+        "unit": "evpu",
+        "horizontalOffset": -131,
+        "verticalOffset": -167,
+        "verticalOrigin": "staff-top-line",
+        "frame": {
+          "unit": "evpu",
+          "width": 0,
+          "height": 0,
+          "handleOffsetX": 0,
+          "handleOffsetY": 0,
+          "wordWrap": true,
+          "noExpandSingleWord": false,
+          "justify": "left",
+          "inset": 0.0,
+          "lineSpacingPercent": 100,
+          "showBorder": true,
+          "borderThickness": 0.0,
+          "cornerRadius": 8.0,
+          "positionFromFrameEdge": true,
+          "hasCustomShape": false
+        }
+      }
+    }
+  ],
+  "fonts": {
+    "1": {
+      "name": "Times New Roman",
+      "size": 12,
+      "sizeIsPercent": false,
+      "bold": false,
+      "italic": false,
+      "underline": false,
+      "strikeout": false,
+      "absolute": false,
+      "hidden": false,
+      "isSymbolFont": false,
+      "isSmufl": false
+    },
+    "2": {
+      "name": "Abadi MT Condensed Light",
+      "size": 18,
+      "sizeIsPercent": false,
+      "bold": false,
+      "italic": false,
+      "underline": false,
+      "strikeout": false,
+      "absolute": false,
+      "hidden": false,
+      "isSymbolFont": false,
+      "isSmufl": false
+    },
+    "3": {
+      "name": "Maestro",
+      "size": 18,
+      "sizeIsPercent": false,
+      "bold": false,
+      "italic": false,
+      "underline": false,
+      "strikeout": false,
+      "absolute": false,
+      "hidden": false,
+      "isSymbolFont": true,
+      "isSmufl": false
+    },
+    "4": {
+      "name": "Maestro",
+      "size": 14,
+      "sizeIsPercent": false,
+      "bold": false,
+      "italic": false,
+      "underline": false,
+      "strikeout": false,
+      "absolute": false,
+      "hidden": false,
+      "isSymbolFont": true,
+      "isSmufl": false
+    }
+  }
+}

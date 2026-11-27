@@ -357,6 +357,18 @@ using ExpressionValue =
         expression::MetronomeMark, expression::TempoAlteration, expression::TechniqueText, expression::ExpressiveText, expression::RehearsalMark,
         expression::MultimeasureRestNumber, expression::MeasureRepeatCount, expression::GenericText, expression::Error, expression::Suppress>;
 
+/// @struct ExpressionMember
+/// @brief One assignment of a staff-list group: where it draws the group's expression.
+struct ExpressionMember
+{
+    /// @brief The staff, or the system edge, the member draws on.
+    ExpressionScope scope{ExpressionScope::Unassigned};
+    /// @brief The staff, when #scope is ExpressionScope::Staff.
+    musx::dom::StaffCmper staff{};
+    /// @brief Which side of its staff the member is drawn on, or `NotApplicable` when the source does not say.
+    musx::dom::VerticalPlacement placement{musx::dom::VerticalPlacement::NotApplicable};
+};
+
 /// @struct ExpressionClassification
 /// @brief Exporter-neutral semantic classification of one Finale expression.
 struct ExpressionClassification
@@ -373,6 +385,9 @@ struct ExpressionClassification
     ExpressionValue value{};
     /// @brief Per-run classifications for expressions containing mixed content.
     std::vector<expression::RunClassification> runs;
+    /// @brief Every member of the assignment group, in the order of ExpressionAssignmentGroup::members.
+    /// Filled for a group's classification by #groupExpressionAssignments; empty otherwise.
+    std::vector<ExpressionMember> members;
 
     /// @brief Returns the payload as @c T when it contains that type.
     /// @tparam T Requested payload type.

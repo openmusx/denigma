@@ -57,11 +57,15 @@ TEST(GapReport, SerializesExtentPlacementsAndExpressionPayloads)
     tempo.basis = denigma::classify::ClassificationBasis::FinaleCategory;
     tempo.scope = denigma::classify::ExpressionScope::TopStaff;
     tempo.value = denigma::classify::expression::TempoText{{"Allegro", 120, 1024}};
-    collector.add({"m1.textExp24.inci0", std::nullopt, std::nullopt}, tempo, denigma::classify::GapExtent::Partial,
-        {
-            {denigma::classify::GapPlacement::Kind::SystemTop, {"m1", std::nullopt, std::nullopt}},
-            {denigma::classify::GapPlacement::Kind::Staff, {"P2.m1", 2, std::nullopt}},
-        });
+    // A staff-list group of three; the gap lists the first and the last, each at its target place.
+    tempo.members = {
+        {denigma::classify::ExpressionScope::TopStaff, 0, musx::dom::VerticalPlacement::Above},
+        {denigma::classify::ExpressionScope::Staff, 3, musx::dom::VerticalPlacement::Above},
+        {denigma::classify::ExpressionScope::Staff, 4, musx::dom::VerticalPlacement::NotApplicable},
+    };
+    collector.add({"m1.textExp24.inci0", std::nullopt, std::nullopt},
+        denigma::classify::ExpressionGap{tempo, {{0, {"m1", std::nullopt, std::nullopt}}, {2, {"P2.m1", 2, std::nullopt}}}},
+        denigma::classify::GapExtent::Partial);
     collector.add({"m1.tempoDef.inci0", std::nullopt, std::nullopt}, denigma::classify::PlaybackOnly{}, denigma::classify::GapExtent::Partial);
     denigma::classify::FormattedText text;
     text.runs.push_back({"x", {}, {"metNoteQuarterUp"}, std::nullopt});
@@ -79,12 +83,16 @@ TEST(GapReport, SerializesExtentPlacementsAndExpressionPayloads)
     EXPECT_EQ(tempoGap["expression"]["scope"], "top-staff");
     EXPECT_EQ(tempoGap["expression"]["tempo"]["beatsPerMinute"], 120);
     EXPECT_FALSE(tempoGap["expression"].contains("text")); // no source text context
-    ASSERT_EQ(tempoGap["placements"].size(), 2);
-    EXPECT_EQ(tempoGap["placements"][0]["kind"], "system-top");
-    EXPECT_EQ(tempoGap["placements"][0]["anchor"], "m1");
-    EXPECT_EQ(tempoGap["placements"][1]["kind"], "staff");
-    EXPECT_EQ(tempoGap["placements"][1]["anchor"], "P2.m1");
-    EXPECT_EQ(tempoGap["placements"][1]["staff"], 2);
+    EXPECT_FALSE(tempoGap.contains("placements")) << "placements belong to the payload";
+    const auto& placements = tempoGap["expression"]["placements"];
+    ASSERT_EQ(placements.size(), 2);
+    EXPECT_EQ(placements[0]["kind"], "system-top");
+    EXPECT_EQ(placements[0]["anchor"], "m1");
+    EXPECT_EQ(placements[0]["placement"], "above");
+    EXPECT_EQ(placements[1]["kind"], "staff");
+    EXPECT_EQ(placements[1]["anchor"], "P2.m1");
+    EXPECT_EQ(placements[1]["staff"], 2);
+    EXPECT_FALSE(placements[1].contains("placement")) << "the third member's side is not stated";
 
     EXPECT_EQ(report["gaps"][1]["type"], "playback-only");
     EXPECT_EQ(report["gaps"][1]["extent"], "partial");
@@ -119,15 +127,15 @@ TEST(GapReport, SerializesSmartShapeSpansAndPresetArrowheads)
     SmartShapeClassification classification;
     classification.shapeType = musx::dom::others::SmartShape::ShapeType::CustomLine;
     classification.value = line;
-    collector.addSpan({"P1.m3", 2, musx::util::Fraction{1, 4}}, {"P1.m5", 2, musx::util::Fraction{0, 1}}, classification);
+    collector.add({"P1.m3", 2, musx::util::Fraction{1, 4}}, SmartShapeGap{classification, GapAnchor{"P1.m5", 2, musx::util::Fraction{0, 1}}});
 
     SmartShapeClassification bend;
     bend.shapeType = musx::dom::others::SmartShape::ShapeType::BendHat;
-    collector.addSpan({"ev12n1", std::nullopt, std::nullopt}, {"ev13n1", std::nullopt, std::nullopt}, bend);
+    collector.add({"ev12n1", std::nullopt, std::nullopt}, SmartShapeGap{bend, GapAnchor{"ev13n1", std::nullopt, std::nullopt}});
 
     // The same preset on a second line adds nothing to the table.
     SmartShapeClassification another = classification;
-    collector.add({"P2.m1", std::nullopt, musx::util::Fraction{0, 1}}, another);
+    collector.add({"P2.m1", std::nullopt, musx::util::Fraction{0, 1}}, SmartShapeGap{another, std::nullopt});
 
     const auto report = nlohmann::json::parse(denigma::serializeGapReport(collector, {{"denigma", "TEST", "abc123"}, {}}));
     ASSERT_EQ(report["gaps"].size(), 3);
@@ -135,9 +143,10 @@ TEST(GapReport, SerializesSmartShapeSpansAndPresetArrowheads)
     EXPECT_EQ(lineGap["anchor"], "P1.m3");
     EXPECT_EQ(lineGap["staff"], 2);
     EXPECT_EQ(lineGap["position"]["denominator"], 4);
-    EXPECT_EQ(lineGap["end"]["anchor"], "P1.m5");
-    EXPECT_EQ(lineGap["end"]["staff"], 2);
-    EXPECT_EQ(lineGap["end"]["position"]["numerator"], 0);
+    EXPECT_FALSE(lineGap.contains("end")) << "the end belongs to the payload";
+    EXPECT_EQ(lineGap["smartShape"]["end"]["anchor"], "P1.m5");
+    EXPECT_EQ(lineGap["smartShape"]["end"]["staff"], 2);
+    EXPECT_EQ(lineGap["smartShape"]["end"]["position"]["numerator"], 0);
     EXPECT_EQ(lineGap["extent"], "complete");
     EXPECT_EQ(lineGap["type"], "smart-shape");
     EXPECT_EQ(lineGap["smartShape"]["shapeType"], "custom-line");
@@ -156,11 +165,11 @@ TEST(GapReport, SerializesSmartShapeSpansAndPresetArrowheads)
     const auto& bendGap = report["gaps"][1];
     EXPECT_EQ(bendGap["anchor"], "ev12n1");
     EXPECT_FALSE(bendGap.contains("position"));
-    EXPECT_EQ(bendGap["end"]["anchor"], "ev13n1");
+    EXPECT_EQ(bendGap["smartShape"]["end"]["anchor"], "ev13n1");
     EXPECT_EQ(bendGap["smartShape"]["shapeType"], "bend-hat");
     EXPECT_EQ(bendGap["smartShape"]["kind"], "unclassified");
 
-    EXPECT_FALSE(report["gaps"][2].contains("end"));
+    EXPECT_FALSE(report["gaps"][2]["smartShape"].contains("end"));
 
     ASSERT_EQ(report["arrowheads"].size(), 1);
     const auto& arrowhead = report["arrowheads"]["preset-medium-curved"];
@@ -180,26 +189,31 @@ TEST(GapReport, SerializesTextFormattingAndInsertRanges)
     formatting.superscript = 3;
     formatting.tracking = 20;
     formatting.sourceText = "p";
-    collector.add({"expr", std::nullopt, std::nullopt}, formatting, GapExtent::Partial, {}, {{"expr.text0", 2, 1}});
-    collector.add({"expr", std::nullopt, std::nullopt}, TextInsert{{text::Insert::Kind::PlaybackValue, "value", {}}, "p f"}, GapExtent::Partial, {},
-        {{"expr.text0", 2, 1}, {"expr.text1", 0, 1}, {"expr.text2", 0, 1}});
+    formatting.ranges = {{"expr.text0", 2, 1}};
+    collector.add({"expr", std::nullopt, std::nullopt}, formatting, GapExtent::Partial);
+    collector.add({"expr", std::nullopt, std::nullopt},
+        TextInsert{{text::Insert::Kind::PlaybackValue, "value", {}}, "p f", {{"expr.text0", 2, 1}, {"expr.text1", 0, 1}, {"expr.text2", 0, 1}}},
+        GapExtent::Partial);
     const auto report = nlohmann::json::parse(denigma::serializeGapReport(collector, {{"denigma", "TEST", "abc123"}, {}}));
-    EXPECT_EQ(report["schemaVersion"], 2);
+    EXPECT_EQ(report["schemaVersion"], 3);
     const auto& style = report["gaps"][0];
     EXPECT_EQ(style["type"], "text-formatting");
     EXPECT_EQ(style["formatting"]["sourceText"], "p");
-    EXPECT_EQ(style["formatting"]["font"]["name"], "Maestro");
+    // Fonts are written once, in the report's table, and named by key where they are used.
+    const auto& fontKey = style["formatting"]["font"].get_ref<const std::string&>();
+    EXPECT_EQ(report["fonts"][fontKey]["name"], "Maestro");
     EXPECT_EQ(style["formatting"]["baseline"], 6);
     EXPECT_EQ(style["formatting"]["superscript"], 3);
     EXPECT_EQ(style["formatting"]["tracking"], 20);
-    EXPECT_EQ(style["textRanges"][0], nlohmann::json({{"anchor", "expr.text0"}, {"offset", 2}, {"length", 1}}));
+    EXPECT_FALSE(style.contains("textRanges"));
+    EXPECT_EQ(style["formatting"]["ranges"][0], nlohmann::json({{"anchor", "expr.text0"}, {"offset", 2}, {"length", 1}}));
     const auto& insert = report["gaps"][1];
     EXPECT_EQ(insert["type"], "text-insert");
     EXPECT_EQ(insert["insert"]["kind"], "playback-value");
     EXPECT_EQ(insert["insert"]["command"], "value");
     EXPECT_EQ(insert["insert"]["sourceText"], "p f");
     EXPECT_TRUE(insert["insert"]["parameters"].empty());
-    EXPECT_EQ(insert["textRanges"].size(), 3);
+    EXPECT_EQ(insert["insert"]["ranges"].size(), 3);
 }
 
 TEST(GapReport, SerializesExpressiveTextClassification)
@@ -209,7 +223,7 @@ TEST(GapReport, SerializesExpressiveTextClassification)
     ExpressionClassification classification;
     classification.type = ExpressionType::ExpressiveText;
     classification.value = expression::ExpressiveText{"dolce"};
-    collector.add({"P1.m1", std::nullopt, std::nullopt}, classification);
+    collector.add({"P1.m1", std::nullopt, std::nullopt}, ExpressionGap{classification, {}});
     const auto report = nlohmann::json::parse(denigma::serializeGapReport(collector, {{"denigma", "TEST", "abc123"}, {}}));
     EXPECT_EQ(report["gaps"][0]["expression"]["type"], "expressive-text");
     EXPECT_EQ(report["gaps"][0]["expression"]["expressiveText"]["text"], "dolce");

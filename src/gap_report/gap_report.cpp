@@ -22,6 +22,7 @@
 #include <string_view>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 #include "gap_report_json.h"
 
@@ -40,13 +41,26 @@ std::string_view gapExtentName(classify::GapExtent extent)
     return "unknown";
 }
 
-std::string_view gapPlacementKindName(classify::GapPlacement::Kind kind)
+/// The kind a placement names: the system edge a floating member draws on, or a staff.
+std::string_view placementKindName(classify::ExpressionScope scope)
 {
-    using Kind = classify::GapPlacement::Kind;
-    switch (kind) {
-    case Kind::Staff: return "staff";
-    case Kind::SystemTop: return "system-top";
-    case Kind::SystemBottom: return "system-bottom";
+    switch (scope) {
+    case classify::ExpressionScope::TopStaff: return "system-top";
+    case classify::ExpressionScope::BottomStaff: return "system-bottom";
+    case classify::ExpressionScope::Staff: return "staff";
+    case classify::ExpressionScope::Unassigned: break;
+    }
+    return "unknown";
+}
+
+std::string_view verticalPlacementName(musx::dom::VerticalPlacement placement)
+{
+    using Enum = musx::dom::VerticalPlacement;
+    switch (placement) {
+    case Enum::NotApplicable: return "not-applicable";
+    case Enum::Float: return "float";
+    case Enum::Below: return "below";
+    case Enum::Above: return "above";
     }
     return "unknown";
 }
@@ -68,29 +82,51 @@ json anchorJson(const classify::GapAnchor& anchor)
     return result;
 }
 
-json gapJson(const classify::Gap& gap, gap_report::ArrowheadTable& arrowheads)
+json textRangesJson(const std::vector<classify::GapTextRange>& ranges)
 {
-    json result = anchorJson(gap.anchor);
-    if (gap.end) {
-        result["end"] = anchorJson(*gap.end);
+    auto result = json::array();
+    for (const auto& range : ranges) {
+        result.push_back({{"anchor", range.id}, {"offset", range.offset}, {"length", range.length}});
     }
+    return result;
+}
+
+json expressionPlacementsJson(const classify::ExpressionGap& gap)
+{
+    auto result = json::array();
+    for (const auto& placement : gap.placements) {
+        const auto& member = gap.classification.members.at(placement.member);
+        json item{{"kind", placementKindName(member.scope)}};
+        item.update(anchorJson(placement.anchor));
+        if (member.placement != musx::dom::VerticalPlacement::NotApplicable) {
+            item["placement"] = verticalPlacementName(member.placement);
+        }
+        result.push_back(std::move(item));
+    }
+    return result;
+}
+
+json pageTextPlacementsJson(const classify::PageTextGap& gap)
+{
+    auto result = json::array();
+    for (const auto& page : gap.pages) {
+        const auto& placement = gap.classification.placements.at(page.placement);
+        json item{
+            {"kind", "page"},
+            {"anchor", page.pageId},
+        };
+        if (!placement.assignment->isPlacedLike(*gap.classification.assignment)) {
+            item["position"] = gap_report::pageTextPositionJson(*placement.assignment);
+        }
+        result.push_back(std::move(item));
+    }
+    return result;
+}
+
+json gapJson(const classify::Gap& gap, gap_report::ReportTables& tables)
+{
+    json result = gap.anchor ? anchorJson(*gap.anchor) : json::object();
     result["extent"] = gapExtentName(gap.extent);
-    if (!gap.placements.empty()) {
-        auto placements = json::array();
-        for (const auto& placement : gap.placements) {
-            json item{{"kind", gapPlacementKindName(placement.kind)}};
-            item.update(anchorJson(placement.anchor));
-            placements.push_back(std::move(item));
-        }
-        result["placements"] = std::move(placements);
-    }
-    if (!gap.textRanges.empty()) {
-        auto ranges = json::array();
-        for (const auto& range : gap.textRanges) {
-            ranges.push_back({{"anchor", range.id}, {"offset", range.offset}, {"length", range.length}});
-        }
-        result["textRanges"] = std::move(ranges);
-    }
     std::visit(
         [&](const auto& payload) {
             using Payload = std::decay_t<decltype(payload)>;
@@ -99,31 +135,48 @@ json gapJson(const classify::Gap& gap, gap_report::ArrowheadTable& arrowheads)
                 result["chord"] = gap_report::chordJson(payload);
             } else if constexpr (std::is_same_v<Payload, classify::NoteheadClassification>) {
                 result["type"] = "notehead";
-                result["notehead"] = gap_report::noteheadJson(payload);
-            } else if constexpr (std::is_same_v<Payload, classify::ExpressionClassification>) {
+                result["notehead"] = gap_report::noteheadJson(payload, tables.fonts);
+            } else if constexpr (std::is_same_v<Payload, classify::ExpressionGap>) {
                 result["type"] = "expression";
-                result["expression"] = gap_report::expressionJson(payload);
+                result["expression"] = gap_report::expressionJson(payload.classification, tables.fonts);
+                if (!payload.placements.empty()) {
+                    result["expression"]["placements"] = expressionPlacementsJson(payload);
+                }
             } else if constexpr (std::is_same_v<Payload, classify::FormattedText>) {
                 result["type"] = "formatted-text";
-                result["text"] = gap_report::formattedTextJson(payload);
+                result["text"] = gap_report::formattedTextJson(payload, tables.fonts);
             } else if constexpr (std::is_same_v<Payload, classify::TextFormatting>) {
                 result["type"] = "text-formatting";
                 result["formatting"] = {
-                    {"font", gap_report::fontJson(payload.font)},
+                    {"font", tables.fonts.reference(payload.font)},
                     {"baseline", payload.baseline},
                     {"superscript", payload.superscript},
                     {"tracking", payload.tracking},
                     {"sourceText", payload.sourceText},
+                    {"ranges", textRangesJson(payload.ranges)},
                 };
             } else if constexpr (std::is_same_v<Payload, classify::TextInsert>) {
                 result["type"] = "text-insert";
                 result["insert"] = gap_report::insertJson(payload.insert);
                 result["insert"]["sourceText"] = payload.sourceText;
+                result["insert"]["ranges"] = textRangesJson(payload.ranges);
             } else if constexpr (std::is_same_v<Payload, classify::PlaybackOnly>) {
                 result["type"] = "playback-only";
-            } else if constexpr (std::is_same_v<Payload, classify::SmartShapeClassification>) {
+            } else if constexpr (std::is_same_v<Payload, classify::SmartShapeGap>) {
                 result["type"] = "smart-shape";
-                result["smartShape"] = gap_report::smartShapeJson(payload, arrowheads);
+                result["smartShape"] = gap_report::smartShapeJson(payload.classification, tables);
+                if (payload.end) {
+                    result["smartShape"]["end"] = anchorJson(*payload.end);
+                }
+            } else if constexpr (std::is_same_v<Payload, classify::MeasureTextClassification>) {
+                result["type"] = "text-block";
+                result["textBlock"] = gap_report::measureTextJson(payload);
+            } else if constexpr (std::is_same_v<Payload, classify::PageTextGap>) {
+                result["type"] = "page-text";
+                result["pageText"] = gap_report::pageTextJson(payload.classification, tables.fonts);
+                if (!payload.pages.empty()) {
+                    result["pageText"]["placements"] = pageTextPlacementsJson(payload);
+                }
             }
         },
         gap.payload);
@@ -134,18 +187,30 @@ json gapJson(const classify::Gap& gap, gap_report::ArrowheadTable& arrowheads)
 
 std::string serializeGapReport(const classify::GapCollector& collector, const GapReportOptions& options)
 {
-    gap_report::ArrowheadTable arrowheads(options.glyphMetrics);
+    gap_report::ReportTables tables{gap_report::ArrowheadTable(options.glyphMetrics), {}};
     auto gaps = json::array();
+    // Page assignment ids depend on one document-wide value, which a consumer cannot recover from the
+    // target document; it is written once, and only when it is not 0. See design-decisions.md.
+    int leadingBlankPageSlots = 0;
     for (const auto& gap : collector.gaps()) {
-        gaps.push_back(gapJson(gap, arrowheads));
+        gaps.push_back(gapJson(gap, tables));
+        if (const auto* pageText = std::get_if<classify::PageTextGap>(&gap.payload)) {
+            leadingBlankPageSlots = pageText->classification.assignment->getDocument()->getMaxBlankPages();
+        }
     }
     const auto& producer = options.producer;
     json result{
-        {"schemaVersion", 2},
+        {"schemaVersion", 3},
         {"producer", {{"name", producer.name}, {"version", producer.version}, {"commit", producer.commit}}},
         {"gaps", std::move(gaps)},
     };
-    if (auto arrowheadJson = arrowheads.toJson(); !arrowheadJson.empty()) {
+    if (leadingBlankPageSlots != 0) {
+        result["leadingBlankPageSlots"] = leadingBlankPageSlots;
+    }
+    if (auto fontJson = tables.fonts.toJson(); !fontJson.empty()) {
+        result["fonts"] = std::move(fontJson);
+    }
+    if (auto arrowheadJson = tables.arrowheads.toJson(); !arrowheadJson.empty()) {
         result["arrowheads"] = std::move(arrowheadJson);
     }
     return result.dump(2);

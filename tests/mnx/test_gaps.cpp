@@ -54,7 +54,7 @@ TEST(MnxGapReport, MusxToMnxJsonReportsChordSymbolGaps)
 
     EXPECT_TRUE(result);
     const auto report = nlohmann::json::parse(denigma::serializeGapReport(collector, {{"denigma", "TEST", "abc123"}, {}}));
-    EXPECT_EQ(report["schemaVersion"], 2);
+    EXPECT_EQ(report["schemaVersion"], 3);
     ASSERT_FALSE(report["gaps"].empty());
     const auto& gap = report["gaps"].front();
     EXPECT_EQ(gap["type"], "chord-symbol");
@@ -139,10 +139,11 @@ TEST(MnxGapReport, UnclassifiedNoteheadGapNamesItsFontAndCharacter)
     EXPECT_EQ(notehead["shape"], "unclassified");
     EXPECT_FALSE(notehead.contains("glyph"));
     EXPECT_EQ(notehead["codePoint"], 130);
-    EXPECT_EQ(notehead["font"]["name"], "Finale AlphaNotes");
-    EXPECT_EQ(notehead["font"]["size"], 24);
-    EXPECT_EQ(notehead["font"]["bold"], true);
-    EXPECT_EQ(notehead["font"]["italic"], false);
+    const auto& font = report["fonts"][notehead["font"].get<std::string>()];
+    EXPECT_EQ(font["name"], "Finale AlphaNotes");
+    EXPECT_EQ(font["size"], 24);
+    EXPECT_EQ(font["bold"], true);
+    EXPECT_EQ(font["italic"], false);
 }
 
 TEST(MnxGapReport, CliWritesReferenceGapReports)
@@ -174,6 +175,8 @@ TEST(MnxGapReport, CliWritesReferenceGapReports)
     checkFixture("pedal_custom_lines.musx");
     checkFixture("glissando.musx");
     checkFixture("smartshape_lines.musx");
+    checkFixture("measure_text.musx");
+    checkFixture("page_text.musx");
 }
 
 TEST(MnxGapReport, MusxToMnxJsonReportsStaffListTempoMarksOncePerGroup)
@@ -201,7 +204,7 @@ TEST(MnxGapReport, MusxToMnxJsonReportsStaffListTempoMarksOncePerGroup)
     const auto report = nlohmann::json::parse(denigma::serializeGapReport(collector, {{"denigma", "TEST", "abc123"}, {}}));
     const auto& gaps = report["gaps"];
     // Measure 1 draws the tempo mark on the top staff and two other staves through a staff list: one gap, three placements.
-    const auto tempoGap = std::find_if(gaps.begin(), gaps.end(), [](const auto& gap) { return gap["anchor"] == "m1.textExp24.inci0"; });
+    const auto tempoGap = std::find_if(gaps.begin(), gaps.end(), [](const auto& gap) { return gap.value("anchor", "") == "m1.textExp24.inci0"; });
     ASSERT_NE(tempoGap, gaps.end());
     EXPECT_EQ((*tempoGap)["extent"], "partial");
     EXPECT_EQ((*tempoGap)["type"], "expression");
@@ -214,13 +217,12 @@ TEST(MnxGapReport, MusxToMnxJsonReportsStaffListTempoMarksOncePerGroup)
     EXPECT_EQ(runs[3]["text"], "120");
     EXPECT_EQ(runs[3]["insert"]["kind"], "playback-value");
     EXPECT_EQ(runs[3]["insert"]["command"], "value");
-    ASSERT_EQ((*tempoGap)["placements"].size(), 3);
-    EXPECT_EQ((*tempoGap)["placements"][0]["kind"], "system-top");
-    EXPECT_EQ((*tempoGap)["placements"][0]["anchor"], "m1");
-    EXPECT_EQ((*tempoGap)["placements"][1]["kind"], "staff");
-    EXPECT_TRUE((*tempoGap)["placements"][1]["anchor"].get<std::string>().ends_with(".m1"));
-    EXPECT_EQ(
-        std::count_if(gaps.begin(), gaps.end(), [](const nlohmann::json& gap) { return gap["anchor"].get<std::string>().starts_with("m1."); }), 2);
+    ASSERT_EQ((*tempoGap)["expression"]["placements"].size(), 3);
+    EXPECT_EQ((*tempoGap)["expression"]["placements"][0]["kind"], "system-top");
+    EXPECT_EQ((*tempoGap)["expression"]["placements"][0]["anchor"], "m1");
+    EXPECT_EQ((*tempoGap)["expression"]["placements"][1]["kind"], "staff");
+    EXPECT_TRUE((*tempoGap)["expression"]["placements"][1]["anchor"].get<std::string>().ends_with(".m1"));
+    EXPECT_EQ(std::count_if(gaps.begin(), gaps.end(), [](const nlohmann::json& gap) { return gap.value("anchor", "").starts_with("m1."); }), 2);
 
     // The "rit." in measure 4 has no MNX object at all.
     const auto ritGap = std::find_if(gaps.begin(), gaps.end(), [](const auto& gap) { return gap["expression"]["type"] == "tempo-alteration"; });
@@ -261,15 +263,15 @@ TEST(MnxGapReport, MusxToMnxJsonExportsStaffTextWithFormattingAndSemanticGaps)
     const auto& gap = *semantic;
     EXPECT_EQ(gap["anchor"], text["id"]);
     EXPECT_EQ(gap["extent"], "partial");
-    EXPECT_FALSE(gap.contains("placements"));
+    EXPECT_FALSE(gap["expression"].contains("placements"));
     EXPECT_EQ(gap["expression"]["type"], "technique-text");
     EXPECT_EQ(gap["expression"]["scope"], "staff");
     EXPECT_EQ(gap["expression"]["technique"]["type"], "pizzicato");
     EXPECT_EQ(gap["expression"]["text"]["plain"], "pizz.");
     const auto formatting = std::find_if(gaps.begin(), gaps.end(), [](const auto& item) { return item["type"] == "text-formatting"; });
     ASSERT_NE(formatting, gaps.end());
-    EXPECT_EQ((*formatting)["textRanges"][0]["anchor"], text["text"][0]["id"]);
-    EXPECT_EQ((*formatting)["textRanges"][0]["length"], 5);
+    EXPECT_EQ((*formatting)["formatting"]["ranges"][0]["anchor"], text["text"][0]["id"]);
+    EXPECT_EQ((*formatting)["formatting"]["ranges"][0]["length"], 5);
 
     denigma::FileRandomAccessReader secondInput(getInputPath() / "techniques.musx");
     std::ostringstream withoutGaps;
@@ -353,9 +355,9 @@ TEST(MnxGapReport, MusxToMnxJsonReportsBeatAttachedSmartShapesAsSpans)
     EXPECT_EQ((*pedal)["extent"], "complete");
     EXPECT_FALSE((*pedal)["anchor"].contains("staff")) << "a single-staff part names no staff";
     EXPECT_EQ((*pedal)["position"]["numerator"], 0);
-    EXPECT_EQ((*pedal)["end"]["anchor"], "P1.m2");
-    EXPECT_EQ((*pedal)["end"]["position"]["numerator"], 1);
-    EXPECT_EQ((*pedal)["end"]["position"]["denominator"], 1);
+    EXPECT_EQ((*pedal)["smartShape"]["end"]["anchor"], "P1.m2");
+    EXPECT_EQ((*pedal)["smartShape"]["end"]["position"]["numerator"], 1);
+    EXPECT_EQ((*pedal)["smartShape"]["end"]["position"]["denominator"], 1);
     EXPECT_EQ((*pedal)["smartShape"]["shapeType"], "custom-line");
     const auto& keyboardPedal = (*pedal)["smartShape"]["keyboardPedal"];
     EXPECT_EQ(keyboardPedal["startText"]["type"], "pedal-one");
@@ -386,10 +388,10 @@ TEST(MnxGapReport, MusxToMnxJsonReportsEntryAttachedSmartShapesBetweenNotes)
         EXPECT_EQ(gap["smartShape"]["kind"], "glissando") << gap.dump(4);
         EXPECT_FALSE(gap.contains("position")) << gap.dump(4);
         EXPECT_TRUE(gap["anchor"].get<std::string>().starts_with("ev")) << gap.dump(4);
-        EXPECT_TRUE(gap["end"]["anchor"].get<std::string>().starts_with("ev")) << gap.dump(4);
+        EXPECT_TRUE(gap["smartShape"]["end"]["anchor"].get<std::string>().starts_with("ev")) << gap.dump(4);
     }
     EXPECT_EQ(gaps[0]["anchor"], "ev45n1");
-    EXPECT_EQ(gaps[0]["end"]["anchor"], "ev46n1");
+    EXPECT_EQ(gaps[0]["smartShape"]["end"]["anchor"], "ev46n1");
     EXPECT_EQ(gaps[0]["smartShape"]["shapeType"], "glissando");
     EXPECT_EQ(gaps[0]["smartShape"]["glissando"]["line"]["lineChar"]["glyph"], "wiggleGlissando");
     const auto tabSlide = std::find_if(gaps.begin(), gaps.end(), [](const auto& gap) { return gap["smartShape"]["shapeType"] == "tab-slide"; });
@@ -421,7 +423,7 @@ TEST(MnxGapReport, MusxToMnxJsonReportsGlissandoToRestOnItsNote)
     const auto gaps = smartShapeGaps(report);
     ASSERT_EQ(gaps.size(), 2);
     EXPECT_EQ(gaps[0]["anchor"], "ev5n1");
-    EXPECT_EQ(gaps[0]["end"]["anchor"], "ev5n1");
+    EXPECT_EQ(gaps[0]["smartShape"]["end"]["anchor"], "ev5n1");
     EXPECT_EQ(gaps[1]["anchor"], "ev7n1");
     EXPECT_EQ(gaps[1]["smartShape"]["shapeType"], "tab-slide");
 }
@@ -435,8 +437,8 @@ TEST(MnxGapReport, MusxToMnxJsonReportsBeatAttachedSlursButNotEntryAttachedOnes)
     EXPECT_EQ(beatAttached[0]["anchor"], "P1.m1");
     EXPECT_EQ(beatAttached[0]["position"]["numerator"], 1);
     EXPECT_EQ(beatAttached[0]["position"]["denominator"], 1);
-    EXPECT_EQ(beatAttached[0]["end"]["anchor"], "P1.m2");
-    EXPECT_EQ(beatAttached[0]["end"]["position"]["numerator"], 0);
+    EXPECT_EQ(beatAttached[0]["smartShape"]["end"]["anchor"], "P1.m2");
+    EXPECT_EQ(beatAttached[0]["smartShape"]["end"]["position"]["numerator"], 0);
     EXPECT_EQ(beatAttached[0]["smartShape"]["shapeType"], "slur-down");
     EXPECT_EQ(beatAttached[0]["smartShape"]["kind"], "slur");
     EXPECT_EQ(beatAttached[0]["smartShape"]["slur"]["contour"], "down");
@@ -454,7 +456,7 @@ TEST(MnxGapReport, MusxToMnxJsonReportsTrillAndVibratoLines)
     EXPECT_EQ(gaps[0]["smartShape"]["kind"], "trill-line");
     EXPECT_FALSE(gaps[0]["smartShape"]["trillLine"]["includesTrSymbol"]);
     EXPECT_EQ(gaps[0]["anchor"], "P1.m1");
-    EXPECT_EQ(gaps[0]["end"]["anchor"], "P1.m2");
+    EXPECT_EQ(gaps[0]["smartShape"]["end"]["anchor"], "P1.m2");
     EXPECT_EQ(gaps[1]["smartShape"]["kind"], "vibrato-line");
     EXPECT_EQ(gaps[1]["smartShape"]["vibratoLine"]["line"]["lineChar"]["glyph"], "wiggleVibratoLargestSlowest");
     EXPECT_EQ(gaps[2]["smartShape"]["shapeType"], "trill");
@@ -774,4 +776,221 @@ TEST(MnxGapReport, TextVoiceFollowsLayerAndAssociatedEntryVoice)
             EXPECT_EQ(texts[index]["voice"].get<std::string>(), cases[index].voice) << index;
         }
     }
+}
+
+namespace {
+
+/// @brief The MNX document and gap report of one conversion with a gap collector.
+struct MnxWithGaps
+{
+    nlohmann::json mnx;
+    nlohmann::json report;
+};
+
+MnxWithGaps convertMusxWithGaps(const std::string& fileName)
+{
+    denigma::FileRandomAccessReader input(getInputPath() / fileName);
+    std::ostringstream output;
+    denigma::formats::mnx::Options options;
+    options.common.sourceName = fileName;
+    options.common.validate = false;
+    denigma::classify::GapCollector collector;
+    options.common.gapCollector = &collector;
+    const auto result = denigma::formats::mnx::MusxToMnxJsonConverter{}.convert(input, output, options);
+    EXPECT_TRUE(result);
+    return {nlohmann::json::parse(output.str()), nlohmann::json::parse(denigma::serializeGapReport(collector, {{"denigma", "TEST", "abc123"}, {}}))};
+}
+
+const nlohmann::json* findGap(const nlohmann::json& report, const std::string& anchor, const std::string& type)
+{
+    for (const auto& gap : report["gaps"]) {
+        if (gap.value("anchor", "") == anchor && gap["type"] == type) {
+            return &gap;
+        }
+    }
+    return nullptr;
+}
+
+} // namespace
+
+TEST(MnxGapReport, MeasureTextIsPositionedTextWithItsFrame)
+{
+    setupTestDataPaths();
+    const auto [mnx, report] = convertMusxWithGaps("measure_text.musx");
+
+    const auto& measures = mnx["parts"][0]["measures"];
+    ASSERT_GE(measures.size(), 2u);
+    const auto& firstTexts = measures[0]["text"];
+    ASSERT_EQ(firstTexts.size(), 2u);
+    EXPECT_EQ(firstTexts[0]["id"], "m1.s1.textBlock2.inci0");
+    EXPECT_EQ(firstTexts[0]["placement"], "below");
+    EXPECT_EQ(firstTexts[0]["text"][0]["text"], "Measure One Text");
+    EXPECT_TRUE(firstTexts[0].contains("position"));
+    EXPECT_FALSE(firstTexts[0].contains("type"));
+    EXPECT_EQ(firstTexts[1]["placement"], "above");
+
+    // A text held at a fixed distance from the barline has no metric position; the distance is in the gap.
+    const auto& leftShifted = measures[1]["text"][0];
+    EXPECT_EQ(leftShifted["id"], "m2.s1.textBlock5.inci0");
+    EXPECT_FALSE(leftShifted.contains("position"));
+    const auto* frameGap = findGap(report, "m2.s1.textBlock5.inci0", "text-block");
+    ASSERT_NE(frameGap, nullptr);
+    EXPECT_EQ((*frameGap)["extent"], "partial");
+    const auto& textBlock = (*frameGap)["textBlock"];
+    EXPECT_EQ(textBlock["unit"], "evpu");
+    EXPECT_EQ(textBlock["horizontalOffset"], -240);
+    EXPECT_EQ(textBlock["verticalOffset"], 119);
+    EXPECT_EQ(textBlock["verticalOrigin"], "staff-top-line");
+    EXPECT_EQ(textBlock["frame"]["justify"], "left");
+    EXPECT_EQ(textBlock["frame"]["hasCustomShape"], false);
+
+    // The font is lost from the positioned text, so it is a formatting gap on the same object.
+    EXPECT_NE(findGap(report, "m2.s1.textBlock5.inci0", "text-formatting"), nullptr);
+}
+
+TEST(MnxGapReport, PageTextIsOneGapPerAssignmentAcrossScores)
+{
+    setupTestDataPaths();
+    const auto [mnx, report] = convertMusxWithGaps("page_text.musx");
+
+    ASSERT_EQ(mnx["scores"].size(), 2u);
+    EXPECT_EQ(mnx["scores"][0]["id"], "score0");
+    EXPECT_EQ(mnx["scores"][0]["pages"][0]["id"], "score0.page1");
+    EXPECT_EQ(mnx["scores"][1]["id"], "score1");
+
+    std::vector<nlohmann::json> pageTexts;
+    for (const auto& gap : report["gaps"]) {
+        if (gap["type"] == "page-text") {
+            pageTexts.push_back(gap);
+        }
+    }
+    // The score and its one linked part share each page text, so each is one gap placed in both scores.
+    ASSERT_EQ(pageTexts.size(), 6u);
+    // The page number is a template: its insert is kept so that a consumer resolves it for each page.
+    const auto& pageNumber = pageTexts[0];
+    // Page text belongs to no score: its placements alone say where it is drawn.
+    EXPECT_FALSE(pageNumber.contains("anchor"));
+    EXPECT_EQ(pageNumber["extent"], "complete");
+    const auto& pageText = pageNumber["pageText"];
+    // The page rule is Finale's own: page assignment ids, the end 0 for through the last page.
+    EXPECT_EQ(pageText["assignment"], nlohmann::json({{"start", 1}, {"end", 0}, {"pages", "all"}}));
+    EXPECT_FALSE(report.contains("leadingBlankPageSlots")) << "no score has leading blank pages";
+    ASSERT_EQ(pageText["text"]["runs"].size(), 1u);
+    EXPECT_EQ(pageText["text"]["runs"][0]["insert"]["command"], "page");
+    // The alignment is shared by every score; the position is what a linked part can change.
+    EXPECT_EQ(pageText["alignment"]["rightPageHorizontal"], "right");
+    EXPECT_EQ(pageText["position"]["independentRightPages"], true);
+    EXPECT_TRUE(pageText["position"].contains("rightPageOffsetX"));
+    const auto& placements = pageNumber["pageText"]["placements"];
+    ASSERT_EQ(placements.size(), 2u);
+    EXPECT_EQ(placements[0]["kind"], "page");
+    EXPECT_EQ(placements[0]["anchor"], "score0.page1");
+    EXPECT_EQ(placements[1]["anchor"], "score1.page1");
+    // The part keeps the score's position, so no placement restates it.
+    EXPECT_FALSE(placements[1].contains("position"));
+}
+
+TEST(MnxGapReport, PageTextRangesListEveryExportedPage)
+{
+    setupTestDataPaths();
+    const auto [mnx, report] = convertMusxWithGaps("tempo_varied_staves.musx");
+
+    // The score's running page number starts on page 2 and continues through the last page.
+    const auto& pages = mnx["scores"][0]["pages"];
+    ASSERT_EQ(pages.size(), 3u);
+    const nlohmann::json* runningNumber = nullptr;
+    for (const auto& gap : report["gaps"]) {
+        if (gap["type"] == "page-text" && gap["pageText"]["assignment"]["start"] == 2) {
+            runningNumber = &gap;
+            break;
+        }
+    }
+    ASSERT_NE(runningNumber, nullptr);
+    EXPECT_EQ((*runningNumber)["pageText"]["assignment"]["end"], 0);
+    // The score's own pages come first; the linked parts' pages follow in the same gap.
+    const auto& placements = (*runningNumber)["pageText"]["placements"];
+    ASSERT_GT(placements.size(), 2u);
+    EXPECT_EQ(placements[0]["anchor"], pages[1]["id"]);
+    EXPECT_EQ(placements[1]["anchor"], pages[2]["id"]);
+    EXPECT_FALSE(placements[2]["anchor"].get<std::string>().starts_with("score0."));
+}
+
+TEST(MnxGapReport, FloatingStaffListMembersOfStaffTextAreOneGap)
+{
+    setupTestDataPaths();
+
+    denigma::Buffer buffer;
+    readFile(getInputPath() / "reference" / utils::utf8ToPath("notAscii-其れ.enigmaxml"), buffer);
+    std::string xml(buffer.begin(), buffer.end());
+
+    // A technique text placed through a staff list on the one real staff and the floating bottom
+    // staff, as Finale stores a staff list: one assignment per row, sharing a staff group. (A group
+    // with a floating top-staff member is system text, which the global expression path reports.)
+    const std::string measureNeedle = "<measSpec cmper=\"1\">";
+    const auto measurePos = xml.find(measureNeedle);
+    ASSERT_NE(measurePos, std::string::npos);
+    xml.insert(measurePos + measureNeedle.size(), "<hasExpr/>");
+    const std::string partNeedle = "<partDef cmper=\"0\">";
+    const auto partPos = xml.find(partNeedle);
+    ASSERT_NE(partPos, std::string::npos);
+    std::string assignments;
+    constexpr int staffAssigns[] = {1, -2};
+    for (int inci = 0; inci < 2; ++inci) {
+        assignments += "<measExprAssign cmper=\"1\" inci=\"" + std::to_string(inci) + "\"><textExprID>900</textExprID><horzEduOff>1024</horzEduOff>"
+                       + "<staffAssign>" + std::to_string(staffAssigns[inci]) + "</staffAssign><staffGroup>1</staffGroup></measExprAssign>\n";
+    }
+    xml.insert(partPos, R"xml(<textBlock cmper="900">
+      <textID>900</textID>
+      <lineSpacingPercent>100</lineSpacingPercent>
+      <newPos36/>
+      <showShape/>
+      <wordWrap/>
+      <textTag>expression</textTag>
+    </textBlock>
+    <textExprDef cmper="900">
+      <textIDKey>900</textIDKey>
+      <categoryID>5</categoryID>
+      <horzMeasExprAlign>manual</horzMeasExprAlign>
+      <vertMeasExprAlign>aboveStaff</vertMeasExprAlign>
+    </textExprDef>
+    )xml" + assignments);
+    const auto textsPos = xml.find("</texts>");
+    ASSERT_NE(textsPos, std::string::npos);
+    xml.insert(textsPos, "<expression number=\"900\">^fontTxt(Times New Roman,4096)^size(12)^nfx(0)pizz.</expression>\n");
+
+    denigma::ConverterRegistry registry;
+    denigma::formats::mnx::registerConverters(registry);
+    const auto* converter = registry.find(denigma::FormatId::EnigmaXml, denigma::FormatId::MnxJson);
+    ASSERT_NE(converter, nullptr);
+    std::ostringstream output;
+    denigma::formats::mnx::Options options;
+    options.common.sourceName = "floating_staff_list.enigmaxml";
+    denigma::classify::GapCollector collector;
+    options.common.gapCollector = &collector;
+    const auto result =
+        converter->convert(std::as_bytes(std::span<const char>(xml.data(), xml.size())), output, denigma::ConversionRequest{&options});
+    for (const auto& diagnostic : result.diagnostics()) {
+        ADD_FAILURE() << diagnostic.message;
+    }
+
+    // The member on the real staff is native text, as before.
+    const auto mnx = nlohmann::json::parse(output.str());
+    const auto& texts = mnx["parts"][0]["measures"][0]["text"];
+    ASSERT_EQ(texts.size(), 1u);
+    EXPECT_EQ(texts[0]["id"], "m1.textExp900.inci0");
+
+    // The floating member names no staff, so it is a gap at the global measure listing only the floating members.
+    const auto report = nlohmann::json::parse(denigma::serializeGapReport(collector, {{"denigma", "TEST", "abc123"}, {}}));
+    const auto* gap = findGap(report, "m1", "expression");
+    ASSERT_NE(gap, nullptr);
+    EXPECT_EQ((*gap)["extent"], "complete");
+    EXPECT_EQ((*gap)["position"]["numerator"], 1);
+    EXPECT_EQ((*gap)["position"]["denominator"], 4);
+    EXPECT_EQ((*gap)["expression"]["type"], "technique-text");
+    EXPECT_EQ((*gap)["expression"]["text"]["plain"], "pizz.");
+    const auto& placements = (*gap)["expression"]["placements"];
+    ASSERT_EQ(placements.size(), 1u);
+    EXPECT_EQ(placements[0]["kind"], "system-bottom");
+    EXPECT_EQ(placements[0]["anchor"], "m1");
+    EXPECT_EQ(placements[0]["placement"], "above");
 }

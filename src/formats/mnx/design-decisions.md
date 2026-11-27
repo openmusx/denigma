@@ -68,6 +68,16 @@ Text offsets count Unicode scalar values; glyph offsets count glyph-array entrie
 
 The source parser can split or erase insert provenance. A source chunk ordinal joins the mixed text/glyph runs split from one emitted chunk, but never joins successive chunks merely because their commands match. Empty substitutions produce no range, and nested substitutions retain only the provenance the parser emits. Full occurrence reconstruction is deferred in the roadmap.
 
+### Measure text is general positioned text
+
+A measure-attached text block is the same kind of thing to a reader as a general staff expression: text at a place on a staff. It is therefore a positioned-text object in the part measure, with type `general`, the staff number, and the metric position when Finale gives one. Its placement is `above` when the frame sits above the staff's top line, `below` when it sits below the bottom line, and otherwise left to the reader, the same test the MusicXML exporter applies. A position past the end of the measure is written as Finale stores it; Finale's own MusicXML export places such text the same distance past the barline. Hidden (screen-only) text is omitted. Everything positioned text cannot carry is a partial gap on the object; see the gap report's design decisions.
+
+## Scores and pages
+
+### Every score and page carries a provenance id
+
+A score is `score<cmper>` for the linked part it comes from, the full score being linked part 0, and a page is `score<cmper>.page<number>`, using the part's own page number. They are written whether or not a gap report was requested, for the reason every tempo carries one: page-text gaps anchor to them, and an output whose shape depended on whether a report was wanted would make the report describe a different document from the one the user has.
+
 ## Jumps
 
 ### Jumps and their destinations are written as Finale has them

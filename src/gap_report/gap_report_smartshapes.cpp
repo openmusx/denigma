@@ -180,7 +180,7 @@ std::string_view pseudoTieTypeName(PseudoTie::Type value)
     return "unknown";
 }
 
-json lineCapJson(const LineCap& cap, ArrowheadTable& arrowheads)
+json lineCapJson(const LineCap& cap, ReportTables& tables)
 {
     json result{{"type", lineCapTypeName(cap.type)}};
     switch (cap.type) {
@@ -193,7 +193,7 @@ json lineCapJson(const LineCap& cap, ArrowheadTable& arrowheads)
         break;
     case LineCap::Type::ArrowheadCustom: result["knownType"] = knownShapeDefTypeName(cap.customArrowheadType); break;
     }
-    if (auto reference = arrowheads.reference(cap); !reference.empty()) {
+    if (auto reference = tables.arrowheads.reference(cap); !reference.empty()) {
         result["arrowhead"] = std::move(reference);
     }
     return result;
@@ -201,14 +201,14 @@ json lineCapJson(const LineCap& cap, ArrowheadTable& arrowheads)
 
 /// @brief Adds a text position when the line has text there. Resolved at serialization, so the
 /// source document must still be alive; see design-decisions.md.
-void addText(json& target, std::string_view key, const musx::util::EnigmaParsingContext& text)
+void addText(json& target, std::string_view key, const musx::util::EnigmaParsingContext& text, FontTable& fonts)
 {
     if (text) {
-        target[std::string(key)] = formattedTextJson(classify::classifyFormattedText(text));
+        target[std::string(key)] = formattedTextJson(classify::classifyFormattedText(text), fonts);
     }
 }
 
-json generalLineJson(const GeneralLine& line, ArrowheadTable& arrowheads)
+json generalLineJson(const GeneralLine& line, ReportTables& tables)
 {
     json result{
         {"lineStyle", lineStyleName(line.lineStyle)},
@@ -227,20 +227,20 @@ json generalLineJson(const GeneralLine& line, ArrowheadTable& arrowheads)
             lineChar["glyph"] = *line.lineCharGlyphName;
         }
         if (line.lineCharFont) {
-            lineChar["font"] = fontJson(line.lineCharFont->resolve());
+            lineChar["font"] = tables.fonts.reference(line.lineCharFont->resolve());
         }
         result["lineChar"] = std::move(lineChar);
         break;
     }
     }
     result["horizontal"] = line.horizontal;
-    result["startCap"] = lineCapJson(line.startCap, arrowheads);
-    result["endCap"] = lineCapJson(line.endCap, arrowheads);
-    addText(result, "startText", line.startText);
-    addText(result, "continuationText", line.continuationText);
-    addText(result, "endText", line.endText);
-    addText(result, "centerFullText", line.centerFullText);
-    addText(result, "centerAbbrText", line.centerAbbrText);
+    result["startCap"] = lineCapJson(line.startCap, tables);
+    result["endCap"] = lineCapJson(line.endCap, tables);
+    addText(result, "startText", line.startText, tables.fonts);
+    addText(result, "continuationText", line.continuationText, tables.fonts);
+    addText(result, "endText", line.endText, tables.fonts);
+    addText(result, "centerFullText", line.centerFullText, tables.fonts);
+    addText(result, "centerAbbrText", line.centerAbbrText, tables.fonts);
     return result;
 }
 
@@ -253,9 +253,9 @@ json keyboardPedalTextJson(const KeyboardPedalClassification& text)
     };
 }
 
-json keyboardPedalJson(const KeyboardPedal& pedal, ArrowheadTable& arrowheads)
+json keyboardPedalJson(const KeyboardPedal& pedal, ReportTables& tables)
 {
-    json result{{"line", generalLineJson(pedal.line, arrowheads)}};
+    json result{{"line", generalLineJson(pedal.line, tables)}};
     if (pedal.startText) {
         result["startText"] = keyboardPedalTextJson(*pedal.startText);
     }
@@ -273,7 +273,7 @@ json keyboardPedalJson(const KeyboardPedal& pedal, ArrowheadTable& arrowheads)
 /// @brief Names the classified value and writes its fields under a key of the same name.
 ///
 /// A Suppress shape belongs to another feature and is never collected, so it has no serialization.
-void appendValue(json& result, const SmartShapeValue& value, ArrowheadTable& arrowheads)
+void appendValue(json& result, const SmartShapeValue& value, ReportTables& tables)
 {
     std::visit(
         [&](const auto& payload) {
@@ -288,7 +288,7 @@ void appendValue(json& result, const SmartShapeValue& value, ArrowheadTable& arr
                     {"isSemanticCarrier", payload.calcIsSemanticCarrier()},
                 };
                 if (payload.line) {
-                    ottava["line"] = generalLineJson(*payload.line, arrowheads);
+                    ottava["line"] = generalLineJson(*payload.line, tables);
                 }
                 result["ottava"] = std::move(ottava);
             } else if constexpr (std::is_same_v<Payload, Crescendo>) {
@@ -311,23 +311,23 @@ void appendValue(json& result, const SmartShapeValue& value, ArrowheadTable& arr
                 result["kind"] = "non-arpeggio";
             } else if constexpr (std::is_same_v<Payload, KeyboardPedal>) {
                 result["kind"] = "keyboard-pedal";
-                result["keyboardPedal"] = keyboardPedalJson(payload, arrowheads);
+                result["keyboardPedal"] = keyboardPedalJson(payload, tables);
             } else if constexpr (std::is_same_v<Payload, TrillLine>) {
                 result["kind"] = "trill-line";
                 json trill{{"includesTrSymbol", payload.includesTrSymbol}};
                 if (payload.line) {
-                    trill["line"] = generalLineJson(*payload.line, arrowheads);
+                    trill["line"] = generalLineJson(*payload.line, tables);
                 }
                 result["trillLine"] = std::move(trill);
             } else if constexpr (std::is_same_v<Payload, VibratoLine>) {
                 result["kind"] = "vibrato-line";
-                result["vibratoLine"] = {{"line", generalLineJson(payload.line, arrowheads)}};
+                result["vibratoLine"] = {{"line", generalLineJson(payload.line, tables)}};
             } else if constexpr (std::is_same_v<Payload, Glissando>) {
                 result["kind"] = "glissando";
-                result["glissando"] = {{"line", generalLineJson(payload.line, arrowheads)}};
+                result["glissando"] = {{"line", generalLineJson(payload.line, tables)}};
             } else if constexpr (std::is_same_v<Payload, GeneralLine>) {
                 result["kind"] = "general-line";
-                result["generalLine"] = generalLineJson(payload, arrowheads);
+                result["generalLine"] = generalLineJson(payload, tables);
             }
         },
         value);
@@ -383,10 +383,10 @@ json ArrowheadTable::toJson() const
     return result;
 }
 
-json smartShapeJson(const classify::SmartShapeClassification& smartShape, ArrowheadTable& arrowheads)
+json smartShapeJson(const classify::SmartShapeClassification& smartShape, ReportTables& tables)
 {
     json result{{"shapeType", shapeTypeName(smartShape.shapeType)}};
-    appendValue(result, smartShape.value, arrowheads);
+    appendValue(result, smartShape.value, tables);
     return result;
 }
 

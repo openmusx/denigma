@@ -63,6 +63,7 @@ endfunction()
         test_smartshapes.cpp
         test_smartshape_lines.cpp
         test_svg_converter.cpp
+        test_text_blocks.cpp
         test_typed_converter_options.cpp
         test_jumps.cpp
         test_finale_samples.cpp

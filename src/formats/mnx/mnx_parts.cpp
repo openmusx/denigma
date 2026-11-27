@@ -30,6 +30,7 @@
 #include "mnx_chords.h"
 #include "mnx_expressions.h"
 #include "mnx_smartshapes.h"
+#include "mnx_text_blocks.h"
 
 #include "core/element_ids.h"
 #include "denigma/classify/clefs.h"
@@ -476,6 +477,7 @@ static void createMeasures(const MnxMusxMappingPtr& context, mnxdom::Part& part)
             createSequences(context, mnxMeasure, staffNumber, musxMeasure);
             // the following must come after sequences, in case we need to attach to events (e.g., fermatas);
             processExpressions(context, musxMeasure, mnxMeasure, staffNumber);
+            processMeasureTexts(context, musxMeasure, mnxMeasure, staffNumber);
             processSmartShapes(context, musxMeasure, mnxMeasure, staffNumber);
         }
     }
