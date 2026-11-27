@@ -264,6 +264,12 @@ make.
 The label itself is the fret number followed by `fretNumText`, giving `4fr.` for a diagram starting
 on the fourth fret. Both attributes are omitted when the chord assignment has no fretboard style.
 
+### A barre endpoint stopped above the barre gets its own frame note
+
+A MusicXML barre is a `start` and a `stop` on two frame notes, and lies on their fret. Finale anchors a barre to its two endpoint strings and its own fret, whatever is played on those strings, so an endpoint string can be stopped above the barre: a barre at the eighth fret with string 1 stopped at the tenth. Denigma writes the marker on a second frame note on that string at the barre's fret, after the note for the stopped fret, so the string has two frame notes. The schema allows any number of frame notes per string.
+
+This is how MuseScore writes such a diagram, and its importer pairs a `start` and a `stop` only when they share a fret. Finale's own export instead puts the marker on the stopped note, giving endpoints on different frets; MuseScore drops that barre, and a reader that draws it draws it at the wrong fret. A marker on an endpoint note that is already on the barre's fret needs no extra note, and an endpoint string with no note above the barre keeps the marker on its own note.
+
 ### A brass slide goes on the note the classifier names
 
 A Finale brass articulation (scoop, plop, falloff, doit) belongs to the entry, but a slide belongs to one note. The articulation classifier deals an entry's slides to its notes and names each one's note in `classify::articulation::NoteSlide`, which documents the rule; the exporter appends the slide to that note and drops one that names none.

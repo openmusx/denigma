@@ -321,7 +321,8 @@ private:
     static std::vector<std::filesystem::path> candidateFontDirectories()
     {
         std::vector<std::filesystem::path> dirs;
-        auto append = [&](const std::filesystem::path& path) {
+        // Unused on platforms with no system font directories, such as WebAssembly.
+        [[maybe_unused]] auto append = [&](const std::filesystem::path& path) {
             std::error_code ec;
             if (!path.empty() && std::filesystem::exists(path, ec) && std::filesystem::is_directory(path, ec)) {
                 dirs.push_back(path);
@@ -894,7 +895,9 @@ private:
     }
 #endif
 
-    std::optional<ResolvedFace> resolveWithNativeLocked(const std::string& familyName, bool bold, bool italic) const
+    // The parameters are unused on platforms with no native font resolver, such as WebAssembly.
+    std::optional<ResolvedFace> resolveWithNativeLocked(
+        [[maybe_unused]] const std::string& familyName, [[maybe_unused]] bool bold, [[maybe_unused]] bool italic) const
     {
 #if defined(MUSX_RUNNING_ON_WINDOWS) && defined(DENIGMA_USE_DIRECTWRITE)
         if (auto resolved = resolveWithDirectWriteLocked(familyName, bold, italic)) {

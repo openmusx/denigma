@@ -33,13 +33,10 @@
 
 #include "core/element_ids.h"
 #include "denigma/classify/barlines.h"
-#include "denigma/classify/chords.h"
 #include "denigma/classify/clefs.h"
 #include "denigma/classify/staff_states.h"
-#include "utils/stringutils.h"
 
 #include "mx/api/BarlineData.h"
-#include "mx/api/ChordData.h"
 #include "mx/api/ClefData.h"
 #include "mx/api/DirectionData.h"
 #include "mx/api/ForPartData.h"
@@ -932,163 +929,6 @@ void processMeasureTexts(
             });
 
         appendMusicXmlWordsRun(direction, std::move(words));
-        staff.directions.emplace_back(std::move(direction));
-    }
-}
-
-void processChords(MusicXmlMusxMapping& context, mx::api::StaffData& staff, const MusxInstance<others::Measure>& musxMeasure, StaffCmper staffId)
-{
-    const auto assignments = context.document->getDetails()->getArray<details::ChordAssign>(context.forPartId, staffId, musxMeasure->getCmper());
-    if (assignments.empty()) {
-        return;
-    }
-
-    const auto keySignature = musxMeasure->createKeySignature(staffId);
-    if (!keySignature) {
-        context.logMessage(
-            LogMsg() << "Skipping chord symbols in measure " << musxMeasure->getCmper() << " because no effective key signature was found.",
-            MessageSeverity::Warning);
-        return;
-    }
-
-    const auto staffAtMeasure = others::StaffComposite::createCurrent(context.document, context.forPartId, staffId, musxMeasure->getCmper(), 0);
-    const auto keyContext = staffAtMeasure && staffAtMeasure->calcUsesWrittenPitch(context.pitchMode) ? KeySignature::KeyContext::Written
-                                                                                                      : KeySignature::KeyContext::Concert;
-    for (const auto& [assignment, position, classification] : classify::classifyChordAssignments(assignments, keySignature, keyContext)) {
-        if (!classification.showRoot) {
-            continue;
-        }
-
-        auto chord = mx::api::ChordData{};
-        chord.root = enumConvert<mx::api::Step>(classification.root.noteName);
-        chord.rootAlter = classification.root.alteration;
-        if (classification.rootLowerCase) {
-            chord.rootText = std::string{utils::toLowerCase(music_theory::calcNoteNameLetter(classification.root.noteName))};
-        }
-        chord.text = "";
-        const auto& suffix = classification.suffix;
-        chord.chordKind = suffix.quality ? enumConvert<mx::api::ChordKind>(*suffix.quality) : mx::api::ChordKind::other;
-        if (classification.showSuffix) {
-            chord.text = suffix.calcText();
-            for (const auto& degree : suffix.degrees) {
-                auto extension = mx::api::Extension{};
-                extension.extensionType = enumConvert<mx::api::ExtensionType>(degree.type);
-                extension.setAlterValue(degree.alteration);
-                // A degree the suffix text already spells out must not print a second time. Leave the
-                // rest unspecified rather than writing "yes", as Finale's own export does.
-                if (degree.impliedByText) {
-                    extension.printObject = mx::api::Bool::no;
-                }
-                switch (degree.value) {
-                case 1: extension.extensionNumber = mx::api::ExtensionNumber::first; break;
-                case 2: extension.extensionNumber = mx::api::ExtensionNumber::second; break;
-                case 3: extension.extensionNumber = mx::api::ExtensionNumber::third; break;
-                case 4: extension.extensionNumber = mx::api::ExtensionNumber::fourth; break;
-                case 5: extension.extensionNumber = mx::api::ExtensionNumber::fifth; break;
-                case 6: extension.extensionNumber = mx::api::ExtensionNumber::sixth; break;
-                case 7: extension.extensionNumber = mx::api::ExtensionNumber::seventh; break;
-                case 9: extension.extensionNumber = mx::api::ExtensionNumber::ninth; break;
-                case 11: extension.extensionNumber = mx::api::ExtensionNumber::eleventh; break;
-                case 13: extension.extensionNumber = mx::api::ExtensionNumber::thirteenth; break;
-                default: continue;
-                }
-                chord.extensions.emplace_back(extension);
-            }
-            // These describe how the exported degrees are laid out, so they mean nothing without any.
-            // Leave them unspecified rather than writing "no", so that the layout is only constrained
-            // where Finale's suffix calls for it. Finale's own export does the same.
-            if (!chord.extensions.empty()) {
-                if (suffix.parenthesizeDegrees) {
-                    chord.parenthesesDegrees = mx::api::Bool::yes;
-                }
-                if (suffix.stackDegrees) {
-                    chord.stackDegrees = mx::api::Bool::yes;
-                }
-            }
-            if (suffix.hasUnrecognizedGlyphs) {
-                context.logMessage(LogMsg() << "Chord suffix " << assignment->suffixId << " in measure " << musxMeasure->getCmper()
-                                            << " contains unrecognized glyphs.",
-                    MessageSeverity::Warning);
-            }
-        }
-        if (classification.bass) {
-            chord.bass = enumConvert<mx::api::Step>(classification.bass->noteName);
-            chord.bassAlter = classification.bass->alteration;
-            if (classification.bassLowerCase) {
-                chord.bassText = std::string{utils::toLowerCase(music_theory::calcNoteNameLetter(classification.bass->noteName))};
-            }
-            if (classification.bassArrangement) {
-                chord.bassArrangement = enumConvert<mx::api::BassArrangement>(*classification.bassArrangement);
-            }
-        }
-
-        // A font fretboard resolves to one character and has no fret positions to export. The
-        // assignment's own flags decide this; see the font-fretboard entry in design-decisions.md.
-        if (assignment->useFretboardFont && assignment->showFretboard) {
-            context.fontFretboardChordCount++;
-        }
-
-        // calcFretboardDisplayData owns the whole visibility decision, so a value here means Finale displays
-        // a structured fretboard for this chord and an empty result needs no further checks of our own.
-        if (const auto fretboard = calcFretboardDisplayData(assignment, keySignature, keyContext)) {
-            chord.hasFrameData = true;
-            chord.frameData.stringCount = fretboard->stringCount;
-            chord.frameData.fretCount = fretboard->fretCount;
-            switch (fretboard->unplayedStringDisplay) {
-            case UnplayedStringDisplay::None: break;
-            case UnplayedStringDisplay::Blank: chord.frameData.unplayed = ""; break;
-            case UnplayedStringDisplay::Muted: chord.frameData.unplayed = "x"; break;
-            }
-            if (fretboard->showFretboardNumber && fretboard->fretboardNumber > 1) {
-                chord.frameData.isFirstFretSpecified = true;
-                chord.frameData.firstFret = fretboard->fretboardNumber;
-                // The label is the fret number followed by the style's text, giving "4fr.". Finale
-                // has no setting for the side; see the first-fret entry in design-decisions.md.
-                if (const auto fretStyle = assignment->getFretboardStyle()) {
-                    chord.frameData.firstFretText = std::to_string(fretboard->fretboardNumber) + fretStyle->fretNumText;
-                    chord.frameData.firstFretLocation = mx::api::FirstFretLocation::right;
-                }
-            }
-
-            for (const auto& cell : fretboard->cells) {
-                // MusicXML marks an unplayed string with the frame's unplayed attribute, not a frame note.
-                if (cell.shape == details::FretboardDiagram::Shape::Muted) {
-                    continue;
-                }
-                auto note = mx::api::FrameNoteData{};
-                note.stringNumber = cell.string;
-                note.fretNumber = cell.fret;
-                if (cell.finger != 0) {
-                    note.fingering = cell.finger;
-                    note.isFingeringSpecified = true;
-                }
-                chord.frameData.notes.emplace_back(note);
-            }
-
-            const auto findFrameNote = [&](int stringNumber) {
-                return std::find_if(chord.frameData.notes.begin(), chord.frameData.notes.end(),
-                    [stringNumber](const auto& candidate) { return candidate.stringNumber == stringNumber; });
-            };
-            for (const auto& barre : fretboard->barres) {
-                // Finale anchors a barre to its endpoint strings whatever fret is played there, so a
-                // string stopped above the barre still carries the marker. Frame notes are emitted from
-                // the highest string number down, so the barre starts on Finale's end string (the
-                // highest) and stops on its start string (the lowest).
-                const auto start = findFrameNote(barre.endString);
-                const auto stop = findFrameNote(barre.startString);
-                // MusicXML cannot express half a barre, so emit one only when both ends have a note.
-                if (start != chord.frameData.notes.end() && stop != chord.frameData.notes.end()) {
-                    start->barre = mx::api::FrameBarre::start;
-                    stop->barre = mx::api::FrameBarre::stop;
-                }
-            }
-            std::stable_sort(chord.frameData.notes.begin(), chord.frameData.notes.end(),
-                [](const auto& left, const auto& right) { return left.stringNumber > right.stringNumber; });
-        }
-
-        auto direction = mx::api::DirectionData{};
-        direction.tickTimePosition = context.timing.calcNearestMusicXmlDivisions(position);
-        direction.chords.emplace_back(std::move(chord));
         staff.directions.emplace_back(std::move(direction));
     }
 }

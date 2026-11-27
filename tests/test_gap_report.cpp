@@ -47,6 +47,75 @@ TEST(GapReport, SerializesEmptyAndStructuredReports)
     EXPECT_EQ(report.find("\"quality\": null"), std::string::npos);
 }
 
+TEST(GapReport, WritesFretboardsOnceInAReportLevelTable)
+{
+    using namespace denigma::classify;
+    musx::util::FretboardDisplayData diagram;
+    diagram.stringCount = 6;
+    diagram.fretCount = 4;
+    diagram.fretboardNumber = 8;
+    diagram.showFretboardNumber = true;
+    diagram.fretNumberText = "fr.";
+    diagram.cells = {
+        {6, 8, musx::dom::details::FretboardDiagram::Shape::Closed, 1},
+        {1, 10, musx::dom::details::FretboardDiagram::Shape::Closed, 0},
+        {5, 0, musx::dom::details::FretboardDiagram::Shape::Muted, 0},
+    };
+    diagram.barres = {{8, 1, 6}};
+    auto other = diagram;
+    other.barres[0].fret = 9;
+
+    GapCollector collector;
+    const auto addChord = [&](std::optional<FretboardClassification> fretboard) {
+        ChordSymbolClassification chord;
+        chord.fretboard = std::move(fretboard);
+        collector.add({"P1.m1", std::nullopt, musx::util::Fraction{0, 1}}, std::move(chord));
+    };
+    addChord(diagram);
+    addChord(std::nullopt);
+    addChord(diagram);
+    addChord(other);
+    addChord(FontFretboard{});
+
+    const auto report = nlohmann::json::parse(denigma::serializeGapReport(collector, {{"denigma", "TEST", "abc123"}, {}}));
+    const auto& gaps = report["gaps"];
+    ASSERT_EQ(gaps.size(), size_t(5));
+    EXPECT_EQ(gaps[0]["chord"]["fretboard"], "1");
+    EXPECT_FALSE(gaps[1]["chord"].contains("fretboard"));
+    EXPECT_EQ(gaps[2]["chord"]["fretboard"], "1");
+    EXPECT_EQ(gaps[3]["chord"]["fretboard"], "2");
+    EXPECT_EQ(gaps[4]["chord"]["fretboard"], "3");
+
+    const auto& table = report["fretboards"];
+    ASSERT_EQ(table.size(), size_t(3));
+    const auto& first = table["1"];
+    EXPECT_EQ(first["kind"], "diagram");
+    EXPECT_EQ(first["strings"], 6);
+    EXPECT_EQ(first["frets"], 4);
+    EXPECT_EQ(first["fretboardNumber"], 8);
+    EXPECT_EQ(first["showFretboardNumber"], true);
+    EXPECT_EQ(first["fretNumberText"], "fr.");
+    ASSERT_EQ(first["cells"].size(), size_t(3));
+    EXPECT_EQ(first["cells"][0]["finger"], 1);
+    EXPECT_FALSE(first["cells"][1].contains("finger"));
+    EXPECT_EQ(first["cells"][2]["shape"], "muted");
+    EXPECT_FALSE(first.contains("unplayed"));
+    ASSERT_EQ(first["barres"].size(), size_t(1));
+    EXPECT_EQ(first["barres"][0]["fret"], 8);
+    EXPECT_EQ(first["barres"][0]["startString"], 1);
+    EXPECT_EQ(first["barres"][0]["endString"], 6);
+    EXPECT_EQ(table["2"]["barres"][0]["fret"], 9);
+    EXPECT_EQ(table["3"], nlohmann::json({{"kind", "font"}}));
+}
+
+TEST(GapReport, OmitsTheFretboardTableWhenNoChordHasOne)
+{
+    denigma::classify::GapCollector collector;
+    collector.add({"P1.m1", std::nullopt, musx::util::Fraction{0, 1}}, denigma::classify::ChordSymbolClassification{});
+    const auto report = nlohmann::json::parse(denigma::serializeGapReport(collector, {{"denigma", "TEST", "abc123"}, {}}));
+    EXPECT_FALSE(report.contains("fretboards"));
+}
+
 TEST(GapReport, SerializesExtentPlacementsAndExpressionPayloads)
 {
     denigma::classify::GapCollector collector;
@@ -195,7 +264,7 @@ TEST(GapReport, SerializesTextFormattingAndInsertRanges)
         TextInsert{{text::Insert::Kind::PlaybackValue, "value", {}}, "p f", {{"expr.text0", 2, 1}, {"expr.text1", 0, 1}, {"expr.text2", 0, 1}}},
         GapExtent::Partial);
     const auto report = nlohmann::json::parse(denigma::serializeGapReport(collector, {{"denigma", "TEST", "abc123"}, {}}));
-    EXPECT_EQ(report["schemaVersion"], 3);
+    EXPECT_EQ(report["schemaVersion"], 4);
     const auto& style = report["gaps"][0];
     EXPECT_EQ(style["type"], "text-formatting");
     EXPECT_EQ(style["formatting"]["sourceText"], "p");

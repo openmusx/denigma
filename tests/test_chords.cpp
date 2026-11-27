@@ -23,8 +23,10 @@
 
 #include <algorithm>
 #include <filesystem>
+#include <optional>
 #include <string>
 #include <string_view>
+#include <variant>
 #include <vector>
 
 #include "core/musx_reader.h"
@@ -541,4 +543,90 @@ TEST(ChordAssignmentClassifierFixture, ClassifiesEveryAssignmentInMeasureOrder)
     EXPECT_EQ(classified[1].classification.suffix.quality, denigma::classify::chord::Quality::Minor);
 
     EXPECT_THROW(denigma::classify::classifyChordAssignments(assignments, nullptr, KeySignature::KeyContext::Written), std::invalid_argument);
+}
+
+namespace {
+
+std::vector<denigma::classify::ChordAssignmentClassification> classifyFixtureMeasure(const DocumentPtr& document, MeasCmper measureId)
+{
+    const auto measure = document->getOthers()->get<others::Measure>(SCORE_PARTID, measureId);
+    EXPECT_TRUE(measure);
+    if (!measure) {
+        return {};
+    }
+    const StaffCmper staffId = 1;
+    const auto assignments = document->getDetails()->getArray<details::ChordAssign>(SCORE_PARTID, staffId, measureId);
+    const auto keySignature = measure->createKeySignature(staffId);
+    EXPECT_TRUE(keySignature);
+    if (!keySignature) {
+        return {};
+    }
+    return denigma::classify::classifyChordAssignments(assignments, keySignature, KeySignature::KeyContext::Written);
+}
+
+const musx::util::FretboardDisplayData* findDiagram(const std::vector<denigma::classify::ChordAssignmentClassification>& classified)
+{
+    for (const auto& item : classified) {
+        if (item.classification.fretboard) {
+            if (const auto* diagram = std::get_if<musx::util::FretboardDisplayData>(&*item.classification.fretboard)) {
+                return diagram;
+            }
+        }
+    }
+    return nullptr;
+}
+
+} // namespace
+
+TEST(ChordAssignmentClassifierFixture, ClassifiesStructuredFretboardsAsFinaleStoresThem)
+{
+    const auto document = loadChordsFixture();
+    ASSERT_TRUE(document);
+
+    const auto classified = classifyFixtureMeasure(document, 15);
+    const auto* diagram = findDiagram(classified);
+    ASSERT_TRUE(diagram);
+    EXPECT_EQ(diagram->stringCount, 6);
+    EXPECT_EQ(diagram->fretCount, 4);
+    EXPECT_EQ(diagram->fretboardNumber, 4);
+    EXPECT_TRUE(diagram->showFretboardNumber);
+    EXPECT_EQ(diagram->fretNumberText, std::optional<std::string>("fr."));
+    ASSERT_EQ(diagram->cells.size(), size_t(6));
+    // Cells keep Finale's source order rather than string order.
+    EXPECT_EQ(diagram->cells[0].string, 3);
+    EXPECT_EQ(diagram->cells[0].fret, 5);
+    EXPECT_EQ(diagram->cells[0].shape, details::FretboardDiagram::Shape::Closed);
+    ASSERT_EQ(diagram->barres.size(), size_t(1));
+    EXPECT_EQ(diagram->barres[0].fret, 4);
+    EXPECT_EQ(diagram->barres[0].startString, 1);
+    EXPECT_EQ(diagram->barres[0].endString, 6);
+}
+
+TEST(ChordAssignmentClassifierFixture, KeepsTheBarreFretWhenAnEndpointStringIsStoppedHigher)
+{
+    const auto document = loadChordsFixture();
+    ASSERT_TRUE(document);
+
+    const auto classified = classifyFixtureMeasure(document, 24);
+    const auto* diagram = findDiagram(classified);
+    ASSERT_TRUE(diagram);
+    ASSERT_EQ(diagram->barres.size(), size_t(1));
+    EXPECT_EQ(diagram->barres[0].fret, 8);
+    EXPECT_EQ(diagram->barres[0].startString, 1);
+    EXPECT_EQ(diagram->barres[0].endString, 6);
+    const auto stringOne = std::find_if(diagram->cells.begin(), diagram->cells.end(), [](const auto& cell) { return cell.string == 1; });
+    ASSERT_NE(stringOne, diagram->cells.end());
+    EXPECT_EQ(stringOne->fret, 10);
+}
+
+TEST(ChordAssignmentClassifierFixture, LeavesChordsWithoutFretboardsEmpty)
+{
+    const auto document = loadChordsFixture();
+    ASSERT_TRUE(document);
+
+    const auto classified = classifyFixtureMeasure(document, 1);
+    ASSERT_FALSE(classified.empty());
+    for (const auto& item : classified) {
+        EXPECT_FALSE(item.classification.fretboard);
+    }
 }

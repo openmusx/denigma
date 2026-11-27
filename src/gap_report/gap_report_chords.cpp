@@ -138,7 +138,7 @@ json suffixJson(const classify::ChordSuffixClassification& suffix)
 
 } // namespace
 
-json chordJson(const classify::ChordSymbolClassification& chord)
+json chordJson(const classify::ChordSymbolClassification& chord, FretboardTable& fretboards)
 {
     json result{
         {"root", pitchJson(chord.root)},
@@ -153,6 +153,9 @@ json chordJson(const classify::ChordSymbolClassification& chord)
     }
     if (chord.bassArrangement) {
         result["bassArrangement"] = chordBassArrangementName(*chord.bassArrangement);
+    }
+    if (chord.fretboard) {
+        result["fretboard"] = fretboards.reference(*chord.fretboard);
     }
     return result;
 }

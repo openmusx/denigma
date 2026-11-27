@@ -132,7 +132,7 @@ json gapJson(const classify::Gap& gap, gap_report::ReportTables& tables)
             using Payload = std::decay_t<decltype(payload)>;
             if constexpr (std::is_same_v<Payload, classify::ChordSymbolClassification>) {
                 result["type"] = "chord-symbol";
-                result["chord"] = gap_report::chordJson(payload);
+                result["chord"] = gap_report::chordJson(payload, tables.fretboards);
             } else if constexpr (std::is_same_v<Payload, classify::NoteheadClassification>) {
                 result["type"] = "notehead";
                 result["notehead"] = gap_report::noteheadJson(payload, tables.fonts);
@@ -187,7 +187,7 @@ json gapJson(const classify::Gap& gap, gap_report::ReportTables& tables)
 
 std::string serializeGapReport(const classify::GapCollector& collector, const GapReportOptions& options)
 {
-    gap_report::ReportTables tables{gap_report::ArrowheadTable(options.glyphMetrics), {}};
+    gap_report::ReportTables tables{gap_report::ArrowheadTable(options.glyphMetrics), {}, {}};
     auto gaps = json::array();
     // Page assignment ids depend on one document-wide value, which a consumer cannot recover from the
     // target document; it is written once, and only when it is not 0. See design-decisions.md.
@@ -200,7 +200,7 @@ std::string serializeGapReport(const classify::GapCollector& collector, const Ga
     }
     const auto& producer = options.producer;
     json result{
-        {"schemaVersion", 3},
+        {"schemaVersion", 4},
         {"producer", {{"name", producer.name}, {"version", producer.version}, {"commit", producer.commit}}},
         {"gaps", std::move(gaps)},
     };
@@ -212,6 +212,9 @@ std::string serializeGapReport(const classify::GapCollector& collector, const Ga
     }
     if (auto arrowheadJson = tables.arrowheads.toJson(); !arrowheadJson.empty()) {
         result["arrowheads"] = std::move(arrowheadJson);
+    }
+    if (auto fretboardJson = tables.fretboards.toJson(); !fretboardJson.empty()) {
+        result["fretboards"] = std::move(fretboardJson);
     }
     return result.dump(2);
 }

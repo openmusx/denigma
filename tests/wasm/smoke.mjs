@@ -285,7 +285,7 @@ withInput(chordInput, 'chords.musx', (dataPointer, namePointer) => {
       throw new Error(`MNX output declares schema ${mnxDocument.mnx.version}; the module reports ${mnxSchemaVersion}.`);
     }
     const report = gapReport(result);
-    if (report.schemaVersion !== 3) {
+    if (report.schemaVersion !== 4) {
       throw new Error('Chord gap report has invalid envelope metadata.');
     }
     const chordGaps = report.gaps.filter((gap) => gap.type === 'chord-symbol');
@@ -295,6 +295,10 @@ withInput(chordInput, 'chords.musx', (dataPointer, namePointer) => {
       || 'source' in gap
       || 'cause' in gap)) {
       throw new Error('Chord gap report does not contain target-anchored chord classifications.');
+    }
+    const fretboardKeys = chordGaps.filter((gap) => 'fretboard' in gap.chord).map((gap) => gap.chord.fretboard);
+    if (!fretboardKeys.length || fretboardKeys.some((key) => !report.fretboards?.[key]?.kind)) {
+      throw new Error('Chord gap report does not resolve chord fretboards in its fretboard table.');
     }
     console.log(`MNX gap report: ${chordGaps.length} chord symbol gaps.`);
     console.log(`MNX gap example:\n${JSON.stringify(chordGaps[0], null, 2)}`);
