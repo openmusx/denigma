@@ -34,7 +34,7 @@ namespace lyric {
 enum class WordExtensionKind {
     None, ///< The syllable has no word extension.
     Smart, ///< A word-extension smart shape gives the extension an endpoint entry.
-    Legacy ///< The assignment stores only a drawn length, so the extension has no known endpoint.
+    Legacy ///< The assignment stores only a drawn length, and the endpoint entry is inferred from the music.
 };
 
 } // namespace lyric
@@ -44,8 +44,9 @@ enum class WordExtensionKind {
 struct LyricWordExtension
 {
     lyric::WordExtensionKind kind{lyric::WordExtensionKind::None};
-    /// The entry the extension ends on, which may be the syllable's own entry. Null for a legacy
-    /// extension and for a smart extension whose shape was not found.
+    /// The entry the extension ends on, which may be the syllable's own entry. Null when no endpoint was
+    /// found: a smart extension whose shape is missing, or a legacy extension Finale would not draw. See
+    /// musx::dom::details::LyricAssign::calcWordExtensionEndpoint.
     musx::dom::EntryInfoPtr endEntry;
 
     /// Returns true when the syllable has a word extension.

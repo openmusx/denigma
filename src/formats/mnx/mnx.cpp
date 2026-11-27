@@ -19,6 +19,8 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+#include "input/input.h"
+
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -29,6 +31,7 @@
 #include "core/musx_reader.h"
 #include "mnx.h"
 #include "mnx_smartshapes.h"
+#include "mnx_text_blocks.h"
 #include "utils/stringutils.h"
 
 using namespace musx::dom;
@@ -63,7 +66,19 @@ void MnxMusxMapping::logMessage(LogMsg&& msg, MessageSeverity severity)
     std::string logEntry;
     if (current.staff > 0 && current.meas > 0) {
         std::string staffName = [&]() -> std::string {
-            if (document) {
+            // The lookup can itself log (a dangling staff style assignment, for instance), and that message
+            // must not look the staff up again.
+            if (document && !m_resolvingLogStaffName) {
+                struct ResolvingGuard
+                {
+                    bool& flag;
+                    explicit ResolvingGuard(bool& f)
+                        : flag(f)
+                    {
+                        flag = true;
+                    }
+                    ~ResolvingGuard() { flag = false; }
+                } guard(m_resolvingLogStaffName);
                 if (auto staff = others::StaffComposite::createCurrent(document, SCORE_PARTID, current.staff, current.meas, 0)) {
                     auto instName = staff->getFullInstrumentName();
                     if (!instName.empty()) {
@@ -179,16 +194,17 @@ static void createMnx(const MnxMusxMappingPtr& context)
     auto mnx = mnxDocument->mnx();
     auto support = mnx.ensure_support();
     support.set_useBeams(true);
+    support.set_useLyricExtenders(true);
 
     auto client = mnx.ensure_mnxdom().ensure_client();
     client.set_name(DENIGMA_NAME);
     client.set_version(DENIGMA_VERSION);
     client.set_commit(gitCommit());
 
-    // report the content format, not the container: a zipped enigmaxml is provenance-identical to a plain one
-    const auto inputFilePath = unwrappedInputPath(context->denigmaContext->inputFilePath);
+    const auto inputFilePath =
+        context->sourceFormat == FormatId::Mus ? context->denigmaContext->inputFilePath : unwrappedInputPath(context->denigmaContext->inputFilePath);
     auto source = mnx.ensure_mnxdom().ensure_source();
-    const std::u8string sourceFormat = utils::normalizedPathExtension(inputFilePath);
+    const std::u8string sourceFormat = context->sourceFormat == FormatId::Mus ? u8"mus" : utils::normalizedPathExtension(inputFilePath);
     source.set_format(sourceFormat.empty() ? std::string("unknown") : utils::utf8ToString(sourceFormat));
     if (!inputFilePath.empty()) {
         source.set_filename(utils::pathToString(inputFilePath.filename()));
@@ -198,12 +214,14 @@ static void createMnx(const MnxMusxMappingPtr& context)
 static void createScores(const MnxMusxMappingPtr& context)
 {
     auto& mnxDocument = context->mnxDocument;
+    std::vector<size_t> pageCounts;
     for (const auto& linkedPart : context->musxParts) {
         auto partGlobals = context->document->getOthers()->get<others::PartGlobals>(linkedPart->getCmper(), MUSX_GLOBALS_CMPER);
         // This name is written into the MNX file, so it keeps proper accidental glyphs and its own
         // fallback. calcLinkedPartDisplayName is deliberately not used here: that helper exists for
         // filenames and log messages, where ASCII is the rule.
         auto mnxScore = mnxDocument->ensure_scores().append(linkedPart->getName(EnigmaString::AccidentalStyle::Unicode));
+        mnxDocument->assignId(mnxScore, core::calcScoreId(linkedPart->getCmper()));
         if (mnxScore.name().empty()) {
             mnxScore.set_name(linkedPart->isScore() ? std::string("Score") : std::string("Part ") + std::to_string(linkedPart->getCmper()));
         }
@@ -222,8 +240,9 @@ static void createScores(const MnxMusxMappingPtr& context)
                                                       : MusxInstanceList<others::Page>(context->document, linkedPart->getCmper());
         for (size_t x = 0; x < pages.size(); x++) {
             auto mnxPage = mnxScore.ensure_pages().append();
-            auto mnxSystems = mnxPage.systems();
             auto page = pages[x];
+            mnxDocument->assignId(mnxPage, core::calcPageId(linkedPart->getCmper(), page->getCmper()));
+            auto mnxSystems = mnxPage.systems();
             if (!page->isBlank() && page->lastSystemId.has_value()) {
                 for (SystemCmper sysId = page->firstSystemId; sysId <= page->lastSystemId.value(); sysId++) {
                     auto system = context->document->getOthers()->get<others::StaffSystem>(linkedPart->getCmper(), sysId);
@@ -236,10 +255,12 @@ static void createScores(const MnxMusxMappingPtr& context)
                 }
             }
         }
+        pageCounts.push_back(pages.size());
         if (partGlobals && !partGlobals->showTransposed) {
             mnxScore.set_useWritten(true);
         }
     }
+    processPageTexts(context, pageCounts);
 }
 
 static std::unique_ptr<mnxdom::Document> createMnxDocument(const CommandInputData& inputData, const DenigmaContext& denigmaContext)
@@ -249,6 +270,9 @@ static std::unique_ptr<mnxdom::Document> createMnxDocument(const CommandInputDat
         gapCollector->retainDocument(document);
     }
     auto context = std::make_shared<MnxMusxMapping>(denigmaContext, document);
+    context->sourceFormat = inputData.sourceFormat;
+    // Every id is assigned with Document::assignId, which maps it as it is set. Export can then look objects up
+    // by id through getEntityMap, before validation rebuilds the mapping from the finished document.
     context->mnxDocument = std::make_unique<mnxdom::Document>();
     context->musxParts = others::PartDefinition::getInUserOrder(document);
     MusxLoggerScope mnxMusxLogger(makeMusxLogCallback(context));
@@ -256,10 +280,10 @@ static std::unique_ptr<mnxdom::Document> createMnxDocument(const CommandInputDat
     createMnx(context);
     createParts(context);
     createGlobal(context); // must come after createParts: global content refers to part ids
+    finalizeEntryTargets(context); // must precede finalizeJumpTies, which reads the ties
     finalizeArpeggios(context);
     finalizeJumpTies(context);
     finalizeSmartShapeGaps(context);
-    finalizeLyricExtensionGaps(context);
     // Split-instrument parts need time-varying layout sources; skip scores/layouts until MNX has a stable model for that.
     if (!denigmaContext.mnxSplitInstruments) {
         createLayouts(context); // must come after createParts
@@ -270,6 +294,11 @@ static std::unique_ptr<mnxdom::Document> createMnxDocument(const CommandInputDat
             LogMsg() << "discarded " << context->discardedCueFrames << " cue frames because MNX does not currently support cues.",
             MessageSeverity::Verbose);
     }
+    if (context->discardedZeroLengthTuplets > 0) {
+        denigmaContext.logMessage(LogMsg() << "discarded the entries of " << context->discardedZeroLengthTuplets
+                                           << " zero-length tuplets because MNX cannot represent them.",
+            MessageSeverity::Warning);
+    }
     return std::move(context->mnxDocument);
 }
 
@@ -277,14 +306,23 @@ static void validateMnxDocument(const mnxdom::Document& mnxDocument, const Denig
 {
     if (!denigmaContext.noValidate) {
         denigmaContext.logMessage(LogMsg() << "Validation starting.", MessageSeverity::Verbose);
-        if (auto validateResult = mnxdom::validation::schemaValidate(mnxDocument, denigmaContext.mnxSchema); !validateResult) {
+        const auto validateResult = mnxdom::validation::schemaValidate(mnxDocument, {.collectIds = true, .jsonSchema = denigmaContext.mnxSchema});
+        if (!validateResult) {
             denigmaContext.logMessage(LogMsg() << "Schema validation errors:", MessageSeverity::Warning);
             for (const auto& error : validateResult.errors) {
                 denigmaContext.logMessage(LogMsg() << "    " << error.to_string(), MessageSeverity::Warning);
             }
         } else {
             denigmaContext.logMessage(LogMsg() << "Schema validation succeeded.");
-            if (auto semanticResult = mnxdom::validation::semanticValidate(mnxDocument); !semanticResult) {
+            const auto semanticResult = mnxdom::validation::semanticValidate(mnxDocument, validateResult.ids.value());
+            // Semantic findings are logged one level below their mnxdom severity.
+            if (!semanticResult.warnings.empty()) {
+                denigmaContext.logMessage(LogMsg() << "Semantic validation warnings:", MessageSeverity::Info);
+                for (const auto& warning : semanticResult.warnings) {
+                    denigmaContext.logMessage(LogMsg() << "    " << warning.to_string(4), MessageSeverity::Info);
+                }
+            }
+            if (!semanticResult) {
                 denigmaContext.logMessage(LogMsg() << "Semantic validation errors:", MessageSeverity::Warning);
                 for (const auto& error : semanticResult.errors) {
                     denigmaContext.logMessage(LogMsg() << "    " << error.to_string(4), MessageSeverity::Warning);

@@ -365,10 +365,32 @@ std::vector<mx::api::WordsChoice> musicXmlWordsFromEnigmaText(
     return result;
 }
 
+namespace {
+
+/// Marks words whose text begins or ends with a space character so that an importer keeps it.
+/// Finale splits text at every font change, so the space between two runs is often the last
+/// character of one. Edge line breaks are not a reason to preserve: they are trailing returns
+/// in the source text, which an importer is better left free to trim.
+void preserveEdgeSpaces(mx::api::WordsData& words)
+{
+    if (!words.text.empty() && (words.text.front() == ' ' || words.text.back() == ' ')) {
+        words.xmlSpace = mx::api::XmlSpace::preserve;
+    }
+}
+
+} // namespace
+
 void appendMusicXmlWordsRun(mx::api::DirectionData& direction, std::vector<mx::api::WordsChoice> run)
 {
     if (run.empty()) {
         return;
+    }
+    for (auto& item : run) {
+        if (item.isWords()) {
+            auto words = item.words();
+            preserveEdgeSpaces(words);
+            item = mx::api::WordsChoice(std::move(words));
+        }
     }
     direction.directionTypes.emplace_back(std::move(run));
 }
@@ -381,6 +403,7 @@ void appendMusicXmlWordsRun(mx::api::DirectionData& direction, std::vector<mx::a
     std::vector<mx::api::WordsChoice> run;
     run.reserve(words.size());
     for (auto& item : words) {
+        preserveEdgeSpaces(item);
         run.emplace_back(std::move(item));
     }
     direction.directionTypes.emplace_back(std::move(run));
@@ -390,7 +413,6 @@ std::optional<MusicXmlPageTextContent> musicXmlPageTextContentFromEnigmaText(
     const MusicXmlMusxMapping& context, const musx::util::EnigmaParsingContext& text, const MusicXmlFormattedTextOptions& options)
 {
     MusicXmlPageTextContent result;
-    bool foundVisibleFont = false;
     const auto addCreditType = [&](std::string_view type) {
         if (std::find(result.creditTypes.begin(), result.creditTypes.end(), type) == result.creditTypes.end()) {
             result.creditTypes.emplace_back(type);
@@ -433,12 +455,15 @@ std::optional<MusicXmlPageTextContent> musicXmlPageTextContentFromEnigmaText(
                 return true;
             }
             const auto fontData = context.musicXmlFontDataFromFontInfo(*styles.font, options.fallback, MusicXmlFontScaling::Page);
-            if (!foundVisibleFont) {
-                result.fontData = fontData;
-                foundVisibleFont = true;
+            if (!chunk.empty()) {
+                if (!result.segments.empty() && result.segments.back().fontData == fontData) {
+                    result.segments.back().text += chunk;
+                } else {
+                    auto& segment = result.segments.emplace_back();
+                    segment.text = chunk;
+                    segment.fontData = fontData;
+                }
             }
-        // TODO: mx::api::PageTextData has one FontData and emits one credit-words element, so later font changes are flattened.
-            result.text += chunk;
             if (options.onChunk) {
                 options.onChunk(fontData, chunk);
             }
@@ -454,7 +479,7 @@ std::optional<MusicXmlPageTextContent> musicXmlPageTextContentFromEnigmaText(
         },
         musx::util::EnigmaString::EnigmaParsingOptions(options.accidentalStyle));
 
-    if (!foundVisibleFont || result.text.empty()) {
+    if (result.segments.empty()) {
         return std::nullopt;
     }
     return result;

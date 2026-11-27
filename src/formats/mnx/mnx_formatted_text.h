@@ -21,38 +21,27 @@
  */
 #pragma once
 
-#include <functional>
-#include <optional>
 #include <string>
-#include <vector>
 
 #include "FormattedText.h"
-#include "mnxdom.h"
-
-#include "musx/musx.h"
-
+#include "denigma/classify/gaps.h"
 #include "mnx_fwd.h"
-#include "utils/smufl_support.h"
 
 namespace denigma {
 namespace formats {
 namespace mnx {
 namespace detail {
 
-using MnxFormattedTextChunkCallback = std::function<void(const std::string&, const std::vector<std::string>&)>;
+/// Replaces the content of @p dst, which belongs to @p document, with @p src. Each chunk's id is assigned
+/// through @p document, which maps it for lookup during export.
+void setFormattedText(mnxdom::FormattedText dst, const classify::FormattedText& src, const std::string& textId, mnxdom::Document& document,
+    classify::GapCollector* gaps = nullptr);
 
-struct MnxFormattedTextOptions
-{
-    utils::SmuflSymbolPolicy symbolPolicy = utils::SmuflSymbolPolicy::PreferSmufl;
-    bool skipHiddenText = true;
-    bool plainTextOnly = false;
-    std::optional<musx::dom::MusxInstance<musx::dom::FontInfo>> initialFont;
-    MnxFormattedTextChunkCallback onChunk;
-};
+/// Returns @p src as formatted text. The text belongs to a document of its own, because MNX ids can only be
+/// assigned through a document.
 
-void setFormattedText(mnxdom::FormattedText dst, const musx::util::EnigmaParsingContext& src, const MnxFormattedTextOptions& options = {});
-
-mnxdom::FormattedText makeFormattedText(const musx::util::EnigmaParsingContext& src, const MnxFormattedTextOptions& options = {});
+mnxdom::FormattedText makeFormattedText(
+    const musx::util::EnigmaParsingContext& src, const std::string& textId, classify::GapCollector* gaps = nullptr);
 
 } // namespace detail
 } // namespace mnx

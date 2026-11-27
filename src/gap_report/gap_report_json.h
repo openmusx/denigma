@@ -26,9 +26,9 @@
 #include "denigma/classify/chords.h"
 #include "denigma/classify/expressions.h"
 #include "denigma/classify/formatted_text.h"
-#include "denigma/classify/lyrics.h"
 #include "denigma/classify/noteheads.h"
 #include "denigma/classify/smartshapes.h"
+#include "denigma/classify/text_blocks.h"
 #include "denigma/gap_report.h"
 #include "nlohmann/json.hpp"
 
@@ -64,13 +64,43 @@ private:
     std::map<std::string, std::string> m_svgByReference;
 };
 
+/// @class FontTable
+/// @brief The fonts a report names, each written once and referenced by key wherever it is used.
+///
+/// Keys are `<n>`, numbered from 1 in order of first use, so they are stable for a given report and
+/// name nothing in the target document.
+class FontTable
+{
+public:
+    /// @brief Returns the key of @p font, adding it on first use.
+    std::string reference(const musx::dom::ResolvedFontInfo& font);
+
+    /// @brief The table as a JSON object, empty when no font was referenced.
+    [[nodiscard]] json toJson() const;
+
+private:
+    std::map<std::string, std::string> m_keyByFont;
+    json m_fonts = json::object();
+};
+
+/// @brief The report-level tables that payloads reference by key.
+struct ReportTables
+{
+    ArrowheadTable arrowheads;
+    FontTable fonts;
+};
+
 json chordJson(const classify::ChordSymbolClassification& chord);
-json noteheadJson(const classify::NoteheadClassification& notehead);
-json expressionJson(const classify::ExpressionClassification& expression);
-json formattedTextJson(const classify::FormattedText& text);
+json noteheadJson(const classify::NoteheadClassification& notehead, FontTable& fonts);
+json expressionJson(const classify::ExpressionClassification& expression, FontTable& fonts);
+json formattedTextJson(const classify::FormattedText& text, FontTable& fonts);
+json insertJson(const classify::text::Insert& insert);
 json fontJson(const musx::dom::ResolvedFontInfo& font);
-json smartShapeJson(const classify::SmartShapeClassification& smartShape, ArrowheadTable& arrowheads);
-json lyricWordExtensionJson(const classify::LyricWordExtension& wordExtension);
+json smartShapeJson(const classify::SmartShapeClassification& smartShape, ReportTables& tables);
+json textBlockFrameJson(const classify::TextBlockFrame& frame);
+json measureTextJson(const classify::MeasureTextClassification& text);
+json pageTextJson(const classify::PageTextClassification& text, FontTable& fonts);
+json pageTextPositionJson(const musx::dom::others::PageTextAssign& assignment);
 
 // Reporting names shared by more than one serializer.
 std::string_view keyboardPedalTypeName(classify::keyboardpedal::Type value);

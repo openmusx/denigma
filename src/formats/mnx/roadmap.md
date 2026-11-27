@@ -9,3 +9,32 @@ A slur Finale attached to beats rather than to entries is reported as a gap. Whe
 ## Measure glyphs for gap-report images in the WebAssembly module
 
 The gap report embeds arrowhead SVGs, and text drawn inside such a shape is sized heuristically in the module because `denigma_textmetrics` (FreeType plus the platform font resolvers) is not linked there. `denigma::GlyphMetricsFn` (an alias of `musx::util::SvgConvert::GlyphMetricsFn`) is the seam: the module could pass a callback that reaches an optional `Module.denigmaMeasureText` hook through `EM_JS`, with no new exports and no function-table growth, and the hook would measure with canvas `measureText` (synchronous, and `OffscreenCanvas` works in workers, which the module targets). The hook must return null when `document.fonts.check()` fails, because canvas substitutes a font silently and the substitute's metrics are worse than the heuristic; Node has no canvas, so the smoke test would exercise only the fallback. Text inside an arrowhead is rare, which is why this is deferred.
+
+## Accidental display on every note
+
+`support.useAccidentalDisplay` promises that every note with a visible accidental carries `accidentalDisplay`. Today only frozen and parenthesized accidentals do. Finale's `Note::showAcci` could supply the rest, but Finale updates it only when a frame is edited, so it goes stale when, for instance, a key change is added later. Exporting it needs either confidence in that flag or an accidental calculation in `musxdom`.
+
+## Staff size in staff configs
+
+MNX `staff-config` carries only the number of staff lines. Finale can also change a staff's size, through staff-style line spacing and through the staff percent in each system's staff list. Once `staff-config` has a size field, `createStaffConfigs` can write it from `classify::StaffState::lineSpace` and `staffScaling`, which the staff-state classifier already reports, as the MusicXML exporter does for `<staff-size>`.
+
+## Complete text-insert occurrence provenance
+
+The current musxdom text parser reports substitutions on emitted chunks without an occurrence identity. Empty substitutions are omitted, and nested expansions can replace an enclosing insert's provenance. MNX insert gaps therefore describe each emitted chunk, joining only the text/glyph runs split from that chunk. Complete replacement of an outer insert, or representing an empty insert as an insertion point, needs parser occurrence boundaries and nested provenance. Preserve the current substitutions until that API exists; never group adjacent inserts by matching commands and parameters.
+
+## Kit sounds from the playback device
+
+MNX kit sounds write the note type's General MIDI key as `midiNumber`. The MusicXML exporter instead
+writes the key the note's playback device plays, from the document's playback resources
+(`classify::PercussionNoteClassification::calcMidiKey`), which matches Finale's own export when the
+device maps percussion to other keys. Decide whether MNX `midiNumber` should follow the device too.
+One MNX sound can serve kit components from more than one percussion map, so a sound whose notes
+play different keys on different devices would need a rule.
+
+## Semantic technique markings
+
+Recognized technique text remains general text with a partial expression gap. MNX technique objects also carry duration and other semantics, so exporting them requires a separate mapping of those properties from Finale rather than assigning a semantic technique from its displayed words alone.
+
+## Custom text-frame shapes in the gap report
+
+A text block can be framed by a Shape Designer shape instead of the standard rectangle, and the text-block gaps say only `hasCustomShape`. The report already embeds Shape Designer arrowheads as SVG in a report-level table keyed by a reference (see the gap report's design decisions), and a frame shape could go in the same kind of table, with the frame naming its key. Two questions come first. Whether Finale scales the shape to the frame or draws it at its own size has to be established from fixtures before any geometry is reported. And the arrowhead table's unit, staff spaces, suits measure text but not page text, which lives in page space; whichever unit is used, the entry states it with `unit` and `origin`, as arrowheads do.

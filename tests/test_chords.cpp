@@ -27,10 +27,10 @@
 #include <string_view>
 #include <vector>
 
-#include "core/denigma.h"
 #include "core/musx_reader.h"
 #include "denigma/classify/chords.h"
 #include "formats/enigmaxml/enigmaxml.h"
+#include "input/input.h"
 
 using namespace musx::dom;
 

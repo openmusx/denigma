@@ -23,10 +23,15 @@
 #include "musicxml.h"
 
 #include <algorithm>
+#include <optional>
+#include <span>
+#include <stdexcept>
 #include <string_view>
 #include <type_traits>
 
+#include "core/element_ids.h"
 #include "denigma/classify/articulations.h"
+#include "mx/api/LevelData.h"
 #include "mx/api/MarkData.h"
 
 using namespace musx::dom;
@@ -145,15 +150,27 @@ namespace {
 void appendOrnament(mx::api::NoteData& note, const classify::articulation::Ornament& ornament, VerticalPlacement placement)
 {
     auto mark = musicXmlMark(enumConvert<mx::api::MarkType>(ornament.type), placement);
-    /// @todo Export ornament accidentals once mx::api exposes the placement-bearing accidental-mark children.
+    if (!ornament.accidentals.empty()) {
+        mx::api::OrnamentMarkData data;
+        for (const auto& accidental : ornament.accidentals) {
+            auto& item = data.accidentals.emplace_back();
+            item.accidental = enumConvert<mx::api::Accidental>(accidental.accidental);
+            item.positionData.placement = enumConvert<mx::api::Placement>(accidental.placement);
+        }
+        mark.choice = std::move(data);
+    }
     note.noteAttachmentData.marks.emplace_back(mark);
 }
 
 } // namespace
 
-void processArticulations(
-    MusicXmlMusxMapping& context, mx::api::StaffData& staff, mx::api::NoteData& note, const EntryInfoPtr& entryInfo, bool isStaffValueSpecified)
+void processArticulations(MusicXmlMusxMapping& context, mx::api::StaffData& staff, std::span<mx::api::NoteData> notes, const EntryInfoPtr& entryInfo,
+    bool isStaffValueSpecified)
 {
+    ASSERT_IF (notes.empty()) {
+        throw std::logic_error("processArticulations requires at least one note.");
+    }
+    auto& note = notes.front();
     const auto entry = entryInfo->getEntry();
     const auto appendDirection = [&](VerticalPlacement placement, const auto& appendComponent) {
         auto direction = mx::api::DirectionData{};
@@ -164,12 +181,7 @@ void processArticulations(
         appendComponent(direction);
         staff.directions.emplace_back(std::move(direction));
     };
-    const auto articAssigns = context.document->getDetails()->getArray<details::ArticulationAssign>(SCORE_PARTID, entry->getEntryNumber());
-    for (const auto& asgn : articAssigns) {
-        if (asgn->hide) {
-            continue;
-        }
-        const auto classification = classify::classifyArticulation(asgn, entryInfo);
+    for (const auto& classification : classify::classifyArticulations(entryInfo, {.includeHidden = false})) {
         if (!classification) {
             continue;
         }
@@ -193,6 +205,39 @@ void processArticulations(
                             note.noteAttachmentData.marks.emplace_back(
                                 fallbackMarkData(mx::api::MarkType::otherArticulation, classification, "unmapped articulation"));
                         }
+                    }
+                } else if constexpr (std::is_same_v<Value, classify::articulation::NoteSlide>) {
+                    if (classified.note) {
+                        const mx::api::Id noteId{core::calcNoteId(classified.note)};
+                        const auto target = std::ranges::find_if(notes, [&](const mx::api::NoteData& candidate) { return candidate.id == noteId; });
+                        if (target != notes.end()) {
+                            target->noteAttachmentData.marks.emplace_back(
+                                musicXmlMark(enumConvert<mx::api::MarkType>(classified.type), classification.placement));
+                        }
+                    }
+                } else if constexpr (std::is_same_v<Value, classify::articulation::BracketEnclosure>) {
+                    // Parentheses around a note are notehead parentheses. MusicXML has no notehead brackets, and a rest
+                    // has no notehead, so brackets, and any enclosure around a rest, are an editorial level, which draws
+                    // either. An enclosure without a note encloses the whole entry, such as a rest. (See
+                    // design-decisions.md.)
+                    const bool isBrackets = classified.type == classify::articulation::BracketEnclosure::Type::Brackets;
+                    const std::optional<mx::api::Id> enclosedId =
+                        classified.note ? std::optional<mx::api::Id>{core::calcNoteId(classified.note)} : std::nullopt;
+                    for (auto& target : notes) {
+                        if (enclosedId && target.id != enclosedId) {
+                            continue;
+                        }
+                        if (enclosedId && !isBrackets) {
+                            target.noteheadParentheses = mx::api::Bool::yes;
+                            continue;
+                        }
+                        mx::api::LevelData level;
+                        if (isBrackets) {
+                            level.bracket = mx::api::Bool::yes;
+                        } else {
+                            level.parentheses = mx::api::Bool::yes;
+                        }
+                        target.level = std::move(level);
                     }
                 } else if constexpr (std::is_same_v<Value, classify::articulation::TechniqueMark>) {
                     const auto markType = musicXmlTechniqueType(classified);
@@ -230,7 +275,7 @@ void processArticulations(
                         appendArpeggioCandidate(context, classified.candidate.value());
                     }
                 } else if constexpr (std::is_same_v<Value, classify::articulation::VerticalEntryBracket>) {
-                    if (const auto candidate = musx::util::calcNonArpeggioSpanForAssignment(entryInfo, asgn)) {
+                    if (const auto candidate = musx::util::calcNonArpeggioSpanForAssignment(entryInfo, classification.assignment)) {
                         appendArpeggioCandidate(context, candidate.value());
                     }
                 } else if constexpr (std::is_same_v<Value, classify::PseudoTie>) {

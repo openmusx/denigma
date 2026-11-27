@@ -56,7 +56,7 @@ OttavaShapeMap collectOttavasForMeasureStaff(const musx::dom::DocumentPtr& docum
         if (!isOttavaShapeType(shape->shapeType) && shape->shapeType != ShapeType::CustomLine) {
             continue;
         }
-        if (shape->startTermSeg->endPoint->staffId != staffId && shape->endTermSeg->endPoint->staffId != staffId) {
+        if (shape->startTermSeg->endPoint->calcStaff() != staffId && shape->endTermSeg->endPoint->calcStaff() != staffId) {
             continue;
         }
         const auto classification = classify::classifySmartShape(shape);
@@ -80,7 +80,7 @@ int calcOttavaOctaveAdjustment(const OttavaShapeMap& ottavas, const musx::dom::N
         }
 
         auto tiedFromNoteInfo = noteInfo;
-        while (tiedFromNoteInfo && tiedFromNoteInfo->tieEnd) {
+        while (tiedFromNoteInfo && tiedFromNoteInfo.calcHasTieEnd()) {
             tiedFromNoteInfo = tiedFromNoteInfo.calcTieFrom();
         }
         if (!tiedFromNoteInfo || instance.shape->calcAppliesTo(tiedFromNoteInfo.getEntryInfo())) {

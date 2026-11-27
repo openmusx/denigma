@@ -21,7 +21,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
-#include <optional>
+#include <set>
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
@@ -32,6 +32,7 @@
 #include "core/denigma.h"
 #include "core/finale_options.h"
 #include "core/ottavas.h"
+#include "denigma/classify/percussion.h"
 #include "musx/musx.h"
 #include "musx/util/Arpeggio.h"
 #include "mx/api/CurveData.h"
@@ -46,8 +47,6 @@ namespace denigma {
 namespace formats {
 namespace musicxml {
 namespace detail {
-
-inline constexpr double MUSICXML_DEFAULT_TENTHS_PER_STAFF = 40.0;
 
 enum class MusicXmlFontFamilyFallback {
     None,
@@ -70,11 +69,6 @@ enum class MusicXmlFontFamilyFallback {
 enum class MusicXmlFontScaling {
     StaffSpace,
     Page
-};
-
-enum class MusicXmlPitchContext {
-    Concert,
-    Written
 };
 
 struct MusicXmlTimingPlan
@@ -147,38 +141,57 @@ inline std::uint64_t musicXmlMeasureStaffKey(musx::dom::MeasCmper measure, musx:
     return (std::uint64_t(measure) << 32) | std::uint64_t(static_cast<std::uint32_t>(staff));
 }
 
+/// Converts a Finale staff position on @p staff to a MusicXML staff position.
+///
+/// A MusicXML staff position counts steps, a line or a space each, upward on MusicXML's line numbering, which
+/// starts at 1 for the bottom line the staff has. Position 2n is the staff-line-position n, so the bottom line is
+/// position 2 and position 0 is the first ledger line below the staff. A Finale staff position also counts steps
+/// upward, but from the staff's reference line. A staff with no lines counts as a standard five-line staff.
+int musicXmlStaffPosition(const musx::dom::MusxInstance<musx::dom::others::Staff>& staff, int musxStaffPosition);
+
+/// Returns true if @p clefType is a percussion clef, under which MusicXML places notes at treble positions.
+inline bool isPercussionClef(music_theory::ClefType clefType)
+{
+    return clefType == music_theory::ClefType::Percussion1 || clefType == music_theory::ClefType::Percussion2;
+}
+
+/// The lines of a staff as MusicXML describes them: their count, from the bottom line to the top line, and the
+/// numbers of the lines among them that the staff does not draw.
+struct MusicXmlStaffLines
+{
+    int count{music_theory::STANDARD_NUMBER_OF_STAFFLINES};
+    std::vector<int> hiddenLines;
+
+    bool operator==(const MusicXmlStaffLines&) const = default;
+};
+
+/// Describes the lines of @p staff in MusicXML terms. A staff whose lines are contiguous gets their count and no
+/// hidden lines. A custom staff that leaves lines out between its top and bottom lines counts them as well and
+/// lists them as hidden, because MusicXML's line numbering includes hidden lines. A staff that hides its lines
+/// lists every line as hidden.
+MusicXmlStaffLines musicXmlStaffLines(const musx::dom::MusxInstance<musx::dom::others::Staff>& staff);
+
 struct MusicXmlMusxMapping
 {
-    MusicXmlMusxMapping(const DenigmaContext& context, const musx::dom::DocumentPtr& doc, musx::dom::Cmper partId)
-        : denigmaContext(&context), document(doc), finaleOptions(loadFinaleOptions(doc, partId)), forPartId(partId)
-    {
-        // Mirror musxdom's own guards (Document::calcPageFromMeasure and calcSystemFromMeasure) and
-        // treat a missing PartDefinition as uncalculated.
-        const auto part = doc->getOthers()->get<musx::dom::others::PartDefinition>(musx::dom::SCORE_PARTID, partId);
-        partLayoutIsCalculated = part && part->isLayoutCalculated();
-    }
+    MusicXmlMusxMapping(const DenigmaContext& context, const musx::dom::DocumentPtr& doc, musx::dom::Cmper partId);
 
     const DenigmaContext* denigmaContext;
     musx::dom::DocumentPtr document;
+    FormatId sourceFormat = FormatId::EnigmaXml;
     FinaleOptions finaleOptions;
     std::unique_ptr<mx::api::ScoreData> musicXmlScore;
     musx::dom::Cmper forPartId;
+    musx::dom::PitchMode pitchMode;
     mx::api::PartData* currentPart{};
 
-    /// True when Finale calculated this part's page layout. When false, nothing that resolves a
-    /// measure to a system or a system to a page can be trusted: Finale retains zero-valued
-    /// placeholders in others::StaffSystem and others::Page until a linked part's layout is updated.
-    /// Saved geometry and saved per-measure flags remain valid either way.
+    /// True when Finale calculated this part's page layout. System-lock export requires a calculated
+    /// layout; system lookup by positive start measures is independent of this state.
     bool partLayoutIsCalculated{};
 
     /// Chord assignments in this document asking for a fretboard drawn with the fretboard font,
     /// which carries no fret positions and so cannot become a MusicXML frame. Document-scoped, so
     /// #clearCurrent leaves it alone.
     int fontFretboardChordCount{};
-
-    /// Lazily fetched backing store for #systemForMeasure. Callers previously hoisted this array out
-    /// of their loops; caching it here keeps the shared lookup equally cheap per call.
-    mutable std::optional<musx::dom::MusxInstanceList<musx::dom::others::StaffSystem>> cachedStaffSystems;
 
     MusicXmlTimingPlan timing;
     MusicXmlCurrentLocation current;
@@ -187,7 +200,6 @@ struct MusicXmlMusxMapping
     std::unordered_map<musx::dom::StaffCmper, std::string> staffToPartId;
     std::unordered_map<std::string, std::vector<musx::dom::StaffCmper>> partIdToStaves;
     std::unordered_map<std::string, mx::api::PartSymbolData> partIdToPartSymbol;
-    std::unordered_map<std::string, MusicXmlPitchContext> partIdToPitchContext;
     std::unordered_map<musx::dom::EntryNumber, MusicXmlNoteLocation> entryNumberToFirstNote;
     std::unordered_map<std::uint64_t, MusicXmlNoteLocation> noteLocations;
     std::unordered_map<musx::dom::EntryNumber, std::vector<mx::api::LyricData>> pendingLyricStops;
@@ -199,6 +211,10 @@ struct MusicXmlMusxMapping
     std::unordered_set<musx::dom::EntryNumber> deferredPseudoLvTieEntryNumbers;
     std::vector<musx::util::ArpeggioSpanCandidate> deferredArpeggioCandidates;
     std::unordered_set<std::string> deferredArpeggioCandidateKeys;
+    /// The percussion sounds the current part has declared a kit piece for.
+    std::set<classify::percussion::SoundIdentity> percussionSounds;
+    /// The MIDI keys the current part has declared an instrument for, for percussion notes no map assigns.
+    std::set<int> percussionMidiKeys;
 
     void clearCurrent()
     {
@@ -215,13 +231,12 @@ struct MusicXmlMusxMapping
         deferredPseudoLvTieEntryNumbers.clear();
         deferredArpeggioCandidates.clear();
         deferredArpeggioCandidateKeys.clear();
+        percussionSounds.clear();
+        percussionMidiKeys.clear();
     }
 
-    /// Returns the staff system containing @p measureId, or a null instance when this part's layout
-    /// is uncalculated (see #partLayoutIsCalculated) or no system covers the measure.
-    musx::dom::MusxInstance<musx::dom::others::StaffSystem> systemForMeasure(musx::dom::MeasCmper measureId) const;
-
     double musicXmlTenthsFromEvpu(double evpu, double backoutScaling = 1.0) const;
+    double musicXmlTenthsFromEfix(double efix, double backoutScaling = 1.0) const;
     mx::api::FontData musicXmlFontDataFromFontInfo(const musx::dom::FontInfo& fontInfo,
         MusicXmlFontFamilyFallback fallback = MusicXmlFontFamilyFallback::None,
         MusicXmlFontScaling fontScaling = MusicXmlFontScaling::StaffSpace) const;

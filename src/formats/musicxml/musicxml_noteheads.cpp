@@ -29,6 +29,7 @@
 #include "denigma/classify/noteheads.h"
 #include "mx/api/MarkData.h"
 #include "mx/api/NoteData.h"
+#include "smufl_mapping.h"
 
 using namespace musx::dom;
 
@@ -77,13 +78,36 @@ void applyArtificialHarmonicMark(mx::api::NoteData& note, const NoteInfoPtr& not
     note.noteAttachmentData.marks.emplace_back(std::move(mark));
 }
 
+// Returns true when glyphName is one of SMuFL's note-name noteheads, which the MusicXML spec writes as
+// <notehead-text> rather than as `other` with a SMuFL glyph name.
+bool calcIsNoteNameNotehead(const std::optional<std::string>& glyphName)
+{
+    if (!glyphName) {
+        return false;
+    }
+    const auto* glyphInfo = smufl_mapping::getGlyphInfo(*glyphName);
+    if (!glyphInfo) {
+        return false;
+    }
+    // SMuFL's "Note name noteheads" range and its supplement.
+    constexpr char32_t NOTE_NAME_FIRST = 0xE150;
+    constexpr char32_t NOTE_NAME_LAST = 0xE1AF;
+    constexpr char32_t NOTE_NAME_SUPPLEMENT_FIRST = 0xEEE0;
+    constexpr char32_t NOTE_NAME_SUPPLEMENT_LAST = 0xEEFF;
+    const char32_t codepoint = glyphInfo->codepoint;
+    return (codepoint >= NOTE_NAME_FIRST && codepoint <= NOTE_NAME_LAST)
+           || (codepoint >= NOTE_NAME_SUPPLEMENT_FIRST && codepoint <= NOTE_NAME_SUPPLEMENT_LAST);
+}
+
 } // namespace
 
 void applyNoteheadData(mx::api::NoteData& note, const NoteInfoPtr& noteInfo, const classify::EntryNoteheadClassification& entryNoteheads)
 {
     using Fill = classify::notehead::Fill;
-    using Shape = classify::notehead::Shape;
-    if (const auto classification = classify::classifyNotehead(noteInfo)) {
+    const auto classification = classify::classifyNotehead(noteInfo);
+    /// @todo Write a note-name notehead as <notehead-text> once mx::api exposes it. Until then it is left out,
+    /// because the MusicXML spec says not to write one as `other` with a SMuFL glyph name.
+    if (classification && !calcIsNoteNameNotehead(classification.glyphName)) {
         note.notehead = enumConvert<mx::api::Notehead>(classification.shape);
 
         // Absent the filled attribute, MusicXML draws the notehead from the note's duration: hollow
@@ -96,14 +120,10 @@ void applyNoteheadData(mx::api::NoteData& note, const NoteInfoPtr& noteInfo, con
             note.noteheadFilled = mx::api::Bool::no;
         }
 
-        // The MusicXML value identifies the glyph for every shape Denigma models except these two:
-        // `other` carries no visual information at all, and both slash sizes share the `slash` value.
-        // Naming the glyph lets a consumer draw what Finale drew.
-        switch (classification.shape) {
-        case Shape::Other:
-        case Shape::SmallSlash:
-        case Shape::LargeSlash: note.noteheadSmufl = classification.glyphName; break;
-        default: break;
+        // Name the glyph where the MusicXML value names no shape (`other`), which carries no visual information
+        // at all, and where the classifier prefers it because the glyph is not the standard glyph of its shape.
+        if (note.notehead == mx::api::Notehead::other || classification.glyphPreferred) {
+            note.noteheadSmufl = classification.glyphName;
         }
     }
 

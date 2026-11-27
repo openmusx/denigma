@@ -18,6 +18,7 @@
  */
 #pragma once
 
+#include <cstddef>
 #include <optional>
 #include <span>
 #include <string>
@@ -28,9 +29,9 @@
 #include "denigma/classify/chords.h"
 #include "denigma/classify/expressions.h"
 #include "denigma/classify/formatted_text.h"
-#include "denigma/classify/lyrics.h"
 #include "denigma/classify/noteheads.h"
 #include "denigma/classify/smartshapes.h"
+#include "denigma/classify/text_blocks.h"
 
 namespace denigma {
 namespace classify {
@@ -52,44 +53,107 @@ enum class GapExtent {
     Partial ///< The anchored object stands for the feature but lost the reported payload.
 };
 
-/// @struct GapPlacement
-/// @brief One place the target document would draw a feature that is reported once.
-///
-/// A Finale staff list draws one marking on several staves. The gap for it is reported once, at
-/// the object the marking belongs to, and lists where the target would draw it.
-struct GapPlacement
-{
-    /// @enum Kind
-    /// @brief What the placement's anchor names.
-    enum class Kind {
-        Staff, ///< A staff of a part measure: the anchor is the part measure with a staff.
-        SystemTop, ///< The top staff of every system: the anchor is the global measure.
-        SystemBottom ///< The bottom staff of every system: the anchor is the global measure.
-    };
-
-    Kind kind{Kind::Staff};
-    GapAnchor anchor;
-};
-
 /// @struct PlaybackOnly
 /// @brief Marker payload: the anchored object sounds in the source without being drawn, and the
 /// target cannot hide it.
 struct PlaybackOnly
 {};
 
-using GapPayload = std::variant<ChordSymbolClassification, NoteheadClassification, ExpressionClassification, FormattedText, PlaybackOnly,
-    SmartShapeClassification, LyricWordExtension>;
+/// @brief A half-open range in one output text element. Units are Unicode scalar values for
+/// text elements and glyph-list entries for glyph elements, measured before consumer edits.
+struct GapTextRange
+{
+    std::string id;
+    size_t offset{};
+    size_t length{};
+};
+
+/// @brief Source formatting and characters for restoring a range's original appearance.
+struct TextFormatting
+{
+    musx::dom::ResolvedFontInfo font;
+    musx::dom::Evpu baseline{};
+    musx::dom::Evpu superscript{};
+    int tracking{};
+    std::string sourceText;
+    /// @brief The output text the formatting applies to.
+    std::vector<GapTextRange> ranges;
+};
+
+/// @brief One emitted parser substitution, whose ranges may be replaced together.
+struct TextInsert
+{
+    text::Insert insert;
+    std::string sourceText;
+    /// @brief The output text the substitution produced, in order.
+    std::vector<GapTextRange> ranges;
+};
+
+// Each payload below pairs a target-neutral classification with what the target made of it: the
+// target ids the exporter wrote, which a classification never holds. See design-decisions.md.
+
+/// @struct SmartShapeGap
+/// @brief A smart shape and, for one that spans, the target place it ends.
+struct SmartShapeGap
+{
+    SmartShapeClassification classification;
+    /// @brief Where the shape ends. Empty for a shape that occupies one place.
+    std::optional<GapAnchor> end;
+};
+
+/// @struct ExpressionGap
+/// @brief An expression and the target places its staff-list members would draw it.
+struct ExpressionGap
+{
+    /// @struct Placement
+    /// @brief One member of the classification drawn at one target place.
+    struct Placement
+    {
+        /// @brief Index into ExpressionClassification::members of #classification.
+        size_t member{};
+        /// @brief The target place: the global measure for a floating member, the part measure and staff otherwise.
+        GapAnchor anchor;
+    };
+
+    ExpressionClassification classification;
+    /// @brief The members this gap lists, each at its target place. Empty when the anchor alone says where.
+    std::vector<Placement> placements;
+};
+
+/// @struct PageTextGap
+/// @brief Page text and the target pages it is drawn on.
+struct PageTextGap
+{
+    /// @struct Page
+    /// @brief One page the target wrote that shows the text.
+    struct Page
+    {
+        /// @brief The target page's id.
+        std::string pageId;
+        /// @brief Index into PageTextClassification::placements of #classification, whose position applies.
+        size_t placement{};
+    };
+
+    /// @brief The page text as classified, with every placement in the source.
+    PageTextClassification classification;
+    /// @brief The placements the target wrote a page for. Pages it did not write are absent.
+    std::vector<Page> pages;
+};
+
+using GapPayload = std::variant<ChordSymbolClassification, NoteheadClassification, ExpressionGap, FormattedText, PlaybackOnly, SmartShapeGap,
+    TextFormatting, TextInsert, MeasureTextClassification, PageTextGap>;
 
 /// @struct Gap
 /// @brief One classified feature omitted, in whole or in part, from a conversion target.
+///
+/// What only some payloads need, such as where a span ends or which output text a formatting gap
+/// covers, belongs to the payload, not to the gap.
 struct Gap
 {
-    GapAnchor anchor;
-    /// @brief Where a spanning feature ends. Empty for a feature that occupies one place.
-    std::optional<GapAnchor> end;
+    /// @brief The target object the gap belongs to. Empty for a feature that belongs to no target
+    /// object and is located by its payload, such as page text.
+    std::optional<GapAnchor> anchor;
     GapExtent extent{GapExtent::Complete};
-    /// @brief Where the target would draw the feature. Empty when #anchor alone says so.
-    std::vector<GapPlacement> placements;
     GapPayload payload;
 };
 
@@ -107,16 +171,17 @@ public:
 
     /// Adds one typed gap.
     template <typename Payload>
-    void add(GapAnchor anchor, Payload payload, GapExtent extent = GapExtent::Complete, std::vector<GapPlacement> placements = {})
+    void add(GapAnchor anchor, Payload payload, GapExtent extent = GapExtent::Complete)
     {
-        m_gaps.push_back({std::move(anchor), std::nullopt, extent, std::move(placements), GapPayload(std::move(payload))});
+        m_gaps.push_back({std::move(anchor), extent, GapPayload(std::move(payload))});
     }
 
-    /// Adds one typed gap for a feature that spans from @p anchor to @p end.
+    /// Adds one typed gap that belongs to no target object, located by its payload alone, as page text
+    /// is by its pages.
     template <typename Payload>
-    void addSpan(GapAnchor anchor, GapAnchor end, Payload payload, GapExtent extent = GapExtent::Complete)
+    void addUnanchored(Payload payload, GapExtent extent = GapExtent::Complete)
     {
-        m_gaps.push_back({std::move(anchor), std::move(end), extent, {}, GapPayload(std::move(payload))});
+        m_gaps.push_back({std::nullopt, extent, GapPayload(std::move(payload))});
     }
 
     /// Returns collected gaps in source traversal order.

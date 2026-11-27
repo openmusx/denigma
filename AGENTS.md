@@ -52,7 +52,7 @@ The repository builds a CLI plus reusable libraries for classification, massage,
 - The build downloads third-party dependencies through `FetchContent`, including `pugixml`, `nlohmann_json`, `zlib`, and `googletest`.
 - If you need a local MUSX DOM checkout, set `MUSX_LOCAL_PATH` in CMake rather than editing dependency logic.
 - The WebAssembly module (`src/wasm`, target `denigma_wasm`, option `denigma_BUILD_WASM`) is built with Emscripten:
-  - `emcmake cmake -S . -B build-wasm -DCMAKE_BUILD_TYPE=MinSizeRel -DDENIGMA_CXX_STANDARD=20`
+  - `emcmake cmake -S . -B build-wasm -DCMAKE_BUILD_TYPE=Release -DDENIGMA_CXX_STANDARD=20`
   - `cmake --build build-wasm --target denigma_wasm`
   - `node tests/wasm/smoke.mjs build-wasm/wasm/denigma.js build-wasm/wasm/denigma.wasm`
 - Always name the `denigma_wasm` target for that build. The `all` target also compiles the text-measuring converters and `denigma_textmetrics`, which the module does not link and which do not compile under Emscripten.
@@ -71,11 +71,13 @@ The repository builds a CLI plus reusable libraries for classification, massage,
 - `ctest --test-dir build/tests` can be used only after confirming the discovered tests have the correct `WORKING_DIRECTORY` registration.
 - When investigating a focused regression, prefer a narrow GoogleTest filter on the direct executable before a full suite.
 - Use `ctest -R ...` only after confirming CTest registration and working directories are correct.
+- Some tests (`tests/test_finale_samples.cpp`) read the tutorials and sample files distributed with Finale 27 from `DENIGMA_FINALE_MUSIC_FILES_DIR`. It defaults to the locations Finale's user manuals document, `/Library/Application Support/MakeMusic/Finale 27/Music Files` on macOS and `C:/Program Files/MakeMusic/Finale/27/Music Files` on Windows, and can be overridden with `-DDENIGMA_FINALE_MUSIC_FILES_DIR=...`. The tests skip when the folder is absent. They name each file they use, so add a file to the list rather than scanning the folder.
 - Test fixtures are intentionally broad and include generated comparison files. Update them only when the behavioral change is intended and verified.
 - A `*-ref.musicxml` fixture is Finale's own export of the neighboring `.musx`. Finale is discontinued, so these cannot be regenerated indefinitely and are kept as reference material whether or not a test currently loads one. Never delete one for appearing unused, and never regenerate one to match Denigma's output; the point is that it records what Finale produced.
 
 ## Editing Rules
 
+- Never commit on your own initiative. Leave changes in the working tree until the user asks for a commit; a request to make, fix, or verify something is not a request to commit it. The same goes for pushing and opening pull requests.
 - Keep changes localized to the narrowest relevant library or test area.
 - Do not modify generated artifacts unless the task explicitly requires regenerating expected outputs.
 - If a change affects converter behavior, update the corresponding reference fixtures under `tests/data/inputs/reference` and verify the diff carefully.

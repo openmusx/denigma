@@ -33,18 +33,27 @@ using namespace notehead;
 
 namespace {
 
-NoteheadClassification makeNotehead(Shape shape, Fill fill, std::optional<std::string> glyphName)
+NoteheadClassification makeNotehead(Shape shape, Fill fill, std::optional<std::string> glyphName, bool glyphPreferred = false)
 {
     NoteheadClassification result;
     result.shape = shape;
     result.fill = fill;
     result.glyphName = std::move(glyphName);
+    result.glyphPreferred = glyphPreferred;
     return result;
 }
 
+/// A glyph's shape family and fill, and whether it differs from the standard glyph of that shape.
+struct GlyphTraits
+{
+    Shape shape;
+    Fill fill;
+    bool glyphPreferred = false;
+};
+
 NoteheadClassification classifyGlyphName(std::string glyphName)
 {
-    static const std::unordered_map<std::string_view, std::pair<Shape, Fill>> glyphTable = {
+    static const std::unordered_map<std::string_view, GlyphTraits> glyphTable = {
         // Null
         {"noteheadNull", {Shape::Null, Fill::Unspecified}},
 
@@ -81,38 +90,91 @@ NoteheadClassification classifyGlyphName(std::string glyphName)
         {"noteheadDiamondDoubleWholeOld", {Shape::Diamond, Fill::Unfilled}},
         {"noteheadDiamondOpen", {Shape::Diamond, Fill::Unfilled}},
 
-        // SmallSlash
-        {"noteheadSlashVerticalEndsSmall", {Shape::SmallSlash, Fill::Filled}},
+        // SmallSlash: no small slash is the standard slash.
+        {"noteheadSlashVerticalEndsSmall", {Shape::SmallSlash, Fill::Filled, true}},
 
-        // LargeSlash
+        // LargeSlash: the standard slash is of normal size with vertical ends.
         {"noteheadSlashVerticalEnds", {Shape::LargeSlash, Fill::Filled}},
-        {"noteheadSlashHorizontalEnds", {Shape::LargeSlash, Fill::Filled}},
+        {"noteheadSlashHorizontalEnds", {Shape::LargeSlash, Fill::Filled, true}},
         {"noteheadSlashWhiteWhole", {Shape::LargeSlash, Fill::Unfilled}},
         {"noteheadSlashWhiteHalf", {Shape::LargeSlash, Fill::Unfilled}},
         {"noteheadSlashWhiteDoubleWhole", {Shape::LargeSlash, Fill::Unfilled}},
 
         // Circled
         {"noteheadCircledBlack", {Shape::Circled, Fill::Filled}},
-        {"noteheadCircledBlackLarge", {Shape::Circled, Fill::Filled}},
         {"noteheadCircledHalf", {Shape::Circled, Fill::Unfilled}},
-        {"noteheadCircledHalfLarge", {Shape::Circled, Fill::Unfilled}},
         {"noteheadCircledWhole", {Shape::Circled, Fill::Unfilled}},
-        {"noteheadCircledWholeLarge", {Shape::Circled, Fill::Unfilled}},
         {"noteheadCircledDoubleWhole", {Shape::Circled, Fill::Unfilled}},
-        {"noteheadCircledDoubleWholeLarge", {Shape::Circled, Fill::Unfilled}},
+
+        // LargeCircled
+        {"noteheadCircledBlackLarge", {Shape::LargeCircled, Fill::Filled}},
+        {"noteheadCircledHalfLarge", {Shape::LargeCircled, Fill::Unfilled}},
+        {"noteheadCircledWholeLarge", {Shape::LargeCircled, Fill::Unfilled}},
+        {"noteheadCircledDoubleWholeLarge", {Shape::LargeCircled, Fill::Unfilled}},
+
+        // CircleX and Plus: their glyphs vary with duration, but the strokes of a cross cannot be filled.
+        {"noteheadCircleX", {Shape::CircleX, Fill::Unspecified}},
+        {"noteheadCircleXHalf", {Shape::CircleX, Fill::Unspecified}},
+        {"noteheadCircleXWhole", {Shape::CircleX, Fill::Unspecified}},
+        {"noteheadCircleXDoubleWhole", {Shape::CircleX, Fill::Unspecified}},
+        {"noteheadPlusBlack", {Shape::Plus, Fill::Unspecified}},
+        {"noteheadPlusHalf", {Shape::Plus, Fill::Unspecified}},
+        {"noteheadPlusWhole", {Shape::Plus, Fill::Unspecified}},
+        {"noteheadPlusDoubleWhole", {Shape::Plus, Fill::Unspecified}},
+
+        // Triangle
+        {"noteheadTriangleUpBlack", {Shape::Triangle, Fill::Filled}},
+        {"noteheadTriangleUpWhite", {Shape::Triangle, Fill::Unfilled}},
+        {"noteheadTriangleUpHalf", {Shape::Triangle, Fill::Unfilled}},
+        {"noteheadTriangleUpWhole", {Shape::Triangle, Fill::Unfilled}},
+        {"noteheadTriangleUpDoubleWhole", {Shape::Triangle, Fill::Unfilled}},
+
+        // TriangleDown
+        {"noteheadTriangleDownBlack", {Shape::TriangleDown, Fill::Filled}},
+        {"noteheadTriangleDownWhite", {Shape::TriangleDown, Fill::Unfilled}},
+        {"noteheadTriangleDownHalf", {Shape::TriangleDown, Fill::Unfilled}},
+        {"noteheadTriangleDownWhole", {Shape::TriangleDown, Fill::Unfilled}},
+        {"noteheadTriangleDownDoubleWhole", {Shape::TriangleDown, Fill::Unfilled}},
+
+        // Square
+        {"noteheadSquareBlack", {Shape::Square, Fill::Filled}},
+        {"noteheadSquareBlackLarge", {Shape::Square, Fill::Filled}},
+        {"noteheadSquareWhite", {Shape::Square, Fill::Unfilled}},
+        {"noteheadSquareBlackWhite", {Shape::Square, Fill::Unfilled}},
+
+        // Round: the standard round noteheads are the plain black and white ones.
+        {"noteheadRoundBlack", {Shape::Round, Fill::Filled}},
+        {"noteheadRoundWhite", {Shape::Round, Fill::Unfilled}},
+        {"noteheadRoundBlackDoubleSlashed", {Shape::Round, Fill::Filled, true}},
+        {"noteheadRoundBlackLarge", {Shape::Round, Fill::Filled, true}},
+        {"noteheadRoundBlackSlashed", {Shape::Round, Fill::Filled, true}},
+        {"noteheadRoundBlackSlashedLarge", {Shape::Round, Fill::Filled, true}},
+        {"noteheadRoundWhiteDoubleSlashed", {Shape::Round, Fill::Unfilled, true}},
+        {"noteheadRoundWhiteLarge", {Shape::Round, Fill::Unfilled, true}},
+        {"noteheadRoundWhiteSlashed", {Shape::Round, Fill::Unfilled, true}},
+        {"noteheadRoundWhiteSlashedLarge", {Shape::Round, Fill::Unfilled, true}},
+        {"noteheadRoundWhiteWithDot", {Shape::Round, Fill::Unfilled, true}},
+        {"noteheadRoundWhiteWithDotLarge", {Shape::Round, Fill::Unfilled, true}},
+
+        // Slashed (bottom left to top right) and BackSlashed (top left to bottom right)
+        {"noteheadSlashedBlack1", {Shape::Slashed, Fill::Filled}},
+        {"noteheadSlashedHalf1", {Shape::Slashed, Fill::Unfilled}},
+        {"noteheadSlashedWhole1", {Shape::Slashed, Fill::Unfilled}},
+        {"noteheadSlashedDoubleWhole1", {Shape::Slashed, Fill::Unfilled}},
+        {"noteheadSlashedBlack2", {Shape::BackSlashed, Fill::Filled}},
+        {"noteheadSlashedHalf2", {Shape::BackSlashed, Fill::Unfilled}},
+        {"noteheadSlashedWhole2", {Shape::BackSlashed, Fill::Unfilled}},
+        {"noteheadSlashedDoubleWhole2", {Shape::BackSlashed, Fill::Unfilled}},
     };
 
     const std::string_view glyph = glyphName;
     if (const auto it = glyphTable.find(glyph); it != glyphTable.end()) {
-        return makeNotehead(it->second.first, it->second.second, std::move(glyphName));
+        return makeNotehead(it->second.shape, it->second.fill, std::move(glyphName), it->second.glyphPreferred);
     }
-    // A real SMuFL notehead-family glyph was resolved, just not one of the specifically recognized
-    // shapes above (e.g. a shape-note, cluster, or arrow notehead). This is a known alternate
-    // notehead, so it should not be reported the same as finding nothing at all.
-    if (glyph.rfind("notehead", 0) == 0) {
-        return makeNotehead(Shape::Other, Fill::Unspecified, std::move(glyphName));
-    }
-    return {};
+    // Any glyph Finale draws as a notehead is one, whether or not SMuFL files it among its noteheads:
+    // shape-note and note-name glyphs are named otherwise, and a user may choose any glyph at all.
+    // No shape describes it, so only its glyph can.
+    return makeNotehead(Shape::Other, Fill::Unspecified, std::move(glyphName), true);
 }
 
 /// Recognizes a literal ASCII 'x'/'X' as a cross notehead, but only in a font that is not a symbol
@@ -132,6 +194,9 @@ NoteheadClassification classifyAsciiX(const musx::dom::MusxInstance<musx::dom::F
 
 NoteheadClassification classifyNoteheadSymbol(const musx::dom::MusxInstance<musx::dom::FontInfo>& fontInfo, char32_t symbol)
 {
+    if (fontInfo) {
+        symbol = fontInfo->calcDrawnCharacter(symbol);
+    }
     NoteheadClassification result;
     if (symbol == U' ') {
         result = makeNotehead(Shape::Null, Fill::Unspecified, std::nullopt);
@@ -172,7 +237,37 @@ bool NoteheadClassification::calcOverridesDefault(musx::dom::NoteType noteType) 
     if (shape == notehead::Shape::Unclassified) {
         return noteheadInfo.source != musx::dom::NoteInfoPtr::NoteheadInfo::Source::Default;
     }
-    return shape != notehead::Shape::Regular || calcFillOverridesDefault(noteType);
+    return calcDiffersFromFamily(notehead::Shape::Regular, noteType);
+}
+
+bool NoteheadClassification::calcDiffersFromFamily(notehead::Shape family, musx::dom::NoteType noteType) const noexcept
+{
+    return shape != family || calcFillOverridesDefault(noteType);
+}
+
+PercussionNoteheadClassification classifyPercussionNotehead(const musx::dom::MusxInstance<musx::dom::others::PercussionNoteInfo>& percussionNote)
+{
+    if (!percussionNote) {
+        return {};
+    }
+    const auto fontInfo = [&]() -> musx::dom::MusxInstance<musx::dom::FontInfo> {
+        if (const auto fontOptions = percussionNote->getDocument()->getOptions()->get<musx::dom::options::FontOptions>()) {
+            return fontOptions->getFontInfo(musx::dom::options::FontOptions::FontType::Percussion);
+        }
+        return nullptr;
+    }();
+    const auto classifySlot = [&](char32_t symbol) {
+        auto slot = classifyNoteheadSymbol(fontInfo, symbol);
+        slot.noteheadInfo.source = musx::dom::NoteInfoPtr::NoteheadInfo::Source::PercussionMap;
+        return slot;
+    };
+    PercussionNoteheadClassification result;
+    result.quarterAndShorter = classifySlot(percussionNote->closedNotehead);
+    result.half = classifySlot(percussionNote->halfNotehead);
+    result.whole = classifySlot(percussionNote->wholeNotehead);
+    result.breveAndLonger = classifySlot(percussionNote->dwholeNotehead);
+    result.family = result.quarterAndShorter.shape;
+    return result;
 }
 
 } // namespace classify

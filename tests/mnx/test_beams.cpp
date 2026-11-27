@@ -237,7 +237,9 @@ TEST(MnxBeams, BeamRestWorkarounds)
         EXPECT_EQ(beam.beams().value()[0].direction(), mnx::BeamHookDirection::Auto);
     }
 
-    doc.buildEntityMap();
+    const auto validation = mnx::validation::schemaValidate(doc, {.collectIds = true});
+    ASSERT_TRUE(validation);
+    doc.buildEntityMapFromIndex(validation.ids.value());
 
     auto ev6 = doc.getEntityMap().get<mnx::sequence::Event>("ev6");
     ASSERT_TRUE(ev6.rest().has_value());

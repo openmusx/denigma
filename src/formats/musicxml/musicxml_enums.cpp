@@ -48,10 +48,6 @@ END_ENUM_CONVERSION
 
 BEGIN_ENUM_CONVERSION(classify::articulation::ArticulationMark::Type, mx::api::MarkType)
     case classify::articulation::ArticulationMark::Type::Accent: return mx::api::MarkType::accent;
-    case classify::articulation::ArticulationMark::Type::BrassDoit: return mx::api::MarkType::doit;
-    case classify::articulation::ArticulationMark::Type::BrassFalloff: return mx::api::MarkType::falloff;
-    case classify::articulation::ArticulationMark::Type::BrassPlop: return mx::api::MarkType::plop;
-    case classify::articulation::ArticulationMark::Type::BrassScoop: return mx::api::MarkType::scoop;
     case classify::articulation::ArticulationMark::Type::SoftAccent: return mx::api::MarkType::softAccent;
     case classify::articulation::ArticulationMark::Type::Spiccato: return mx::api::MarkType::spiccato;
     case classify::articulation::ArticulationMark::Type::Staccatissimo: return mx::api::MarkType::staccatissimo;
@@ -72,6 +68,12 @@ BEGIN_ENUM_CONVERSION(BarlineType, mx::api::BarlineType)
     case BarlineType::Dashed: return mx::api::BarlineType::dashed;
     case BarlineType::Tick: return mx::api::BarlineType::tick;
     case BarlineType::Custom: return mx::api::BarlineType::unsupported;
+END_ENUM_CONVERSION
+
+BEGIN_ENUM_CONVERSION(classify::chord::BassArrangement, mx::api::BassArrangement)
+    case classify::chord::BassArrangement::Horizontal: return mx::api::BassArrangement::horizontal;
+    case classify::chord::BassArrangement::Vertical: return mx::api::BassArrangement::vertical;
+    case classify::chord::BassArrangement::Diagonal: return mx::api::BassArrangement::diagonal;
 END_ENUM_CONVERSION
 
 BEGIN_ENUM_CONVERSION(classify::articulation::Caesura::Type, mx::api::MarkType)
@@ -200,11 +202,6 @@ BEGIN_ENUM_CONVERSION(smufl_mapping::MusicFontStyle, MusicXmlFontFamilyFallback)
     case smufl_mapping::MusicFontStyle::Handwritten: return MusicXmlFontFamilyFallback::Handwritten;
 END_ENUM_CONVERSION
 
-BEGIN_ENUM_CONVERSION(MusicXmlPitchContext, KeySignature::KeyContext)
-    case MusicXmlPitchContext::Concert: return KeySignature::KeyContext::Concert;
-    case MusicXmlPitchContext::Written: return KeySignature::KeyContext::Written;
-END_ENUM_CONVERSION
-
 BEGIN_ENUM_CONVERSION(music_theory::NoteName, mx::api::Step)
     case music_theory::NoteName::A: return mx::api::Step::a;
     case music_theory::NoteName::B: return mx::api::Step::b;
@@ -213,6 +210,13 @@ BEGIN_ENUM_CONVERSION(music_theory::NoteName, mx::api::Step)
     case music_theory::NoteName::E: return mx::api::Step::e;
     case music_theory::NoteName::F: return mx::api::Step::f;
     case music_theory::NoteName::G: return mx::api::Step::g;
+END_ENUM_CONVERSION
+
+BEGIN_ENUM_CONVERSION(classify::articulation::NoteSlide::Type, mx::api::MarkType)
+    case classify::articulation::NoteSlide::Type::Scoop: return mx::api::MarkType::scoop;
+    case classify::articulation::NoteSlide::Type::Plop: return mx::api::MarkType::plop;
+    case classify::articulation::NoteSlide::Type::Falloff: return mx::api::MarkType::falloff;
+    case classify::articulation::NoteSlide::Type::Doit: return mx::api::MarkType::doit;
 END_ENUM_CONVERSION
 
 BEGIN_ENUM_CONVERSION(NoteType, mx::api::DurationName)
@@ -239,6 +243,13 @@ BEGIN_ENUM_CONVERSION(SoloOrEnsemble, mx::api::SoloOrEnsemble)
     case SoloOrEnsemble::Ensemble: return mx::api::SoloOrEnsemble::ensemble;
 END_ENUM_CONVERSION
 
+BEGIN_ENUM_CONVERSION(classify::articulation::Ornament::Accidental, mx::api::Accidental)
+    case classify::articulation::Ornament::Accidental::Unspecified: return mx::api::Accidental::none;
+    case classify::articulation::Ornament::Accidental::Flat: return mx::api::Accidental::flat;
+    case classify::articulation::Ornament::Accidental::Natural: return mx::api::Accidental::natural;
+    case classify::articulation::Ornament::Accidental::Sharp: return mx::api::Accidental::sharp;
+END_ENUM_CONVERSION
+
 BEGIN_ENUM_CONVERSION(classify::articulation::Ornament::Type, mx::api::MarkType)
     case classify::articulation::Ornament::Type::InvertedMordent: return mx::api::MarkType::invertedMordent;
     case classify::articulation::Ornament::Type::InvertedTurn: return mx::api::MarkType::invertedTurn;
@@ -249,15 +260,30 @@ BEGIN_ENUM_CONVERSION(classify::articulation::Ornament::Type, mx::api::MarkType)
 END_ENUM_CONVERSION
 
 BEGIN_ENUM_CONVERSION(classify::notehead::Shape, mx::api::Notehead)
-    case classify::notehead::Shape::Regular: return mx::api::Notehead::normal;
-    case classify::notehead::Shape::X: return mx::api::Notehead::x;
+    case classify::notehead::Shape::Unclassified: break; // causes a throw; callers must not convert an unclassified shape
+    case classify::notehead::Shape::BackSlashed: return mx::api::Notehead::backSlashed;
+    case classify::notehead::Shape::Circled: return mx::api::Notehead::circled;
+    case classify::notehead::Shape::CircleX: return mx::api::Notehead::circleX;
     case classify::notehead::Shape::Diamond: return mx::api::Notehead::diamond;
-    case classify::notehead::Shape::SmallSlash: return mx::api::Notehead::slash;
+    case classify::notehead::Shape::LargeCircled: return mx::api::Notehead::circled;
     case classify::notehead::Shape::LargeSlash: return mx::api::Notehead::slash;
     case classify::notehead::Shape::Null: return mx::api::Notehead::none;
-    case classify::notehead::Shape::Circled: return mx::api::Notehead::circled;
+    case classify::notehead::Shape::Plus: return mx::api::Notehead::cross;
+    case classify::notehead::Shape::Regular: return mx::api::Notehead::normal;
+    case classify::notehead::Shape::Round: return mx::api::Notehead::other;
+    case classify::notehead::Shape::Slashed: return mx::api::Notehead::slashed;
+    case classify::notehead::Shape::SmallSlash: return mx::api::Notehead::slash;
+    case classify::notehead::Shape::Square: return mx::api::Notehead::square;
+    case classify::notehead::Shape::Triangle: return mx::api::Notehead::triangle;
+    case classify::notehead::Shape::TriangleDown: return mx::api::Notehead::invertedTriangle;
+    case classify::notehead::Shape::X: return mx::api::Notehead::x;
     case classify::notehead::Shape::Other: return mx::api::Notehead::other;
-    case classify::notehead::Shape::Unclassified: break; // causes a throw; callers must not convert an unclassified shape
+END_ENUM_CONVERSION
+
+BEGIN_ENUM_CONVERSION(PitchDisplayMode, PitchMode)
+    case PitchDisplayMode::Preserve: return PitchMode::CurrentView;
+    case PitchDisplayMode::Written: return PitchMode::Written;
+    case PitchDisplayMode::Concert: return PitchMode::ConcertWithOctavePreference;
 END_ENUM_CONVERSION
 
 BEGIN_ENUM_CONVERSION(options::RepeatOptions::WingStyle, mx::api::RepeatWinged)

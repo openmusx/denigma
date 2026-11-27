@@ -19,10 +19,12 @@
 
 #include "musicxml_test.h"
 
+#include <utility>
+
 #include "core/denigma.h"
 #include "formats/enigmaxml/enigmaxml.h"
 #include "formats/musicxml/musicxml.h"
-#include "mx/api/DocumentManager.h"
+#include "mx/api/MusicXml.h"
 #include "test_utils.h"
 #include "gtest/gtest.h"
 
@@ -46,18 +48,21 @@ std::filesystem::path exportMusicXmlFixture(const std::string& musxFile, bool us
     return outputPath;
 }
 
-std::optional<mx::api::ScoreData> createScoreDataFromMusicXmlFixture(const std::string& musxFile)
+std::optional<mx::api::ScoreData> createScoreDataFromMusicXmlFixture(
+    const std::string& musxFile, const std::shared_ptr<const MusResources>& musResources)
 {
     std::filesystem::path inputPath;
     copyInputToOutput(musxFile, inputPath);
 
-    return createScoreDataFromMusxPath(inputPath);
+    return createScoreDataFromMusxPath(inputPath, musResources);
 }
 
-std::optional<mx::api::ScoreData> createScoreDataFromMusxPath(const std::filesystem::path& musxPath)
+std::optional<mx::api::ScoreData> createScoreDataFromMusxPath(
+    const std::filesystem::path& musxPath, const std::shared_ptr<const MusResources>& musResources)
 {
     DenigmaContext denigmaContext(DENIGMA_NAME);
     denigmaContext.inputFilePath = musxPath;
+    denigmaContext.musResources = musResources;
     MusxLoggerScope musxLogger(makeMusxLogCallback(denigmaContext));
 
     try {
@@ -71,16 +76,13 @@ std::optional<mx::api::ScoreData> createScoreDataFromMusxPath(const std::filesys
 
 std::optional<mx::api::ScoreData> loadScoreData(const std::filesystem::path& path)
 {
-    auto& documentManager = mx::api::DocumentManager::getInstance();
-    const auto documentIdResult = documentManager.createFromFile(pathString(path));
-    EXPECT_TRUE(documentIdResult.ok()) << "Unable to load " << pathString(path) << ": " << documentIdResult.error().message;
-    if (!documentIdResult.ok()) {
+    auto documentResult = mx::api::MusicXml::fromFile(pathString(path));
+    EXPECT_TRUE(documentResult.ok()) << "Unable to load " << pathString(path) << ": " << documentResult.error().message;
+    if (!documentResult.ok()) {
         return std::nullopt;
     }
 
-    const auto documentId = documentIdResult.value();
-    const auto scoreDataResult = documentManager.getData(documentId);
-    documentManager.destroyDocument(documentId);
+    const auto scoreDataResult = mx::api::intoScore(std::move(documentResult).value());
     EXPECT_TRUE(scoreDataResult.ok()) << "Unable to read ScoreData from " << pathString(path) << ": " << scoreDataResult.error().message;
     if (!scoreDataResult.ok()) {
         return std::nullopt;

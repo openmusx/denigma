@@ -20,9 +20,11 @@
  * THE SOFTWARE.
  */
 
+#include <iterator>
 #include <string>
 #include <utility>
 
+#include "denigma/classify/text_blocks.h"
 #include "musicxml.h"
 #include "musicxml_formatted_text.h"
 #include "utils/stringutils.h"
@@ -84,18 +86,12 @@ void setFileInfoText(mx::api::ScoreData& score, FileInfoText::TextType textType,
     }
 }
 
-bool pageMatchesAssignment(const others::PageTextAssign& assignment, PageCmper pageNumber)
+mx::api::PositionData pageTextPosition(const MusicXmlMusxMapping& context, const classify::PageTextPlacement& placement)
 {
-    switch (assignment.oddEven) {
-    case others::PageTextAssign::PageAssignType::AllPages: return true;
-    case others::PageTextAssign::PageAssignType::Even: return pageNumber % 2 == 0;
-    case others::PageTextAssign::PageAssignType::Odd: return pageNumber % 2 != 0;
-    }
-    return false;
-}
-
-mx::api::PositionData pageTextPosition(const MusicXmlMusxMapping& context, const others::PageTextAssign& assignment, PageCmper pageNumber)
-{
+    const PageCmper pageNumber = placement.page;
+    const auto& assignment = *placement.assignment;
+    const auto horizontalAlignment = assignment.calcHorizontalAlignment(pageNumber);
+    const auto [xOffset, yOffset] = assignment.calcDisplacement(pageNumber);
     mx::api::PositionData result;
     const auto& layout = context.musicXmlScore->defaults.pageLayout;
     // TODO: Use page-specific layout once this exporter populates mx::api::PageData overrides.
@@ -110,9 +106,6 @@ mx::api::PositionData pageTextPosition(const MusicXmlMusxMapping& context, const
     const double right = layout.size->width - (assignment.hPosPageEdge ? 0.0 : pageMargins.right);
     const double bottom = assignment.vPosPageEdge ? 0.0 : pageMargins.bottom;
     const double top = layout.size->height - (assignment.vPosPageEdge ? 0.0 : pageMargins.top);
-    const auto horizontalAlignment = assignment.indRpPos && isRightPage ? assignment.hPosRp : assignment.hPosLp;
-    const auto xOffset = assignment.indRpPos && isRightPage ? assignment.rightPgXDisp : assignment.xDisp;
-    const auto yOffset = assignment.indRpPos && isRightPage ? assignment.rightPgYDisp : assignment.yDisp;
 
     switch (horizontalAlignment) {
     case AlignJustify::Left: result.defaultX = left; break;
@@ -172,51 +165,43 @@ void createMetaData(const MusicXmlMusxMapping& context)
     addMiscellaneousField(score.encoding, "denigma-commit", gitCommit());
 
     // report the content format, not the container: a zipped enigmaxml is provenance-identical to a plain one
-    const auto inputFilePath = unwrappedInputPath(context.denigmaContext->inputFilePath);
-    const std::u8string sourceFormat = utils::normalizedPathExtension(inputFilePath);
+    const auto inputFilePath =
+        context.sourceFormat == FormatId::Mus ? context.denigmaContext->inputFilePath : unwrappedInputPath(context.denigmaContext->inputFilePath);
+    const std::u8string sourceFormat = context.sourceFormat == FormatId::Mus ? u8"mus" : utils::normalizedPathExtension(inputFilePath);
     addMiscellaneousField(score.encoding, "source-format", sourceFormat.empty() ? std::string("unknown") : utils::utf8ToString(sourceFormat));
     if (!inputFilePath.empty()) {
         addMiscellaneousField(score.encoding, "source-filename", utils::pathToString(inputFilePath.filename()));
     }
 }
 
-void createPageTexts(const MusicXmlMusxMapping& context)
+void processPageTexts(const MusicXmlMusxMapping& context)
 {
-    for (const auto& assignment : context.document->getOthers()->getArray<others::PageTextAssign>(context.forPartId)) {
-        if (assignment->hidden) {
-            continue;
-        }
-        const auto startPage = assignment->calcStartPageNumber(context.forPartId);
-        const auto endPage = assignment->calcEndPageNumber(context.forPartId);
-        const auto textBlock = assignment->getTextBlock();
-        if (!startPage || !endPage || !textBlock) {
-            continue;
-        }
+    for (const auto& classification : classify::classifyPageTexts(context.document, {context.forPartId})) {
         // A text block with no custom frame shape and a positive line thickness is a plain rectangle,
         // the one frame MusicXML can name. Custom frames, word wrapping, and text-block dimensions have
         // no MusicXML equivalent and are dropped.
-        const bool useStandardFrameEnclosure = textBlock->shapeId == 0 && textBlock->stdLineThickness > 0;
+        const bool useStandardFrameEnclosure = !classification.frame.hasCustomShape && classification.frame.borderThickness > 0;
         // IWBNI MusicXML could preserve the Enigma insert template and recurring range/parity rule instead of requiring
         // resolved, page-specific credits. Importers cannot reconstruct those source semantics from credit-words.
-        for (PageCmper pageNumber = *startPage; pageNumber <= *endPage; ++pageNumber) {
-            if (!pageMatchesAssignment(*assignment, pageNumber)) {
-                continue;
-            }
-            auto content = musicXmlPageTextContentFromEnigmaText(context, assignment->getRawTextCtx(context.forPartId, pageNumber));
+        for (const auto& placement : classification.placements) {
+            auto content = musicXmlPageTextContentFromEnigmaText(context, placement.assignment->getRawTextCtx(placement.partId, placement.page));
             if (!content) {
                 continue;
             }
             auto& pageText = context.musicXmlScore->pageTextItems.emplace_back();
-            pageText.text = std::move(content->text);
-            pageText.fontData = std::move(content->fontData);
+            pageText.text = std::move(content->segments.front().text);
+            pageText.fontData = std::move(content->segments.front().fontData);
+            for (auto segment = std::next(content->segments.begin()); segment != content->segments.end(); ++segment) {
+                pageText.continuations.emplace_back(std::move(*segment));
+            }
             pageText.creditTypes = std::move(content->creditTypes);
             if (!pageText.creditTypes.empty()) {
                 pageText.description = pageText.creditTypes.front();
             }
-            pageText.pageNumber = pageNumber;
-            pageText.positionData = pageTextPosition(context, *assignment, pageNumber);
+            pageText.pageNumber = placement.page;
+            pageText.positionData = pageTextPosition(context, placement);
             // TODO: MusicXML cannot represent Finale full or forced-full justification; enumConvert omits it.
-            pageText.justify = enumConvert<mx::api::HorizontalAlignment>(textBlock->justify);
+            pageText.justify = enumConvert<mx::api::HorizontalAlignment>(classification.frame.justify);
             if (useStandardFrameEnclosure) {
                 pageText.enclosure = mx::api::Enclosure::rectangle;
             }

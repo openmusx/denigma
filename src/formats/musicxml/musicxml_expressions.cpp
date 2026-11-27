@@ -459,17 +459,20 @@ mx::api::TempoData musicXmlMetronomeMark(const MusicXmlMusxMapping& context, con
     beatsPerMinute.durationName = enumConvert<mx::api::DurationName>(metronomeMark.noteType);
     beatsPerMinute.dots = static_cast<int>(metronomeMark.augmentationDots);
     beatsPerMinute.beatsPerMinute = musicXmlPerMinuteText(metronomeMark.displayedBeatsPerMinute);
-    /// @todo Preserve split fonts by assigning the left-hand font to TempoData::fontData and the
-    /// right-hand font to the per-minute element once mx::api::BeatsPerMinute exposes its FontData.
-    /// See mx-api-gaps.md.
 
     mx::api::TempoData result;
-    result.choice = mx::api::TempoChoice(std::move(beatsPerMinute));
-    if (classification.enigmaCtx) {
-        if (const auto font = classify::singleVisibleFont(*classification.enigmaCtx)) {
-            result.fontData = context.musicXmlFontDataFromFontInfo(*font);
+    const auto singleFont = classification.enigmaCtx ? classify::singleVisibleFont(*classification.enigmaCtx) : nullptr;
+    if (singleFont) {
+        result.fontData = context.musicXmlFontDataFromFontInfo(*singleFont);
+    } else if (metronomeMark.noteFont && metronomeMark.beatsPerMinuteFont) {
+        // <metronome> carries the note's font, and <per-minute> overrides it only for a number in
+        // another font.
+        result.fontData = context.musicXmlFontDataFromFontInfo(*metronomeMark.noteFont);
+        if (!metronomeMark.noteFont->isSame(*metronomeMark.beatsPerMinuteFont)) {
+            beatsPerMinute.fontData = context.musicXmlFontDataFromFontInfo(*metronomeMark.beatsPerMinuteFont);
         }
     }
+    result.choice = mx::api::TempoChoice(std::move(beatsPerMinute));
     result.positionData.horizontalAlignment = musicXmlHorizontalAlignmentForTextExpression(assignment);
     result.justify = musicXmlJustifyForTextExpression(assignment);
     return result;
@@ -553,6 +556,9 @@ void processExpressions(MusicXmlMusxMapping& context, mx::api::MeasureData& meas
         }
 
         const auto classification = classify::classifyExpression(assignment);
+        if (classification.type == classify::ExpressionType::Suppress) {
+            continue;
+        }
         const auto placement = assignment->calcVerticalPlacement();
         const bool emittedFromTopStaffAssignment = isTopStaffAssignment(assignment);
         const bool isVoiceAttached = assignment->layer > 0 || assignment->voice2;
@@ -641,6 +647,7 @@ void processExpressions(MusicXmlMusxMapping& context, mx::api::MeasureData& meas
             /// half-pedal, special release, hook, and hyphen distinctions.
             [[fallthrough]];
         case classify::ExpressionType::TempoAlteration:
+        case classify::ExpressionType::ExpressiveText:
         case classify::ExpressionType::GenericText: {
             emitGroupedDirection(createWordsExpressionDirection(context, staffIndex, assignment, classification, placement, isStaffValueSpecified));
             break;
@@ -667,6 +674,9 @@ void processExpressions(MusicXmlMusxMapping& context, mx::api::MeasureData& meas
         }
         case classify::ExpressionType::BreathMark:
             appendMarkToAssociatedNote(assignment, musicXmlMark(mx::api::MarkType::breathMark, placement));
+            break;
+        case classify::ExpressionType::Caesura:
+            appendMarkToAssociatedNote(assignment, musicXmlMark(enumConvert<mx::api::MarkType>(classification.caesura().caesura.type), placement));
             break;
         case classify::ExpressionType::StringMute:
             emitGroupedDirection(

@@ -131,7 +131,7 @@ int MassageCommand::showHelpPage(const std::string_view& programName, const std:
     return 1;
 }
 
-bool MassageCommand::canProcess(const std::filesystem::path& inputPath) const
+bool MassageCommand::canProcess(const std::filesystem::path& inputPath, const DenigmaContext&) const
 {
     try {
         findProcessor(inputProcessors, inputFormatKey(inputPath));

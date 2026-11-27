@@ -32,8 +32,8 @@
 #include "musx/musx.h"
 #include "pugixml.hpp"
 
-#include "core/denigma.h"
 #include "formats/enigmaxml/enigmaxml.h"
+#include "input/input.h"
 #include "massage/massage.h"
 #include "massage/musicxml.h"
 #include "utils/ziputils.h"
@@ -360,7 +360,7 @@ static void massageXmlWithFinaleDocument(pugi::xml_node xmlMeasure, int staffSlo
                     // We compensate by shifting the note type in enigma back by the number of beams and the written note type
                     // Then subtract out quarter note log (if it's >= quaerter), because that's the first non-beamed value.
                     musxNoteType <<=
-                        tremolo.text().as_int() + log2_exact(xmlNoteType) - std::min(10, log2_exact(xmlNoteType)); // 10 is log2(NoteType::Quarter)
+                        tremolo.text().as_int() + log2_exact(xmlNoteType) - (std::min)(10, log2_exact(xmlNoteType)); // 10 is log2(NoteType::Quarter)
                 }
             }
             if (xmlNoteType != musxNoteType) {
@@ -697,20 +697,10 @@ static std::shared_ptr<MassageMusicXmlContext> createContext(const std::filesyst
     auto context = std::make_shared<MassageMusicXmlContext>(denigmaContext);
     auto finaleFilePath = findFinaleFile(inputPath, denigmaContext);
     if (finaleFilePath.has_value()) {
-        auto xmlBuffer = [&]() -> Buffer {
-            Buffer retval;
-            const auto& path = finaleFilePath.value();
-            if (utils::pathExtensionEquals(path, MUSX_EXTENSION)) {
-                return formats::enigmaxml::detail::extractMusxInputData(path, denigmaContext).primaryBuffer;
-            } else if (utils::pathExtensionEquals(path, ENIGMAXML_EXTENSION)) {
-                return formats::enigmaxml::detail::readEnigmaXmlInputData(path, denigmaContext).primaryBuffer;
-            }
-            assert(false); // bug in findFinaleFile if here
-            return {};
-        }();
-        if (!xmlBuffer.empty()) {
-            context->musxDocument = musx::factory::DocumentFactory::create<MusxReader>(xmlBuffer);
-        }
+        auto sourceContext = denigmaContext;
+        sourceContext.inputFilePath = *finaleFilePath;
+        const auto input = prepareInput(*finaleFilePath, sourceContext);
+        context->musxDocument = createMusxDocument<MusxReader>(input, sourceContext);
     }
     return context;
 }
@@ -828,7 +818,7 @@ void massageMxl(
                             return name;
                         }
                     }
-                // Without a source document there is no part to name, so trust the file itself.
+                    // Without a source document there is no part to name, so trust the file itself.
                     return isScore ? "Score" : std::string("Part " + std::to_string(context->musxPartId));
                 }();
                 denigmaContext.logMessage(

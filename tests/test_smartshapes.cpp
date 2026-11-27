@@ -29,6 +29,8 @@
 #include "core/musx_reader.h"
 #include "denigma/classify/smartshapes.h"
 #include "formats/enigmaxml/enigmaxml.h"
+#include "input/input.h"
+#include "test_utils.h"
 
 using namespace denigma::classify;
 using namespace musx::dom;
@@ -95,6 +97,55 @@ SmartShapeContext makeCustomLine(std::string_view startText, std::string_view co
 
 } // namespace
 
+TEST(SmartShapeClassification, SuppressesSlursInExcludedPartLayers)
+{
+    setupTestDataPaths();
+    const auto inputPath = std::filesystem::path("inputs") / "voiced_parts.musx";
+    denigma::DenigmaContext context(DENIGMA_NAME);
+    context.inputFilePath = inputPath;
+    auto input = denigma::formats::enigmaxml::detail::extractMusxInputData(inputPath, context);
+    std::string xml(input.primaryBuffer.begin(), input.primaryBuffer.end());
+    const auto othersEnd = xml.find("</others>");
+    ASSERT_NE(othersEnd, std::string::npos);
+    xml.insert(othersEnd, R"xml(
+      <smartShape cmper="1">
+        <shapeType>slurAuto</shapeType><entryBased/>
+        <startTermSeg><endPt><inst>1</inst><meas>1</meas><entryNum>24</entryNum></endPt></startTermSeg>
+        <endTermSeg><endPt><inst>1</inst><meas>1</meas><entryNum>25</entryNum></endPt></endTermSeg>
+      </smartShape>
+      <smartShape cmper="2">
+        <shapeType>slurAuto</shapeType><entryBased/>
+        <startTermSeg><endPt><inst>1</inst><meas>1</meas><entryNum>21</entryNum></endPt></startTermSeg>
+        <endTermSeg><endPt><inst>1</inst><meas>1</meas><entryNum>25</entryNum></endPt></endTermSeg>
+      </smartShape>
+    )xml");
+    input.primaryBuffer.assign(xml.begin(), xml.end());
+    constexpr Cmper layerOnePart = 1;
+    constexpr Cmper layerTwoPart = 2;
+    constexpr Cmper layerTwoSlur = 1;
+    constexpr Cmper crossLayerSlur = 2;
+    for (const auto policy : {PartVoicingPolicy::Apply, PartVoicingPolicy::Ignore}) {
+        const auto document = denigma::createMusxDocument<denigma::MusxReader>(input, context, policy);
+        std::vector<std::string> messages;
+        context.logCallback = [&](denigma::MessageSeverity, std::string_view message) { messages.emplace_back(message); };
+        const denigma::MusxLoggerScope logger(denigma::makeMusxLogCallback(context));
+        const auto classify = [&](Cmper partId, Cmper shapeId) {
+            return classifySmartShape(document->getOthers()->get<others::SmartShape>(partId, shapeId));
+        };
+        EXPECT_NE(classify(SCORE_PARTID, layerTwoSlur).as<classifiedshape::Slur>(), nullptr);
+        EXPECT_NE(classify(layerTwoPart, layerTwoSlur).as<classifiedshape::Slur>(), nullptr);
+        if (policy == PartVoicingPolicy::Apply) {
+            EXPECT_NE(classify(layerOnePart, layerTwoSlur).as<classifiedshape::Suppress>(), nullptr);
+            EXPECT_NE(classify(layerOnePart, crossLayerSlur).as<classifiedshape::Suppress>(), nullptr);
+        } else {
+            EXPECT_NE(classify(layerOnePart, layerTwoSlur).as<classifiedshape::Slur>(), nullptr);
+            EXPECT_NE(classify(layerOnePart, crossLayerSlur).as<classifiedshape::Slur>(), nullptr);
+        }
+        EXPECT_TRUE(messages.empty());
+        context.logCallback = {};
+    }
+}
+
 TEST(SmartShapeClassification, ClassifiesPedalTextAtEachCustomLinePosition)
 {
     const auto context =
@@ -116,6 +167,42 @@ TEST(SmartShapeClassification, ClassifiesPedalTextAtEachCustomLinePosition)
     EXPECT_TRUE(pedal->isSustainPedal());
     EXPECT_FALSE(pedal->isSostPedal());
     EXPECT_FALSE(pedal->isUnaCorda());
+}
+
+TEST(SmartShapeClassification, ReportsShortFormPedalGlyphs)
+{
+    struct Case
+    {
+        std::string text;
+        keyboardpedal::Type type;
+        bool shortForm;
+    };
+    const std::vector<Case> cases = {
+        {"&#xE651;", keyboardpedal::Type::PedalOne, true},                          // keyboardPedalP
+        {"&#xE651;&#xE654;", keyboardpedal::Type::PedalOne, true},                  // P.
+        {"&#xE651;&#xE652;&#xE653;&#xE654;", keyboardpedal::Type::PedalOne, false}, // P e d . composes Ped.
+        {"&#xE650;", keyboardpedal::Type::PedalOne, false},                         // keyboardPedalPed
+        {"&#xE65A;", keyboardpedal::Type::PedalTwo, true},                          // keyboardPedalS
+        {"&#xE659;", keyboardpedal::Type::PedalTwo, false},                         // keyboardPedalSost
+    };
+    for (const auto& testCase : cases) {
+        const auto context = makeCustomLine("^fontid(0)^size(24)^nfx(0)" + testCase.text, {}, {},
+            "      <lineStyle>solid</lineStyle>\n"
+            "      <solidParams><lineWidth>141</lineWidth></solidParams>\n");
+        const auto classification = classifySmartShape(context.shape);
+        const auto* pedal = classification.as<classifiedshape::KeyboardPedal>();
+        ASSERT_NE(pedal, nullptr) << testCase.text;
+        ASSERT_TRUE(pedal->startText) << testCase.text;
+        EXPECT_EQ(pedal->startText->type, testCase.type) << testCase.text;
+        EXPECT_EQ(pedal->startText->shortForm, testCase.shortForm) << testCase.text;
+    }
+
+    // A typed letter is not a pedal glyph.
+    const auto typed = makeCustomLine("P.", {}, {},
+        "      <lineStyle>solid</lineStyle>\n"
+        "      <solidParams><lineWidth>141</lineWidth></solidParams>\n");
+    const auto typedClassification = classifySmartShape(typed.shape);
+    EXPECT_EQ(typedClassification.as<classifiedshape::KeyboardPedal>(), nullptr);
 }
 
 TEST(SmartShapeClassification, ClassifiesAsciiPedalTextWithOrdinaryHooks)

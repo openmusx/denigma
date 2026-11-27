@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 3,
   "producer": {
     "name": "denigma",
     "version": "TEST",
@@ -13,12 +13,6 @@
         "denominator": 1
       },
       "extent": "complete",
-      "placements": [
-        {
-          "kind": "system-top",
-          "anchor": "m2"
-        }
-      ],
       "type": "expression",
       "expression": {
         "type": "rehearsal-mark",
@@ -29,19 +23,7 @@
           "runs": [
             {
               "text": "A",
-              "font": {
-                "name": "Garamond",
-                "size": 30,
-                "sizeIsPercent": false,
-                "bold": true,
-                "italic": false,
-                "underline": false,
-                "strikeout": false,
-                "absolute": false,
-                "hidden": false,
-                "isSymbolFont": false,
-                "isSmufl": false
-              },
+              "font": "1",
               "insert": {
                 "kind": "rehearsal-mark",
                 "command": "rehearsal",
@@ -52,7 +34,14 @@
         },
         "rehearsalMark": {
           "text": "A"
-        }
+        },
+        "placements": [
+          {
+            "kind": "system-top",
+            "anchor": "m2",
+            "placement": "above"
+          }
+        ]
       }
     },
     {
@@ -62,12 +51,6 @@
         "denominator": 2
       },
       "extent": "complete",
-      "placements": [
-        {
-          "kind": "system-top",
-          "anchor": "m2"
-        }
-      ],
       "type": "expression",
       "expression": {
         "type": "rehearsal-mark",
@@ -78,19 +61,7 @@
           "runs": [
             {
               "text": "A",
-              "font": {
-                "name": "Garamond",
-                "size": 30,
-                "sizeIsPercent": false,
-                "bold": true,
-                "italic": false,
-                "underline": false,
-                "strikeout": false,
-                "absolute": false,
-                "hidden": false,
-                "isSymbolFont": false,
-                "isSmufl": false
-              },
+              "font": "1",
               "insert": {
                 "kind": "rehearsal-mark",
                 "command": "rehearsal",
@@ -101,7 +72,14 @@
         },
         "rehearsalMark": {
           "text": "A"
-        }
+        },
+        "placements": [
+          {
+            "kind": "system-top",
+            "anchor": "m2",
+            "placement": "above"
+          }
+        ]
       }
     },
     {
@@ -111,12 +89,6 @@
         "denominator": 4
       },
       "extent": "complete",
-      "placements": [
-        {
-          "kind": "system-top",
-          "anchor": "m2"
-        }
-      ],
       "type": "expression",
       "expression": {
         "type": "rehearsal-mark",
@@ -127,19 +99,7 @@
           "runs": [
             {
               "text": "A",
-              "font": {
-                "name": "Garamond",
-                "size": 30,
-                "sizeIsPercent": false,
-                "bold": true,
-                "italic": false,
-                "underline": false,
-                "strikeout": false,
-                "absolute": false,
-                "hidden": false,
-                "isSymbolFont": false,
-                "isSmufl": false
-              },
+              "font": "1",
               "insert": {
                 "kind": "rehearsal-mark",
                 "command": "rehearsal",
@@ -150,7 +110,14 @@
         },
         "rehearsalMark": {
           "text": "A"
-        }
+        },
+        "placements": [
+          {
+            "kind": "system-top",
+            "anchor": "m2",
+            "placement": "above"
+          }
+        ]
       }
     },
     {
@@ -160,12 +127,6 @@
         "denominator": 4
       },
       "extent": "complete",
-      "placements": [
-        {
-          "kind": "system-top",
-          "anchor": "m2"
-        }
-      ],
       "type": "expression",
       "expression": {
         "type": "rehearsal-mark",
@@ -176,19 +137,7 @@
           "runs": [
             {
               "text": "1",
-              "font": {
-                "name": "Garamond",
-                "size": 30,
-                "sizeIsPercent": false,
-                "bold": true,
-                "italic": false,
-                "underline": false,
-                "strikeout": false,
-                "absolute": false,
-                "hidden": false,
-                "isSymbolFont": false,
-                "isSmufl": false
-              },
+              "font": "1",
               "insert": {
                 "kind": "rehearsal-mark",
                 "command": "rehearsal",
@@ -199,7 +148,14 @@
         },
         "rehearsalMark": {
           "text": "1"
-        }
+        },
+        "placements": [
+          {
+            "kind": "system-top",
+            "anchor": "m2",
+            "placement": "above"
+          }
+        ]
       }
     },
     {
@@ -209,12 +165,6 @@
         "denominator": 4
       },
       "extent": "complete",
-      "placements": [
-        {
-          "kind": "system-top",
-          "anchor": "m3"
-        }
-      ],
       "type": "expression",
       "expression": {
         "type": "rehearsal-mark",
@@ -225,19 +175,7 @@
           "runs": [
             {
               "text": "A",
-              "font": {
-                "name": "Garamond",
-                "size": 30,
-                "sizeIsPercent": false,
-                "bold": true,
-                "italic": false,
-                "underline": false,
-                "strikeout": false,
-                "absolute": false,
-                "hidden": false,
-                "isSymbolFont": false,
-                "isSmufl": false
-              },
+              "font": "1",
               "insert": {
                 "kind": "rehearsal-mark",
                 "command": "rehearsal",
@@ -248,7 +186,14 @@
         },
         "rehearsalMark": {
           "text": "A"
-        }
+        },
+        "placements": [
+          {
+            "kind": "system-top",
+            "anchor": "m3",
+            "placement": "above"
+          }
+        ]
       }
     },
     {
@@ -258,12 +203,6 @@
         "denominator": 1
       },
       "extent": "complete",
-      "placements": [
-        {
-          "kind": "system-top",
-          "anchor": "m3"
-        }
-      ],
       "type": "expression",
       "expression": {
         "type": "rehearsal-mark",
@@ -274,19 +213,7 @@
           "runs": [
             {
               "text": "A",
-              "font": {
-                "name": "Garamond",
-                "size": 30,
-                "sizeIsPercent": false,
-                "bold": true,
-                "italic": false,
-                "underline": false,
-                "strikeout": false,
-                "absolute": false,
-                "hidden": false,
-                "isSymbolFont": false,
-                "isSmufl": false
-              },
+              "font": "1",
               "insert": {
                 "kind": "rehearsal-mark",
                 "command": "rehearsal",
@@ -297,7 +224,14 @@
         },
         "rehearsalMark": {
           "text": "A"
-        }
+        },
+        "placements": [
+          {
+            "kind": "system-top",
+            "anchor": "m3",
+            "placement": "above"
+          }
+        ]
       }
     },
     {
@@ -307,12 +241,6 @@
         "denominator": 2
       },
       "extent": "complete",
-      "placements": [
-        {
-          "kind": "system-top",
-          "anchor": "m4"
-        }
-      ],
       "type": "expression",
       "expression": {
         "type": "rehearsal-mark",
@@ -323,19 +251,7 @@
           "runs": [
             {
               "text": "B",
-              "font": {
-                "name": "Garamond",
-                "size": 30,
-                "sizeIsPercent": false,
-                "bold": true,
-                "italic": false,
-                "underline": false,
-                "strikeout": false,
-                "absolute": false,
-                "hidden": false,
-                "isSymbolFont": false,
-                "isSmufl": false
-              },
+              "font": "1",
               "insert": {
                 "kind": "rehearsal-mark",
                 "command": "rehearsal",
@@ -346,7 +262,14 @@
         },
         "rehearsalMark": {
           "text": "B"
-        }
+        },
+        "placements": [
+          {
+            "kind": "system-top",
+            "anchor": "m4",
+            "placement": "above"
+          }
+        ]
       }
     },
     {
@@ -356,12 +279,6 @@
         "denominator": 2
       },
       "extent": "complete",
-      "placements": [
-        {
-          "kind": "system-top",
-          "anchor": "m5"
-        }
-      ],
       "type": "expression",
       "expression": {
         "type": "rehearsal-mark",
@@ -372,19 +289,7 @@
           "runs": [
             {
               "text": "C",
-              "font": {
-                "name": "Garamond",
-                "size": 30,
-                "sizeIsPercent": false,
-                "bold": true,
-                "italic": false,
-                "underline": false,
-                "strikeout": false,
-                "absolute": false,
-                "hidden": false,
-                "isSymbolFont": false,
-                "isSmufl": false
-              },
+              "font": "1",
               "insert": {
                 "kind": "rehearsal-mark",
                 "command": "rehearsal",
@@ -395,7 +300,14 @@
         },
         "rehearsalMark": {
           "text": "C"
-        }
+        },
+        "placements": [
+          {
+            "kind": "system-top",
+            "anchor": "m5",
+            "placement": "above"
+          }
+        ]
       }
     },
     {
@@ -405,12 +317,6 @@
         "denominator": 2
       },
       "extent": "complete",
-      "placements": [
-        {
-          "kind": "system-top",
-          "anchor": "m6"
-        }
-      ],
       "type": "expression",
       "expression": {
         "type": "rehearsal-mark",
@@ -421,19 +327,7 @@
           "runs": [
             {
               "text": "2",
-              "font": {
-                "name": "Garamond",
-                "size": 30,
-                "sizeIsPercent": false,
-                "bold": true,
-                "italic": false,
-                "underline": false,
-                "strikeout": false,
-                "absolute": false,
-                "hidden": false,
-                "isSymbolFont": false,
-                "isSmufl": false
-              },
+              "font": "1",
               "insert": {
                 "kind": "rehearsal-mark",
                 "command": "rehearsal",
@@ -444,7 +338,14 @@
         },
         "rehearsalMark": {
           "text": "2"
-        }
+        },
+        "placements": [
+          {
+            "kind": "system-top",
+            "anchor": "m6",
+            "placement": "above"
+          }
+        ]
       }
     },
     {
@@ -454,12 +355,6 @@
         "denominator": 4
       },
       "extent": "complete",
-      "placements": [
-        {
-          "kind": "system-top",
-          "anchor": "m7"
-        }
-      ],
       "type": "expression",
       "expression": {
         "type": "rehearsal-mark",
@@ -470,19 +365,7 @@
           "runs": [
             {
               "text": "D",
-              "font": {
-                "name": "Garamond",
-                "size": 30,
-                "sizeIsPercent": false,
-                "bold": true,
-                "italic": false,
-                "underline": false,
-                "strikeout": false,
-                "absolute": false,
-                "hidden": false,
-                "isSymbolFont": false,
-                "isSmufl": false
-              },
+              "font": "1",
               "insert": {
                 "kind": "rehearsal-mark",
                 "command": "rehearsal",
@@ -493,7 +376,14 @@
         },
         "rehearsalMark": {
           "text": "D"
-        }
+        },
+        "placements": [
+          {
+            "kind": "system-top",
+            "anchor": "m7",
+            "placement": "above"
+          }
+        ]
       }
     },
     {
@@ -503,12 +393,6 @@
         "denominator": 1
       },
       "extent": "complete",
-      "placements": [
-        {
-          "kind": "system-top",
-          "anchor": "m10"
-        }
-      ],
       "type": "expression",
       "expression": {
         "type": "rehearsal-mark",
@@ -519,19 +403,7 @@
           "runs": [
             {
               "text": "E",
-              "font": {
-                "name": "Garamond",
-                "size": 30,
-                "sizeIsPercent": false,
-                "bold": true,
-                "italic": false,
-                "underline": false,
-                "strikeout": false,
-                "absolute": false,
-                "hidden": false,
-                "isSymbolFont": false,
-                "isSmufl": false
-              },
+              "font": "1",
               "insert": {
                 "kind": "rehearsal-mark",
                 "command": "rehearsal",
@@ -542,7 +414,14 @@
         },
         "rehearsalMark": {
           "text": "E"
-        }
+        },
+        "placements": [
+          {
+            "kind": "system-top",
+            "anchor": "m10",
+            "placement": "above"
+          }
+        ]
       }
     },
     {
@@ -552,12 +431,6 @@
         "denominator": 4
       },
       "extent": "complete",
-      "placements": [
-        {
-          "kind": "system-top",
-          "anchor": "m11"
-        }
-      ],
       "type": "expression",
       "expression": {
         "type": "rehearsal-mark",
@@ -568,19 +441,7 @@
           "runs": [
             {
               "text": "3",
-              "font": {
-                "name": "Garamond",
-                "size": 30,
-                "sizeIsPercent": false,
-                "bold": true,
-                "italic": false,
-                "underline": false,
-                "strikeout": false,
-                "absolute": false,
-                "hidden": false,
-                "isSymbolFont": false,
-                "isSmufl": false
-              },
+              "font": "1",
               "insert": {
                 "kind": "rehearsal-mark",
                 "command": "rehearsal",
@@ -591,7 +452,14 @@
         },
         "rehearsalMark": {
           "text": "3"
-        }
+        },
+        "placements": [
+          {
+            "kind": "system-top",
+            "anchor": "m11",
+            "placement": "above"
+          }
+        ]
       }
     },
     {
@@ -601,12 +469,6 @@
         "denominator": 4
       },
       "extent": "complete",
-      "placements": [
-        {
-          "kind": "system-top",
-          "anchor": "m15"
-        }
-      ],
       "type": "expression",
       "expression": {
         "type": "rehearsal-mark",
@@ -617,19 +479,7 @@
           "runs": [
             {
               "text": "137",
-              "font": {
-                "name": "Garamond",
-                "size": 30,
-                "sizeIsPercent": false,
-                "bold": true,
-                "italic": false,
-                "underline": false,
-                "strikeout": false,
-                "absolute": false,
-                "hidden": false,
-                "isSymbolFont": false,
-                "isSmufl": false
-              },
+              "font": "1",
               "insert": {
                 "kind": "rehearsal-mark",
                 "command": "rehearsal",
@@ -640,7 +490,14 @@
         },
         "rehearsalMark": {
           "text": "137"
-        }
+        },
+        "placements": [
+          {
+            "kind": "system-top",
+            "anchor": "m15",
+            "placement": "above"
+          }
+        ]
       }
     },
     {
@@ -650,12 +507,6 @@
         "denominator": 4
       },
       "extent": "complete",
-      "placements": [
-        {
-          "kind": "system-top",
-          "anchor": "m19"
-        }
-      ],
       "type": "expression",
       "expression": {
         "type": "rehearsal-mark",
@@ -666,19 +517,7 @@
           "runs": [
             {
               "text": "4",
-              "font": {
-                "name": "Garamond",
-                "size": 30,
-                "sizeIsPercent": false,
-                "bold": true,
-                "italic": false,
-                "underline": false,
-                "strikeout": false,
-                "absolute": false,
-                "hidden": false,
-                "isSymbolFont": false,
-                "isSmufl": false
-              },
+              "font": "1",
               "insert": {
                 "kind": "rehearsal-mark",
                 "command": "rehearsal",
@@ -689,7 +528,14 @@
         },
         "rehearsalMark": {
           "text": "4"
-        }
+        },
+        "placements": [
+          {
+            "kind": "system-top",
+            "anchor": "m19",
+            "placement": "above"
+          }
+        ]
       }
     },
     {
@@ -699,12 +545,6 @@
         "denominator": 2
       },
       "extent": "complete",
-      "placements": [
-        {
-          "kind": "system-top",
-          "anchor": "m22"
-        }
-      ],
       "type": "expression",
       "expression": {
         "type": "rehearsal-mark",
@@ -715,19 +555,7 @@
           "runs": [
             {
               "text": "F",
-              "font": {
-                "name": "Garamond",
-                "size": 30,
-                "sizeIsPercent": false,
-                "bold": true,
-                "italic": false,
-                "underline": false,
-                "strikeout": false,
-                "absolute": false,
-                "hidden": false,
-                "isSymbolFont": false,
-                "isSmufl": false
-              },
+              "font": "1",
               "insert": {
                 "kind": "rehearsal-mark",
                 "command": "rehearsal",
@@ -738,7 +566,14 @@
         },
         "rehearsalMark": {
           "text": "F"
-        }
+        },
+        "placements": [
+          {
+            "kind": "system-top",
+            "anchor": "m22",
+            "placement": "above"
+          }
+        ]
       }
     },
     {
@@ -748,12 +583,6 @@
         "denominator": 2
       },
       "extent": "complete",
-      "placements": [
-        {
-          "kind": "system-top",
-          "anchor": "m26"
-        }
-      ],
       "type": "expression",
       "expression": {
         "type": "rehearsal-mark",
@@ -764,19 +593,7 @@
           "runs": [
             {
               "text": "26",
-              "font": {
-                "name": "Garamond",
-                "size": 30,
-                "sizeIsPercent": false,
-                "bold": true,
-                "italic": false,
-                "underline": false,
-                "strikeout": false,
-                "absolute": false,
-                "hidden": false,
-                "isSymbolFont": false,
-                "isSmufl": false
-              },
+              "font": "1",
               "insert": {
                 "kind": "rehearsal-mark",
                 "command": "rehearsal",
@@ -787,7 +604,14 @@
         },
         "rehearsalMark": {
           "text": "26"
-        }
+        },
+        "placements": [
+          {
+            "kind": "system-top",
+            "anchor": "m26",
+            "placement": "above"
+          }
+        ]
       }
     },
     {
@@ -797,12 +621,6 @@
         "denominator": 4
       },
       "extent": "complete",
-      "placements": [
-        {
-          "kind": "system-top",
-          "anchor": "m31"
-        }
-      ],
       "type": "expression",
       "expression": {
         "type": "rehearsal-mark",
@@ -813,19 +631,7 @@
           "runs": [
             {
               "text": "3",
-              "font": {
-                "name": "Garamond",
-                "size": 30,
-                "sizeIsPercent": false,
-                "bold": true,
-                "italic": false,
-                "underline": false,
-                "strikeout": false,
-                "absolute": false,
-                "hidden": false,
-                "isSymbolFont": false,
-                "isSmufl": false
-              },
+              "font": "1",
               "insert": {
                 "kind": "rehearsal-mark",
                 "command": "rehearsal",
@@ -836,8 +642,112 @@
         },
         "rehearsalMark": {
           "text": "3"
-        }
+        },
+        "placements": [
+          {
+            "kind": "system-top",
+            "anchor": "m31",
+            "placement": "above"
+          }
+        ]
+      }
+    },
+    {
+      "extent": "complete",
+      "type": "page-text",
+      "pageText": {
+        "text": {
+          "plain": "#",
+          "runs": [
+            {
+              "text": "#",
+              "font": "2",
+              "insert": {
+                "kind": "other",
+                "command": "page",
+                "parameters": [
+                  "0"
+                ]
+              }
+            }
+          ]
+        },
+        "assignment": {
+          "start": 1,
+          "end": 0,
+          "pages": "all"
+        },
+        "unit": "evpu",
+        "alignment": {
+          "horizontal": "left",
+          "rightPageHorizontal": "right",
+          "vertical": "top",
+          "horizontalFrom": "margin",
+          "verticalFrom": "margin"
+        },
+        "position": {
+          "offsetX": 0,
+          "offsetY": 162,
+          "independentRightPages": true,
+          "rightPageOffsetX": 0,
+          "rightPageOffsetY": 162
+        },
+        "frame": {
+          "unit": "evpu",
+          "width": 0,
+          "height": 0,
+          "handleOffsetX": 0,
+          "handleOffsetY": 0,
+          "wordWrap": true,
+          "noExpandSingleWord": false,
+          "justify": "left",
+          "inset": 0.0,
+          "lineSpacingPercent": 100,
+          "showBorder": true,
+          "borderThickness": 0.0,
+          "cornerRadius": 0.0,
+          "positionFromFrameEdge": true,
+          "hasCustomShape": false
+        },
+        "placements": [
+          {
+            "kind": "page",
+            "anchor": "score0.page1"
+          },
+          {
+            "kind": "page",
+            "anchor": "score1.page1"
+          }
+        ]
       }
     }
-  ]
+  ],
+  "fonts": {
+    "1": {
+      "name": "Garamond",
+      "size": 30,
+      "sizeIsPercent": false,
+      "bold": true,
+      "italic": false,
+      "underline": false,
+      "strikeout": false,
+      "absolute": false,
+      "hidden": false,
+      "isSymbolFont": false,
+      "isSmufl": false
+    },
+    "2": {
+      "name": "Times",
+      "size": 12,
+      "sizeIsPercent": false,
+      "bold": true,
+      "italic": true,
+      "underline": false,
+      "strikeout": false,
+      "absolute": true,
+      "hidden": false,
+      "isSymbolFont": false,
+      "isSmufl": false
+    }
+  }
 }

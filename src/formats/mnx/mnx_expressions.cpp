@@ -30,6 +30,7 @@
 #include "denigma/classify/expressions.h"
 #include "denigma/classify/gaps.h"
 #include "mnx.h"
+#include "mnx_formatted_text.h"
 #include "mnx_gaps.h"
 #include "utils/stringutils.h"
 
@@ -40,26 +41,30 @@ namespace detail {
 
 namespace {
 
-/// @brief Where the target would draw each member of a staff-list group, in target ids.
+/// @brief Which members of a staff-list group #expressionGapForGroup lists.
+enum class GroupMembers {
+    All, ///< Every member the requested score or part shows.
+    FloatingOnly ///< Only the members that float to a system edge.
+};
+
+/// @brief The group's classification with the target place of each member it lists.
 ///
-/// A floating member names the system edge and the global measure. A concrete member names the
-/// part measure and, when the part has several staves, the staff. A staff that maps to no part
-/// (a staff outside every instrument) is left out.
-std::vector<classify::GapPlacement> placementsForGroup(
-    const MnxMusxMappingPtr& context, const classify::ExpressionAssignmentGroup& group, const std::string& globalMeasureId)
+/// A floating member's place is the global measure. A concrete member's is the part measure and,
+/// when the part has several staves, the staff. A staff that maps to no part (a staff outside every
+/// instrument) is left out.
+classify::ExpressionGap expressionGapForGroup(const MnxMusxMappingPtr& context, const classify::ExpressionAssignmentGroup& group,
+    const std::string& globalMeasureId, GroupMembers which = GroupMembers::All)
 {
-    using Kind = classify::GapPlacement::Kind;
-    std::vector<classify::GapPlacement> result;
-    for (const auto& member : group.members) {
-        switch (classify::classifyExpressionScope(member)) {
-        case classify::ExpressionScope::TopStaff: result.push_back({Kind::SystemTop, {globalMeasureId, std::nullopt, std::nullopt}}); break;
-        case classify::ExpressionScope::BottomStaff: result.push_back({Kind::SystemBottom, {globalMeasureId, std::nullopt, std::nullopt}}); break;
-        case classify::ExpressionScope::Staff:
-            if (auto anchor = partMeasureAnchor(context, member->staffAssign, member->getCmper(), std::nullopt)) {
-                result.push_back({Kind::Staff, std::move(*anchor)});
+    classify::ExpressionGap result{group.classification, {}};
+    const auto& members = group.classification.members;
+    for (size_t index = 0; index < members.size(); ++index) {
+        const auto& member = members[index];
+        if (classify::isFloatingScope(member.scope)) {
+            result.placements.push_back({index, {globalMeasureId, std::nullopt, std::nullopt}});
+        } else if (member.scope == classify::ExpressionScope::Staff && which == GroupMembers::All) {
+            if (auto anchor = partMeasureAnchor(context, member.staff, group.members[index]->getCmper(), std::nullopt)) {
+                result.placements.push_back({index, std::move(*anchor)});
             }
-            break;
-        case classify::ExpressionScope::Unassigned: break;
         }
     }
     return result;
@@ -69,6 +74,18 @@ std::vector<classify::GapPlacement> placementsForGroup(
 bool isTempoFamily(classify::ExpressionType type)
 {
     return type == classify::ExpressionType::TempoMark || type == classify::ExpressionType::MetronomeMark;
+}
+
+/// @brief True for the staff expression types that draw a marking a floating staff-list member
+/// would put on a system edge. The rest draw nothing, so their floating members lose nothing.
+bool isDrawnStaffExpressionType(classify::ExpressionType type)
+{
+    switch (type) {
+    case classify::ExpressionType::Suppress:
+    case classify::ExpressionType::PseudoTie:
+    case classify::ExpressionType::Error: return false;
+    default: return true;
+    }
 }
 
 /// @brief True for the expression types that belong to the global measure rather than to a staff.
@@ -225,28 +242,102 @@ MnxDynamicShape calcDynamicShape(const classify::dynamics::Composition& composit
     return result;
 }
 
+std::optional<unsigned> calcExpressionGraceIndex(
+    const MnxMusxMappingPtr& context, const MusxInstance<others::MeasureExprAssign>& asgn, const EntryInfoPtr& entryInfo)
+{
+    if (entryInfo) {
+        if (entryInfo->graceIndex > 0) {
+            return entryInfo.calcReverseGraceIndex();
+        }
+        if (entryInfo.calcHasGraceNote()) {
+            return 0;
+        }
+    } else if (context->current.staffMeasureContext) {
+        if (const auto measure = context->document->getOthers()->get<others::Measure>(asgn->getRequestedPartId(), context->current.meas)) {
+            if (musx::util::Fraction::fromEdu(asgn->eduPosition) >= measure->calcDuration(context->current.staff)) {
+                // Explicit main position places the expression after any trailing grace notes.
+                return 0;
+            }
+        }
+    }
+    return std::nullopt;
+}
+
+std::optional<std::string> calcExpressionVoice(
+    const MusxInstance<others::MeasureExprAssign>& asgn, std::optional<int> mnxStaffNumber, const EntryInfoPtr& entryInfo)
+{
+    if (asgn->layer == 0 && !asgn->voice2 && !(entryInfo && entryInfo->getEntry()->v2Launch)) {
+        return std::nullopt;
+    }
+    LayerIndex layer = asgn->layer > 0 ? asgn->layer - 1 : 0;
+    if (entryInfo && asgn->layer == 0) {
+        layer = entryInfo.getLayerIndex();
+    }
+    const int entryVoice = entryInfo ? static_cast<int>(entryInfo->getEntry()->voice2) + 1 : 1;
+    return calcVoice(mnxStaffNumber.value_or(1), layer, entryVoice);
+}
+
+void appendGeneralText(const MnxMusxMappingPtr& context, mnxdom::part::Measure& mnxMeasure, std::optional<int> mnxStaffNumber,
+    const MusxInstance<others::MeasureExprAssign>& asgn, const classify::ExpressionClassification& classification, VerticalPlacement placement)
+{
+    if (!asgn->textExprId || (asgn->layer > 0 && context->current.cuePlan.isCueLayer(asgn->layer - 1))) {
+        return;
+    }
+    auto* const gaps = gapCollectorFor(context);
+    if (!classification.enigmaCtx) {
+        if (gaps) {
+            gaps->add(measureAnchor(mnxMeasure.id_or(""), mnxStaffNumber, asgn->eduPosition), classify::ExpressionGap{classification, {}});
+        }
+        return;
+    }
+    const auto text = classify::classifyFormattedText(*classification.enigmaCtx);
+    if (text.runs.empty()) {
+        return;
+    }
+    const auto id = core::calcExpressionId(asgn);
+    auto positioned = mnxMeasure.ensure_text().append();
+    context->mnxDocument->assignId(positioned, id);
+    positioned.set_or_clear_type(enumConvert<mnxdom::TextType>(classification.type));
+    positioned.set_or_clear_staff(mnxStaffNumber.value_or(1));
+    positioned.set_or_clear_placement(enumConvert<mnxdom::Placement>(placement));
+    const auto entryInfo = asgn->calcAssociatedEntry();
+    if (const auto voice = calcExpressionVoice(asgn, mnxStaffNumber, entryInfo)) {
+        positioned.set_voice(*voice);
+    }
+    if (asgn->eduPosition) {
+        positioned.ensure_position(mnxFractionFromEdu(asgn->eduPosition));
+    }
+    if (const auto graceIndex = calcExpressionGraceIndex(context, asgn, entryInfo)) {
+        positioned.ensure_position(mnxFractionFromEdu(asgn->eduPosition)).set_graceIndex(*graceIndex);
+    }
+    setFormattedText(positioned.text(), text, id, *context->mnxDocument, gaps);
+    if (gaps && classification.type != classify::ExpressionType::GenericText && classification.type != classify::ExpressionType::ExpressiveText) {
+        gaps->add({id, std::nullopt, std::nullopt}, classify::ExpressionGap{classification, {}}, classify::GapExtent::Partial);
+    }
+}
+
 void appendDynamic(const MnxMusxMappingPtr& context, mnxdom::part::Measure& mnxMeasure, std::optional<int> mnxStaffNumber,
     const MusxInstance<others::MeasureExprAssign>& asgn, const classify::ExpressionClassification& classification, VerticalPlacement placement)
 {
     if (asgn->layer > 0 && context->current.cuePlan.isCueLayer(asgn->layer - 1)) {
         return;
     }
-    // A dynamic MNX cannot spell is a gap like any other expression it cannot represent.
-    const auto reportGap = [&]() {
-        if (auto* const gapCollector = gapCollectorFor(context)) {
-            gapCollector->add(measureAnchor(mnxMeasure.id_or(""), mnxStaffNumber, asgn->eduPosition), classification);
+    const auto appendFallback = [&]() {
+        if (asgn->textExprId) {
+            appendGeneralText(context, mnxMeasure, mnxStaffNumber, asgn, classification, placement);
+        } else if (auto* const gaps = gapCollectorFor(context)) {
+            gaps->add(measureAnchor(mnxMeasure.id_or(""), mnxStaffNumber, asgn->eduPosition), classify::ExpressionGap{classification, {}});
         }
     };
-
     auto dynamicClass = projectPrimaryDynamicForMnx(classification);
     if (!dynamicClass) {
-        reportGap();
+        appendFallback();
         return;
     }
 
     const auto shape = calcDynamicShape(dynamicClass->composition);
     if (!shape.value && (dynamicClass->change == classify::dynamics::Change::Absolute || !dynamicClass->containsText())) {
-        reportGap();
+        appendFallback();
         return;
     }
 
@@ -288,31 +379,13 @@ void appendDynamic(const MnxMusxMappingPtr& context, mnxdom::part::Measure& mnxM
         mnxDynamic.ensure_glyphs().assign(glyphs);
     }
     const auto entryInfo = asgn->calcAssociatedEntry();
-    int entryVoice = 1;
-    LayerIndex voiceLayerIdx = asgn->layer > 0 ? asgn->layer - 1 : 0;
-    if (entryInfo) {
-        entryVoice = static_cast<int>(entryInfo->getEntry()->voice2) + 1;
-        if (asgn->layer == 0) {
-            voiceLayerIdx = entryInfo.getLayerIndex();
-        }
-        if (entryInfo->graceIndex > 0) {
-            mnxDynamic.position().set_graceIndex(entryInfo.calcReverseGraceIndex());
-        } else if (entryInfo.calcHasGraceNote()) {
-            mnxDynamic.position().set_graceIndex(0);
-        }
-    } else if (context->current.staffMeasureContext) {
-        if (const auto measure = context->document->getOthers()->get<others::Measure>(asgn->getRequestedPartId(), context->current.meas)) {
-            if (musx::util::Fraction::fromEdu(asgn->eduPosition) >= measure->calcDuration(context->current.staff)) {
-                // if we are at the end of a measure, explicitly require main position to ignore any grace
-                // notes that might be trailing at the end of the frame
-                mnxDynamic.position().set_graceIndex(0);
-            }
-        }
+    if (const auto graceIndex = calcExpressionGraceIndex(context, asgn, entryInfo)) {
+        mnxDynamic.position().set_graceIndex(*graceIndex);
     }
-    mnxDynamic.set_or_clear_orient(mnxMultiStaffOrientFromVerticalPlacement(mnxStaffNumber, placement));
-    if (asgn->layer > 0 || asgn->voice2 || (entryInfo && entryInfo->getEntry()->v2Launch)) {
+    mnxDynamic.set_or_clear_placement(mnxMultiStaffPlacementFromVerticalPlacement(mnxStaffNumber, placement));
+    if (const auto voice = calcExpressionVoice(asgn, mnxStaffNumber, entryInfo)) {
         mnxDynamic.set_staff(mnxStaffNumber.value_or(1));
-        mnxDynamic.set_voice(calcVoice(mnxStaffNumber.value_or(1), voiceLayerIdx, entryVoice));
+        mnxDynamic.set_voice(*voice);
     } else if (mnxStaffNumber > 1) { // we get better import results not specifying the 1st staff number: this could become an option
         mnxDynamic.set_staff(mnxStaffNumber.value());
     }
@@ -362,22 +435,29 @@ void attachBreathMark(const MnxMusxMappingPtr& context, const ExpressionAttachme
     }
 };
 
+void attachCaesura(const MnxMusxMappingPtr& context, const ExpressionAttachmentContext& attachment, const mnxdom::sequence::Caesura& caesura)
+{
+    if (attachment.entryTarget && attachment.entryTarget->kind == EntryTargetKind::Event) {
+        mnxdom::sequence::Event(context->mnxDocument->root(), attachment.entryTarget->pointer).ensure_markings().set_caesura(caesura);
+    }
+}
+
 /// @brief Records a measure repeat counter for the measure, to be attached once the repeats are known.
 ///
 /// MNX gives a part measure one measure repeat shared by every staff, so it has one counter as well.
 /// Finale numbers each staff separately, and the staves of a part normally agree; where they do not,
 /// only one count can be kept.
 void recordMeasureRepeatCount(const MnxMusxMappingPtr& context, const MusxInstance<others::MeasureExprAssign>& asgn,
-    const MusxInstance<others::Measure>& musxMeasure, int count)
+    const MusxInstance<others::Measure>& musxMeasure, int count, mnxdom::MultiStaffPlacement placement)
 {
     // The repeat notation that identifies this expression as a counter can also hide it. A counter
     // Finale does not draw is not counting anything the reader can see.
     if (asgn->calcIsHiddenByAlternateNotation()) {
         return;
     }
-    const auto [it, inserted] = context->measureRepeatCounts.emplace(musxMeasure->getCmper(), count);
-    if (!inserted && it->second != count) {
-        context->logMessage(LogMsg() << "Measure repeat counter " << count << " disagrees with counter " << it->second
+    const auto [it, inserted] = context->measureRepeatCounts.emplace(musxMeasure->getCmper(), MnxMusxMapping::MeasureRepeatCount{count, placement});
+    if (!inserted && it->second.count != count) {
+        context->logMessage(LogMsg() << "Measure repeat counter " << count << " disagrees with counter " << it->second.count
                                      << " on another staff of the same part;"
                                         " MNX has one counter per part measure, so only the first is exported.",
             MessageSeverity::Verbose);
@@ -400,7 +480,6 @@ void processExpressions(const MnxMusxMappingPtr& context, const MusxInstance<oth
             }
             const auto classification = classify::classifyExpression(asgn);
             auto placement = asgn->calcVerticalPlacement();
-            const bool isCueLayer = asgn->layer > 0 && context->current.cuePlan.isCueLayer(asgn->layer - 1);
             switch (classification.type) {
             case classify::ExpressionType::Dynamic: appendDynamic(context, mnxMeasure, mnxStaffNumber, asgn, classification, placement); break;
             case classify::ExpressionType::Fermata: {
@@ -413,9 +492,13 @@ void processExpressions(const MnxMusxMappingPtr& context, const MusxInstance<oth
             case classify::ExpressionType::BreathMark:
                 attachBreathMark(context, calcAttachmentContext(context, asgn), makeBreathMark(classification.breathMark().breathMark, placement));
                 break;
+            case classify::ExpressionType::Caesura:
+                attachCaesura(context, calcAttachmentContext(context, asgn), makeCaesura(classification.caesura().caesura));
+                break;
             case classify::ExpressionType::NonArpeggio: appendArpeggioCandidate(context, mnxMeasure, classification.nonArpeggio().candidate); break;
             case classify::ExpressionType::MeasureRepeatCount:
-                recordMeasureRepeatCount(context, asgn, musxMeasure, classification.measureRepeatCount().count);
+                recordMeasureRepeatCount(context, asgn, musxMeasure, classification.measureRepeatCount().count,
+                    mnxMultiStaffPlacementFromVerticalPlacement(mnxStaffNumber, placement));
                 break;
             case classify::ExpressionType::PseudoTie: break;
             case classify::ExpressionType::Error: context->logMessage(LogMsg() << classification.error().message, MessageSeverity::Warning); break;
@@ -426,15 +509,13 @@ void processExpressions(const MnxMusxMappingPtr& context, const MusxInstance<oth
             case classify::ExpressionType::RehearsalMark: break;
             case classify::ExpressionType::TechniqueText:
             case classify::ExpressionType::GenericText:
+            case classify::ExpressionType::ExpressiveText:
             case classify::ExpressionType::StringMute:
             case classify::ExpressionType::HarpDiagram:
             case classify::ExpressionType::AccordionRegistration:
             case classify::ExpressionType::KeyboardPedal:
             case classify::ExpressionType::MultimeasureRestNumber:
-                // Until MNX has an object for this expression on a staff, its export is a gap.
-                if (auto* const gapCollector = gapCollectorFor(context); gapCollector && !isCueLayer && asgn->textExprId) {
-                    gapCollector->add(measureAnchor(mnxMeasure.id_or(""), mnxStaffNumber, asgn->eduPosition), classification);
-                }
+                appendGeneralText(context, mnxMeasure, mnxStaffNumber, asgn, classification, placement);
                 break;
             case classify::ExpressionType::Suppress: break;
             }
@@ -499,8 +580,8 @@ void appendTempos(
             if (emitted || !gapCollector || !textExpressions) {
                 continue;
             }
-            gapCollector->add(measureAnchor(globalMeasureId, std::nullopt, primary->eduPosition), group.classification, classify::GapExtent::Complete,
-                placementsForGroup(context, group, globalMeasureId));
+            gapCollector->add(measureAnchor(globalMeasureId, std::nullopt, primary->eduPosition),
+                expressionGapForGroup(context, group, globalMeasureId), classify::GapExtent::Complete);
         }
     };
     addExpressionTempos(true);
@@ -508,7 +589,7 @@ void appendTempos(
 
     for (const auto& [position, candidate] : temposAtPositions) {
         auto tempo = mnxMeasure.ensure_tempos().append(candidate.tempo.bpm, candidate.tempo.noteValue);
-        tempo.set_id(candidate.id);
+        context->mnxDocument->assignId(tempo, candidate.id);
         if (position) {
             tempo.ensure_location(mnxFractionFromFraction(Fraction::fromEdu(position)));
         }
@@ -522,8 +603,7 @@ void appendTempos(
         }
         // Reported whether or not Finale draws it; see design-decisions.md.
         if (candidate.group->primary->textExprId) {
-            gapCollector->add(anchor, candidate.group->classification, classify::GapExtent::Partial,
-                placementsForGroup(context, *candidate.group, globalMeasureId));
+            gapCollector->add(anchor, expressionGapForGroup(context, *candidate.group, globalMeasureId), classify::GapExtent::Partial);
         }
     }
 }
@@ -544,7 +624,21 @@ void processGlobalExpressions(const MnxMusxMappingPtr& context, mnxdom::global::
     for (const auto& group : groups) {
         const auto& primary = group.primary;
         const auto& classification = group.classification;
-        if (!primary->textExprId || primary->hidden || !isGlobalExpressionType(classification.type)) {
+        if (primary->hidden) {
+            continue;
+        }
+        if (!isGlobalExpressionType(classification.type)) {
+            // A staff expression is exported by processExpressions on each staff it names. A member
+            // floating to a system edge names no staff, and MNX has no system-level object for it.
+            if (gapCollector && isDrawnStaffExpressionType(classification.type)) {
+                if (auto gap = expressionGapForGroup(context, group, globalMeasureId, GroupMembers::FloatingOnly); !gap.placements.empty()) {
+                    gapCollector->add(
+                        measureAnchor(globalMeasureId, std::nullopt, primary->eduPosition), std::move(gap), classify::GapExtent::Complete);
+                }
+            }
+            continue;
+        }
+        if (!primary->textExprId) {
             continue;
         }
         switch (classification.type) {
@@ -554,8 +648,8 @@ void processGlobalExpressions(const MnxMusxMappingPtr& context, mnxdom::global::
         case classify::ExpressionType::RehearsalMark:
             // Until MNX has an object for this marking, its export is a gap.
             if (gapCollector) {
-                gapCollector->add(measureAnchor(globalMeasureId, std::nullopt, primary->eduPosition), classification, classify::GapExtent::Complete,
-                    placementsForGroup(context, group, globalMeasureId));
+                gapCollector->add(measureAnchor(globalMeasureId, std::nullopt, primary->eduPosition),
+                    expressionGapForGroup(context, group, globalMeasureId), classify::GapExtent::Complete);
             }
             break;
         default: break; // not a global type; see isGlobalExpressionType

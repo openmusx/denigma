@@ -19,6 +19,7 @@
 
 #include "musicxml.h"
 
+#include <algorithm>
 #include <cmath>
 #include <limits>
 
@@ -27,32 +28,19 @@ namespace formats {
 namespace musicxml {
 namespace detail {
 
-MusicXmlPitchContext pitchContextForPart(const MusicXmlMusxMapping& context, const std::string& partId)
+MusicXmlMusxMapping::MusicXmlMusxMapping(const DenigmaContext& context, const musx::dom::DocumentPtr& doc, musx::dom::Cmper partId)
+    : denigmaContext(&context),
+      document(doc),
+      finaleOptions(loadFinaleOptions(doc, partId)),
+      forPartId(partId),
+      pitchMode(enumConvert<musx::dom::PitchMode>(context.pitchDisplayMode))
 {
-    if (const auto it = context.partIdToPitchContext.find(partId); it != context.partIdToPitchContext.end()) {
-        return it->second;
+    using musx::dom::PitchMode;
+    if (pitchMode == PitchMode::CurrentView) {
+        pitchMode = finaleOptions.effectivePartGlobals->showTransposed ? PitchMode::Written : PitchMode::ConcertWithOctavePreference;
     }
-    return MusicXmlPitchContext::Concert;
-}
-
-musx::dom::MusxInstance<musx::dom::others::StaffSystem> MusicXmlMusxMapping::systemForMeasure(musx::dom::MeasCmper measureId) const
-{
-    // An uncalculated layout leaves zero-valued startMeas placeholders, which would defeat the scan
-    // below: it would never break out, so every measure would resolve to the last system.
-    if (!partLayoutIsCalculated) {
-        return {};
-    }
-    if (!cachedStaffSystems) {
-        cachedStaffSystems = document->getOthers()->getArray<musx::dom::others::StaffSystem>(forPartId);
-    }
-    musx::dom::MusxInstance<musx::dom::others::StaffSystem> result;
-    for (const auto& system : *cachedStaffSystems) {
-        if (system->startMeas > measureId) {
-            break;
-        }
-        result = system;
-    }
-    return result;
+    const auto part = doc->getOthers()->get<musx::dom::others::PartDefinition>(musx::dom::SCORE_PARTID, partId);
+    partLayoutIsCalculated = part && part->isLayoutCalculated();
 }
 
 mx::api::NoteData* noteDataAt(MusicXmlMusxMapping& context, const MusicXmlNoteLocation& location)
@@ -103,6 +91,42 @@ void MusicXmlLayoutState::setStaffSize(
 double MusicXmlMusxMapping::musicXmlTenthsFromEvpu(double evpu, double backoutScaling) const
 {
     return evpu * musicXmlScore->defaults.scalingTenths / musx::dom::EVPU_PER_STANDARD_STAFF / backoutScaling;
+}
+
+double MusicXmlMusxMapping::musicXmlTenthsFromEfix(double efix, double backoutScaling) const
+{
+    return musicXmlTenthsFromEvpu(efix / musx::dom::EFIX_PER_EVPU, backoutScaling);
+}
+
+int musicXmlStaffPosition(const musx::dom::MusxInstance<musx::dom::others::Staff>& staff, int musxStaffPosition)
+{
+    // MusicXML line 1 is the bottom line, at twice its staff-line-position.
+    constexpr int bottomLinePosition = 2;
+    int musxBottomLinePosition = staff->calcBottomLinePosition();
+    if (staff->calcNumberOfStafflines() == 0) {
+        musxBottomLinePosition = -2 * (music_theory::STANDARD_NUMBER_OF_STAFFLINES - 1);
+    }
+    return musxStaffPosition - musxBottomLinePosition + bottomLinePosition;
+}
+
+MusicXmlStaffLines musicXmlStaffLines(const musx::dom::MusxInstance<musx::dom::others::Staff>& staff)
+{
+    MusicXmlStaffLines result;
+    result.count = staff->calcNumberOfStafflines();
+    for (const int position : staff->calcOmittedLinePositions()) {
+        result.hiddenLines.push_back(musicXmlStaffPosition(staff, position) / 2);
+    }
+    result.count += int(result.hiddenLines.size());
+    if (staff->hideStaffLines) {
+        result.hiddenLines.clear();
+        for (int line = 1; line <= result.count; ++line) {
+            result.hiddenLines.push_back(line);
+        }
+        return result;
+    }
+    // MusicXML lists lines from the bottom up.
+    std::sort(result.hiddenLines.begin(), result.hiddenLines.end());
+    return result;
 }
 
 } // namespace detail

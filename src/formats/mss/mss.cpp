@@ -32,7 +32,7 @@
 #include <sstream>
 #include <string_view>
 
-#include "core/denigma.h"
+#include "input/input.h"
 
 #include "core/finale_options.h"
 #include "core/musx_reader.h"
@@ -768,8 +768,8 @@ void writeMeasureNumberPrefs(XmlElement& styleElement, const MssPreferencesPtr& 
             setElementValue(styleElement, prefix + "Position", alignJustifyToHorizontalString(justification));
             const double textHeightSp = approximateFontAscentInSpaces(fontInfo.get(), *prefs->denigmaContext) * prefs->spatiumScaling;
             const double normalStaffHeightSp = 4.0;
-            setPointElement(styleElement, prefix + "PosAbove", horizontalSp, std::min(-verticalSp, 0.0));
-            setPointElement(styleElement, prefix + "PosBelow", horizontalSp, std::max(-(verticalSp + normalStaffHeightSp) - textHeightSp, 0.0));
+            setPointElement(styleElement, prefix + "PosAbove", horizontalSp, (std::min)(-verticalSp, 0.0));
+            setPointElement(styleElement, prefix + "PosBelow", horizontalSp, (std::max)(-(verticalSp + normalStaffHeightSp) - textHeightSp, 0.0));
             writeFramePrefs(styleElement, prefix, enclosure);
         };
 
@@ -1041,7 +1041,7 @@ void convert(const CommandInputData& inputData, const DenigmaContext& denigmaCon
         return;
     }
 
-    auto document = DocumentFactory::create<MusxReader>(inputData.primaryBuffer);
+    auto document = denigma::createMusxDocument<MusxReader>(inputData, denigmaContext);
     if (denigmaContext.allPartsAndScore || !denigmaContext.partName.has_value()) {
         processPart(document, denigmaContext, outputCallback); // process the score
     }

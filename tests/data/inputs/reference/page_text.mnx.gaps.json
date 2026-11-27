@@ -1,0 +1,571 @@
+{
+  "schemaVersion": 3,
+  "producer": {
+    "name": "denigma",
+    "version": "TEST",
+    "commit": "<commit>"
+  },
+  "gaps": [
+    {
+      "anchor": "m1.textExp24.inci0",
+      "extent": "partial",
+      "type": "expression",
+      "expression": {
+        "type": "tempo-mark",
+        "basis": "finale-category-confirmed",
+        "scope": "top-staff",
+        "text": {
+          "plain": "Tempo (∞=120)",
+          "runs": [
+            {
+              "text": "Tempo (",
+              "font": "1"
+            },
+            {
+              "text": "∞",
+              "font": "1",
+              "glyphs": [
+                "metNoteQuarterUp"
+              ]
+            },
+            {
+              "text": "=",
+              "font": "1"
+            },
+            {
+              "text": "120",
+              "font": "1",
+              "insert": {
+                "kind": "playback-value",
+                "command": "value",
+                "parameters": []
+              }
+            },
+            {
+              "text": ")",
+              "font": "1"
+            }
+          ]
+        },
+        "tempo": {
+          "text": "Tempo (∞=120)",
+          "beatsPerMinute": 120,
+          "beatUnitEdu": 1024
+        },
+        "placements": [
+          {
+            "kind": "system-top",
+            "anchor": "m1",
+            "placement": "above"
+          }
+        ]
+      }
+    },
+    {
+      "extent": "complete",
+      "type": "page-text",
+      "pageText": {
+        "text": {
+          "plain": "#",
+          "runs": [
+            {
+              "text": "#",
+              "font": "2",
+              "insert": {
+                "kind": "other",
+                "command": "page",
+                "parameters": [
+                  "0"
+                ]
+              }
+            }
+          ]
+        },
+        "assignment": {
+          "start": 1,
+          "end": 0,
+          "pages": "all"
+        },
+        "unit": "evpu",
+        "alignment": {
+          "horizontal": "left",
+          "rightPageHorizontal": "right",
+          "vertical": "top",
+          "horizontalFrom": "margin",
+          "verticalFrom": "margin"
+        },
+        "position": {
+          "offsetX": 0,
+          "offsetY": 162,
+          "independentRightPages": true,
+          "rightPageOffsetX": 0,
+          "rightPageOffsetY": 162
+        },
+        "frame": {
+          "unit": "evpu",
+          "width": 0,
+          "height": 0,
+          "handleOffsetX": 0,
+          "handleOffsetY": 0,
+          "wordWrap": true,
+          "noExpandSingleWord": false,
+          "justify": "left",
+          "inset": 0.0,
+          "lineSpacingPercent": 100,
+          "showBorder": true,
+          "borderThickness": 0.0,
+          "cornerRadius": 0.0,
+          "positionFromFrameEdge": true,
+          "hasCustomShape": false
+        },
+        "placements": [
+          {
+            "kind": "page",
+            "anchor": "score0.page1"
+          },
+          {
+            "kind": "page",
+            "anchor": "score1.page1"
+          }
+        ]
+      }
+    },
+    {
+      "extent": "complete",
+      "type": "page-text",
+      "pageText": {
+        "text": {
+          "plain": "GRM–####",
+          "runs": [
+            {
+              "text": "GRM–####",
+              "font": "3",
+              "insert": {
+                "kind": "other",
+                "command": "description",
+                "parameters": []
+              }
+            }
+          ]
+        },
+        "assignment": {
+          "start": 1,
+          "end": 0,
+          "pages": "all"
+        },
+        "unit": "evpu",
+        "alignment": {
+          "horizontal": "center",
+          "rightPageHorizontal": "center",
+          "vertical": "bottom",
+          "horizontalFrom": "margin",
+          "verticalFrom": "margin"
+        },
+        "position": {
+          "offsetX": 0,
+          "offsetY": -162,
+          "independentRightPages": false
+        },
+        "frame": {
+          "unit": "evpu",
+          "width": 0,
+          "height": 0,
+          "handleOffsetX": 0,
+          "handleOffsetY": 0,
+          "wordWrap": true,
+          "noExpandSingleWord": false,
+          "justify": "left",
+          "inset": 0.0,
+          "lineSpacingPercent": 100,
+          "showBorder": true,
+          "borderThickness": 0.0,
+          "cornerRadius": 0.0,
+          "positionFromFrameEdge": true,
+          "hasCustomShape": false
+        },
+        "placements": [
+          {
+            "kind": "page",
+            "anchor": "score0.page1"
+          },
+          {
+            "kind": "page",
+            "anchor": "score1.page1"
+          }
+        ]
+      }
+    },
+    {
+      "extent": "complete",
+      "type": "page-text",
+      "pageText": {
+        "text": {
+          "plain": "\nfor",
+          "runs": [
+            {
+              "text": "\n",
+              "font": "4"
+            },
+            {
+              "text": "for",
+              "font": "5"
+            }
+          ]
+        },
+        "assignment": {
+          "start": 1,
+          "end": 1,
+          "pages": "all"
+        },
+        "unit": "evpu",
+        "alignment": {
+          "horizontal": "center",
+          "rightPageHorizontal": "center",
+          "vertical": "top",
+          "horizontalFrom": "margin",
+          "verticalFrom": "margin"
+        },
+        "position": {
+          "offsetX": 0,
+          "offsetY": -96,
+          "independentRightPages": false
+        },
+        "frame": {
+          "unit": "evpu",
+          "width": 0,
+          "height": 0,
+          "handleOffsetX": 0,
+          "handleOffsetY": 0,
+          "wordWrap": true,
+          "noExpandSingleWord": true,
+          "justify": "center",
+          "inset": 0.0,
+          "lineSpacingPercent": 100,
+          "showBorder": true,
+          "borderThickness": 0.0,
+          "cornerRadius": 0.0,
+          "positionFromFrameEdge": true,
+          "hasCustomShape": false
+        },
+        "placements": [
+          {
+            "kind": "page",
+            "anchor": "score0.page1"
+          },
+          {
+            "kind": "page",
+            "anchor": "score1.page1"
+          }
+        ]
+      }
+    },
+    {
+      "extent": "complete",
+      "type": "page-text",
+      "pageText": {
+        "text": {
+          "plain": "R. G. PATTERSON (2012)",
+          "runs": [
+            {
+              "text": "R. G. PATTERSON",
+              "font": "6",
+              "insert": {
+                "kind": "other",
+                "command": "composer",
+                "parameters": []
+              }
+            },
+            {
+              "text": " (",
+              "font": "6"
+            },
+            {
+              "text": "2012",
+              "font": "6",
+              "insert": {
+                "kind": "other",
+                "command": "copyright",
+                "parameters": []
+              }
+            },
+            {
+              "text": ")",
+              "font": "6"
+            }
+          ]
+        },
+        "assignment": {
+          "start": 1,
+          "end": 1,
+          "pages": "all"
+        },
+        "unit": "evpu",
+        "alignment": {
+          "horizontal": "right",
+          "rightPageHorizontal": "right",
+          "vertical": "top",
+          "horizontalFrom": "margin",
+          "verticalFrom": "margin"
+        },
+        "position": {
+          "offsetX": 0,
+          "offsetY": -295,
+          "independentRightPages": false
+        },
+        "frame": {
+          "unit": "evpu",
+          "width": 0,
+          "height": 0,
+          "handleOffsetX": 0,
+          "handleOffsetY": 0,
+          "wordWrap": true,
+          "noExpandSingleWord": true,
+          "justify": "center",
+          "inset": 0.0,
+          "lineSpacingPercent": 100,
+          "showBorder": true,
+          "borderThickness": 0.0,
+          "cornerRadius": 0.0,
+          "positionFromFrameEdge": true,
+          "hasCustomShape": false
+        },
+        "placements": [
+          {
+            "kind": "page",
+            "anchor": "score0.page1"
+          },
+          {
+            "kind": "page",
+            "anchor": "score1.page1"
+          }
+        ]
+      }
+    },
+    {
+      "extent": "complete",
+      "type": "page-text",
+      "pageText": {
+        "text": {
+          "plain": "Licensed by ASCAP\nOne Lincoln Plaza\nNew York, NY  10023",
+          "runs": [
+            {
+              "text": "Licensed by ASCAP\nOne Lincoln Plaza\nNew York, NY  10023",
+              "font": "7"
+            }
+          ]
+        },
+        "assignment": {
+          "start": 1,
+          "end": 1,
+          "pages": "all"
+        },
+        "unit": "evpu",
+        "alignment": {
+          "horizontal": "right",
+          "rightPageHorizontal": "right",
+          "vertical": "bottom",
+          "horizontalFrom": "margin",
+          "verticalFrom": "margin"
+        },
+        "position": {
+          "offsetX": 0,
+          "offsetY": -49,
+          "independentRightPages": false
+        },
+        "frame": {
+          "unit": "evpu",
+          "width": 0,
+          "height": 0,
+          "handleOffsetX": 0,
+          "handleOffsetY": 0,
+          "wordWrap": true,
+          "noExpandSingleWord": true,
+          "justify": "center",
+          "inset": 0.0,
+          "lineSpacingPercent": 100,
+          "showBorder": true,
+          "borderThickness": 0.0,
+          "cornerRadius": 0.0,
+          "positionFromFrameEdge": true,
+          "hasCustomShape": false
+        },
+        "placements": [
+          {
+            "kind": "page",
+            "anchor": "score0.page1"
+          },
+          {
+            "kind": "page",
+            "anchor": "score1.page1"
+          }
+        ]
+      }
+    },
+    {
+      "extent": "complete",
+      "type": "page-text",
+      "pageText": {
+        "text": {
+          "plain": "©2012 Great River Music\nAll rights reserved.\nwww.greatrivermusic.com",
+          "runs": [
+            {
+              "text": "©",
+              "font": "7"
+            },
+            {
+              "text": "2012",
+              "font": "7",
+              "insert": {
+                "kind": "other",
+                "command": "copyright",
+                "parameters": []
+              }
+            },
+            {
+              "text": " Great River Music\nAll rights reserved.\nwww.greatrivermusic.com",
+              "font": "7"
+            }
+          ]
+        },
+        "assignment": {
+          "start": 1,
+          "end": 1,
+          "pages": "all"
+        },
+        "unit": "evpu",
+        "alignment": {
+          "horizontal": "left",
+          "rightPageHorizontal": "left",
+          "vertical": "bottom",
+          "horizontalFrom": "margin",
+          "verticalFrom": "margin"
+        },
+        "position": {
+          "offsetX": 0,
+          "offsetY": -49,
+          "independentRightPages": false
+        },
+        "frame": {
+          "unit": "evpu",
+          "width": 0,
+          "height": 0,
+          "handleOffsetX": 0,
+          "handleOffsetY": 0,
+          "wordWrap": true,
+          "noExpandSingleWord": false,
+          "justify": "center",
+          "inset": 0.0,
+          "lineSpacingPercent": 100,
+          "showBorder": true,
+          "borderThickness": 0.0,
+          "cornerRadius": 0.0,
+          "positionFromFrameEdge": true,
+          "hasCustomShape": false
+        },
+        "placements": [
+          {
+            "kind": "page",
+            "anchor": "score0.page1"
+          },
+          {
+            "kind": "page",
+            "anchor": "score1.page1"
+          }
+        ]
+      }
+    }
+  ],
+  "fonts": {
+    "1": {
+      "name": "Patmm",
+      "size": 14,
+      "sizeIsPercent": false,
+      "bold": false,
+      "italic": false,
+      "underline": false,
+      "strikeout": false,
+      "absolute": false,
+      "hidden": false,
+      "isSymbolFont": false,
+      "isSmufl": false
+    },
+    "2": {
+      "name": "Times",
+      "size": 12,
+      "sizeIsPercent": false,
+      "bold": true,
+      "italic": true,
+      "underline": false,
+      "strikeout": false,
+      "absolute": true,
+      "hidden": false,
+      "isSymbolFont": false,
+      "isSmufl": false
+    },
+    "3": {
+      "name": "Palatino",
+      "size": 8,
+      "sizeIsPercent": false,
+      "bold": false,
+      "italic": false,
+      "underline": false,
+      "strikeout": false,
+      "absolute": true,
+      "hidden": false,
+      "isSymbolFont": false,
+      "isSmufl": false
+    },
+    "4": {
+      "name": "Times",
+      "size": 24,
+      "sizeIsPercent": false,
+      "bold": true,
+      "italic": false,
+      "underline": false,
+      "strikeout": false,
+      "absolute": true,
+      "hidden": false,
+      "isSymbolFont": false,
+      "isSmufl": false
+    },
+    "5": {
+      "name": "Times",
+      "size": 10,
+      "sizeIsPercent": false,
+      "bold": false,
+      "italic": true,
+      "underline": false,
+      "strikeout": false,
+      "absolute": true,
+      "hidden": false,
+      "isSymbolFont": false,
+      "isSmufl": false
+    },
+    "6": {
+      "name": "Times",
+      "size": 12,
+      "sizeIsPercent": false,
+      "bold": true,
+      "italic": false,
+      "underline": false,
+      "strikeout": false,
+      "absolute": true,
+      "hidden": false,
+      "isSymbolFont": false,
+      "isSmufl": false
+    },
+    "7": {
+      "name": "Times",
+      "size": 9,
+      "sizeIsPercent": false,
+      "bold": false,
+      "italic": false,
+      "underline": false,
+      "strikeout": false,
+      "absolute": true,
+      "hidden": false,
+      "isSymbolFont": false,
+      "isSmufl": false
+    }
+  }
+}

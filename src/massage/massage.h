@@ -31,7 +31,7 @@ struct MassageCommand : public ICommand
 
     int showHelpPage(const std::string_view& programName, const std::string& indentSpaces = {}) const override;
 
-    bool canProcess(const std::filesystem::path& inputPath) const override;
+    bool canProcess(const std::filesystem::path& inputPath, const DenigmaContext& context) const override;
     CommandInputData processInput(const std::filesystem::path& inputPath, const DenigmaContext& denigmaContext) const override;
     void processOutput(const CommandInputData& inputData, const std::filesystem::path& outputPath, const std::filesystem::path& inputPath,
         const DenigmaContext& denigmaContext) const override;
@@ -41,7 +41,7 @@ struct MassageCommand : public ICommand
         static constexpr std::u8string_view formats[] = {MXL_EXTENSION};
         return formats;
     };
-    std::optional<std::u8string> defaultOutputFormat(const std::filesystem::path& inputPath) const override
+    std::optional<std::u8string> defaultOutputFormat(const std::filesystem::path& inputPath, const CommandInputData&) const override
     {
         auto ext = inputPath.extension().u8string();
         if (!ext.empty() && ext.front() == '.') {

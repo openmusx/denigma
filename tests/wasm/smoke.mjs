@@ -2,8 +2,9 @@
 // SPDX-License-Identifier: MIT
 //
 // Exercises the WebAssembly module's C ABI end to end: inspection, every
-// exporter, linked-part selection, EnigmaXML and zipped EnigmaXML input, and
-// diagnostic reporting for invalid input. It has no dependencies beyond Node.
+// exporter, linked-part selection, EnigmaXML and zipped EnigmaXML input,
+// diagnostic reporting for invalid input, and stack headroom for MusicXML export.
+// It has no dependencies beyond Node.
 //
 // usage: node tests/wasm/smoke.mjs <denigma.js> <denigma.wasm> [sample.musx]
 
@@ -13,8 +14,12 @@ import { pathToFileURL } from 'node:url';
 
 const defaultSample = resolve(import.meta.dirname, '..', 'data', 'inputs', 'voiced_parts.musx');
 const chordSample = resolve(import.meta.dirname, '..', 'data', 'inputs', 'chords.musx');
+const techniqueSample = resolve(import.meta.dirname, '..', 'data', 'inputs', 'techniques.musx');
 const noteheadSample = resolve(import.meta.dirname, '..', 'data', 'inputs', 'note_shapes.musx');
 const arrowheadSample = resolve(import.meta.dirname, '..', 'data', 'inputs', 'custom_arrowheads.enigmaxml.zip');
+// Each needs more than Emscripten's default 64 KiB stack to export as MusicXML.
+const deepStackSamples = ['harmonics_artificial.musx', 'large_orchestra.musx']
+  .map((name) => resolve(import.meta.dirname, '..', 'data', 'inputs', name));
 const [, , moduleArg, wasmArg, musxArg = defaultSample] = process.argv;
 if (!moduleArg || !wasmArg) {
   console.error('usage: node tests/wasm/smoke.mjs <denigma.js> <denigma.wasm> [sample.musx]');
@@ -31,7 +36,8 @@ const MNX_INDENT_SPACES = 2;
 const createModule = (await import(pathToFileURL(resolve(moduleArg)))).default;
 const Module = await createModule({ wasmBinary: await readFile(resolve(wasmArg)) });
 
-console.log(`denigma ${Module.UTF8ToString(Module._denigma_version())} (${Module.UTF8ToString(Module._denigma_commit())})`);
+const mnxSchemaVersion = Module._denigma_mnx_schema_version();
+console.log(`denigma ${Module.UTF8ToString(Module._denigma_version())} (${Module.UTF8ToString(Module._denigma_commit())}), MNX schema ${mnxSchemaVersion}`);
 
 function messages(result) {
   const count = Module._denigma_result_diagnostic_count(result);
@@ -60,10 +66,13 @@ function withSelection(indices, callback) {
 }
 
 function convert(dataPointer, size, namePointer, format, options = {}) {
-  const { includeTempo = 0, allFonts = 0, finaleRestPosition = 0, splitInstruments = 0, cueLayer = 0, selection = [] } = options;
-  return withSelection(selection, (selectionPointer, selectionCount) =>
-    Module._denigma_convert(dataPointer, size, namePointer, format, includeTempo, allFonts, finaleRestPosition,
-      splitInstruments, MNX_INDENT_SPACES, cueLayer, selectionCount ? selectionPointer : 0, selectionCount));
+  const { includeTempo = 0, allFonts = 0, finaleRestPosition = 0, splitInstruments = 0, cueLayer = 0, pitchDisplayMode = 0, selection = [],
+    writeGapReport = 1, validate = 1, resources = 0 } = options;
+  return withSelection(selection, (selectionPointer, selectionCount) => {
+    const args = [dataPointer, size, namePointer, format, includeTempo, allFonts, finaleRestPosition,
+      splitInstruments, MNX_INDENT_SPACES, cueLayer, pitchDisplayMode, selectionCount ? selectionPointer : 0, selectionCount, writeGapReport, validate];
+    return resources ? Module._denigma_convert_with_resources(...args, resources) : Module._denigma_convert(...args);
+  });
 }
 
 function assertResult(result, label, marker, { outputCount = 1, verbose = false, indices } = {}) {
@@ -92,6 +101,24 @@ function assertResult(result, label, marker, { outputCount = 1, verbose = false,
     Module._denigma_result_destroy(result);
   }
   return firstOutput;
+}
+
+// MNX validation announces itself in a verbose diagnostic, so its presence shows whether validation ran.
+function assertValidation(dataPointer, size, namePointer) {
+  const marker = 'Validation starting.';
+  for (const validate of [1, 0]) {
+    const result = convert(dataPointer, size, namePointer, FORMAT_MNX, { validate });
+    try {
+      if (!Module._denigma_result_success(result)) throw new Error(`MNX with validate=${validate} failed:\n${messages(result)}`);
+      if (!Module._denigma_result_output_size(result, 0)) throw new Error(`MNX with validate=${validate} produced no output`);
+      if (messages(result).includes(marker) !== (validate === 1)) {
+        throw new Error(`MNX with validate=${validate} ${validate ? 'did not validate' : 'validated anyway'}`);
+      }
+    } finally {
+      Module._denigma_result_destroy(result);
+    }
+  }
+  console.log('MNX validation: runs when requested and is skipped otherwise.');
 }
 
 function gapReport(result) {
@@ -197,6 +224,26 @@ const input = await readFile(resolve(musxArg));
 withInput(input, 'sample.musx', (dataPointer, namePointer) => {
   const size = input.byteLength;
   const parts = inspect(dataPointer, size, namePointer, 'MUSX inspection');
+  for (const pitchDisplayMode of [1, 2]) {
+    const bytes = assertResult(convert(dataPointer, size, namePointer, FORMAT_MUSICXML, { selection: [0], pitchDisplayMode }),
+      `MusicXML pitch mode ${pitchDisplayMode}`, '<score-partwise', { indices: [0] });
+    const xml = new TextDecoder().decode(bytes);
+    if (xml.includes('<concert-score') !== (pitchDisplayMode === 2)) throw new Error('Incorrect concert-score flag');
+    if (pitchDisplayMode === 1 && xml.includes('<for-part')) throw new Error('Written export contains for-part');
+  }
+  for (const pitchDisplayMode of [1, 2]) {
+    assertResult(convert(dataPointer, size, namePointer, FORMAT_MNX, { pitchDisplayMode }),
+      `MNX ignores pitch display mode ${pitchDisplayMode}`, '"mnx"');
+    assertResult(convert(dataPointer, size, namePointer, FORMAT_ENIGMAXML, { pitchDisplayMode }),
+      `EnigmaXML ignores pitch display mode ${pitchDisplayMode}`, '<finale');
+  }
+  const invalidPitch = convert(dataPointer, size, namePointer, FORMAT_MUSICXML, { selection: [0], pitchDisplayMode: 3 });
+  try {
+    if (Module._denigma_result_success(invalidPitch)) throw new Error('Invalid pitch mode succeeded');
+  } finally {
+    Module._denigma_result_destroy(invalidPitch);
+  }
+
 
   assertResult(convert(dataPointer, size, namePointer, FORMAT_MUSICXML, { allFonts: 1, selection: [0] }),
     'MusicXML with all source fonts available', '<score-partwise', { indices: [0] });
@@ -208,6 +255,7 @@ withInput(input, 'sample.musx', (dataPointer, namePointer) => {
       'MusicXML score and linked part', '<score-partwise', { outputCount: 2, indices: [0, partIndex] });
   }
   assertResult(convert(dataPointer, size, namePointer, FORMAT_MNX), 'MNX with verbose logging', '"mnx"', { verbose: true });
+  assertValidation(dataPointer, size, namePointer);
   const enigmaXml = assertResult(convert(dataPointer, size, namePointer, FORMAT_ENIGMAXML), 'EnigmaXML', '<finale');
 
   exerciseEnigmaXmlInput(enigmaXml, 'sample.enigmaxml', 'EnigmaXML input');
@@ -230,8 +278,14 @@ withInput(chordInput, 'chords.musx', (dataPointer, namePointer) => {
   const result = convert(dataPointer, chordInput.byteLength, namePointer, FORMAT_MNX);
   try {
     if (!Module._denigma_result_success(result)) throw new Error(`Chord MNX conversion failed:\n${messages(result)}`);
+    const mnxPointer = Module._denigma_result_output_data(result, 0);
+    const mnxSize = Module._denigma_result_output_size(result, 0);
+    const mnxDocument = JSON.parse(new TextDecoder().decode(Module.HEAPU8.slice(mnxPointer, mnxPointer + mnxSize)));
+    if (mnxDocument.mnx.version !== mnxSchemaVersion) {
+      throw new Error(`MNX output declares schema ${mnxDocument.mnx.version}; the module reports ${mnxSchemaVersion}.`);
+    }
     const report = gapReport(result);
-    if (report.schemaVersion !== 1) {
+    if (report.schemaVersion !== 3) {
       throw new Error('Chord gap report has invalid envelope metadata.');
     }
     const chordGaps = report.gaps.filter((gap) => gap.type === 'chord-symbol');
@@ -247,6 +301,48 @@ withInput(chordInput, 'chords.musx', (dataPointer, namePointer) => {
   } finally {
     Module._denigma_result_destroy(result);
   }
+  const skipped = convert(dataPointer, chordInput.byteLength, namePointer, FORMAT_MNX, { writeGapReport: 0 });
+  try {
+    if (!Module._denigma_result_success(skipped)) throw new Error(`Chord MNX conversion without gap report failed:\n${messages(skipped)}`);
+    if (Module._denigma_result_gap_report_data(skipped) || Module._denigma_result_gap_report_size(skipped)) {
+      throw new Error('MNX conversion returned a gap report although writeGapReport was 0.');
+    }
+    console.log('MNX without gap report: no report returned.');
+  } finally {
+    Module._denigma_result_destroy(skipped);
+  }
+});
+
+const techniqueInput = await readFile(techniqueSample);
+withInput(techniqueInput, 'techniques.musx', (dataPointer, namePointer) => {
+  const result = convert(dataPointer, techniqueInput.byteLength, namePointer, FORMAT_MNX);
+  try {
+    if (!Module._denigma_result_success(result)) throw new Error(`Text MNX conversion failed:\n${messages(result)}`);
+    const pointer = Module._denigma_result_output_data(result, 0);
+    const size = Module._denigma_result_output_size(result, 0);
+    const document = JSON.parse(new TextDecoder().decode(Module.HEAPU8.slice(pointer, pointer + size)));
+    const texts = document.parts.flatMap((part) => part.measures.flatMap((measure) => measure.text ?? []));
+    const elements = new Map(texts.flatMap((text) => text.text.map((element) => [element.id, element])));
+    const report = gapReport(result);
+    const formatting = report.gaps.filter((gap) => gap.type === 'text-formatting');
+    if (!texts.length || !formatting.length) throw new Error('MNX text or formatting gaps are missing.');
+    for (const gap of formatting) {
+      if (gap.extent !== 'partial' || !report.fonts?.[gap.formatting.font]?.name || !gap.formatting.ranges?.length) {
+        throw new Error('MNX formatting gap has incomplete metadata.');
+      }
+      for (const range of gap.formatting.ranges) {
+        const element = elements.get(range.anchor);
+        if (!element || 'style' in element) throw new Error('MNX formatting range has an invalid target.');
+        const length = element.type === 'smufl' ? element.glyphs.length : Array.from(element.text).length;
+        if (range.offset < 0 || range.length <= 0 || range.offset + range.length > length) {
+          throw new Error('MNX formatting range exceeds its content element.');
+        }
+      }
+    }
+    console.log(`MNX general text: ${texts.length} text objects, ${formatting.length} formatting gaps.`);
+  } finally {
+    Module._denigma_result_destroy(result);
+  }
 });
 
 const noteheadInput = await readFile(noteheadSample);
@@ -254,17 +350,19 @@ withInput(noteheadInput, 'note_shapes.musx', (dataPointer, namePointer) => {
   const result = convert(dataPointer, noteheadInput.byteLength, namePointer, FORMAT_MNX);
   try {
     if (!Module._denigma_result_success(result)) throw new Error(`Notehead MNX conversion failed:\n${messages(result)}`);
-    const report = gapReport(result);
-    const noteheadGaps = report.gaps.filter((gap) => gap.type === 'notehead');
-    if (!noteheadGaps.length || noteheadGaps.some((gap) => !gap.anchor.startsWith('ev')
-      || !gap.notehead.shape
-      || !gap.notehead.fill
-      || 'source' in gap
-      || 'cause' in gap)) {
-      throw new Error('Notehead gap report does not contain target-anchored classifications.');
+    // Every notehead in this fixture is classified, so MNX carries each one on its note and none is a gap.
+    const pointer = Module._denigma_result_output_data(result, 0);
+    const size = Module._denigma_result_output_size(result, 0);
+    const document = JSON.parse(new TextDecoder().decode(Module.HEAPU8.slice(pointer, pointer + size)));
+    const noteheads = document.parts.flatMap((part) => part.measures.flatMap((measure) => measure.sequences.flatMap(
+      (sequence) => sequence.content.flatMap((event) => (event.notes ?? []).flatMap((note) => note.notehead ?? [])))));
+    if (!noteheads.length || noteheads.some((notehead) => !notehead.shape)) {
+      throw new Error('MNX notes do not carry notehead shapes.');
     }
-    console.log(`MNX gap report: ${noteheadGaps.length} notehead gaps.`);
-    console.log(`MNX notehead gap example:\n${JSON.stringify(noteheadGaps[0], null, 2)}`);
+    const noteheadGaps = gapReport(result).gaps.filter((gap) => gap.type === 'notehead');
+    if (noteheadGaps.length) throw new Error('MNX reported notehead gaps for classified noteheads.');
+    console.log(`MNX noteheads: ${noteheads.length} notes carry a notehead shape.`);
+    console.log(`MNX notehead example:\n${JSON.stringify(noteheads[0], null, 2)}`);
   } finally {
     Module._denigma_result_destroy(result);
   }
@@ -280,14 +378,14 @@ withInput(arrowheadInput, 'custom_arrowheads.enigmaxml.zip', (dataPointer, nameP
     const report = gapReport(result);
     const shapeGaps = report.gaps.filter((gap) => gap.type === 'smart-shape');
     if (!shapeGaps.length || shapeGaps.some((gap) => !gap.anchor
-      || !gap.end?.anchor
+      || !gap.smartShape?.end?.anchor
       || !gap.smartShape.shapeType
       || !gap.smartShape.kind
       || 'source' in gap)) {
       throw new Error('Smart shape gap report does not contain target-anchored spans.');
     }
     const glissando = shapeGaps.find((gap) => gap.smartShape.kind === 'glissando');
-    if (!glissando || !glissando.anchor.startsWith('ev') || !glissando.end.anchor.startsWith('ev')) {
+    if (!glissando || !glissando.anchor.startsWith('ev') || !glissando.smartShape.end.anchor.startsWith('ev')) {
       throw new Error('Entry-attached glissando gap is not anchored to events.');
     }
     const arrowheads = report.arrowheads ?? {};
@@ -307,3 +405,144 @@ withInput(arrowheadInput, 'custom_arrowheads.enigmaxml.zip', (dataPointer, nameP
     Module._denigma_result_destroy(result);
   }
 });
+
+// MusicXML export of these files needs more stack than Emscripten's 64 KiB default. An
+// overflow aborts the module (STACK_OVERFLOW_CHECK), or without the check silently corrupts
+// it, so the MNX export that follows in the same module also shows that nothing was damaged.
+for (const sample of deepStackSamples) {
+  const name = sample.split(/[\\/]/).pop();
+  const sampleInput = await readFile(sample);
+  withInput(sampleInput, name, (dataPointer, namePointer) => {
+    const size = sampleInput.byteLength;
+    const parts = inspect(dataPointer, size, namePointer, `${name} inspection`);
+    const selection = [0, ...parts.map((part) => part.outputIndex)].sort((a, b) => a - b);
+    assertResult(convert(dataPointer, size, namePointer, FORMAT_MUSICXML, { selection }),
+      `${name} MusicXML score and all parts`, '<score-partwise', { outputCount: selection.length, indices: selection });
+    assertResult(convert(dataPointer, size, namePointer, FORMAT_MNX, { writeGapReport: 0 }),
+      `${name} MNX after MusicXML`, '"mnx"');
+  });
+}
+
+// Recognition is independent of filename, resource configuration, and imports.
+const legacyDirectory = resolve(import.meta.dirname, '..', 'data', 'inputs', 'legacy-mus');
+for (const file of ['F100-note.mus', 'F300-baseline.mus', 'F2002-baseline.mus', 'F2012-noteartexp.mus']) {
+  const input = await readFile(resolve(legacyDirectory, file));
+  for (const name of ['score', 'score.binary', 'score.musx', 'score.enigmaxml.zip']) {
+    withInput(input, name, (dataPointer, namePointer) => {
+      if (Module._denigma_recognize_mus(dataPointer, input.length) !== 1) throw new Error(`${file} was not recognized`);
+      inspect(dataPointer, input.length, namePointer, `${file} as ${name}`);
+      if (name === 'score.enigmaxml.zip') {
+        const mnx = JSON.parse(new TextDecoder().decode(assertResult(convert(dataPointer, input.length, namePointer, FORMAT_MNX),
+          `${file} MNX as ${name}`, '"mnx"')));
+        const source = mnx.mnx._x.mnxdom.source;
+        if (source.format !== 'mus' || source.filename !== name) throw new Error('Legacy MNX provenance was inferred from the filename');
+      }
+      const musicXml = new TextDecoder().decode(assertResult(
+        convert(dataPointer, input.length, namePointer, FORMAT_MUSICXML, { selection: [0] }),
+        `${file} MusicXML as ${name}`, '<score-partwise'));
+      if (!musicXml.includes('name="source-format">mus<') || !musicXml.includes(`name="source-filename">${name}<`)) {
+        throw new Error('Legacy MusicXML provenance did not preserve the format and filename');
+      }
+    });
+  }
+  withInput(input, file, (dataPointer, namePointer) => {
+    assertResult(convert(dataPointer, input.length, namePointer, FORMAT_MNX), `${file} MNX`, '"mnx"');
+    assertStatus(convert(dataPointer, input.length, namePointer, FORMAT_ENIGMAXML), false, 'Legacy EnigmaXML rejection');
+  });
+}
+
+function assertStatus(result, success, label) {
+  try {
+    if (Boolean(Module._denigma_result_success(result)) !== success) throw new Error(`${label}: ${messages(result)}`);
+    if (!success && Module._denigma_result_diagnostic_count(result) === 0) throw new Error(`${label} omitted its diagnostic`);
+  } finally {
+    Module._denigma_result_destroy(result);
+  }
+}
+
+if (Module._denigma_recognize_mus(0, 1) !== -1 || Module._denigma_recognize_mus(0, 0) !== 0) {
+  throw new Error('Recognition buffer validation failed');
+}
+for (const [data, verdict] of [[new TextEncoder().encode('unrelated'), 0],
+  [new TextEncoder().encode('ENIGMA TRANSPORTABLE FILE'), 2],
+  [(await readFile(resolve(legacyDirectory, 'F300-baseline.mus'))).subarray(0, 1024), 3]]) {
+  withAllocated(data, (pointer) => {
+    if (Module._denigma_recognize_mus(pointer, data.length) !== verdict) throw new Error(`Recognition expected ${verdict}`);
+  });
+}
+
+function addResource(handle, kind, name, text) {
+  const bytes = new TextEncoder().encode(text);
+  return withInput(bytes, name, (dataPointer, namePointer) =>
+    Module._denigma_mus_resources_add(handle, kind, namePointer, dataPointer, bytes.length));
+}
+
+const resources = Module._denigma_mus_resources_create();
+const otherResources = Module._denigma_mus_resources_create();
+const badResources = Module._denigma_mus_resources_create();
+try {
+  const input = await readFile(resolve(legacyDirectory, 'F100-note.mus'));
+  withInput(input, 'score', (dataPointer, namePointer) => {
+    assertStatus(Module._denigma_inspect_with_resources(dataPointer, input.length, namePointer, resources), false, 'Unfinalized resources');
+  });
+  for (const [kind, name, text] of [[0, 'MacSymbolFonts.txt', 'Maestro\nPetaluma\n'],
+    [1, 'Example.xml', '<FinaleNameDocument><MasterDeviceNames><NoteNameList Name="Example"/></MasterDeviceNames></FinaleNameDocument>'],
+    [2, 'conversion.txt', '// empty table\n'],
+    [3, 'first.soundmap', '<Soundmap><Description><Name>First</Name></Description></Soundmap>'],
+    [3, 'second.soundmap', '<Soundmap><Description><Name>Second</Name></Description></Soundmap>'],
+    [4, 'catalog.xml', '<InstrumentCatalog/>']]) {
+    assertStatus(addResource(resources, kind, name, text), true, 'Add resource');
+  }
+  assertStatus(Module._denigma_mus_resources_finalize(resources), true, 'Finalize resources after releasing upload buffers');
+  assertStatus(Module._denigma_mus_resources_finalize(resources), true, 'Finalize is idempotent');
+  assertStatus(addResource(resources, 0, 'extra.txt', 'Maestro'), false, 'Frozen resources');
+  assertStatus(Module._denigma_mus_resources_finalize(otherResources), true, 'Finalize defaults');
+  for (const handle of [resources, otherResources, resources]) {
+    withInput(input, 'score.binary', (dataPointer, namePointer) => {
+      assertStatus(Module._denigma_inspect_with_resources(dataPointer, input.length, namePointer, handle), true, 'Inspect with resources');
+      assertResult(convert(dataPointer, input.length, namePointer, FORMAT_MUSICXML, { selection: [0], resources: handle }),
+        'Resource-backed MusicXML', '<score-partwise');
+    });
+  }
+  assertStatus(addResource(badResources, 3, 'bad.soundmap', '<Other/>'), true, 'Stage malformed resource');
+  assertStatus(Module._denigma_mus_resources_finalize(badResources), false, 'Invalid resource XML');
+} finally {
+  Module._denigma_mus_resources_destroy(resources);
+  Module._denigma_mus_resources_destroy(otherResources);
+  Module._denigma_mus_resources_destroy(badResources);
+}
+
+// The same resources supply playback data for MUSX input. drumset.musx routes its drum staff to this sound, which a
+// synthetic soundmap gives a device list playing the kick drum (note type 2) on key 40: <midi-unpitched> 41. Without
+// resources the kick drum plays its General MIDI key, 36: <midi-unpitched> 37.
+const drumset = await readFile(resolve(import.meta.dirname, '..', 'data', 'inputs', 'drumset.musx'));
+const playbackResources = Module._denigma_mus_resources_create();
+try {
+  for (const [kind, name, text] of [
+    [3, 'Synthetic.soundmap', '<Soundmap><Description><Name>Synthetic</Name><PluginID>SYNT</PluginID></Description>'
+      + '<Sound id="Kit" uuid="db30b478-5871-3ba5-9553-6f964bb3aeb7"><Name>Synthetic Kit</Name>'
+      + '<PercMIDIMap>Synthetic Kit</PercMIDIMap><PercMIDIMapFile>Synthetic.xml</PercMIDIMapFile></Sound></Soundmap>'],
+    [1, 'Synthetic.xml', '<FinaleNameDocument><MasterDeviceNames><NoteNameList Name="Synthetic Kit">'
+      + '<Note Number="40" PercNoteType="2"/></NoteNameList></MasterDeviceNames></FinaleNameDocument>']]) {
+    assertStatus(addResource(playbackResources, kind, name, text), true, 'Add playback resource');
+  }
+  assertStatus(Module._denigma_mus_resources_finalize(playbackResources), true, 'Finalize playback resources');
+  withInput(drumset, 'drumset.musx', (dataPointer, namePointer) => {
+    assertResult(convert(dataPointer, drumset.length, namePointer, FORMAT_MUSICXML, { selection: [0], resources: playbackResources }),
+      'MUSX kit with device keys', '<midi-unpitched>41</midi-unpitched>');
+    assertResult(convert(dataPointer, drumset.length, namePointer, FORMAT_MUSICXML, { selection: [0] }),
+      'MUSX kit without resources', '<midi-unpitched>37</midi-unpitched>');
+  });
+} finally {
+  Module._denigma_mus_resources_destroy(playbackResources);
+}
+
+const voicedMus = await readFile(resolve(legacyDirectory, 'F2008-parts-voiced.mus'));
+withInput(voicedMus, 'voiced', (dataPointer, namePointer) => {
+  const parts = inspect(dataPointer, voicedMus.length, namePointer, 'Legacy voiced parts');
+  if (!parts.length) throw new Error('Legacy parts were not recovered');
+  const selection = [0, ...parts.map((part) => part.outputIndex)];
+  assertResult(convert(dataPointer, voicedMus.length, namePointer, FORMAT_MUSICXML, { selection }),
+    'Legacy voiced score and parts', '<score-partwise', { outputCount: selection.length, indices: selection });
+});
+console.log('Legacy MUS recognition, resources, and conversion passed.');

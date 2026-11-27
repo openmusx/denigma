@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 3,
   "producer": {
     "name": "denigma",
     "version": "TEST",
@@ -12,13 +12,6 @@
         "numerator": 0,
         "denominator": 1
       },
-      "end": {
-        "anchor": "P1.m1",
-        "position": {
-          "numerator": 1,
-          "denominator": 1
-        }
-      },
       "extent": "complete",
       "type": "smart-shape",
       "smartShape": {
@@ -30,19 +23,7 @@
           "lineChar": {
             "codePoint": 60079,
             "glyph": "wiggleGlissando",
-            "font": {
-              "name": "Finale Maestro",
-              "size": 24,
-              "sizeIsPercent": false,
-              "bold": false,
-              "italic": false,
-              "underline": false,
-              "strikeout": false,
-              "absolute": false,
-              "hidden": false,
-              "isSymbolFont": false,
-              "isSmufl": true
-            }
+            "font": "1"
           },
           "horizontal": false,
           "startCap": {
@@ -56,19 +37,7 @@
             "runs": [
               {
                 "text": "Glissando",
-                "font": {
-                  "name": "Times New Roman",
-                  "size": 12,
-                  "sizeIsPercent": false,
-                  "bold": false,
-                  "italic": true,
-                  "underline": false,
-                  "strikeout": false,
-                  "absolute": false,
-                  "hidden": false,
-                  "isSymbolFont": false,
-                  "isSmufl": false
-                }
+                "font": "2"
               }
             ]
           },
@@ -77,21 +46,16 @@
             "runs": [
               {
                 "text": "Gliss.",
-                "font": {
-                  "name": "Times",
-                  "size": 12,
-                  "sizeIsPercent": false,
-                  "bold": false,
-                  "italic": true,
-                  "underline": false,
-                  "strikeout": false,
-                  "absolute": false,
-                  "hidden": false,
-                  "isSymbolFont": false,
-                  "isSmufl": false
-                }
+                "font": "3"
               }
             ]
+          }
+        },
+        "end": {
+          "anchor": "P1.m1",
+          "position": {
+            "numerator": 1,
+            "denominator": 1
           }
         }
       }
@@ -101,13 +65,6 @@
       "position": {
         "numerator": 0,
         "denominator": 1
-      },
-      "end": {
-        "anchor": "P1.m2",
-        "position": {
-          "numerator": 1,
-          "denominator": 1
-        }
       },
       "extent": "complete",
       "type": "smart-shape",
@@ -120,19 +77,7 @@
             "lineVisible": false,
             "lineChar": {
               "codePoint": 32,
-              "font": {
-                "name": "Finale Maestro",
-                "size": 24,
-                "sizeIsPercent": false,
-                "bold": false,
-                "italic": false,
-                "underline": false,
-                "strikeout": false,
-                "absolute": false,
-                "hidden": false,
-                "isSymbolFont": false,
-                "isSmufl": true
-              }
+              "font": "1"
             },
             "horizontal": true,
             "startCap": {
@@ -146,19 +91,7 @@
               "runs": [
                 {
                   "text": "",
-                  "font": {
-                    "name": "Finale Maestro",
-                    "size": 24,
-                    "sizeIsPercent": false,
-                    "bold": false,
-                    "italic": false,
-                    "underline": false,
-                    "strikeout": false,
-                    "absolute": false,
-                    "hidden": false,
-                    "isSymbolFont": false,
-                    "isSmufl": true
-                  },
+                  "font": "1",
                   "glyphs": [
                     "keyboardPedalPed"
                   ]
@@ -170,19 +103,7 @@
               "runs": [
                 {
                   "text": "",
-                  "font": {
-                    "name": "Finale Maestro",
-                    "size": 24,
-                    "sizeIsPercent": false,
-                    "bold": false,
-                    "italic": false,
-                    "underline": false,
-                    "strikeout": false,
-                    "absolute": false,
-                    "hidden": false,
-                    "isSymbolFont": false,
-                    "isSmufl": true
-                  },
+                  "font": "1",
                   "glyphs": [
                     "keyboardPedalUp"
                   ]
@@ -192,14 +113,23 @@
           },
           "startText": {
             "type": "pedal-one",
-            "fromGlyph": true
+            "fromGlyph": true,
+            "shortForm": false
           },
           "endText": {
             "type": "pedal-up",
-            "fromGlyph": true
+            "fromGlyph": true,
+            "shortForm": false
           },
           "startCap": "none",
           "endCap": "none"
+        },
+        "end": {
+          "anchor": "P1.m2",
+          "position": {
+            "numerator": 1,
+            "denominator": 1
+          }
         }
       }
     },
@@ -208,13 +138,6 @@
       "position": {
         "numerator": 0,
         "denominator": 1
-      },
-      "end": {
-        "anchor": "P1.m2",
-        "position": {
-          "numerator": 3,
-          "denominator": 4
-        }
       },
       "extent": "complete",
       "type": "smart-shape",
@@ -231,6 +154,13 @@
           },
           "endCap": {
             "type": "none"
+          }
+        },
+        "end": {
+          "anchor": "P1.m2",
+          "position": {
+            "numerator": 3,
+            "denominator": 4
           }
         }
       }
@@ -241,13 +171,6 @@
         "numerator": 0,
         "denominator": 1
       },
-      "end": {
-        "anchor": "P1.m3",
-        "position": {
-          "numerator": 1,
-          "denominator": 4
-        }
-      },
       "extent": "complete",
       "type": "smart-shape",
       "smartShape": {
@@ -264,6 +187,13 @@
           "endCap": {
             "type": "none"
           }
+        },
+        "end": {
+          "anchor": "P1.m3",
+          "position": {
+            "numerator": 1,
+            "denominator": 4
+          }
         }
       }
     },
@@ -272,13 +202,6 @@
       "position": {
         "numerator": 0,
         "denominator": 1
-      },
-      "end": {
-        "anchor": "P1.m4",
-        "position": {
-          "numerator": 1,
-          "denominator": 1
-        }
       },
       "extent": "complete",
       "type": "smart-shape",
@@ -303,21 +226,16 @@
             "runs": [
               {
                 "text": "rit.",
-                "font": {
-                  "name": "Times New Roman",
-                  "size": 12,
-                  "sizeIsPercent": false,
-                  "bold": false,
-                  "italic": true,
-                  "underline": false,
-                  "strikeout": false,
-                  "absolute": false,
-                  "hidden": false,
-                  "isSymbolFont": false,
-                  "isSmufl": false
-                }
+                "font": "2"
               }
             ]
+          }
+        },
+        "end": {
+          "anchor": "P1.m4",
+          "position": {
+            "numerator": 1,
+            "denominator": 1
           }
         }
       }
@@ -327,13 +245,6 @@
       "position": {
         "numerator": 0,
         "denominator": 1
-      },
-      "end": {
-        "anchor": "P1.m5",
-        "position": {
-          "numerator": 1,
-          "denominator": 2
-        }
       },
       "extent": "complete",
       "type": "smart-shape",
@@ -358,21 +269,16 @@
             "runs": [
               {
                 "text": "accel.",
-                "font": {
-                  "name": "Times New Roman",
-                  "size": 12,
-                  "sizeIsPercent": false,
-                  "bold": false,
-                  "italic": true,
-                  "underline": false,
-                  "strikeout": false,
-                  "absolute": false,
-                  "hidden": false,
-                  "isSymbolFont": false,
-                  "isSmufl": false
-                }
+                "font": "2"
               }
             ]
+          }
+        },
+        "end": {
+          "anchor": "P1.m5",
+          "position": {
+            "numerator": 1,
+            "denominator": 2
           }
         }
       }
@@ -382,13 +288,6 @@
       "position": {
         "numerator": 1,
         "denominator": 2
-      },
-      "end": {
-        "anchor": "P1.m5",
-        "position": {
-          "numerator": 1,
-          "denominator": 1
-        }
       },
       "extent": "complete",
       "type": "smart-shape",
@@ -413,21 +312,16 @@
             "runs": [
               {
                 "text": "cresc.",
-                "font": {
-                  "name": "Times New Roman",
-                  "size": 12,
-                  "sizeIsPercent": false,
-                  "bold": false,
-                  "italic": true,
-                  "underline": false,
-                  "strikeout": false,
-                  "absolute": false,
-                  "hidden": false,
-                  "isSymbolFont": false,
-                  "isSmufl": false
-                }
+                "font": "2"
               }
             ]
+          }
+        },
+        "end": {
+          "anchor": "P1.m5",
+          "position": {
+            "numerator": 1,
+            "denominator": 1
           }
         }
       }
@@ -437,13 +331,6 @@
       "position": {
         "numerator": 0,
         "denominator": 1
-      },
-      "end": {
-        "anchor": "P1.m6",
-        "position": {
-          "numerator": 1,
-          "denominator": 1
-        }
       },
       "extent": "complete",
       "type": "smart-shape",
@@ -468,24 +355,138 @@
             "runs": [
               {
                 "text": "dim.\n\n\n",
-                "font": {
-                  "name": "Times New Roman",
-                  "size": 12,
-                  "sizeIsPercent": false,
-                  "bold": false,
-                  "italic": true,
-                  "underline": false,
-                  "strikeout": false,
-                  "absolute": false,
-                  "hidden": false,
-                  "isSymbolFont": false,
-                  "isSmufl": false
-                }
+                "font": "2"
               }
             ]
           }
+        },
+        "end": {
+          "anchor": "P1.m6",
+          "position": {
+            "numerator": 1,
+            "denominator": 1
+          }
         }
       }
+    },
+    {
+      "extent": "complete",
+      "type": "page-text",
+      "pageText": {
+        "text": {
+          "plain": "Score",
+          "runs": [
+            {
+              "text": "Score",
+              "font": "4",
+              "insert": {
+                "kind": "other",
+                "command": "partname",
+                "parameters": []
+              }
+            }
+          ]
+        },
+        "assignment": {
+          "start": 1,
+          "end": 1,
+          "pages": "all"
+        },
+        "unit": "evpu",
+        "alignment": {
+          "horizontal": "left",
+          "rightPageHorizontal": "left",
+          "vertical": "top",
+          "horizontalFrom": "margin",
+          "verticalFrom": "margin"
+        },
+        "position": {
+          "offsetX": 0,
+          "offsetY": -10,
+          "independentRightPages": false
+        },
+        "frame": {
+          "unit": "evpu",
+          "width": 0,
+          "height": 0,
+          "handleOffsetX": 0,
+          "handleOffsetY": 0,
+          "wordWrap": true,
+          "noExpandSingleWord": false,
+          "justify": "left",
+          "inset": 0.0,
+          "lineSpacingPercent": 100,
+          "showBorder": true,
+          "borderThickness": 0.0,
+          "cornerRadius": 0.0,
+          "positionFromFrameEdge": true,
+          "hasCustomShape": false
+        },
+        "placements": [
+          {
+            "kind": "page",
+            "anchor": "score0.page1"
+          },
+          {
+            "kind": "page",
+            "anchor": "score1.page1"
+          }
+        ]
+      }
     }
-  ]
+  ],
+  "fonts": {
+    "1": {
+      "name": "Finale Maestro",
+      "size": 24,
+      "sizeIsPercent": false,
+      "bold": false,
+      "italic": false,
+      "underline": false,
+      "strikeout": false,
+      "absolute": false,
+      "hidden": false,
+      "isSymbolFont": false,
+      "isSmufl": true
+    },
+    "2": {
+      "name": "Times New Roman",
+      "size": 12,
+      "sizeIsPercent": false,
+      "bold": false,
+      "italic": true,
+      "underline": false,
+      "strikeout": false,
+      "absolute": false,
+      "hidden": false,
+      "isSymbolFont": false,
+      "isSmufl": false
+    },
+    "3": {
+      "name": "Times",
+      "size": 12,
+      "sizeIsPercent": false,
+      "bold": false,
+      "italic": true,
+      "underline": false,
+      "strikeout": false,
+      "absolute": false,
+      "hidden": false,
+      "isSymbolFont": false,
+      "isSmufl": false
+    },
+    "4": {
+      "name": "Times New Roman",
+      "size": 12,
+      "sizeIsPercent": false,
+      "bold": false,
+      "italic": false,
+      "underline": false,
+      "strikeout": false,
+      "absolute": false,
+      "hidden": false,
+      "isSymbolFont": false,
+      "isSmufl": false
+    }
+  }
 }

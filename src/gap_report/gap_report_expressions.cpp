@@ -37,9 +37,11 @@ std::string_view expressionTypeName(ExpressionType type)
 {
     switch (type) {
     case ExpressionType::GenericText: return "generic-text";
+    case ExpressionType::ExpressiveText: return "expressive-text";
     case ExpressionType::Dynamic: return "dynamic";
     case ExpressionType::Fermata: return "fermata";
     case ExpressionType::BreathMark: return "breath-mark";
+    case ExpressionType::Caesura: return "caesura";
     case ExpressionType::StringMute: return "string-mute";
     case ExpressionType::AccordionRegistration: return "accordion-registration";
     case ExpressionType::HarpDiagram: return "harp-diagram";
@@ -374,6 +376,8 @@ void appendValue(json& result, const classify::ExpressionValue& value)
                 result["measureRepeatCount"] = {{"count", payload.count}};
             } else if constexpr (std::is_same_v<Payload, expression::GenericText>) {
                 result["genericText"] = {{"text", payload.text}};
+            } else if constexpr (std::is_same_v<Payload, expression::ExpressiveText>) {
+                result["expressiveText"] = {{"text", payload.text}};
             } else if constexpr (std::is_same_v<Payload, expression::Error>) {
                 result["error"] = {{"message", payload.message}};
             }
@@ -402,7 +406,7 @@ std::string_view keyboardPedalTypeName(classify::keyboardpedal::Type value)
     return "unknown";
 }
 
-json expressionJson(const classify::ExpressionClassification& expression)
+json expressionJson(const classify::ExpressionClassification& expression, FontTable& fonts)
 {
     json result{
         {"type", expressionTypeName(expression.type)},
@@ -411,7 +415,7 @@ json expressionJson(const classify::ExpressionClassification& expression)
     };
     // Resolved at serialization, so the source document must still be alive; see design-decisions.md.
     if (expression.enigmaCtx) {
-        result["text"] = formattedTextJson(classify::classifyFormattedText(*expression.enigmaCtx));
+        result["text"] = formattedTextJson(classify::classifyFormattedText(*expression.enigmaCtx), fonts);
     }
     appendValue(result, expression.value);
     return result;

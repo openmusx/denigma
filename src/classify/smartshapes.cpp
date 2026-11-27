@@ -86,7 +86,8 @@ bool entriesCoveredByCandidates(const musx::dom::MusxInstance<musx::dom::others:
 {
     sawEntry = false;
     const auto staffList = shape->getDocument()->getScrollViewStaves(shape->getRequestedPartId());
-    if (!staffList.getIndexForStaff(shape->startTermSeg->endPoint->staffId) || !staffList.getIndexForStaff(shape->endTermSeg->endPoint->staffId)) {
+    if (!staffList.getIndexForStaff(shape->startTermSeg->endPoint->calcStaff())
+        || !staffList.getIndexForStaff(shape->endTermSeg->endPoint->calcStaff())) {
         // Entries cannot be iterated (e.g., the staff is not in the scroll view);
         // callers fall back to range intersection.
         return true;
@@ -153,7 +154,7 @@ std::vector<musx::dom::MusxInstance<musx::dom::others::SmartShape>> collectHidde
         if (!shift || *shift != octaveShift) {
             continue;
         }
-        if (candidate->startTermSeg->endPoint->staffId != staffId || candidate->endTermSeg->endPoint->staffId != staffId) {
+        if (candidate->startTermSeg->endPoint->calcStaff() != staffId || candidate->endTermSeg->endPoint->calcStaff() != staffId) {
             continue;
         }
         if (!candidate->calcIsValid()) {
@@ -198,8 +199,8 @@ std::optional<Ottava> classifyOttavaLine(const musx::dom::MusxInstance<musx::dom
         direction = Direction::Unknown;
     }
 
-    const auto startStaffId = shape->startTermSeg->endPoint->staffId;
-    const bool singleStaff = startStaffId == shape->endTermSeg->endPoint->staffId;
+    const auto startStaffId = shape->startTermSeg->endPoint->calcStaff();
+    const bool singleStaff = startStaffId == shape->endTermSeg->endPoint->calcStaff();
 
     musx::dom::MusxInstance<musx::dom::others::SmartShape> counterpartUp;
     musx::dom::MusxInstance<musx::dom::others::SmartShape> counterpartDown;
@@ -244,7 +245,7 @@ std::optional<Ottava> classifyOttavaLine(const musx::dom::MusxInstance<musx::dom
 bool calcHasVisualOttavaProxy(const musx::dom::MusxInstance<musx::dom::others::SmartShape>& shape, int octaveShift)
 {
     using Direction = octave::Direction;
-    const auto staffId = shape->startTermSeg->endPoint->staffId;
+    const auto staffId = shape->startTermSeg->endPoint->calcStaff();
     const auto range = shape->createGlobalMusicRange();
     const auto allShapes = shape->getDocument()->getOthers()->getArray<musx::dom::others::SmartShape>(shape->getRequestedPartId());
     for (const auto& candidate : allShapes) {
@@ -254,7 +255,7 @@ bool calcHasVisualOttavaProxy(const musx::dom::MusxInstance<musx::dom::others::S
         if (candidate->shapeType != musx::dom::others::SmartShape::ShapeType::CustomLine || candidate->lineStyleId == 0) {
             continue;
         }
-        if (candidate->startTermSeg->endPoint->staffId != staffId || !candidate->calcIsValid()) {
+        if (candidate->startTermSeg->endPoint->calcStaff() != staffId || !candidate->calcIsValid()) {
             continue;
         }
         const auto customLine = candidate->getDocument()->getOthers()->get<musx::dom::others::SmartShapeCustomLine>(
@@ -432,11 +433,28 @@ std::optional<KeyboardPedal> classifyKeyboardPedalCustomLine(const musx::dom::Mu
 SmartShapeClassification classifySmartShape(const musx::dom::MusxInstance<musx::dom::others::SmartShape>& shape)
 {
     SmartShapeClassification result;
-    if (!shape || !shape->calcIsValid()) {
+    ASSERT_IF (!shape) {
+        return result;
+    }
+    result.shapeType = shape->shapeType;
+    const auto excludedByVoicing = [&](const musx::dom::smartshape::EndPoint& endpoint) {
+        const auto entry = shape->getDocument()->getEntries()->get(endpoint.entryNumber);
+        if (!entry || !entry->location.found()) {
+            return false;
+        }
+        const auto& location = entry->location;
+        const musx::dom::details::GFrameHoldContext frame(shape->getDocument(), shape->getRequestedPartId(), location.staffId, location.measureId);
+        return frame && !frame.calcPolicyVoicingIncludesLayer(location.layerIndex);
+    };
+    // Excluded layers have no entry frame in the part, but their shapes remain in the shared pool.
+    if (excludedByVoicing(*shape->startTermSeg->endPoint) || excludedByVoicing(*shape->endTermSeg->endPoint)) {
+        result.value = Suppress{};
+        return result;
+    }
+    if (!shape->calcIsValid()) {
         return result;
     }
 
-    result.shapeType = shape->shapeType;
     using ShapeType = musx::dom::others::SmartShape::ShapeType;
     switch (shape->shapeType) {
     case ShapeType::OctaveDown:
@@ -458,6 +476,11 @@ SmartShapeClassification classifySmartShape(const musx::dom::MusxInstance<musx::
         if (auto glissando = classifyGlissando(shape)) {
             result.value = std::move(*glissando);
         }
+        return result;
+    case ShapeType::Hyphen:
+    case ShapeType::WordExtension:
+        // Owned by the lyric assignment that draws them; a word extension is reported from the lyric.
+        result.value = Suppress{};
         return result;
     case ShapeType::Crescendo: result.value = Crescendo{}; return result;
     case ShapeType::Decrescendo: result.value = Decrescendo{}; return result;
@@ -518,8 +541,9 @@ SmartShapeClassification classifySmartShape(const musx::dom::MusxInstance<musx::
     const auto startEntry = shape->startTermSeg->endPoint->calcAssociatedEntry();
     const auto endEntry = shape->endTermSeg->endPoint->calcAssociatedEntry();
 
-    const auto contour = shape->calcContourDirection();
-    result.value = Slur{startEntry, endEntry, contour};
+    const auto directionInfo = musx::util::Slur::calcEffectiveDirection(*shape);
+    const auto contour = directionInfo.direction;
+    result.value = Slur{startEntry, endEntry, contour, directionInfo};
     if (startEntry) {
         if (shape->calcIsPseudoTie(musx::utils::PseudoTieMode::LaissezVibrer, startEntry)) {
             result.value = PseudoTie{PseudoTie::Type::LaissezVibrer, contour};
@@ -545,7 +569,7 @@ SmartShapeClassification classifySmartShape(const musx::dom::MusxInstance<musx::
         }
     }
 
-    result.value = Slur{startEntry, endEntry, contour};
+    result.value = Slur{startEntry, endEntry, contour, directionInfo};
     return result;
 }
 

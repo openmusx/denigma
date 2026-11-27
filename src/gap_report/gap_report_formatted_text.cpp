@@ -44,6 +44,15 @@ std::string_view insertKindName(classify::text::Insert::Kind kind)
 
 } // namespace
 
+json insertJson(const classify::text::Insert& insert)
+{
+    return {
+        {"kind", insertKindName(insert.kind)},
+        {"command", insert.command},
+        {"parameters", insert.parameters},
+    };
+}
+
 json fontJson(const musx::dom::ResolvedFontInfo& font)
 {
     return {
@@ -61,23 +70,28 @@ json fontJson(const musx::dom::ResolvedFontInfo& font)
     };
 }
 
-json formattedTextJson(const classify::FormattedText& text)
+json formattedTextJson(const classify::FormattedText& text, FontTable& fonts)
 {
     auto runs = json::array();
     for (const auto& run : text.runs) {
         json item{
             {"text", run.text},
-            {"font", fontJson(run.font)},
+            {"font", fonts.reference(run.font)},
         };
+        if (run.baseline) {
+            item["baseline"] = run.baseline;
+        }
+        if (run.superscript) {
+            item["superscript"] = run.superscript;
+        }
+        if (run.tracking) {
+            item["tracking"] = run.tracking;
+        }
         if (run.isGlyphRun()) {
             item["glyphs"] = run.glyphNames;
         }
         if (run.insert) {
-            item["insert"] = {
-                {"kind", insertKindName(run.insert->kind)},
-                {"command", run.insert->command},
-                {"parameters", run.insert->parameters},
-            };
+            item["insert"] = insertJson(*run.insert);
         }
         runs.push_back(std::move(item));
     }
@@ -85,6 +99,22 @@ json formattedTextJson(const classify::FormattedText& text)
         {"plain", text.plainText},
         {"runs", std::move(runs)},
     };
+}
+
+std::string FontTable::reference(const musx::dom::ResolvedFontInfo& font)
+{
+    auto entry = fontJson(font);
+    auto [it, inserted] = m_keyByFont.emplace(entry.dump(), std::string());
+    if (inserted) {
+        it->second = std::to_string(m_keyByFont.size());
+        m_fonts[it->second] = std::move(entry);
+    }
+    return it->second;
+}
+
+json FontTable::toJson() const
+{
+    return m_fonts;
 }
 
 } // namespace gap_report

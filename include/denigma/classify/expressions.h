@@ -49,6 +49,7 @@ enum class ExpressionType {
     Dynamic, ///< A dynamic mark.
     Fermata, ///< A fermata symbol.
     BreathMark, ///< A breath-mark symbol.
+    Caesura, ///< A caesura symbol.
     StringMute, ///< A string-mute on/off symbol.
     AccordionRegistration, ///< An accordion-registration glyph or combining glyph sequence.
     HarpDiagram, ///< A harp-pedal diagram.
@@ -59,6 +60,7 @@ enum class ExpressionType {
     MetronomeMark, ///< A standalone metronome-note equation.
     TempoAlteration, ///< A relative tempo alteration.
     TechniqueText, ///< Text identifying a performance technique.
+    ExpressiveText, ///< Text describing expressive character.
     RehearsalMark, ///< A rehearsal mark.
     MultimeasureRestNumber, ///< A numeric label for a multimeasure rest.
     MeasureRepeatCount, ///< A count of the iterations of a measure repeat.
@@ -130,6 +132,14 @@ struct TechniqueText
     std::string text;
 };
 
+/// @struct ExpressiveText
+/// @brief Text describing expressive character, recognized by wording or Finale category.
+struct ExpressiveText
+{
+    /// @brief Source display text.
+    std::string text;
+};
+
 /// @struct TempoInfo
 /// @brief Text and playback data associated with a tempo expression.
 struct TempoInfo
@@ -164,6 +174,10 @@ struct MetronomeMark
     std::size_t augmentationDots{};
     /// @brief Number displayed to the right of the equals sign. It may have a fractional part.
     double displayedBeatsPerMinute{};
+    /// @brief Font of the metronome-note glyph.
+    musx::dom::MusxInstance<musx::dom::FontInfo> noteFont;
+    /// @brief Font of the first digit of #displayedBeatsPerMinute.
+    musx::dom::MusxInstance<musx::dom::FontInfo> beatsPerMinuteFont;
 };
 
 /// @struct TempoAlteration
@@ -194,6 +208,16 @@ struct BreathMark
 {
     /// @brief Semantic breath-mark classification.
     articulation::BreathMark breathMark{};
+    /// @brief SMuFL glyph name when the source glyph can be resolved.
+    std::optional<std::string> glyphName;
+};
+
+/// @struct Caesura
+/// @brief Caesura expression and its resolved source glyph.
+struct Caesura
+{
+    /// @brief Semantic caesura classification.
+    articulation::Caesura caesura{};
     /// @brief SMuFL glyph name when the source glyph can be resolved.
     std::optional<std::string> glyphName;
 };
@@ -301,7 +325,7 @@ struct Suppress
 
 /// @brief Semantic payload associated with one classified expression text run.
 using RunValue = std::variant<std::monostate, dynamics::Mark, DynamicQualifier, Fermata, BreathMark, TempoText, TempoAlteration, TechniqueText,
-    RehearsalMark, GenericText, Error, Suppress>;
+    ExpressiveText, RehearsalMark, GenericText, Error, Suppress>;
 
 /// @struct RunClassification
 /// @brief Classification of one logical run within an expression.
@@ -327,10 +351,23 @@ struct RunClassification
 } // namespace expression
 
 /// @brief Semantic payload associated with an @ref ExpressionClassification.
-using ExpressionValue = std::variant<std::monostate, dynamics::Mark, expression::Fermata, expression::BreathMark, articulation::StringMute,
-    articulation::AccordionRegistration, expression::HarpDiagram, keyboardpedal::Type, PseudoTie, expression::NonArpeggio, expression::TempoText,
-    expression::MetronomeMark, expression::TempoAlteration, expression::TechniqueText, expression::RehearsalMark, expression::MultimeasureRestNumber,
-    expression::MeasureRepeatCount, expression::GenericText, expression::Error, expression::Suppress>;
+using ExpressionValue =
+    std::variant<std::monostate, dynamics::Mark, expression::Fermata, expression::BreathMark, expression::Caesura, articulation::StringMute,
+        articulation::AccordionRegistration, expression::HarpDiagram, keyboardpedal::Type, PseudoTie, expression::NonArpeggio, expression::TempoText,
+        expression::MetronomeMark, expression::TempoAlteration, expression::TechniqueText, expression::ExpressiveText, expression::RehearsalMark,
+        expression::MultimeasureRestNumber, expression::MeasureRepeatCount, expression::GenericText, expression::Error, expression::Suppress>;
+
+/// @struct ExpressionMember
+/// @brief One assignment of a staff-list group: where it draws the group's expression.
+struct ExpressionMember
+{
+    /// @brief The staff, or the system edge, the member draws on.
+    ExpressionScope scope{ExpressionScope::Unassigned};
+    /// @brief The staff, when #scope is ExpressionScope::Staff.
+    musx::dom::StaffCmper staff{};
+    /// @brief Which side of its staff the member is drawn on, or `NotApplicable` when the source does not say.
+    musx::dom::VerticalPlacement placement{musx::dom::VerticalPlacement::NotApplicable};
+};
 
 /// @struct ExpressionClassification
 /// @brief Exporter-neutral semantic classification of one Finale expression.
@@ -348,6 +385,9 @@ struct ExpressionClassification
     ExpressionValue value{};
     /// @brief Per-run classifications for expressions containing mixed content.
     std::vector<expression::RunClassification> runs;
+    /// @brief Every member of the assignment group, in the order of ExpressionAssignmentGroup::members.
+    /// Filled for a group's classification by #groupExpressionAssignments; empty otherwise.
+    std::vector<ExpressionMember> members;
 
     /// @brief Returns the payload as @c T when it contains that type.
     /// @tparam T Requested payload type.
@@ -381,6 +421,10 @@ public:
     /// @brief Returns the classified breath mark.
     /// @throws std::logic_error if #type is not ExpressionType::BreathMark.
     const expression::BreathMark& breathMark() const { return checkedPayload<expression::BreathMark, ExpressionType::BreathMark>("BreathMark"); }
+
+    /// @brief Returns the classified caesura.
+    /// @throws std::logic_error if #type is not ExpressionType::Caesura.
+    const expression::Caesura& caesura() const { return checkedPayload<expression::Caesura, ExpressionType::Caesura>("Caesura"); }
 
     /// @brief Returns the classified string-mute symbol.
     /// @throws std::logic_error if #type is not ExpressionType::StringMute.
@@ -432,6 +476,13 @@ public:
     const expression::TechniqueText& techniqueText() const
     {
         return checkedPayload<expression::TechniqueText, ExpressionType::TechniqueText>("TechniqueText");
+    }
+
+    /// @brief Returns the classified expressive text.
+    /// @throws std::logic_error if #type is not ExpressionType::ExpressiveText.
+    const expression::ExpressiveText& expressiveText() const
+    {
+        return checkedPayload<expression::ExpressiveText, ExpressionType::ExpressiveText>("ExpressiveText");
     }
 
     /// @brief Returns the classified rehearsal mark.
@@ -520,7 +571,8 @@ std::vector<ExpressionAssignmentGroup> groupExpressionAssignments(
 ///
 /// Every member of a staff-list group receives the group's classification (see
 /// #groupExpressionAssignments) with its own #ExpressionClassification::scope. Unlike the grouping
-/// function, this one keeps assignments not shown in the requested part.
+/// function, this one keeps assignments not shown in the requested part. Assignments on layers
+/// excluded by the active part-voicing policy receive #ExpressionType::Suppress.
 /// @param assignments Source assignments to classify.
 /// @return One assignment/classification pair for each input assignment, in input order.
 std::vector<ExpressionAssignmentClassification> classifyExpressionAssignments(

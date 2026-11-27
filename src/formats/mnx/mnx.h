@@ -39,6 +39,7 @@
 
 #include "denigma/classify/gaps.h"
 #include "denigma/classify/jumps.h"
+#include "denigma/classify/percussion.h"
 #include "mnx_articulations.h"
 #include "mnx_fwd.h"
 #include "mnx_mapping.h"
@@ -86,6 +87,7 @@ struct MnxMusxMapping
 
     const DenigmaContext* denigmaContext;
     musx::dom::DocumentPtr document;
+    FormatId sourceFormat = FormatId::EnigmaXml;
     FinaleOptions finaleOptions;
     std::unique_ptr<mnxdom::Document> mnxDocument;
     MusxInstanceList<others::PartDefinition> musxParts;
@@ -96,14 +98,13 @@ struct MnxMusxMapping
     std::unordered_set<std::string> lyricLineIds;
 
     // musx mappings
-    std::unordered_map<std::string, mnxdom::json_pointer> noteJsonById;
     std::unordered_map<EntryNumber, EntryTarget> entryTargetByNumber;
 
     struct DeferredJumpTie
     {
         std::string startNoteId;
         std::string endNoteId;
-        std::optional<mnxdom::SlurTieSide> side;
+        mnxdom::SlurTieSide side{mnxdom::SlurTieSide::Auto};
     };
 
     std::vector<DeferredJumpTie> deferredJumpTies;
@@ -122,26 +123,45 @@ struct MnxMusxMapping
 
     std::vector<DeferredSmartShapeGap> deferredSmartShapeGaps;
 
-    /// @brief A lyric word extension, held until every entry has been exported so its end can be
-    /// anchored to an exported event or, failing that, a measure.
-    struct DeferredLyricExtensionGap
+    /// @brief A tie, slur, or lyric extender written against an entry that may not be exported (a cue layer, for
+    /// instance), held until every entry has been exported so the reference can be checked.
+    struct DeferredEntryTarget
     {
-        classify::LyricWordExtension classification;
-        classify::GapAnchor start;
+        mnxdom::json_pointer pointer; ///< The tie, slur, or lyric extender in the MNX document.
+        EntryNumber targetEntry; ///< The entry the target id names.
     };
 
-    std::vector<DeferredLyricExtensionGap> deferredLyricExtensionGaps;
+    std::vector<DeferredEntryTarget> deferredTieTargets;
+    std::vector<DeferredEntryTarget> deferredLyricExtenderTargets;
+
+    /// @brief A slur, with the shape it came from so a slur whose end was never exported can be reported
+    /// as a gap instead.
+    struct DeferredSlurTarget
+    {
+        DeferredEntryTarget target;
+        MusxInstance<others::SmartShape> shape;
+        classify::SmartShapeClassification classification;
+    };
+
+    std::vector<DeferredSlurTarget> deferredSlurTargets;
 
     std::optional<std::string> currSplitInstrumentUuid;
     std::vector<StaffCmper> currPartStaves;
     std::unordered_set<EntryNumber> beamedEntries;
     size_t discardedCueFrames{};
+    /// @brief Zero-length tuplets whose entries were omitted; see addEntryToContent.
+    size_t discardedZeroLengthTuplets{};
 
     /// @brief Measure repeat counts found on the current part's staves, keyed by measure.
     ///
     /// Collected while the staves are exported and consumed once the measure repeats themselves are
     /// known, because MNX attaches a counter to the repeat rather than to the measure.
-    std::map<MeasCmper, int> measureRepeatCounts;
+    struct MeasureRepeatCount
+    {
+        int count{};
+        mnxdom::MultiStaffPlacement placement{mnxdom::MultiStaffPlacement::Auto};
+    };
+    std::map<MeasCmper, MeasureRepeatCount> measureRepeatCounts;
 
     struct CurrentMeasureStaff
     {
@@ -184,6 +204,10 @@ struct MnxMusxMapping
     void logMessage(LogMsg&& msg, MessageSeverity severity = MessageSeverity::Info);
     void logDiscardedHeuristicCueStaffMeasure();
     void logDiscardedCueLayerFrame(LayerIndex layer);
+
+private:
+    /// @brief Set while #logMessage looks up the current staff for its prefix.
+    bool m_resolvingLogStaffName{};
 };
 
 std::string mnxPartDisplayName(const MnxMusxMappingPtr& context, const std::string& partId);
@@ -213,16 +237,17 @@ inline std::string calcLyricLineId(const std::string& type, Cmper textNumber)
     return type.substr(0, 1) + std::to_string(textNumber);
 }
 
-inline std::string calcPercussionKitId(const MusxInstance<others::PercussionNoteInfo>& percNoteInfo)
+/// A percussion note's staff position and noteheads belong to its percussion map, so each map gets its own kit component.
+inline std::string calcPercussionKitId(const classify::percussion::MapNoteIdentity& mapNote)
 {
-    return "ke" + std::to_string(percNoteInfo->percNoteType);
+    return "ke" + std::to_string(mapNote.percussionMapId) + "-" + std::to_string(mapNote.noteTypeId);
 }
 
-inline std::string calcPercussionSoundId(const MusxInstance<others::PercussionNoteInfo>& percNoteInfo)
+inline std::string calcPercussionSoundId(const classify::percussion::SoundIdentity& sound)
 {
-    std::string result = "pn" + std::to_string(percNoteInfo->getBaseNoteTypeId());
-    if (auto orderId = percNoteInfo->getNoteTypeOrderId()) {
-        result += "o" + std::to_string(orderId + 1);
+    std::string result = "pn" + std::to_string(sound.baseNoteTypeId);
+    if (sound.orderId) {
+        result += "o" + std::to_string(sound.orderId + 1);
     }
     return result;
 }
@@ -233,7 +258,19 @@ void createParts(const MnxMusxMappingPtr& context);
 void createSequences(const MnxMusxMappingPtr& context, mnxdom::part::Measure& mnxMeasure, std::optional<int> mnxStaffNumber,
     const MusxInstance<others::Measure>& musxMeasure);
 void finalizeJumpTies(const MnxMusxMappingPtr& context);
-void finalizeLyricExtensionGaps(const MnxMusxMappingPtr& context);
+/// @brief Resolves ties, slurs, and lyric extenders whose target entry was never exported: a tie becomes l.v.,
+/// a slur is removed, and an extender loses its target. Must run after every entry has been exported and before any pass that reads the ties.
+void finalizeEntryTargets(const MnxMusxMappingPtr& context);
+
+/// @brief Whether the tuplet is a zero-length tuplet whose entries MNX omits.
+///
+/// A zero-length tuplet is a Finale workaround (a phantom note that extends a beam over a barline, for
+/// instance) whose entries occupy no time. An MNX tuplet ratio must be positive, and an event outside
+/// one always takes its written duration, so the entries have no representation. The singleton-beam
+/// form is excluded: the interpreted iterator resolves it. (See EntryFrame::TupletInfo::calcCreatesSingleton.)
+bool isOmittedZeroLengthTuplet(const EntryFrame::TupletInfo& tupletInfo);
+/// @brief Whether the entry lies in a tuplet #isOmittedZeroLengthTuplet omits, so nothing may refer to it.
+bool isInOmittedZeroLengthTuplet(const EntryInfoPtr& entryInfo);
 
 void exportJson(const std::filesystem::path& outputPath, const CommandInputData& inputData, const DenigmaContext& denigmaContext);
 void exportJson(std::ostream& output, const CommandInputData& inputData, const DenigmaContext& denigmaContext);

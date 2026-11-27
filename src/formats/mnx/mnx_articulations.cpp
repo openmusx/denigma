@@ -40,34 +40,10 @@ std::optional<mnxdom::Fermata> makeFermata(
         return std::nullopt;
     }
 
-    auto convertSymbol = [](classify::articulation::Fermata::Shape shape) {
-        switch (shape) {
-        case classify::articulation::Fermata::Shape::Normal: return mnxdom::FermataSymbol::Normal;
-        case classify::articulation::Fermata::Shape::Angled: return mnxdom::FermataSymbol::Angled;
-        case classify::articulation::Fermata::Shape::DoubleAngled: return mnxdom::FermataSymbol::DoubleAngled;
-        case classify::articulation::Fermata::Shape::Square: return mnxdom::FermataSymbol::Square;
-        case classify::articulation::Fermata::Shape::DoubleSquare: return mnxdom::FermataSymbol::DoubleSquare;
-        case classify::articulation::Fermata::Shape::HalfCurve: return mnxdom::FermataSymbol::HalfCurve;
-        case classify::articulation::Fermata::Shape::DoubleDot: return mnxdom::FermataSymbol::DoubleDot;
-        case classify::articulation::Fermata::Shape::Curlew: return mnxdom::FermataSymbol::Curlew;
-        }
-        throw std::logic_error("Unhandled fermata shape.");
-    };
-    auto convertDuration = [](classify::articulation::Fermata::Duration duration) {
-        switch (duration) {
-        case classify::articulation::Fermata::Duration::Auto: return mnxdom::FermataDuration::Auto;
-        case classify::articulation::Fermata::Duration::VeryShort: return mnxdom::FermataDuration::VeryShort;
-        case classify::articulation::Fermata::Duration::Short: return mnxdom::FermataDuration::Short;
-        case classify::articulation::Fermata::Duration::Long: return mnxdom::FermataDuration::Long;
-        case classify::articulation::Fermata::Duration::VeryLong: return mnxdom::FermataDuration::VeryLong;
-        }
-        throw std::logic_error("Unhandled fermata duration.");
-    };
-
     mnxdom::Fermata result;
-    result.set_or_clear_symbol(convertSymbol(fermata.shape));
-    result.set_or_clear_duration(convertDuration(fermata.duration));
-    result.set_or_clear_orient(enumConvert<mnxdom::Orientation>(placement));
+    result.set_or_clear_symbol(enumConvert<mnxdom::FermataSymbol>(fermata.shape));
+    result.set_or_clear_duration(enumConvert<mnxdom::FermataDuration>(fermata.duration));
+    result.set_or_clear_placement(enumConvert<mnxdom::Placement>(placement));
     result.set_or_clear_pointing(enumConvert<mnxdom::MarkingUpDownAuto>(glyphStyle.placement));
     return result;
 }
@@ -76,7 +52,21 @@ mnxdom::sequence::BreathMark makeBreathMark(const classify::articulation::Breath
 {
     mnxdom::sequence::BreathMark result;
     result.set_or_clear_symbol(enumConvert<mnxdom::BreathMarkSymbol>(breathMark.type));
-    result.set_or_clear_orient(enumConvert<mnxdom::Orientation>(placement));
+    result.set_or_clear_placement(enumConvert<mnxdom::Placement>(placement));
+    return result;
+}
+
+mnxdom::sequence::Caesura makeCaesura(const classify::articulation::Caesura& caesura)
+{
+    constexpr unsigned singleStroke = 1;
+    constexpr unsigned doubleStroke = 2;
+    mnxdom::sequence::Caesura result;
+    result.set_or_clear_shape(enumConvert<mnxdom::CaesuraShape>(caesura.type));
+    switch (caesura.type) {
+    case classify::articulation::Caesura::Type::SingleStroke: result.set_or_clear_marks(singleStroke); break;
+    case classify::articulation::Caesura::Type::Chant: result.set_or_clear_marks(singleStroke); break;
+    default: result.set_or_clear_marks(doubleStroke); break;
+    }
     return result;
 }
 
@@ -367,79 +357,102 @@ static std::optional<mnxdom::sequence::EventMarkingBase> createEventMarking(
     return std::nullopt;
 }
 
+static void appendNoteSlide(mnxdom::sequence::Event& mnxEvent, const classify::articulation::NoteSlide& slide)
+{
+    const auto mnxNotes = mnxEvent.notes();
+    if (!slide.note || !mnxNotes) {
+        return;
+    }
+    const auto noteId = core::calcNoteId(slide.note);
+    for (size_t x = 0; x < mnxNotes->size(); x++) {
+        auto mnxNote = mnxNotes->at(x);
+        if (mnxNote.id_or("") != noteId) {
+            continue;
+        }
+        auto mnxMarkings = mnxNote.ensure_markings();
+        switch (slide.type) {
+        case classify::articulation::NoteSlide::Type::Scoop: mnxMarkings.ensure_slideIn(mnxdom::SlideIntoNoteType::Scoop); break;
+        case classify::articulation::NoteSlide::Type::Plop: mnxMarkings.ensure_slideIn(mnxdom::SlideIntoNoteType::Plop); break;
+        case classify::articulation::NoteSlide::Type::Falloff: mnxMarkings.ensure_slideOut(mnxdom::SlideOutOfNoteType::Falloff); break;
+        case classify::articulation::NoteSlide::Type::Doit: mnxMarkings.ensure_slideOut(mnxdom::SlideOutOfNoteType::Doit); break;
+        }
+        return;
+    }
+}
+
 void processArticulations(const MnxMusxMappingPtr& context, mnxdom::sequence::Event& mnxEvent, const EntryInfoPtr& musxEntryInfo)
 {
-    const auto musxEntry = musxEntryInfo->getEntry();
     auto mnxPartMeasure = mnxEvent.getEnclosingElement<mnxdom::part::Measure>();
     ASSERT_IF (!mnxPartMeasure) {
         context->logMessage(LogMsg() << "no part measure exists for " << mnxEvent.dump(4), MessageSeverity::Warning);
         return;
     }
-    auto articAssigns = context->document->getDetails()->getArray<details::ArticulationAssign>(SCORE_PARTID, musxEntry->getEntryNumber());
-    for (const auto& asgn : articAssigns) {
-        if (!asgn->hide) { /// @todo eliminate this filter if MNX provides visibility options
-            if (const auto classification = classify::classifyArticulation(asgn, musxEntryInfo)) {
-                std::visit(
-                    [&](const auto& classified) {
-                        using Value = std::decay_t<decltype(classified)>;
-                        if constexpr (std::is_same_v<Value, classify::articulation::Fermata>) {
-                            if (auto mnxFermata = makeFermata(classified, classified.glyphStyle, classification.placement)) {
-                                mnxEvent.set_fermata(mnxFermata.value());
-                            }
-                        } else if constexpr (std::is_same_v<Value, classify::articulation::BreathMark>) {
-                            mnxEvent.ensure_markings().set_breath(makeBreathMark(classified, classification.placement));
-                        } else if constexpr (std::is_same_v<Value, classify::articulation::Arpeggio>) {
-                            if (classified.candidate) {
-                                appendArpeggioCandidate(context, mnxPartMeasure.value(), classified.candidate.value());
-                            }
-                        } else if constexpr (std::is_same_v<Value, classify::articulation::VerticalEntryBracket>) {
-                            if (auto candidate = musx::util::calcNonArpeggioSpanForAssignment(musxEntryInfo, asgn)) {
-                                appendArpeggioCandidate(context, mnxPartMeasure.value(), candidate.value());
-                            }
-                        } else if constexpr (std::is_same_v<Value, classify::PseudoTie>) {
+    /// @todo Include hidden assignments if MNX provides visibility options.
+    for (const auto& classification : classify::classifyArticulations(musxEntryInfo, {.includeHidden = false})) {
+        if (classification) {
+            std::visit(
+                [&](const auto& classified) {
+                    using Value = std::decay_t<decltype(classified)>;
+                    if constexpr (std::is_same_v<Value, classify::articulation::Fermata>) {
+                        if (auto mnxFermata = makeFermata(classified, classified.glyphStyle, classification.placement)) {
+                            mnxEvent.set_fermata(mnxFermata.value());
+                        }
+                    } else if constexpr (std::is_same_v<Value, classify::articulation::BreathMark>) {
+                        mnxEvent.ensure_markings().set_breath(makeBreathMark(classified, classification.placement));
+                    } else if constexpr (std::is_same_v<Value, classify::articulation::Caesura>) {
+                        mnxEvent.ensure_markings().set_caesura(makeCaesura(classified));
+                    } else if constexpr (std::is_same_v<Value, classify::articulation::Arpeggio>) {
+                        if (classified.candidate) {
+                            appendArpeggioCandidate(context, mnxPartMeasure.value(), classified.candidate.value());
+                        }
+                    } else if constexpr (std::is_same_v<Value, classify::articulation::VerticalEntryBracket>) {
+                        if (auto candidate = musx::util::calcNonArpeggioSpanForAssignment(musxEntryInfo, classification.assignment)) {
+                            appendArpeggioCandidate(context, mnxPartMeasure.value(), candidate.value());
+                        }
+                    } else if constexpr (std::is_same_v<Value, classify::PseudoTie>) {
                         // Pseudo ties are processed by createTies at the note level.
-                        } else if constexpr (std::is_same_v<Value, classify::articulation::Tremolo>) {
+                    } else if constexpr (std::is_same_v<Value, classify::articulation::Tremolo>) {
+                        auto mnxMarkings = mnxEvent.ensure_markings();
+                        auto mnxMarking = mnxMarkings.ensure_tremolo(classified.marks);
+                        mnxMarking.set_or_clear_placement(enumConvert<mnxdom::Placement>(classification.placement));
+                    } else if constexpr (std::is_same_v<Value, classify::articulation::ArticulationMarks>) {
+                        for (const auto& mark : classified.marks) {
                             auto mnxMarkings = mnxEvent.ensure_markings();
-                            auto mnxMarking = mnxMarkings.ensure_tremolo(classified.marks);
-                            mnxMarking.set_or_clear_orient(enumConvert<mnxdom::Orientation>(classification.placement));
-                        } else if constexpr (std::is_same_v<Value, classify::articulation::ArticulationMarks>) {
-                            for (const auto& mark : classified.marks) {
-                                auto mnxMarkings = mnxEvent.ensure_markings();
-                                if (auto mnxMarking = createEventMarking(mnxMarkings, mark)) {
-                                    mnxMarking->set_or_clear_orient(enumConvert<mnxdom::Orientation>(classification.placement));
-                                }
-                            }
-                        } else if constexpr (std::is_same_v<Value, classify::articulation::TechniqueMark>) {
-                            auto mnxMarkings = mnxEvent.ensure_markings();
-                            if (auto mnxMarking = createEventMarking(mnxMarkings, classified)) {
-                                mnxMarking->set_or_clear_orient(enumConvert<mnxdom::Orientation>(classification.placement));
+                            if (auto mnxMarking = createEventMarking(mnxMarkings, mark)) {
+                                mnxMarking->set_or_clear_placement(enumConvert<mnxdom::Placement>(classification.placement));
                             }
                         }
-                    },
-                    classification.value);
-            }
+                    } else if constexpr (std::is_same_v<Value, classify::articulation::NoteSlide>) {
+                        appendNoteSlide(mnxEvent, classified);
+                    } else if constexpr (std::is_same_v<Value, classify::articulation::BracketEnclosure>) {
+                        /// @todo Enclose the note or rest once MNX can express a bracket enclosure.
+                    } else if constexpr (std::is_same_v<Value, classify::articulation::TechniqueMark>) {
+                        auto mnxMarkings = mnxEvent.ensure_markings();
+                        if (auto mnxMarking = createEventMarking(mnxMarkings, classified)) {
+                            mnxMarking->set_or_clear_placement(enumConvert<mnxdom::Placement>(classification.placement));
+                        }
+                    }
+                },
+                classification.value);
         }
     }
 }
 
-void processArticulations(const MnxMusxMappingPtr& context, mnxdom::sequence::FullMeasureRest& mnxFullMeasureRest, const EntryInfoPtr& musxEntryInfo)
+void processArticulations(
+    [[maybe_unused]] const MnxMusxMappingPtr& context, mnxdom::sequence::FullMeasureRest& mnxFullMeasureRest, const EntryInfoPtr& musxEntryInfo)
 {
-    auto articAssigns =
-        context->document->getDetails()->getArray<details::ArticulationAssign>(SCORE_PARTID, musxEntryInfo->getEntry()->getEntryNumber());
-    for (const auto& asgn : articAssigns) {
-        if (!asgn->hide) {
-            if (const auto classification = classify::classifyArticulation(asgn, musxEntryInfo)) {
-                std::visit(
-                    [&](const auto& classified) {
-                        using Value = std::decay_t<decltype(classified)>;
-                        if constexpr (std::is_same_v<Value, classify::articulation::Fermata>) {
-                            if (const auto mnxFermata = makeFermata(classified, classified.glyphStyle, classification.placement)) {
-                                mnxFullMeasureRest.set_fermata(mnxFermata.value());
-                            }
+    for (const auto& classification : classify::classifyArticulations(musxEntryInfo, {.includeHidden = false})) {
+        if (classification) {
+            std::visit(
+                [&](const auto& classified) {
+                    using Value = std::decay_t<decltype(classified)>;
+                    if constexpr (std::is_same_v<Value, classify::articulation::Fermata>) {
+                        if (const auto mnxFermata = makeFermata(classified, classified.glyphStyle, classification.placement)) {
+                            mnxFullMeasureRest.set_fermata(mnxFermata.value());
                         }
-                    },
-                    classification.value);
-            }
+                    }
+                },
+                classification.value);
         }
     }
 }

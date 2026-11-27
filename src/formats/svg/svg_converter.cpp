@@ -22,8 +22,8 @@
 #include <memory>
 #include <vector>
 
-#include "core/denigma.h"
 #include "formats/enigmaxml/enigmaxml.h"
+#include "input/input.h"
 #include "svg.h"
 #include "utils/stringutils.h"
 
@@ -49,6 +49,7 @@ musx::util::SvgConvert::SvgUnit toMusxSvgUnit(Unit unit)
 
 void applySvgOptions(DenigmaContext& context, const Options& options)
 {
+    context.musResources = options.common.musResources;
     context.noValidate = !options.common.validate;
     context.verbose = options.common.verbose;
     context.quiet = options.common.quiet;
@@ -61,10 +62,8 @@ void applySvgOptions(DenigmaContext& context, const Options& options)
     }
 }
 
-} // namespace
-
-ConversionResult EnigmaXmlToSvgConverter::convert(
-    std::span<const std::byte> input, const MultiOutputCallback& outputCallback, const Options& options) const
+ConversionResult convertDocumentInput(
+    std::span<const std::byte> input, const MultiOutputCallback& outputCallback, const Options& options, FormatId sourceFormat)
 {
     ConversionResult result;
     Buffer buffer;
@@ -74,15 +73,28 @@ ConversionResult EnigmaXmlToSvgConverter::convert(
     }
 
     DenigmaContext context(DENIGMA_NAME);
-    context.inputFilePath =
-        options.common.sourceName.empty() ? std::filesystem::path("input.enigmaxml") : utils::utf8ToPath(options.common.sourceName);
+    context.inputFilePath = options.common.sourceName.empty()
+                                ? std::filesystem::path((sourceFormat == FormatId::Mus ? "input.mus" : "input.enigmaxml"))
+                                : utils::utf8ToPath(options.common.sourceName);
     context.logCallback = options.common.logCallback;
     context.conversionResult = &result;
     applySvgOptions(context, options);
     MusxLoggerScope musxLogger(makeMusxLogCallback(context));
 
-    formats::svg::detail::convert(CommandInputData{std::move(buffer), std::nullopt, {}}, context, outputCallback);
+    try {
+        formats::svg::detail::convert(CommandInputData{std::move(buffer), std::nullopt, {}, sourceFormat}, context, outputCallback);
+    } catch (const std::exception& error) {
+        context.logMessage(LogMsg() << error.what(), MessageSeverity::Error);
+    }
     return result;
+}
+
+} // namespace
+
+ConversionResult EnigmaXmlToSvgConverter::convert(
+    std::span<const std::byte> input, const MultiOutputCallback& outputCallback, const Options& options) const
+{
+    return convertDocumentInput(input, outputCallback, options, FormatId::EnigmaXml);
 }
 
 ConversionResult EnigmaXmlToSvgConverter::convert(
@@ -112,9 +124,21 @@ ConversionResult MusxToSvgConverter::convert(
     return convert(input, outputCallback, optionsFromRequest<Options>(request, "MusxToSvgConverter"));
 }
 
+ConversionResult MusToSvgConverter::convert(std::span<const std::byte> input, const MultiOutputCallback& outputCallback, const Options& options) const
+{
+    return convertDocumentInput(input, outputCallback, options, FormatId::Mus);
+}
+
+ConversionResult MusToSvgConverter::convert(
+    std::span<const std::byte> input, const MultiOutputCallback& outputCallback, const ConversionRequest& request) const
+{
+    return convert(input, outputCallback, optionsFromRequest<Options>(request, "MusToSvgConverter"));
+}
+
 void registerConverters(ConverterRegistry& registry)
 {
     registry.add(std::make_unique<EnigmaXmlToSvgConverter>());
+    registry.add(std::make_unique<MusToSvgConverter>());
     registry.add(std::make_unique<MusxToSvgConverter>());
 }
 

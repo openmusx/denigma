@@ -18,23 +18,30 @@
  */
 
 #include <algorithm>
+#include <cstddef>
 #include <filesystem>
 #include <map>
 #include <optional>
 #include <set>
+#include <span>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <tuple>
 #include <utility>
 #include <vector>
 
 #include "denigma/classify/articulations.h"
+#include "denigma/classify/noteheads.h"
+#include "denigma/formats/musicxml.h"
+#include "denigma/io/random_access_reader.h"
 #include "formats/musicxml/musicxml.h"
 #include "musicxml_test.h"
 #include "musx/util/Fraction.h"
 #include "mx/api/MarkDataChoice.h"
 #include "mx/api/ScoreData.h"
 #include "pugixml.hpp"
+#include "test_playback_resources.h"
 #include "test_utils.h"
 #include "gtest/gtest.h"
 
@@ -1034,6 +1041,102 @@ TEST(MusicXmlNotes, ArtificialHarmonicsExportSmoke)
     expectArtificialHarmonicNotes(*actualScore, expectedNotes);
 }
 
+TEST(MusicXmlNotes, NoteheadParenthesesFromEnclosingArticulations)
+{
+    setupTestDataPaths();
+
+    const auto outputPath = exportMusicXmlFixture("notehead_enclosures.enigmaxml");
+    const auto score = loadScoreData(outputPath);
+    ASSERT_TRUE(score);
+
+    // The fixture's cases occupy entries 60 to 102; see test_articulations.cpp. The hidden enclosure (entry 93) is not
+    // written, and the brackets (entry 70) and the rest cases (entries 94 to 102) are written as levels; see
+    // LevelFromEnclosingArticulations.
+    const std::set<std::string> expectedIds = {
+        "ev60n1", // legacy Maestro parentheses
+        "ev61n1", // closing delimiter at the vertical tolerance from the opening
+        "ev63n1", // at the bottom of the note's window
+        "ev65n1", // just under the top of the note's window
+        "ev74n1", // lower note of a chord with a second
+        "ev74n2", // upper note of a chord with a second
+        "ev75n1", // SMuFL notehead parentheses
+        "ev76n1", // SMuFL accidental parentheses
+        "ev78n1", // closing delimiter assigned first
+        "ev79n1", // grace note
+        "ev80n1", // closing delimiter right of a grace-size notehead's center
+        "ev82n1", // lower note of a chord with a second, closer to the handle than the upper note
+        "ev83n1", // delimiters centered on the notehead and offset
+        "ev85n1", // centered delimiters on a second drawn left of the primary notehead column
+        "ev87n1", // closing delimiter right of a whole notehead's center
+        "ev89n1", // closing delimiter right of a double whole notehead's center
+        "ev91n1", // manually positioned delimiters on a second drawn left of the primary notehead column
+    };
+    std::set<std::string> actualIds;
+    for (const auto& part : score->parts) {
+        for (const auto& measure : part.measures) {
+            for (const auto& staff : measure.staves) {
+                for (const auto& [voiceNumber, voice] : staff.voices) {
+                    for (const auto& note : voice.notes) {
+                        if (note.noteheadParentheses == mx::api::Bool::yes) {
+                            ASSERT_TRUE(note.id);
+                            actualIds.insert(note.id->value());
+                        }
+                    }
+                }
+            }
+        }
+    }
+    EXPECT_EQ(actualIds, expectedIds);
+}
+
+TEST(MusicXmlNotes, LevelFromEnclosingArticulations)
+{
+    setupTestDataPaths();
+
+    const auto outputPath = exportMusicXmlFixture("notehead_enclosures.enigmaxml");
+    const auto score = loadScoreData(outputPath);
+    ASSERT_TRUE(score);
+
+    // Brackets around a note, and any enclosure around a rest, are written as <level>, which keeps brackets as
+    // brackets. Parentheses around a note stay notehead parentheses.
+    enum class Kind {
+        Parentheses,
+        Brackets
+    };
+    const std::map<std::string, Kind> expectedLevels = {
+        {"ev70n1", Kind::Brackets},   // brackets around a note
+        {"ev94", Kind::Parentheses},  // parentheses around a floating rest
+        {"ev95", Kind::Parentheses},  // parentheses around a positioned rest
+        {"ev96", Kind::Brackets},     // brackets around a rest
+        {"ev97", Kind::Parentheses},  // at the bottom of the rest's window
+        {"ev99", Kind::Parentheses},  // just under the top of the rest's window
+        {"ev102", Kind::Parentheses}, // delimiters centered on the rest and offset
+    };
+    std::map<std::string, Kind> actualLevels;
+    for (const auto& part : score->parts) {
+        for (const auto& measure : part.measures) {
+            for (const auto& staff : measure.staves) {
+                for (const auto& [voiceNumber, voice] : staff.voices) {
+                    for (const auto& note : voice.notes) {
+                        if (!note.level) {
+                            continue;
+                        }
+                        ASSERT_TRUE(note.id);
+                        EXPECT_EQ(note.noteheadParentheses, mx::api::Bool::unspecified) << note.id->value();
+                        EXPECT_TRUE(note.level->text.empty()) << note.id->value();
+                        const bool parentheses = note.level->parentheses == mx::api::Bool::yes;
+                        const bool brackets = note.level->bracket == mx::api::Bool::yes;
+                        EXPECT_NE(parentheses, brackets) << note.id->value();
+                        EXPECT_TRUE(brackets || note.isRest) << note.id->value();
+                        actualLevels.emplace(note.id->value(), brackets ? Kind::Brackets : Kind::Parentheses);
+                    }
+                }
+            }
+        }
+    }
+    EXPECT_EQ(actualLevels, expectedLevels);
+}
+
 TEST(MusicXmlNotes, ArtificialHarmonicsWithWrittenSoundingPitch)
 {
     setupTestDataPaths();
@@ -1261,6 +1364,18 @@ TEST(MusicXmlNotes, CaesuraVariantsMapToMusicXml)
     EXPECT_EQ(convert(CaesuraType::Chant), mx::api::MarkType::caesura);
 }
 
+TEST(MusicXmlNotes, SlashedAndCircledNoteheadsMapToMusicXml)
+{
+    using Shape = classify::notehead::Shape;
+    const auto convert = [](Shape shape) { return formats::musicxml::detail::enumConvert<mx::api::Notehead>(shape); };
+
+    EXPECT_EQ(convert(Shape::Circled), mx::api::Notehead::circled);
+    EXPECT_EQ(convert(Shape::LargeCircled), mx::api::Notehead::circled);
+    EXPECT_EQ(convert(Shape::Round), mx::api::Notehead::other);
+    EXPECT_EQ(convert(Shape::Slashed), mx::api::Notehead::slashed);
+    EXPECT_EQ(convert(Shape::BackSlashed), mx::api::Notehead::backSlashed);
+}
+
 TEST(MusicXmlNotes, UnmappedTechniquesCarryTheirSmuflGlyph)
 {
     setupTestDataPaths();
@@ -1395,14 +1510,14 @@ TEST(MusicXmlNotes, ShapeNoteNoteheadsExportSmoke)
     const auto actualScore = loadScoreData(outputPath);
     ASSERT_TRUE(actualScore);
 
-    // note_shapes.musx assigns Finale shape-note noteheads (square, triangle, ...) to some staves.
-    // None of those shapes are in Denigma's specifically-recognized set (Regular/X/Diamond/Slash/Circle),
-    // so they should come through as mx::api::Notehead::other rather than being silently dropped.
-    // Since "other" carries no visual information by itself, each one must also name its SMuFL glyph.
+    // note_shapes.musx assigns Finale shape-note noteheads (square and triangle) to some staves. Both
+    // have MusicXML values of their own. Any notehead that exports as "other" carries no visual
+    // information by itself, so it must also name its SMuFL glyph.
     //
     // The fixture also assigns the hollow half-note glyph as the quarter-note shape on some staves.
     // MusicXML would otherwise draw those solid, from the duration, so they must say filled="no".
-    size_t otherNoteheadCount = 0;
+    size_t squareNoteheadCount = 0;
+    size_t triangleNoteheadCount = 0;
     size_t hollowShortNoteCount = 0;
     for (const auto& part : actualScore->parts) {
         for (const auto& measure : part.measures) {
@@ -1410,10 +1525,15 @@ TEST(MusicXmlNotes, ShapeNoteNoteheadsExportSmoke)
                 for (const auto& [voiceIndex, voice] : staff.voices) {
                     (void)voiceIndex;
                     for (const auto& note : voice.notes) {
+                        if (note.notehead == mx::api::Notehead::square) {
+                            ++squareNoteheadCount;
+                        }
+                        if (note.notehead == mx::api::Notehead::triangle) {
+                            ++triangleNoteheadCount;
+                        }
                         if (note.notehead == mx::api::Notehead::other) {
-                            ++otherNoteheadCount;
                             ASSERT_TRUE(note.noteheadSmufl.has_value());
-                            EXPECT_TRUE(note.noteheadSmufl->starts_with("notehead")) << *note.noteheadSmufl;
+                            EXPECT_FALSE(note.noteheadSmufl->empty());
                         }
                         const bool isShort = note.durationData.durationName >= mx::api::DurationName::quarter;
                         if (isShort && note.noteheadFilled == mx::api::Bool::no) {
@@ -1429,7 +1549,8 @@ TEST(MusicXmlNotes, ShapeNoteNoteheadsExportSmoke)
             }
         }
     }
-    EXPECT_GT(otherNoteheadCount, 0u) << "expected at least one shape-note notehead to export as mx::api::Notehead::other";
+    EXPECT_GT(squareNoteheadCount, 0u) << "expected at least one shape-note notehead to export as mx::api::Notehead::square";
+    EXPECT_GT(triangleNoteheadCount, 0u) << "expected at least one shape-note notehead to export as mx::api::Notehead::triangle";
     EXPECT_GT(hollowShortNoteCount, 0u) << "expected at least one hollow notehead on a quarter note or shorter";
 }
 
@@ -1586,5 +1707,225 @@ TEST(MusicXmlNotes, NoteAndMeasureIdsUseMnxScheme)
                 }
             }
         }
+    }
+}
+
+TEST(MusicXmlNotes, NotesShorterThan1024thExportWithoutType)
+{
+    setupTestDataPaths();
+
+    // Layer 4 holds hidden 4096th notes (a trill-playback trick), layer 1 a visible triplet of
+    // 2048ths. MusicXML's note-type-value stops at 1024th, so both export without <type>, as
+    // Finale's own export in musicxml/note-4096th-ref.musicxml does. MX can write the tuplet
+    // notation without naming its durations. The hidden entries deserve no warning, so they log at
+    // Info; the visible notes log at Warning.
+    denigma::ConverterRegistry registry;
+    denigma::formats::musicxml::registerConverters(registry);
+    const auto* converter = registry.findReaderMultiOutput(denigma::FormatId::Musx, denigma::FormatId::MusicXml);
+    ASSERT_NE(converter, nullptr);
+
+    denigma::FileRandomAccessReader input(getInputPath() / "note-4096th.musx");
+    std::string xmlText;
+    denigma::formats::musicxml::Options options;
+    options.common.sourceName = "note-4096th.musx";
+    // Only warnings and errors reach the conversion result; the log callback sees every level.
+    std::vector<denigma::Diagnostic> diagnostics;
+    options.common.logCallback = [&](denigma::MessageSeverity severity, std::string_view message) {
+        diagnostics.push_back({severity, std::string(message)});
+    };
+    const auto result = converter->convert(
+        input, [&](std::string_view, std::span<const std::byte> data) { xmlText.assign(reinterpret_cast<const char*>(data.data()), data.size()); },
+        denigma::ConversionRequest{&options});
+    ASSERT_FALSE(result.hasError());
+
+    size_t infoCount = 0;
+    size_t warningCount = 0;
+    size_t tupletWarningCount = 0;
+    for (const auto& diagnostic : diagnostics) {
+        if (diagnostic.message.find("MusicXML cannot name") == std::string::npos) {
+            continue;
+        }
+        const bool isTuplet = diagnostic.message.find("starts a tuplet") != std::string::npos;
+        if (diagnostic.severity == denigma::MessageSeverity::Info) {
+            EXPECT_FALSE(isTuplet) << diagnostic.message;
+            EXPECT_NE(diagnostic.message.find("Layer 4"), std::string::npos) << diagnostic.message;
+            EXPECT_NE(diagnostic.message.find("4096th"), std::string::npos) << diagnostic.message;
+            ++infoCount;
+        } else {
+            EXPECT_EQ(diagnostic.severity, denigma::MessageSeverity::Warning) << diagnostic.message;
+            EXPECT_NE(diagnostic.message.find("Layer 1"), std::string::npos) << diagnostic.message;
+            if (isTuplet) {
+                ++tupletWarningCount;
+            } else {
+                EXPECT_NE(diagnostic.message.find("2048th"), std::string::npos) << diagnostic.message;
+                ++warningCount;
+            }
+        }
+    }
+    EXPECT_EQ(infoCount, 8u);
+    EXPECT_EQ(warningCount, 3u);
+    EXPECT_EQ(tupletWarningCount, 0u);
+
+    pugi::xml_document document;
+    ASSERT_TRUE(document.load_string(xmlText.c_str()));
+    const auto part = document.child("score-partwise").child("part");
+    ASSERT_TRUE(part);
+    const int divisions = part.child("measure").child("attributes").child("divisions").text().as_int();
+    ASSERT_GT(divisions, 0);
+    const int ticksPer1024th = divisions * 4 / 1024;
+    ASSERT_GT(ticksPer1024th, 0);
+
+    size_t typelessCount = 0;
+    size_t typelessInTuplet = 0;
+    size_t tupletNotations = 0;
+    for (const auto measure : part.children("measure")) {
+        for (const auto note : measure.children("note")) {
+            tupletNotations += note.child("notations").child("tuplet") ? 1 : 0;
+            const bool hasType = bool(note.child("type"));
+            const int duration = note.child("duration").text().as_int();
+            const bool inTuplet = bool(note.child("time-modification"));
+            // A tuplet member's <duration> is scaled by the ratio, so compare the nominal length.
+            const int nominalDuration = inTuplet ? duration * note.child("time-modification").child("actual-notes").text().as_int()
+                                                       / note.child("time-modification").child("normal-notes").text().as_int()
+                                                 : duration;
+            EXPECT_EQ(hasType, nominalDuration >= ticksPer1024th) << measure.attribute("number").value() << ": " << nominalDuration;
+            if (!hasType) {
+                EXPECT_FALSE(note.child("dot"));
+                ++typelessCount;
+                typelessInTuplet += inTuplet ? 1 : 0;
+            }
+        }
+    }
+    EXPECT_EQ(typelessCount, 11u);
+    EXPECT_EQ(typelessInTuplet, 3u);
+    // The 2048th triplet keeps its notation even though MusicXML cannot name its durations.
+    EXPECT_EQ(tupletNotations, 2u);
+}
+
+TEST(MusicXmlNotes, KitPiecesPlayTheirDeviceKeys)
+{
+    setupTestDataPaths();
+
+    // The instrument each kit note in drumset.musx names, and the <midi-unpitched> of every declared instrument.
+    struct Expected
+    {
+        std::vector<std::pair<std::string, int>> unpitchedByInstrument;
+        std::map<std::string, std::string> instrumentByNote;
+    };
+    const auto exportWith = [](const std::optional<std::vector<std::pair<int, int>>>& keysByNoteType) {
+        return createScoreDataFromMusicXmlFixture(
+            "drumset.musx", denigma::test::createSyntheticPlaybackResources(denigma::test::DRUMSET_SOUND_UUID, keysByNoteType));
+    };
+    const auto check = [](const std::optional<mx::api::ScoreData>& score, const Expected& expected, const std::string& label) {
+        ASSERT_TRUE(score) << label;
+        ASSERT_EQ(score->parts.size(), 1u) << label;
+        const auto& part = score->parts[0];
+        std::vector<std::pair<std::string, int>> unpitchedByInstrument;
+        for (const auto& instrument : part.additionalInstruments) {
+            unpitchedByInstrument.emplace_back(instrument.uniqueId, instrument.midiData.unpitched);
+        }
+        EXPECT_EQ(unpitchedByInstrument, expected.unpitchedByInstrument) << label;
+        std::map<std::string, std::string> instrumentByNote;
+        for (const auto& measure : part.measures) {
+            for (const auto& staff : measure.staves) {
+                for (const auto& [voiceNumber, voice] : staff.voices) {
+                    for (const auto& note : voice.notes) {
+                        if (note.id && expected.instrumentByNote.contains(note.id->value())) {
+                            EXPECT_TRUE(note.isUnpitched) << label << " " << note.id->value();
+                            ASSERT_EQ(note.instruments.size(), 1u) << label << " " << note.id->value();
+                            instrumentByNote.emplace(note.id->value(), note.instruments.front());
+                        }
+                    }
+                }
+            }
+        }
+        EXPECT_EQ(instrumentByNote, expected.instrumentByNote) << label;
+    };
+
+    // The device's keys replace General MIDI's (kick 36, low woodblock 77), and the low woodblock, which the
+    // device does not list, plays its parent instrument, the high woodblock (note type 10).
+    check(exportWith({{{2, 40}, {10, 50}}}), {{{"P1-pn2", 41}, {"P1-pn11", 51}, {"P1-M75", 76}}, {{"ev125n1", "P1-pn2"}, {"ev126n1", "P1-pn11"}}},
+        "parent instrument");
+    // A device that lists neither the woodblock nor its parent plays no kit piece for it, so the staff's
+    // instrument stands for it.
+    check(exportWith({{{2, 40}}}), {{{"P1-pn2", 41}, {"P1-M75", 76}}, {{"ev125n1", "P1-pn2"}, {"ev126n1", "P1-I1"}}}, "unlisted");
+    // A sound with no percussion map leaves General MIDI's keys in place.
+    check(exportWith(std::nullopt), {{{"P1-pn2", 37}, {"P1-pn11", 78}, {"P1-M75", 76}}, {{"ev125n1", "P1-pn2"}, {"ev126n1", "P1-pn11"}}},
+        "no percussion map");
+}
+
+TEST(MusicXmlNotes, PercussionKitNotesAreUnpitchedKitPieces)
+{
+    setupTestDataPaths();
+
+    const auto score = createScoreDataFromMusicXmlFixture("drumset.musx");
+    ASSERT_TRUE(score);
+    ASSERT_EQ(score->parts.size(), 1u);
+    const auto& part = score->parts[0];
+
+    // The staff's own instrument stays first, and each kit piece a note plays follows it. Kit pieces are
+    // named by note type, and an instrument for a key no map assigns by that key.
+    EXPECT_EQ(part.instrumentData.uniqueId, "P1-I1");
+    EXPECT_EQ(part.instrumentData.soundID, mx::api::SoundID::drumGroupSet);
+    std::vector<std::string> additionalIds;
+    for (const auto& instrument : part.additionalInstruments) {
+        additionalIds.emplace_back(instrument.uniqueId);
+    }
+    EXPECT_EQ(additionalIds, (std::vector<std::string>{"P1-pn2", "P1-pn11", "P1-M75"}));
+
+    // Finale's own export of drumset.musx is the reference for every note: whether it is unpitched, where it
+    // is displayed, and which instrument plays it. The instrument ids differ, so instruments are compared by
+    // name and MIDI key.
+    const auto reference = loadScoreData(getInputPath() / "musicxml/drumset-ref.musicxml");
+    ASSERT_TRUE(reference);
+    ASSERT_EQ(reference->parts.size(), 1u);
+    const auto& referencePart = reference->parts[0];
+
+    struct PlayedNote
+    {
+        bool isUnpitched{};
+        mx::api::Step step{};
+        int alter{};
+        int octave{};
+        std::string instrumentName;
+        int midiUnpitched{};
+        bool operator==(const PlayedNote&) const = default;
+    };
+    const auto collectNotes = [](const mx::api::PartData& musicXmlPart) {
+        std::map<std::string, const mx::api::InstrumentData*> instruments{{musicXmlPart.instrumentData.uniqueId, &musicXmlPart.instrumentData}};
+        for (const auto& instrument : musicXmlPart.additionalInstruments) {
+            instruments.emplace(instrument.uniqueId, &instrument);
+        }
+        std::vector<PlayedNote> result;
+        for (const auto& measure : musicXmlPart.measures) {
+            for (const auto& staff : measure.staves) {
+                for (const auto& [voiceNumber, voice] : staff.voices) {
+                    for (const auto& note : voice.notes) {
+                        if (note.isRest) {
+                            continue;
+                        }
+                        PlayedNote played{note.isUnpitched, note.pitchData.step, note.pitchData.alter, note.pitchData.octave, {}, {}};
+                        if (note.instruments.size() == 1) {
+                            if (const auto it = instruments.find(note.instruments.front()); it != instruments.end()) {
+                                played.instrumentName = it->second->name;
+                                played.midiUnpitched = it->second->midiData.unpitched;
+                            }
+                        }
+                        result.emplace_back(played);
+                    }
+                }
+            }
+        }
+        return result;
+    };
+    const auto actualNotes = collectNotes(part);
+    const auto expectedNotes = collectNotes(referencePart);
+    ASSERT_EQ(actualNotes.size(), expectedNotes.size());
+    for (size_t index = 0; index < actualNotes.size(); ++index) {
+        EXPECT_EQ(actualNotes[index], expectedNotes[index]) << "note " << index;
+    }
+    // Every note names one instrument, and the reference confirms which.
+    for (const auto& note : actualNotes) {
+        EXPECT_FALSE(note.instrumentName.empty());
     }
 }

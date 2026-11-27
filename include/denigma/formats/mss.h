@@ -58,6 +58,21 @@ public:
         std::span<const std::byte> input, const MultiOutputCallback& outputCallback, const ConversionRequest& request = {}) const override;
 };
 
+/// @brief Converts legacy MUS bytes using the format's existing export options.
+class MusToMssXmlMultiOutputConverter final : public IMultiOutputConverter
+{
+public:
+    [[nodiscard]] FormatId sourceFormat() const override { return FormatId::Mus; }
+    [[nodiscard]] FormatId targetFormat() const override { return FormatId::MssXml; }
+
+    /// Converts legacy MUS from memory and invokes outputCallback for each MSS document.
+    ConversionResult convert(std::span<const std::byte> input, const MultiOutputCallback& outputCallback, const Options& options = {}) const;
+
+    /// Converts legacy MUS using type-erased registry options.
+    ConversionResult convert(
+        std::span<const std::byte> input, const MultiOutputCallback& outputCallback, const ConversionRequest& request = {}) const override;
+};
+
 /// @class MusxToMssXmlMultiOutputConverter
 /// @brief Converter adapter for MUSX archive input to one or more MuseScore style XML outputs.
 class MusxToMssXmlMultiOutputConverter final : public IReaderMultiOutputConverter

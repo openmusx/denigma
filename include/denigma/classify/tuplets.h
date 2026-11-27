@@ -16,41 +16,31 @@
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
  */
-#include <string_view>
+#pragma once
 
-#include "gap_report_json.h"
+#include "musx/musx.h"
 
 namespace denigma {
-namespace gap_report {
+namespace classify {
 
-namespace {
-
-using namespace classify;
-
-std::string_view wordExtensionKindName(lyric::WordExtensionKind kind)
+/// @struct TupletClassification
+/// @brief Shared display properties resolved from a Finale tuplet definition.
+struct TupletClassification
 {
-    switch (kind) {
-    case lyric::WordExtensionKind::None: return "none";
-    case lyric::WordExtensionKind::Smart: return "smart";
-    case lyric::WordExtensionKind::Legacy: return "legacy";
-    }
-    return "none";
-}
+    /// Vertical relationship of the tuplet to its notes.
+    musx::dom::VerticalPlacement placement{musx::dom::VerticalPlacement::NotApplicable};
+    /// Whether Finale's settings call for a bracket after resolving its automatic bracket rule.
+    bool showBracket{};
+    /// Whether Finale's settings call for a tuplet number or ratio.
+    bool showNumber{};
+};
 
-} // namespace
+/// Classifies shared tuplet display properties using the tuplet's complete entry span.
+[[nodiscard]]
+TupletClassification classifyTuplet(const musx::dom::EntryFrame::TupletInfo& tupletInfo, const musx::dom::EntryInfoPtr& firstEntryInfo);
 
-json lyricWordExtensionJson(const classify::LyricWordExtension& wordExtension)
-{
-    // A consumer learns from `reach` alone whether the extension has a known end, without inspecting
-    // the gap's end anchor.
-    return json{
-        {"kind", wordExtensionKindName(wordExtension.kind)},
-        {"reach", wordExtension.endEntry ? "event" : "unknown"},
-    };
-}
-
-} // namespace gap_report
+} // namespace classify
 } // namespace denigma

@@ -46,7 +46,7 @@ classify::GapAnchor measureAnchor(const std::string& measureId, std::optional<in
 
 /// @brief An anchor for a place on a Finale staff, in target ids: the part measure, the staff number when
 /// the part has several staves, and the position when one is given.
-/// @return std::nullopt, after a verbose log, when the staff belongs to no exported instrument.
+/// @return std::nullopt when the staff belongs to no exported instrument.
 std::optional<classify::GapAnchor> partMeasureAnchor(
     const MnxMusxMappingPtr& context, StaffCmper staff, MeasCmper measure, std::optional<Fraction> position);
 

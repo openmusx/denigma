@@ -42,6 +42,8 @@
 /// @brief Core public API for the Denigma conversion libraries.
 namespace denigma {
 
+class MusResources;
+
 namespace classify {
 class GapCollector;
 } // namespace classify
@@ -54,7 +56,8 @@ enum class FormatId {
     MnxJson,    ///< MNX JSON as produced by mnxdom.
     MusicXml,   ///< MusicXML score-partwise XML.
     MssXml,     ///< MuseScore style sheet XML.
-    Svg         ///< Scalable Vector Graphics XML.
+    Svg,        ///< Scalable Vector Graphics XML.
+    Mus         ///< Legacy Finale binary score.
 };
 
 /// @enum MessageSeverity
@@ -72,6 +75,13 @@ struct Diagnostic
 {
     MessageSeverity severity{MessageSeverity::Info}; ///< Message severity.
     std::string message;                 ///< Human-readable diagnostic text.
+};
+
+/// Selects the pitch display setting used for each exported score or linked part.
+enum class PitchDisplayMode {
+    Preserve,
+    Written,
+    Concert
 };
 
 /// @struct CommonOptions
@@ -92,6 +102,8 @@ struct CommonOptions
     classify::GapCollector* gapCollector{};
     /// Optional callback that receives converter log messages. Defaults to no-op.
     std::function<void(MessageSeverity severity, std::string_view message)> logCallback = [](MessageSeverity, std::string_view) {};
+    /// Optional pre-parsed resources for legacy MUS imports.
+    std::shared_ptr<const MusResources> musResources;
 };
 
 /// @class IOptions

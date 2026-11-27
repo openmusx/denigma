@@ -71,7 +71,7 @@ static Buffer gunzipBuffer(const std::string& compressedData)
     int inflateRc = Z_OK;
     while (true) {
         if (stream.avail_in == 0 && remainingInput > 0) {
-            const std::size_t inputChunk = std::min<std::size_t>(remainingInput, std::numeric_limits<uInt>::max());
+            const std::size_t inputChunk = (std::min<std::size_t>)(remainingInput, (std::numeric_limits<uInt>::max)());
             stream.next_in = const_cast<Bytef*>(nextInput);
             stream.avail_in = static_cast<uInt>(inputChunk);
             nextInput += inputChunk;
@@ -121,7 +121,7 @@ static std::string gzipBuffer(const Buffer& uncompressedData)
     int deflateRc = Z_OK;
     while (true) {
         if (stream.avail_in == 0 && remainingInput > 0) {
-            const std::size_t inputChunk = std::min<std::size_t>(remainingInput, std::numeric_limits<uInt>::max());
+            const std::size_t inputChunk = (std::min<std::size_t>)(remainingInput, (std::numeric_limits<uInt>::max)());
             stream.next_in = const_cast<Bytef*>(nextInput);
             stream.avail_in = static_cast<uInt>(inputChunk);
             nextInput += inputChunk;
@@ -191,7 +191,7 @@ static void writeZipEntry(zipFile outputZip, const char* name, const std::string
 
     std::size_t offset = 0;
     while (offset < content.size()) {
-        const std::size_t chunkSize = std::min<std::size_t>(content.size() - offset, std::numeric_limits<unsigned>::max());
+        const std::size_t chunkSize = (std::min<std::size_t>)(content.size() - offset, (std::numeric_limits<unsigned>::max)());
         rc = zipWriteInFileInZip(outputZip, content.data() + offset, static_cast<unsigned>(chunkSize));
         if (rc < 0) {
             zipCloseFileInZip(outputZip);

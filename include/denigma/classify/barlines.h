@@ -52,7 +52,13 @@ struct BarlineClassification
     bool isShort{};
 };
 
-/// Classifies the effective right barline for a Finale measure in staff context.
+/// Classifies the effective right barline for a Finale measure.
+/// @param staff The staff whose barline to classify, or null to classify the barline of the whole Scroll View stack.
+///     For the stack, the barline is hidden only when every staff hides it, and short only when it is short on every
+///     staff that shows it.
+/// @param measure The measure whose right barline to classify.
+/// @param isFinalMeasure True when @p measure is the last measure of the document.
+/// @param barlineOptions The document's barline options.
 BarlineClassification classifyBarline(const musx::dom::MusxInstance<musx::dom::others::Staff>& staff,
     const musx::dom::MusxInstance<musx::dom::others::Measure>& measure, bool isFinalMeasure,
     const musx::dom::MusxInstance<musx::dom::options::BarlineOptions>& barlineOptions);

@@ -54,6 +54,12 @@ static Jump classifyJumpTextAndGlyph(std::string_view text, std::optional<std::s
 
     const std::string lowerText = utils::toLowerCase(std::string(text));
 
+    if (lowerText == "d.c." || lowerText == "da capo") {
+        return Jump::DaCapo;
+    }
+    if (lowerText == "d.s." || lowerText == "dal segno") {
+        return Jump::DalSegno;
+    }
     if (lowerText == "d.c. al fine") {
         return Jump::DCAlFine;
     }
@@ -102,8 +108,8 @@ Jump classifyVisualJump(const musx::dom::MusxInstance<musx::dom::others::TextRep
     std::optional<std::string_view> glyphNameView;
     if (def->font) {
         if (const auto codepoint = utils::utf8ToCodepoint(repeatText->text)) {
-            if (const auto* glyphName = smufl_mapping::getGlyphNameForFont(
-                    def->font->getName(), codepoint.value(), def->font->calcIsSMuFL(), smufl_mapping::SmuflGlyphSource::Finale)) {
+            if (const auto* glyphName = smufl_mapping::getGlyphNameForFont(def->font->getName(), def->font->calcDrawnCharacter(codepoint.value()),
+                    def->font->calcIsSMuFL(), smufl_mapping::SmuflGlyphSource::Finale)) {
                 glyphNameView = *glyphName;
             }
         }
@@ -205,7 +211,7 @@ Jump classifyPlaybackJump(const musx::dom::MusxInstance<musx::dom::others::TextR
  * @brief Provides a default classification from a Finale text repeat definition.
  *
  * This function only maps strings from the Finale 27 Maestro Default file plus
- * a few other obvious symbols (standard Unicode and SMuFL symbols). Anything
+ * the bare D.C. and D.S. forms and a few other obvious symbols (standard Unicode and SMuFL symbols). Anything
  * else returns Jump::None. Text comparison is case-insensitive for ASCII text.
  */
 JumpClassification classifyJump(const musx::dom::MusxInstance<musx::dom::others::TextRepeatDef>& def)

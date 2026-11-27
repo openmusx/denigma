@@ -18,6 +18,8 @@
  */
 #include "gap_report_json.h"
 
+#include <cstdint>
+
 namespace denigma {
 namespace gap_report {
 
@@ -34,11 +36,20 @@ std::string_view noteheadShapeName(notehead::Shape shape)
     case notehead::Shape::Other: return "other";
     case notehead::Shape::Null: return "null";
     case notehead::Shape::Regular: return "regular";
+    case notehead::Shape::Round: return "round";
     case notehead::Shape::X: return "x";
     case notehead::Shape::Diamond: return "diamond";
     case notehead::Shape::SmallSlash: return "small-slash";
     case notehead::Shape::LargeSlash: return "large-slash";
     case notehead::Shape::Circled: return "circled";
+    case notehead::Shape::LargeCircled: return "large-circled";
+    case notehead::Shape::CircleX: return "circle-x";
+    case notehead::Shape::Plus: return "plus";
+    case notehead::Shape::Triangle: return "triangle";
+    case notehead::Shape::TriangleDown: return "triangle-down";
+    case notehead::Shape::Square: return "square";
+    case notehead::Shape::Slashed: return "slashed";
+    case notehead::Shape::BackSlashed: return "back-slashed";
     }
     return "unclassified";
 }
@@ -55,7 +66,7 @@ std::string_view noteheadFillName(notehead::Fill fill)
 
 } // namespace
 
-json noteheadJson(const classify::NoteheadClassification& notehead)
+json noteheadJson(const classify::NoteheadClassification& notehead, FontTable& fonts)
 {
     json result{
         {"shape", noteheadShapeName(notehead.shape)},
@@ -63,6 +74,11 @@ json noteheadJson(const classify::NoteheadClassification& notehead)
     };
     if (notehead.glyphName) {
         result["glyph"] = *notehead.glyphName;
+    }
+    // The source character identifies the notehead even when no glyph name does.
+    result["codePoint"] = static_cast<std::uint32_t>(notehead.noteheadInfo.character);
+    if (notehead.noteheadInfo.font) {
+        result["font"] = fonts.reference(notehead.noteheadInfo.font->resolve());
     }
     return result;
 }

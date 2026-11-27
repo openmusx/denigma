@@ -19,9 +19,12 @@
 
 #include "musicxml.h"
 
+#include "denigma/classify/tuplets.h"
+
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <span>
 #include <tuple>
 #include <type_traits>
 #include <utility>
@@ -36,6 +39,7 @@
 #include "mx/api/NoteData.h"
 #include "mx/api/PitchData.h"
 #include "mx/api/PrintData.h"
+#include "mx/api/SpannerNumber.h"
 #include "mx/api/VoiceData.h"
 
 using namespace musx::dom;
@@ -55,7 +59,18 @@ namespace {
 // a fact imported from musx data - and may change independently as MusicXML itself evolves.
 constexpr char32_t kDisplayNumberJoinMarker = char32_t(0x00A0);
 
-mx::api::DurationData createDurationData(const MusicXmlMusxMapping& context, const EntryInfoPtr& entryInfo, const Fraction& actualDuration)
+// MusicXML's note-type-value stops at 1024th, two steps short of Finale's 4096th. An entry
+// shorter than that exports without <type>, as Finale's own export does: <duration> still carries
+// its length. Such entries are mostly hidden playback tricks (a plugin's trill), which lose nothing.
+constexpr NoteType kShortestMusicXmlNoteType = NoteType::Note1024th;
+
+bool hasMusicXmlNoteType(NoteType noteType)
+{
+    return Edu(noteType) >= Edu(kShortestMusicXmlNoteType);
+}
+
+mx::api::DurationData createDurationData(
+    const MusicXmlMusxMapping& context, const EntryInfoPtr& entryInfo, const Fraction& actualDuration, bool hidden)
 {
     auto duration = mx::api::DurationData{};
     const auto [durationName, dots] = [&]() {
@@ -67,8 +82,17 @@ mx::api::DurationData createDurationData(const MusicXmlMusxMapping& context, con
         }
         return entryInfo->getEntry()->calcDurationInfo();
     }();
-    duration.durationName = enumConvert<mx::api::DurationName>(durationName);
-    duration.durationDots = int(dots);
+    if (hasMusicXmlNoteType(durationName)) {
+        duration.durationName = enumConvert<mx::api::DurationName>(durationName);
+        duration.durationDots = int(dots);
+    } else {
+        // A dot without a type would have nothing to augment, so the dots go with the type.
+        duration.isDurationNameSpecified = false;
+        context.logMessage(LogMsg() << "Layer " << entryInfo.getLayerIndex() + 1 << " entry index " << entryInfo.getIndexInFrame() << " is a "
+                                    << Edu(NoteType::Whole) / Edu(durationName)
+                                    << "th note, which MusicXML cannot name; exporting it without a type.",
+            hidden ? MessageSeverity::Info : MessageSeverity::Warning);
+    }
     duration.durationTimeTicks = context.timing.calcMusicXmlDivisions(actualDuration);
     for (size_t tupletIndex : entryInfo.findTupletInfo()) {
         const auto& tupletInfo = entryInfo.getFrame()->tupletInfo[tupletIndex];
@@ -128,36 +152,42 @@ void applyTremoloData(mx::api::NoteData& note, const EntryInfoPtr& entryInfo)
     }
 }
 
-mx::api::TupletStart createTupletStart(const EntryFrame::TupletInfo& tupletInfo, int numberLevel)
+mx::api::TupletStart createTupletStart(
+    const EntryFrame::TupletInfo& tupletInfo, const EntryInfoPtr& firstEntryInfo, const mx::api::SpannerNumber& number)
 {
     const auto& tupletDef = tupletInfo.tuplet;
+    const auto tupletClassification = classify::classifyTuplet(tupletInfo, firstEntryInfo);
     const auto [actualDurationName, actualDots] = calcDurationInfoFromEdu(tupletDef->displayDuration);
     const auto [normalDurationName, normalDots] = calcDurationInfoFromEdu(tupletDef->referenceDuration);
 
     auto result = mx::api::TupletStart{};
-    result.numberLevel = numberLevel;
+    result.number = number;
     result.actualNumber = tupletDef->displayNumber;
-    result.actualDurationName = enumConvert<mx::api::DurationName>(actualDurationName);
-    result.actualDots = int(actualDots);
+    if (hasMusicXmlNoteType(actualDurationName)) {
+        result.actualDurationName = enumConvert<mx::api::DurationName>(actualDurationName);
+        result.actualDots = int(actualDots);
+    }
     result.normalNumber = tupletDef->referenceNumber;
-    result.normalDurationName = enumConvert<mx::api::DurationName>(normalDurationName);
-    result.normalDots = int(normalDots);
+    if (hasMusicXmlNoteType(normalDurationName)) {
+        result.normalDurationName = enumConvert<mx::api::DurationName>(normalDurationName);
+        result.normalDots = int(normalDots);
+    }
+    result.positionData.placement = enumConvert<mx::api::Placement>(tupletClassification.placement);
+    result.lineShape =
+        tupletDef->brackStyle == details::TupletDef::BracketStyle::Slur ? mx::api::TupletLineShape::curved : mx::api::TupletLineShape::straight;
     if (tupletDef->hidden) {
         result.bracket = mx::api::Bool::no;
         result.showActualNumber = mx::api::Bool::no;
         result.showNormalNumber = mx::api::Bool::no;
+        result.showActualType = mx::api::Bool::no;
+        result.showNormalType = mx::api::Bool::no;
         return result;
     }
-    result.bracket = [&]() {
-        if (tupletDef->brackStyle == details::TupletDef::BracketStyle::Nothing) {
-            return mx::api::Bool::no;
-        }
-        if (tupletDef->autoBracketStyle == details::TupletDef::AutoBracketStyle::Always) {
-            return mx::api::Bool::yes;
-        }
-        return mx::api::Bool::unspecified;
-    }();
+    result.bracket = tupletClassification.showBracket ? mx::api::Bool::yes : mx::api::Bool::no;
     std::tie(result.showActualNumber, result.showNormalNumber) = [&]() {
+        if (!tupletClassification.showNumber) {
+            return std::pair{mx::api::Bool::no, mx::api::Bool::no};
+        }
         switch (tupletDef->numStyle) {
         case details::TupletDef::NumberStyle::Nothing: return std::pair{mx::api::Bool::no, mx::api::Bool::no};
         case details::TupletDef::NumberStyle::Number: return std::pair{mx::api::Bool::yes, mx::api::Bool::no};
@@ -167,7 +197,20 @@ mx::api::TupletStart createTupletStart(const EntryFrame::TupletInfo& tupletInfo,
         }
         return std::pair{mx::api::Bool::yes, mx::api::Bool::no};
     }();
-    /// @todo Export tuplet placement, offsets, hook lengths, slope, and other positioning if mx::api exposes them.
+    switch (tupletDef->numStyle) {
+    case details::TupletDef::NumberStyle::Nothing:
+    case details::TupletDef::NumberStyle::Number:
+    case details::TupletDef::NumberStyle::UseRatio:
+        result.showActualType = mx::api::Bool::no;
+        result.showNormalType = mx::api::Bool::no;
+        break;
+    case details::TupletDef::NumberStyle::RatioPlusDenominatorNote:
+    case details::TupletDef::NumberStyle::RatioPlusBothNotes:
+        // MusicXML has no normal-only show-type value; showing both retains the requested normal note value.
+        result.showActualType = mx::api::Bool::yes;
+        result.showNormalType = mx::api::Bool::yes;
+        break;
+    }
     return result;
 }
 
@@ -198,7 +241,7 @@ void applyTupletData(mx::api::NoteData& note, const EntryInfoPtr& entryInfo)
                 const auto& tupletDef = entryInfo.getFrame()->tupletInfo[activeTuplets.front()].tuplet;
                 const auto [normalDurationName, normalDots] = calcDurationInfoFromEdu(tupletDef->referenceDuration);
                 const auto [entryDurationName, entryDots] = entryInfo->getEntry()->calcDurationInfo();
-                if (normalDurationName != entryDurationName || normalDots != entryDots) {
+                if ((normalDurationName != entryDurationName || normalDots != entryDots) && hasMusicXmlNoteType(normalDurationName)) {
                     note.durationData.timeModificationNormalType = enumConvert<mx::api::DurationName>(normalDurationName);
                     note.durationData.timeModificationNormalTypeDots = int(normalDots);
                 }
@@ -206,17 +249,77 @@ void applyTupletData(mx::api::NoteData& note, const EntryInfoPtr& entryInfo)
         }
     }
 
+    // The kept entry of a singleton beam workaround stands in for the extra entry that the interpreted
+    // iterator skips, so a tuplet that starts or ends on the extra entry starts or ends here. Finding the
+    // extra entry is costly, so it is sought only for a tuplet boundary elsewhere in a frame that has a
+    // zero-length tuplet, which every singleton beam workaround uses.
+    const auto& frame = entryInfo.getFrame();
+    EntryInfoPtr extraEntryInfo;
+    bool isExtraEntrySought = false;
+    const auto isAtIndexInFrame = [&](size_t indexInFrame) {
+        if (indexInFrame == entryInfo.getIndexInFrame()) {
+            return true;
+        }
+        if (!isExtraEntrySought) {
+            isExtraEntrySought = true;
+            if (std::ranges::any_of(frame->tupletInfo, [](const auto& tupletInfo) { return tupletInfo.tuplet->calcRatio() == 0; })) {
+                extraEntryInfo = entryInfo.findSingletonBeamExtraEntry();
+            }
+        }
+        return extraEntryInfo && extraEntryInfo.getFrame() == frame && indexInFrame == extraEntryInfo.getIndexInFrame();
+    };
+
     for (size_t tupletIndex : activeTuplets) {
         const auto& tupletInfo = entryInfo.getFrame()->tupletInfo[tupletIndex];
-        const int numberLevel = int(tupletIndex) + 1;
-        if (tupletInfo.startIndex == entryInfo.getIndexInFrame()) {
-            note.noteAttachmentData.tupletStarts.emplace_back(createTupletStart(tupletInfo, numberLevel));
+        const auto firstEntryInfo = EntryInfoPtr(entryInfo.getFrame(), tupletInfo.startIndex);
+        const auto number = mx::api::SpannerNumber{core::calcTupletId(firstEntryInfo, tupletInfo.tuplet)};
+        if (isAtIndexInFrame(tupletInfo.startIndex)) {
+            note.noteAttachmentData.tupletStarts.emplace_back(createTupletStart(tupletInfo, firstEntryInfo, number));
         }
-        if (tupletInfo.endIndex == entryInfo.getIndexInFrame()) {
+        if (isAtIndexInFrame(tupletInfo.endIndex)) {
             auto& stop = note.noteAttachmentData.tupletStops.emplace_back();
-            stop.numberLevel = numberLevel;
+            stop.number = number;
         }
     }
+}
+
+// The staff whose lines the measure's MusicXML staff details describe, for the staff the clef is on. MusicXML can
+// change staff lines only at a barline, so the staff as at the start of the measure applies to all of it.
+MusxInstance<others::StaffComposite> declaredLinesStaff(const EntryInfoPtr& entryInfo, const EffectiveClef& clef)
+{
+    return entryInfo.getFrame()->createCurrentStaff(0, clef.staff->getCmper());
+}
+
+// Whether the clef exports as a percussion clef.
+bool exportsAsPercussionClef(const EffectiveClef& clef)
+{
+    return clef && isPercussionClef(clef.calcInfo().first);
+}
+
+// The display step and octave of a staff position under clef, the clef in effect at entryInfo. MusicXML places
+// rests and unpitched notes by these.
+mx::api::PitchData createDisplayPitchData(
+    const MusicXmlMusxMapping& context, const EntryInfoPtr& entryInfo, const EffectiveClef& clef, int staffPosition)
+{
+    if (exportsAsPercussionClef(clef)) {
+        // A percussion clef reads positions as a treble clef does, counted from the bottom line the staff has,
+        // so the position moves with the staff's lines.
+        constexpr int trebleClefLinePosition = 4; // MusicXML line 2
+        const music_theory::Pitch g4{music_theory::NoteName::G, 4};
+        int octave = 0;
+        const auto step = music_theory::positiveModulus(
+            int(g4.noteName) + musicXmlStaffPosition(declaredLinesStaff(entryInfo, clef), staffPosition) - trebleClefLinePosition,
+            music_theory::STANDARD_DIATONIC_STEPS, &octave);
+        return mx::api::PitchData(enumConvert<mx::api::Step>(music_theory::NoteName(step)), 0, g4.octave + octave);
+    }
+    // Under a pitched clef the clef's line moves with the staff's lines, so the position relative to the clef,
+    // and with it the pitch, is the one Finale shows.
+    std::optional<StaffCmper> forStaffId;
+    if (clef) {
+        forStaffId = clef.staff->getCmper();
+    }
+    const auto pitch = entryInfo.calcPitchFromStaffPosition(staffPosition, {.pitchMode = context.pitchMode, .forStaffId = forStaffId});
+    return mx::api::PitchData(enumConvert<mx::api::Step>(pitch.noteName), 0, pitch.octave);
 }
 
 void applyRestPositionIfNeeded(const MusicXmlMusxMapping& context, mx::api::NoteData& rest, const EntryInfoPtr& entryInfo)
@@ -228,15 +331,19 @@ void applyRestPositionIfNeeded(const MusicXmlMusxMapping& context, mx::api::Note
     if (entry->floatRest) {
         return;
     }
+    EffectiveClef clef;
     const auto staffPosition = [&]() -> std::optional<int> {
         if (entry->notes.empty()) {
+            clef = entryInfo.calcEffectiveClef(context.pitchMode);
             return entryInfo.calcZeroNotePosition();
         }
         const NoteInfoPtr restNoteInfo(entryInfo, 0);
         if (restNoteInfo->getNoteId() != Note::RESTID) {
             return std::nullopt;
         }
-        return restNoteInfo.calcNoteProperties().staffPosition;
+        // A rest's note can be crossed to another staff, whose clef then places it.
+        clef = restNoteInfo.calcEffectiveClef(context.pitchMode);
+        return restNoteInfo.calcNoteProperties({.pitchMode = context.pitchMode}).staffPosition;
     }();
     if (!staffPosition) {
         return;
@@ -246,30 +353,8 @@ void applyRestPositionIfNeeded(const MusicXmlMusxMapping& context, mx::api::Note
     if (!context.denigmaContext->useFinaleRestPosition && rest.durationData.durationName == mx::api::DurationName::whole && restPositionOffset != 0) {
         adjustedStaffPosition += restPositionOffset;
     }
-    const auto pitch = entryInfo.calcPitchFromStaffPosition(adjustedStaffPosition);
     rest.isDisplayStepOctaveSpecified = true;
-    rest.pitchData = mx::api::PitchData(enumConvert<mx::api::Step>(pitch.noteName), 0, pitch.octave);
-}
-
-MusicXmlPitchContext pitchContextForStaff(const MusicXmlMusxMapping& context, StaffCmper staffId)
-{
-    const auto partIt = context.staffToPartId.find(staffId);
-    if (partIt == context.staffToPartId.end()) {
-        return MusicXmlPitchContext::Written;
-    }
-    return pitchContextForPart(context, partIt->second);
-}
-
-mx::api::PitchData createPitchData(MusicXmlMusxMapping& context, const NoteInfoPtr& noteInfo, MusicXmlPitchContext pitchContext)
-{
-    const auto properties = noteInfo.calcNoteProperties({
-        .pitchMode = pitchContext == MusicXmlPitchContext::Concert ? PitchMode::Concert : PitchMode::Written,
-    });
-    const auto octaveAdjustment = calcOttavaOctaveAdjustment(context.current.ottavasApplicableInMeasure, noteInfo, [&](const NoteInfoPtr&) {
-        context.logMessage(
-            LogMsg() << "skipping ottava octave setting for tied-to note since the tied-from note is not under the ottava", MessageSeverity::Verbose);
-    });
-    return mx::api::PitchData(enumConvert<mx::api::Step>(properties.noteName), properties.alteration, properties.octave + octaveAdjustment);
+    rest.pitchData = createDisplayPitchData(context, entryInfo, clef, adjustedStaffPosition);
 }
 
 void applyAccidentalData(mx::api::NoteData& note, const NoteInfoPtr& noteInfo)
@@ -280,6 +365,38 @@ void applyAccidentalData(mx::api::NoteData& note, const NoteInfoPtr& noteInfo)
 
     note.pitchData.showAccidental();
     note.pitchData.isAccidentalParenthetical = noteInfo->parenAcci;
+}
+
+// A note's pitch, or for a percussion note its display position and the kit piece that plays it.
+mx::api::NoteData createNoteData(MusicXmlMusxMapping& context, const NoteInfoPtr& noteInfo)
+{
+    mx::api::NoteData note;
+    const auto clef = noteInfo.calcEffectiveClef(context.pitchMode);
+    if (const auto percussionNote = classify::classifyPercussionNote(noteInfo, context.pitchMode); percussionNote.isOnPercussionStaff) {
+        note.isUnpitched = true;
+        note.isDisplayStepOctaveSpecified = true;
+        note.pitchData = createDisplayPitchData(context, noteInfo.getEntryInfo(), clef, percussionNote.staffReferencePosition);
+        if (auto instrumentId = ensurePercussionInstrument(context, percussionNote)) {
+            note.instruments.emplace_back(std::move(*instrumentId));
+        }
+        return note;
+    }
+    const auto properties = noteInfo.calcNoteProperties({.pitchMode = context.pitchMode});
+    // Finale exports a note under a percussion clef as unpitched, at its staff position, even without a
+    // percussion map.
+    if (exportsAsPercussionClef(clef)) {
+        note.isUnpitched = true;
+        note.isDisplayStepOctaveSpecified = true;
+        note.pitchData = createDisplayPitchData(context, noteInfo.getEntryInfo(), clef, properties.staffPosition);
+        return note;
+    }
+    const auto octaveAdjustment = calcOttavaOctaveAdjustment(context.current.ottavasApplicableInMeasure, noteInfo, [&](const NoteInfoPtr&) {
+        context.logMessage(
+            LogMsg() << "skipping ottava octave setting for tied-to note since the tied-from note is not under the ottava", MessageSeverity::Verbose);
+    });
+    note.pitchData = mx::api::PitchData(enumConvert<mx::api::Step>(properties.noteName), properties.alteration, properties.octave + octaveAdjustment);
+    applyAccidentalData(note, noteInfo);
+    return note;
 }
 
 std::uint64_t noteKey(const NoteInfoPtr& noteInfo)
@@ -303,11 +420,11 @@ void applyMusicXmlTies(MusicXmlMusxMapping& context, mx::api::NoteData& note, co
         note.isTieStop = true;
     }
 
-    if (!noteInfo->tieStart) {
+    if (!noteInfo.calcHasTieStart()) {
         return;
     }
     const auto tiedTo = noteInfo.calcTieTo();
-    if (!tiedTo || !tiedTo->tieEnd || tiedTo.getEntryInfo()->getEntry()->isHidden) {
+    if (!tiedTo || !tiedTo.calcHasTieEnd() || tiedTo.getEntryInfo()->getEntry()->isHidden) {
         note.tieLetRing = mx::api::TieLetRing{};
         applyTieAlterStart(context, *note.tieLetRing, noteInfo);
         return;
@@ -362,8 +479,8 @@ void applyLyrics(MusicXmlMusxMapping& context, mx::api::NoteData& note, const En
             // candidate rather than a span. Only an extension that reaches a different entry is
             // one MusicXML can express as a span, and only those are what Finale itself exports:
             // of 27 such shapes in for_health_and_strength.musx none spans, and Finale writes no
-            // extension there. A legacy extension has no end at all, and Finale writes it as a
-            // bare <extend/>, as it does the underscores of a syllable.
+            // extension there. A legacy extension that does not reach another entry stays a bare
+            // <extend/>, as Finale writes every legacy extension and the underscores of a syllable.
             const auto wordExtension = classify::classifyLyricWordExtension(assignment);
             const bool extensionSpansEntries = wordExtension.endEntry && wordExtension.endEntry->getEntry()->getEntryNumber() != entryNumber;
             lyric.hasExtend = extensionSpansEntries || wordExtension.kind == classify::lyric::WordExtensionKind::Legacy
@@ -473,8 +590,8 @@ mx::api::NoteData createRestData(MusicXmlMusxMapping& context, mx::api::StaffDat
     if (entryInfo) {
         const auto entry = entryInfo->getEntry();
         rest.isGrace = entry->graceNote;
-        rest.durationData = createDurationData(context, entryInfo, entryIt.getEffectiveActualDuration(/*global*/ true));
-        rest.id = mx::api::Id{core::calcEventId(entry->getEntryNumber())};
+        rest.durationData = createDurationData(context, entryInfo, entryIt.getEffectiveActualDuration(/*global*/ true), entryIt.getEffectiveHidden());
+        rest.id = mx::api::Id{core::calcEventId(entryInfo)};
     } else {
         rest.durationData.durationName = mx::api::DurationName::whole;
     }
@@ -492,7 +609,7 @@ mx::api::NoteData createRestData(MusicXmlMusxMapping& context, mx::api::StaffDat
         rest.beams = createBeamData(context, entryInfo);
         applyTupletData(rest, entryInfo);
         applyRestPositionIfNeeded(context, rest, entryInfo);
-        processArticulations(context, staff, rest, entryInfo, isStaffValueSpecified);
+        processArticulations(context, staff, std::span(&rest, 1), entryInfo, isStaffValueSpecified);
         if (entryIt.getEffectiveHidden() || (effectiveStaff && effectiveStaff->hideRests)) {
             rest.printData.printObject = mx::api::Bool::no;
         }
@@ -515,7 +632,7 @@ void addSyntheticFullMeasureRest(MusicXmlMusxMapping& context, mx::api::StaffDat
 
 void appendEntryNotes(MusicXmlMusxMapping& context, mx::api::StaffData& staff, mx::api::VoiceData& voice,
     const EntryInfoPtr::InterpretedIterator& entryIt, const MusxInstance<others::Measure>& musxMeasure, int userVoiceNumber, size_t measureIndex,
-    size_t staffIndex, bool hasMultipleLayers, bool hasVoice1Voice2, bool isCue, bool isStaffValueSpecified, MusicXmlPitchContext pitchContext)
+    size_t staffIndex, bool hasMultipleLayers, bool hasVoice1Voice2, bool isCue, bool isStaffValueSpecified)
 {
     const auto& entryInfo = entryIt.getEntryInfo();
     const auto entry = entryInfo->getEntry();
@@ -535,8 +652,17 @@ void appendEntryNotes(MusicXmlMusxMapping& context, mx::api::StaffData& staff, m
                                                                                                                .noteIndex = noteIndex,
                                                                                                            });
     };
-    if (entryInfo.calcIsFullMeasureRest() || entryInfo.calcDisplaysAsRest()) {
+    // Finale allows a note entry with no notes. It keeps its duration (and any tuplet it starts) as an invisible rest,
+    // but a zero-note grace entry takes no time and is omitted.
+    const bool isZeroNoteEntry = entry->isNote && entry->notes.empty();
+    if (isZeroNoteEntry && entry->graceNote) {
+        return;
+    }
+    if (isZeroNoteEntry || entryInfo.calcIsFullMeasureRest() || entryInfo.calcDisplaysAsRest()) {
         auto rest = createRestData(context, staff, entryIt, musxMeasure, nullptr, userVoiceNumber, isCue, isStaffValueSpecified);
+        if (isZeroNoteEntry) {
+            rest.printData.printObject = mx::api::Bool::no;
+        }
         rememberFirstNote(voice.notes.size());
         voice.notes.emplace_back(rest);
         return;
@@ -553,10 +679,11 @@ void appendEntryNotes(MusicXmlMusxMapping& context, mx::api::StaffData& staff, m
             includedNoteIndices.push_back(noteIndex);
         }
     }
+    const size_t firstNoteInVoice = voice.notes.size();
     for (size_t includedPosition = 0; includedPosition < includedNoteIndices.size(); ++includedPosition) {
         const size_t noteIndex = includedNoteIndices[includedPosition];
         NoteInfoPtr noteInfo(entryInfo, noteIndex);
-        auto note = mx::api::NoteData{};
+        auto note = createNoteData(context, noteInfo);
         note.id = mx::api::Id{core::calcNoteId(noteInfo)};
         note.isCue = isCue;
         // MX uses this as "is in a chord group"; it suppresses <chord/> on the first note internally.
@@ -567,8 +694,7 @@ void appendEntryNotes(MusicXmlMusxMapping& context, mx::api::StaffData& staff, m
         }
         note.userRequestedVoiceNumber = userVoiceNumber;
         note.tickTimePosition = context.timing.calcMusicXmlDivisions(entryIt.getEffectiveElapsedDuration(/*global*/ true));
-        note.durationData = createDurationData(context, entryInfo, entryIt.getEffectiveActualDuration(/*global*/ true));
-        note.pitchData = createPitchData(context, noteInfo, pitchContext);
+        note.durationData = createDurationData(context, entryInfo, entryIt.getEffectiveActualDuration(/*global*/ true), entryIt.getEffectiveHidden());
         if (const auto stavesIt = context.partIdToStaves.find(context.currentPart->uniqueId); stavesIt != context.partIdToStaves.end()) {
             ASSERT_IF (staffIndex >= stavesIt->second.size()) {
                 throw std::logic_error("Containing staff index is outside the current MusicXML part staff list.");
@@ -585,14 +711,11 @@ void appendEntryNotes(MusicXmlMusxMapping& context, mx::api::StaffData& staff, m
                 }
             }
         }
-        applyAccidentalData(note, noteInfo);
         applyNoteheadData(note, noteInfo, entryNoteheads);
         if (includedPosition == 0) {
             note.beams = createBeamData(context, entryInfo);
             applyTupletData(note, entryInfo);
             applyLyrics(context, note, entryInfo);
-            processArticulations(context, staff, note, entryInfo, isStaffValueSpecified);
-            applyTremoloData(note, entryInfo);
         }
         if (entry->hasStem()) {
             const auto customStem = details::CustomStem::getForStem(entryInfo);
@@ -611,6 +734,8 @@ void appendEntryNotes(MusicXmlMusxMapping& context, mx::api::StaffData& staff, m
         applyMusicXmlTies(context, note, noteInfo);
         if (entryIt.getEffectiveHidden()) {
             note.printData.printObject = mx::api::Bool::no;
+        } else if (entry->noLeger) {
+            note.printLeger = mx::api::Bool::no;
         }
         if (includedPosition == 0) {
             rememberFirstNote(voice.notes.size());
@@ -618,6 +743,10 @@ void appendEntryNotes(MusicXmlMusxMapping& context, mx::api::StaffData& staff, m
         rememberExactNote(noteInfo, voice.notes.size());
         voice.notes.emplace_back(note);
     }
+    // After the loop, so that note-level marks can reach every note of the chord.
+    const auto entryNotes = std::span(voice.notes).subspan(firstNoteInVoice);
+    processArticulations(context, staff, entryNotes, entryInfo, isStaffValueSpecified);
+    applyTremoloData(entryNotes.front(), entryInfo);
 }
 
 } // namespace
@@ -639,7 +768,7 @@ void applyPseudoLvTies(MusicXmlMusxMapping& context, const EntryInfoPtr& entryIn
             continue;
         }
         auto* note = noteDataAt(context, locationIt->second);
-        if (!note || note->isTieStart || note->tieLetRing || noteInfo->tieStart || noteInfo.calcArpeggiatedTieInfo()) {
+        if (!note || note->isTieStart || note->tieLetRing || noteInfo.calcHasTieStart() || noteInfo.calcArpeggiatedTieInfo()) {
             continue;
         }
 
@@ -682,7 +811,6 @@ void createNotesForMeasureStaff(MusicXmlMusxMapping& context, mx::api::MeasureDa
         return;
     }
 
-    const auto pitchContext = pitchContextForStaff(context, staffId);
     /// @todo Honor Blank/BlankWithRests alternate notation by suppressing the affected entries and
     /// their attachments with print-object once its layer semantics have been mapped to MusicXML.
     const auto cuePlan = createCueStaffMeasurePlan(staffMeasureContext, context.denigmaContext->cueLayer);
@@ -708,7 +836,7 @@ void createNotesForMeasureStaff(MusicXmlMusxMapping& context, mx::api::MeasureDa
                     continue;
                 }
                 appendEntryNotes(context, staff, voice, entryIt, musxMeasure, userVoiceNumber, measureIndex, staffIndex, hasMultipleLayers, usesV1V2,
-                    isCue, measure.staves.size() > 1, pitchContext);
+                    isCue, measure.staves.size() > 1);
             }
         }
     }

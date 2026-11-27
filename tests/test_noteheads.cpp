@@ -26,6 +26,8 @@
 
 #include "core/musx_reader.h"
 #include "denigma/classify/noteheads.h"
+#include "formats/enigmaxml/enigmaxml.h"
+#include "input/input.h"
 #include "musx/musx.h"
 #include "test_utils.h"
 
@@ -65,6 +67,27 @@ static FontContext makeFontContext(const std::string& fontName = "Maestro", int 
     fontInfo->fontId = 1;
     fontInfo->fontSize = 24;
     return {document, fontInfo};
+}
+
+DocumentPtr loadFixture(const std::string& fileName)
+{
+    setupTestDataPaths();
+    const auto inputPath = getInputPath() / fileName;
+    denigma::DenigmaContext denigmaContext(DENIGMA_NAME);
+    denigmaContext.inputFilePath = inputPath;
+    const auto inputData = denigma::formats::enigmaxml::detail::extractMusxInputData(inputPath, denigmaContext);
+    return denigma::createMusxDocument<denigma::MusxReader>(inputData, denigmaContext);
+}
+
+// The first percussion note in @p document whose notehead for quarter notes and shorter is @p closedNotehead.
+MusxInstance<others::PercussionNoteInfo> findPercussionNote(const DocumentPtr& document, char32_t closedNotehead)
+{
+    for (const auto& percussionNote : document->getOthers()->getArray<others::PercussionNoteInfo>(SCORE_PARTID)) {
+        if (percussionNote->closedNotehead == closedNotehead) {
+            return percussionNote;
+        }
+    }
+    return nullptr;
 }
 
 } // namespace
@@ -147,6 +170,32 @@ TEST(NoteheadClassification, ClassifiesSlashNoteheadsBySmuflName)
     EXPECT_EQ(largeUnfilled.fill, notehead::Fill::Unfilled);
 }
 
+TEST(NoteheadClassification, PrefersGlyphOnlyForNonstandardSlashes)
+{
+    const auto fontContext = makeFontContext("Finale Maestro");
+    const auto preferred = [&](char32_t symbol) { return classifyNoteheadSymbol(fontContext.fontInfo, symbol).glyphPreferred; };
+
+    // The standard slash is of normal size with vertical ends.
+    EXPECT_FALSE(preferred(0xE100)); // noteheadSlashVerticalEnds
+    EXPECT_FALSE(preferred(0xE103)); // noteheadSlashWhiteHalf
+    EXPECT_FALSE(preferred(0xE102)); // noteheadSlashWhiteWhole
+    EXPECT_FALSE(preferred(0xE10A)); // noteheadSlashWhiteDoubleWhole
+    EXPECT_TRUE(preferred(0xE101));  // noteheadSlashHorizontalEnds
+    EXPECT_TRUE(preferred(0xE105));  // noteheadSlashVerticalEndsSmall
+}
+
+TEST(NoteheadClassification, PrefersGlyphForOtherNoteheadsButNotStandardGlyphs)
+{
+    const auto fontContext = makeFontContext("Finale Maestro");
+
+    EXPECT_FALSE(classifyNoteheadSymbol(fontContext.fontInfo, 0xE0A4).glyphPreferred); // noteheadBlack
+    EXPECT_FALSE(classifyNoteheadSymbol(fontContext.fontInfo, 0xE0E8).glyphPreferred); // noteheadCircledBlackLarge
+    EXPECT_FALSE(classifyNoteheadSymbol(fontContext.fontInfo, 0xE0A9).glyphPreferred); // noteheadXBlack
+    const auto other = classifyNoteheadSymbol(fontContext.fontInfo, 0xE106);              // noteheadSlashX
+    EXPECT_EQ(other.shape, notehead::Shape::Other);
+    EXPECT_TRUE(other.glyphPreferred);
+}
+
 TEST(NoteheadClassification, ClassifiesCircledNoteheadsBySmuflName)
 {
     const auto fontContext = makeFontContext("Finale Maestro");
@@ -158,6 +207,65 @@ TEST(NoteheadClassification, ClassifiesCircledNoteheadsBySmuflName)
     auto unfilled = classifyNoteheadSymbol(fontContext.fontInfo, 0xE0E6); // noteheadCircledWhole
     EXPECT_EQ(unfilled.shape, notehead::Shape::Circled);
     EXPECT_EQ(unfilled.fill, notehead::Fill::Unfilled);
+
+    auto largeFilled = classifyNoteheadSymbol(fontContext.fontInfo, 0xE0E8); // noteheadCircledBlackLarge
+    EXPECT_EQ(largeFilled.shape, notehead::Shape::LargeCircled);
+    EXPECT_EQ(largeFilled.fill, notehead::Fill::Filled);
+
+    auto largeUnfilled = classifyNoteheadSymbol(fontContext.fontInfo, 0xE0EA); // noteheadCircledWholeLarge
+    EXPECT_EQ(largeUnfilled.shape, notehead::Shape::LargeCircled);
+    EXPECT_EQ(largeUnfilled.fill, notehead::Fill::Unfilled);
+}
+
+TEST(NoteheadClassification, ClassifiesSlashedNoteheadsBySmuflName)
+{
+    const auto fontContext = makeFontContext("Finale Maestro");
+    const auto expectShape = [&](char32_t symbol, notehead::Shape shape, notehead::Fill fill) {
+        const auto result = classifyNoteheadSymbol(fontContext.fontInfo, symbol);
+        EXPECT_EQ(result.shape, shape) << "codepoint " << std::hex << uint32_t(symbol);
+        EXPECT_EQ(result.fill, fill) << "codepoint " << std::hex << uint32_t(symbol);
+    };
+
+    // SMuFL's "1" glyphs slash from bottom left to top right, and its "2" glyphs from top left to bottom right.
+    expectShape(0xE0CF, notehead::Shape::Slashed, notehead::Fill::Filled);         // noteheadSlashedBlack1
+    expectShape(0xE0D1, notehead::Shape::Slashed, notehead::Fill::Unfilled);       // noteheadSlashedHalf1
+    expectShape(0xE0D3, notehead::Shape::Slashed, notehead::Fill::Unfilled);       // noteheadSlashedWhole1
+    expectShape(0xE0D5, notehead::Shape::Slashed, notehead::Fill::Unfilled);       // noteheadSlashedDoubleWhole1
+    expectShape(0xE0D0, notehead::Shape::BackSlashed, notehead::Fill::Filled);     // noteheadSlashedBlack2
+    expectShape(0xE0D2, notehead::Shape::BackSlashed, notehead::Fill::Unfilled);   // noteheadSlashedHalf2
+    expectShape(0xE0D4, notehead::Shape::BackSlashed, notehead::Fill::Unfilled);   // noteheadSlashedWhole2
+    expectShape(0xE0D6, notehead::Shape::BackSlashed, notehead::Fill::Unfilled);   // noteheadSlashedDoubleWhole2
+}
+
+TEST(NoteheadClassification, ClassifiesRoundNoteheadsBySmuflName)
+{
+    const auto fontContext = makeFontContext("Finale Maestro");
+    const auto expectRound = [&](char32_t symbol, notehead::Fill fill, bool glyphPreferred) {
+        const auto result = classifyNoteheadSymbol(fontContext.fontInfo, symbol);
+        EXPECT_EQ(result.shape, notehead::Shape::Round) << "codepoint " << std::hex << uint32_t(symbol);
+        EXPECT_EQ(result.fill, fill) << "codepoint " << std::hex << uint32_t(symbol);
+        EXPECT_EQ(result.glyphPreferred, glyphPreferred) << "codepoint " << std::hex << uint32_t(symbol);
+    };
+
+    // Only the plain black and white round noteheads are standard.
+    expectRound(0xE113, notehead::Fill::Filled, false);   // noteheadRoundBlack
+    expectRound(0xE114, notehead::Fill::Unfilled, false); // noteheadRoundWhite
+    expectRound(0xE110, notehead::Fill::Filled, true);    // noteheadRoundBlackLarge
+    expectRound(0xE118, notehead::Fill::Filled, true);    // noteheadRoundBlackSlashed
+    expectRound(0xE11C, notehead::Fill::Filled, true);    // noteheadRoundBlackDoubleSlashed
+    expectRound(0xE111, notehead::Fill::Unfilled, true);  // noteheadRoundWhiteLarge
+    expectRound(0xE115, notehead::Fill::Unfilled, true);  // noteheadRoundWhiteWithDot
+    expectRound(0xE117, notehead::Fill::Unfilled, true);  // noteheadRoundWhiteSlashedLarge
+}
+
+TEST(NoteheadClassification, ClassifiesLegacyPercussionSlashedGlyph)
+{
+    const auto fontContext = makeFontContext("Maestro Percussion");
+
+    auto slashed = classifyNoteheadSymbol(fontContext.fontInfo, 103); // -> noteheadSlashedBlack1
+    EXPECT_EQ(slashed.shape, notehead::Shape::Slashed);
+    EXPECT_EQ(slashed.fill, notehead::Fill::Filled);
+    EXPECT_EQ(slashed.glyphName, std::optional<std::string>("noteheadSlashedBlack1"));
 }
 
 TEST(NoteheadClassification, ClassifiesLegacyMaestroGlyphs)
@@ -190,9 +298,12 @@ TEST(NoteheadClassification, ClassifiesAsciiXInNonSymbolFontOnly)
     EXPECT_EQ(upper.shape, notehead::Shape::X);
 
     // In a symbol font, codepoint 'X' (0x58) is a glyph index, not literal text -- must not match.
+    // In Maestro it is the glyph note16thDown.
     const auto symbolContext = makeFontContext();
     auto notX = classifyNoteheadSymbol(symbolContext.fontInfo, U'X');
-    EXPECT_FALSE(notX);
+    EXPECT_NE(notX.shape, notehead::Shape::X);
+    ASSERT_TRUE(notX.glyphName);
+    EXPECT_EQ(notX.glyphName.value(), "note16thDown");
 }
 
 TEST(NoteheadClassification, ReturnsUnclassifiedForUnknownSymbol)
@@ -216,14 +327,14 @@ TEST(NoteheadClassification, ReturnsUnclassifiedForUnknownSymbol)
 TEST(NoteheadClassification, ReturnsOtherForRecognizedButUncatalogedNoteheadGlyph)
 {
     const auto fontContext = makeFontContext("Finale Maestro");
-    // noteheadSquareBlack is a real SMuFL notehead glyph, but not one of the shapes Denigma
+    // noteheadTriangleUpRightBlack is a real SMuFL notehead glyph, but not one of the shapes Denigma
     // specifically classifies.
-    auto classification = classifyNoteheadSymbol(fontContext.fontInfo, 0xE0B9);
+    auto classification = classifyNoteheadSymbol(fontContext.fontInfo, 0xE0C9);
     EXPECT_TRUE(classification);
     EXPECT_EQ(classification.shape, notehead::Shape::Other);
     EXPECT_EQ(classification.fill, notehead::Fill::Unspecified);
     ASSERT_TRUE(classification.glyphName);
-    EXPECT_EQ(classification.glyphName.value(), "noteheadSquareBlack");
+    EXPECT_EQ(classification.glyphName.value(), "noteheadTriangleUpRightBlack");
 }
 
 TEST(NoteheadClassification, ClassifyNoteheadSymbolPopulatesNoteheadInfo)
@@ -240,4 +351,122 @@ TEST(NoteheadClassification, ClassifyNoteheadSymbolPopulatesNoteheadInfo)
 TEST(NoteheadClassification, ClassifyNoteheadReturnsUnclassifiedForInvalidNote)
 {
     EXPECT_FALSE(classifyNotehead(NoteInfoPtr()));
+}
+
+TEST(PercussionNoteheadClassification, FamilyFollowsQuarterNoteheadDespiteLongerShapes)
+{
+    const auto document = loadFixture("drumset.musx");
+    ASSERT_TRUE(document);
+
+    // Finale's stock drum map draws its X noteheads as circled X noteheads on half notes and longer.
+    const auto xNote = findPercussionNote(document, 0xE0A9); // noteheadXBlack
+    ASSERT_TRUE(xNote);
+    const auto classification = classifyPercussionNotehead(xNote);
+    ASSERT_TRUE(classification);
+    EXPECT_EQ(classification.family, notehead::Shape::X);
+    EXPECT_EQ(classification.half.shape, notehead::Shape::CircleX);
+    EXPECT_EQ(classification.whole.shape, notehead::Shape::CircleX);
+    EXPECT_EQ(classification.breveAndLonger.shape, notehead::Shape::CircleX);
+    EXPECT_EQ(classification.quarterAndShorter.noteheadInfo.source, NoteInfoPtr::NoteheadInfo::Source::PercussionMap);
+    EXPECT_FALSE(classification.quarterAndShorter.calcDiffersFromFamily(classification.family, NoteType::Eighth));
+    EXPECT_TRUE(classification.half.calcDiffersFromFamily(classification.family, NoteType::Half));
+    EXPECT_TRUE(classification.whole.calcDiffersFromFamily(classification.family, NoteType::Whole));
+}
+
+TEST(PercussionNoteheadClassification, ConsistentFamiliesConformAtEveryDuration)
+{
+    const auto document = loadFixture("drumset.musx");
+    ASSERT_TRUE(document);
+
+    const auto check = [&](char32_t closedNotehead, notehead::Shape expectedFamily) {
+        const auto percussionNote = findPercussionNote(document, closedNotehead);
+        ASSERT_TRUE(percussionNote);
+        const auto classification = classifyPercussionNotehead(percussionNote);
+        EXPECT_EQ(classification.family, expectedFamily);
+        EXPECT_FALSE(classification.quarterAndShorter.calcDiffersFromFamily(expectedFamily, NoteType::Quarter));
+        EXPECT_FALSE(classification.half.calcDiffersFromFamily(expectedFamily, NoteType::Half));
+        EXPECT_FALSE(classification.whole.calcDiffersFromFamily(expectedFamily, NoteType::Whole));
+        EXPECT_FALSE(classification.breveAndLonger.calcDiffersFromFamily(expectedFamily, NoteType::Breve));
+    };
+    check(0xE0A4, notehead::Shape::Regular);  // noteheadBlack
+    check(0xE0BE, notehead::Shape::Triangle); // noteheadTriangleUpBlack
+}
+
+TEST(PercussionNoteheadClassification, FamilyIsUnclassifiedOnlyWhenQuarterNoteheadIs)
+{
+    const auto fontContext = makeFontContext();
+    auto percussionNote =
+        std::make_shared<others::PercussionNoteInfo>(fontContext.document, SCORE_PARTID, EnigmaBase::ShareMode::All, Cmper{1}, Inci{0});
+
+    // A blank quarter notehead is a null notehead, whatever the longer ones are.
+    percussionNote->closedNotehead = U' ';
+    percussionNote->halfNotehead = 0xE0A3; // noteheadHalf
+    EXPECT_EQ(classifyPercussionNotehead(percussionNote).family, notehead::Shape::Null);
+
+    // A quarter notehead that names no glyph leaves the family unclassified.
+    percussionNote->closedNotehead = U'q';
+    const auto classification = classifyPercussionNotehead(percussionNote);
+    EXPECT_FALSE(classification);
+    EXPECT_EQ(classification.family, notehead::Shape::Unclassified);
+
+    EXPECT_FALSE(classifyPercussionNotehead(nullptr));
+}
+
+TEST(NoteheadClassification, ClassifiesPercussionShapeFamilies)
+{
+    const auto fontContext = makeFontContext("Finale Maestro");
+    const auto expectShape = [&](char32_t symbol, notehead::Shape shape, notehead::Fill fill) {
+        const auto classification = classifyNoteheadSymbol(fontContext.fontInfo, symbol);
+        EXPECT_EQ(classification.shape, shape) << std::hex << uint32_t(symbol);
+        EXPECT_EQ(classification.fill, fill) << std::hex << uint32_t(symbol);
+    };
+    expectShape(0xE0B3, notehead::Shape::CircleX, notehead::Fill::Unspecified);   // noteheadCircleX
+    expectShape(0xE0B2, notehead::Shape::CircleX, notehead::Fill::Unspecified);   // noteheadCircleXHalf
+    expectShape(0xE0AF, notehead::Shape::Plus, notehead::Fill::Unspecified);      // noteheadPlusBlack
+    expectShape(0xE0AE, notehead::Shape::Plus, notehead::Fill::Unspecified);      // noteheadPlusHalf
+    expectShape(0xE0BE, notehead::Shape::Triangle, notehead::Fill::Filled);       // noteheadTriangleUpBlack
+    expectShape(0xE0BC, notehead::Shape::Triangle, notehead::Fill::Unfilled);     // noteheadTriangleUpHalf
+    expectShape(0xE0C7, notehead::Shape::TriangleDown, notehead::Fill::Filled);   // noteheadTriangleDownBlack
+    expectShape(0xE0C5, notehead::Shape::TriangleDown, notehead::Fill::Unfilled); // noteheadTriangleDownHalf
+    expectShape(0xE0B9, notehead::Shape::Square, notehead::Fill::Filled);         // noteheadSquareBlack
+    expectShape(0xE0B8, notehead::Shape::Square, notehead::Fill::Unfilled);       // noteheadSquareWhite
+}
+
+TEST(NoteheadClassification, ClassifiesAnyNamedGlyphAsOther)
+{
+    const auto fontContext = makeFontContext("Finale Maestro");
+    // Shape-note and note-name noteheads are named outside SMuFL's notehead glyphs, and a notehead may be any
+    // glyph at all. Each is still a notehead whose glyph is known.
+    const auto expectOther = [&](char32_t symbol, std::string_view glyphName) {
+        const auto classification = classifyNoteheadSymbol(fontContext.fontInfo, symbol);
+        EXPECT_EQ(classification.shape, notehead::Shape::Other) << glyphName;
+        ASSERT_TRUE(classification.glyphName) << glyphName;
+        EXPECT_EQ(classification.glyphName.value(), glyphName);
+    };
+    expectOther(0xE1B1, "noteShapeRoundBlack");
+    expectOther(0xE150, "noteDoWhole");
+    expectOther(0xE050, "gClef");
+}
+
+TEST(NoteheadClassification, ClassifiesSymbolFontCharactersStoredWithWindowsOffset)
+{
+    // termolos_twonotes.musx overrides noteheads with Maestro characters stored as U+F077 and U+F0FA,
+    // the Windows form of the whole and half noteheads.
+    const auto document = loadFixture("termolos_twonotes.musx");
+    ASSERT_TRUE(document);
+    size_t overrideCount = 0;
+    document->iterateEntries(SCORE_PARTID, [&](const EntryInfoPtr& entryInfo) -> bool {
+        for (size_t x = 0; x < entryInfo->getEntry()->notes.size(); x++) {
+            const auto classification = classifyNotehead(NoteInfoPtr(entryInfo, x));
+            if (classification.noteheadInfo.source != NoteInfoPtr::NoteheadInfo::Source::NoteAlteration) {
+                continue;
+            }
+            ++overrideCount;
+            EXPECT_EQ(classification.shape, notehead::Shape::Regular);
+            const auto glyphName = classification.glyphName.value_or("");
+            EXPECT_TRUE(glyphName == "noteheadHalf" || glyphName == "noteheadWhole") << glyphName;
+        }
+        return true;
+    });
+    EXPECT_GT(overrideCount, 0u);
 }

@@ -29,6 +29,7 @@
 #include <string>
 #include <string_view>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include "classify/classify.h"
@@ -55,6 +56,8 @@ struct ResolvedTextExpression
     std::string text;
     std::string normalizedText;
     std::string errorMessage;
+    /// @brief The text block names no text, so the expression draws nothing.
+    bool emptyText{};
 };
 
 static std::string normalizeExpressionText(std::string_view text)
@@ -331,6 +334,89 @@ static std::optional<ExpressionClassification> classifyTechnique(std::string_vie
     return result;
 }
 
+static std::optional<ExpressionClassification> classifyExpressiveText(
+    std::string_view text, std::string_view normalizedText, CategoryType categoryType)
+{
+    static const std::unordered_set<std::string_view> recognized{
+        "dolce",
+        "dolcemente",
+        "dolcissimo",
+        "dolciss",
+        "cantabile",
+        "cantab",
+        "cantando",
+        "espressivo",
+        "espressiva",
+        "espressivi",
+        "espressive",
+        "expressivo",
+        "expresivo",
+        "espress",
+        "espr",
+        "espressif",
+        "expressif",
+        "expressive",
+        "expressively",
+        "con espressione",
+        "dolce espr",
+        "dolce espressivo",
+        "dolce e cantabile",
+        "dolce cantabile",
+        "leggiero",
+        "leggero",
+        "leggierissimo",
+        "leggerissimo",
+        "leggiermente",
+        "leggermente",
+        "con leggierezza",
+        "con leggerezza",
+        "legg",
+        "grazioso",
+        "con grazia",
+        "teneramente",
+        "con tenerezza",
+        "affettuoso",
+        "con affetto",
+        "con amore",
+        "dolente",
+        "doloroso",
+        "con dolore",
+        "giocoso",
+        "scherzando",
+        "appassionato",
+        "con passione",
+    };
+    static const std::unordered_set<std::string_view> modifiers{
+        "molto",
+        "poco",
+        "sempre",
+    };
+    std::string expressivePhrase;
+    while (!normalizedText.empty()) {
+        const auto separator = normalizedText.find(' ');
+        const auto token = withoutFinalPeriods(normalizedText.substr(0, separator));
+        if (!token.empty() && !modifiers.contains(token)) {
+            if (!expressivePhrase.empty()) {
+                expressivePhrase += ' ';
+            }
+            expressivePhrase += token;
+        }
+        if (separator == std::string_view::npos) {
+            break;
+        }
+        normalizedText.remove_prefix(separator + 1);
+    }
+    const bool recognizedText = recognized.contains(expressivePhrase);
+    if (!recognizedText && categoryType != CategoryType::ExpressiveText) {
+        return std::nullopt;
+    }
+    ExpressionClassification result;
+    result.type = ExpressionType::ExpressiveText;
+    result.basis = recognizedText ? basisForRecognition(categoryType, CategoryType::ExpressiveText) : ClassificationBasis::FinaleCategory;
+    result.value = ExpressiveText{std::string(text)};
+    return result;
+}
+
 static bool isTempoAlterationText(std::string_view normalizedText)
 {
     return matchesAny(normalizedText, {"accel", "accelerando", "rit", "ritardando", "rall", "rallentando", "a tempo", "tempo i", "tempo iº",
@@ -428,6 +514,8 @@ static std::optional<ExpressionClassification> classifyMetronomeMark(const Resol
     size_t augmentationDots = 0;
     std::string displayedBeatsPerMinute;
     bool seenDecimalPoint = false;
+    musx::dom::MusxInstance<musx::dom::FontInfo> noteFont;
+    musx::dom::MusxInstance<musx::dom::FontInfo> beatsPerMinuteFont;
     for (const auto& chunk : chunks) {
         const auto& font = chunk.styles.font;
         if (!font) {
@@ -457,6 +545,7 @@ static std::optional<ExpressionClassification> classifyMetronomeMark(const Resol
                 }
                 noteType = *resolvedNoteType;
                 noteGlyphName = *glyphName;
+                noteFont = font;
                 state = ParseState::DotsOrEquals;
                 continue;
             }
@@ -482,6 +571,9 @@ static std::optional<ExpressionClassification> classifyMetronomeMark(const Resol
             if (codepoint < U'0' || codepoint > U'9') {
                 return std::nullopt;
             }
+            if (displayedBeatsPerMinute.empty()) {
+                beatsPerMinuteFont = font;
+            }
             displayedBeatsPerMinute.push_back(static_cast<char>(codepoint));
         }
     }
@@ -505,7 +597,8 @@ static std::optional<ExpressionClassification> classifyMetronomeMark(const Resol
     ExpressionClassification result;
     result.type = ExpressionType::MetronomeMark;
     result.basis = basisForRecognition(resolved.categoryType, CategoryType::TempoMarks);
-    result.value = MetronomeMark{std::move(tempo), noteType, std::move(noteGlyphName), augmentationDots, *displayedValue};
+    result.value = MetronomeMark{
+        std::move(tempo), noteType, std::move(noteGlyphName), augmentationDots, *displayedValue, std::move(noteFont), std::move(beatsPerMinuteFont)};
     return result;
 }
 
@@ -702,6 +795,11 @@ static ResolvedTextExpression resolveTextExpression(const musx::dom::MusxInstanc
     if (const auto textBlock = def->getTextBlock(); !textBlock) {
         result.errorMessage = (LogMsg() << "Text expression " << def->getCmper() << " has non-existent text block " << def->textIdKey).str();
         return result;
+    } else if (textBlock->textId == 0) {
+        // Finale's Human Playback authors expressions of this shape for its MIDI data, so they are
+        // routine rather than a defect.
+        result.emptyText = true;
+        return result;
     }
     result.rawTextCtx = assignment ? assignment->getRawTextCtx(musx::dom::SCORE_PARTID) : def->getRawTextCtx(musx::dom::SCORE_PARTID);
     if (!result.rawTextCtx) {
@@ -759,6 +857,13 @@ static std::optional<ExpressionClassification> classifySymbolExpression(const Re
         result.type = ExpressionType::BreathMark;
         result.basis = basisForSymbolRecognition(resolved.categoryType);
         result.value = BreathMark{*breathMark, classification.glyphName};
+        return result;
+    }
+    if (const auto* caesura = classification.as<articulation::Caesura>()) {
+        ExpressionClassification result;
+        result.type = ExpressionType::Caesura;
+        result.basis = basisForSymbolRecognition(resolved.categoryType);
+        result.value = Caesura{*caesura, classification.glyphName};
         return result;
     }
     if (const auto* stringMute = classification.as<articulation::StringMute>()) {
@@ -1108,6 +1213,9 @@ static std::optional<ExpressionClassification> classifyResolvedTextExpressionBef
     const CategoryType categoryType = resolved.categoryType;
     const std::string_view normalizedText = resolved.normalizedText;
 
+    if (resolved.emptyText) {
+        return suppressExpression();
+    }
     if (const auto error = classifyTextExpressionError(resolved)) {
         return error;
     }
@@ -1163,6 +1271,9 @@ static ExpressionClassification classifyResolvedTextExpressionDefinition(const R
     if (const auto technique = classifyTechnique(resolved.text, normalizedText, categoryType)) {
         return withEnigmaCtx(*technique, resolved);
     }
+    if (const auto expressive = classifyExpressiveText(resolved.text, normalizedText, categoryType)) {
+        return withEnigmaCtx(*expressive, resolved);
+    }
     return withEnigmaCtx(classifyGenericText(resolved.text, categoryType), resolved);
 }
 
@@ -1186,6 +1297,9 @@ static ExpressionClassification classifyAssignedTextExpression(const musx::dom::
     }
     if (const auto technique = classifyTechnique(resolved.text, normalizedText, categoryType)) {
         return withEnigmaCtx(*technique, resolved);
+    }
+    if (const auto expressive = classifyExpressiveText(resolved.text, normalizedText, categoryType)) {
+        return withEnigmaCtx(*expressive, resolved);
     }
     return withEnigmaCtx(classifyGenericText(resolved.text, categoryType), resolved);
 }
@@ -1271,6 +1385,20 @@ static ExpressionClassification classifyAssignedShapeExpression(const musx::dom:
     return suppressExpression();
 }
 
+static bool assignmentExcludedByVoicing(const musx::dom::MusxInstance<musx::dom::others::MeasureExprAssign>& assignment)
+{
+    ASSERT_IF (!assignment) {
+        return false;
+    }
+    if (assignment->layer == 0) {
+        return false;
+    }
+    const musx::dom::details::GFrameHoldContext frame(
+        assignment->getDocument(), assignment->getRequestedPartId(), assignment->calcAssignedStaffId(false), assignment->getCmper());
+    const auto voicing = frame.getPolicyPartVoicing();
+    return voicing && !voicing->calcShowsLayer(assignment->layer - 1, frame && frame->calcIsMultiLayer());
+}
+
 static ExpressionClassification withScope(
     ExpressionClassification result, const musx::dom::MusxInstance<musx::dom::others::MeasureExprAssign>& assignment)
 {
@@ -1302,6 +1430,9 @@ ExpressionClassification classifyExpression(const musx::dom::MusxInstance<musx::
     const musx::dom::MusxInstance<musx::dom::others::MeasureExprAssign>& assignment)
 {
     if (assignment) {
+        if (assignmentExcludedByVoicing(assignment)) {
+            return withScope(suppressExpression(), assignment);
+        }
         return withScope(classifyAssignedTextExpression(def, assignment), assignment);
     }
     return classifyTextExpressionDefinition(def);
@@ -1311,6 +1442,9 @@ ExpressionClassification classifyExpression(const musx::dom::MusxInstance<musx::
     const musx::dom::MusxInstance<musx::dom::others::MeasureExprAssign>& assignment)
 {
     if (assignment) {
+        if (assignmentExcludedByVoicing(assignment)) {
+            return withScope(suppressExpression(), assignment);
+        }
         return withScope(classifyAssignedShapeExpression(def, assignment), assignment);
     }
     return classifyShapeExpressionDefinition(def);
@@ -1345,7 +1479,7 @@ static std::vector<ExpressionAssignmentGroup> collectAssignmentGroups(
         ASSERT_IF (!assignment) {
             continue;
         }
-        if (!includeUnshown && !assignment->calcIsAssignedInRequestedPart()) {
+        if (!includeUnshown && (!assignment->calcIsAssignedInRequestedPart() || assignmentExcludedByVoicing(assignment))) {
             continue;
         }
         if (assignment->staffGroup != 0) {
@@ -1387,11 +1521,16 @@ static std::vector<ExpressionAssignmentGroup> collectAssignmentGroups(
     return groups;
 }
 
-/// @brief Classifies a group from its floating top-staff member when it has one, else from its primary.
+/// @brief Classifies a group from its first included floating top-staff member, else its first included member.
 static ExpressionClassification classifyAssignmentGroup(const ExpressionAssignmentGroup& group)
 {
     for (const auto& member : group.members) {
-        if (assignmentUsesTopStaff(member)) {
+        if (assignmentUsesTopStaff(member) && !assignmentExcludedByVoicing(member)) {
+            return classifyExpression(member);
+        }
+    }
+    for (const auto& member : group.members) {
+        if (!assignmentExcludedByVoicing(member)) {
             return classifyExpression(member);
         }
     }
@@ -1406,6 +1545,10 @@ std::vector<ExpressionAssignmentGroup> groupExpressionAssignments(
     auto groups = collectAssignmentGroups(assignments, false);
     for (auto& group : groups) {
         group.classification = classifyAssignmentGroup(group);
+        group.classification.members.reserve(group.members.size());
+        for (const auto& member : group.members) {
+            group.classification.members.push_back({classifyExpressionScope(member), member->staffAssign, member->calcVerticalPlacement()});
+        }
     }
     return groups;
 }
@@ -1418,7 +1561,7 @@ std::vector<ExpressionAssignmentClassification> classifyExpressionAssignments(
     for (const auto& group : collectAssignmentGroups(assignments, true)) {
         const auto classification = classifyAssignmentGroup(group);
         for (const auto& member : group.members) {
-            results.push_back({member, classification});
+            results.push_back({member, assignmentExcludedByVoicing(member) ? suppressExpression() : classification});
             results.back().classification.scope = classifyExpressionScope(member);
         }
     }

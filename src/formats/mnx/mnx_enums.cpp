@@ -28,6 +28,8 @@
 #include "denigma/classify/barlines.h"
 #include "denigma/classify/classifier_common.h"
 #include "denigma/classify/dynamics.h"
+#include "denigma/classify/expressions.h"
+#include "denigma/classify/noteheads.h"
 #include "formats/enum_conversion_macros.h"
 #include "mnx.h"
 
@@ -39,12 +41,6 @@ namespace detail {
 DEFINE_ENUM_CONVERT_TEMPLATE
 
 // clang-format off
-BEGIN_ENUM_CONVERSION(details::TupletDef::AutoBracketStyle, mnxdom::AutoYesNo)
-    case details::TupletDef::AutoBracketStyle::Always: return mnxdom::AutoYesNo::Yes;
-    case details::TupletDef::AutoBracketStyle::NeverBeamSide: return mnxdom::AutoYesNo::Yes; // currently there is no exact analog for this Finale option in Mnx.
-    case details::TupletDef::AutoBracketStyle::UnbeamedOnly: return mnxdom::AutoYesNo::Auto;
-END_ENUM_CONVERSION
-
 using BarlineType = musx::dom::others::Measure::BarlineType;
 BEGIN_ENUM_CONVERSION(BarlineType, mnxdom::BarlineType)
     case BarlineType::None: return mnxdom::BarlineType::NoBarline;
@@ -71,7 +67,7 @@ END_ENUM_CONVERSION
 BEGIN_ENUM_CONVERSION(details::Bracket::BracketStyle, mnxdom::LayoutSymbol)
     case details::Bracket::BracketStyle::None: return mnxdom::LayoutSymbol::NoSymbol;
     case details::Bracket::BracketStyle::PianoBrace: return mnxdom::LayoutSymbol::Brace;
-    case details::Bracket::BracketStyle::DeskBracket: return mnxdom::LayoutSymbol::Brace;
+    case details::Bracket::BracketStyle::DeskBracket: return mnxdom::LayoutSymbol::Square;
     case details::Bracket::BracketStyle::ThickLine: return mnxdom::LayoutSymbol::Bracket;
     case details::Bracket::BracketStyle::BracketStraightHooks: return mnxdom::LayoutSymbol::Bracket;
     case details::Bracket::BracketStyle::Unknown4: return mnxdom::LayoutSymbol::NoSymbol;
@@ -86,6 +82,48 @@ BEGIN_ENUM_CONVERSION(classify::articulation::BreathMark::Type, mnxdom::BreathMa
     case classify::articulation::BreathMark::Type::Tick: return mnxdom::BreathMarkSymbol::Tick;
     case classify::articulation::BreathMark::Type::Upbow: return mnxdom::BreathMarkSymbol::Upbow;
     case classify::articulation::BreathMark::Type::Salzedo: return mnxdom::BreathMarkSymbol::Salzedo;
+END_ENUM_CONVERSION
+
+// MNX has no chant caesura; its short single stroke is the nearest shape.
+BEGIN_ENUM_CONVERSION(classify::articulation::Caesura::Type, mnxdom::CaesuraShape)
+    case classify::articulation::Caesura::Type::Normal: return mnxdom::CaesuraShape::Normal;
+    case classify::articulation::Caesura::Type::Curved: return mnxdom::CaesuraShape::Curved;
+    case classify::articulation::Caesura::Type::Short: return mnxdom::CaesuraShape::Short;
+    case classify::articulation::Caesura::Type::Thick: return mnxdom::CaesuraShape::Thick;
+    case classify::articulation::Caesura::Type::Chant: return mnxdom::CaesuraShape::Short;
+    case classify::articulation::Caesura::Type::SingleStroke: return mnxdom::CaesuraShape::Normal;
+END_ENUM_CONVERSION
+
+BEGIN_ENUM_CONVERSION(classify::ExpressionType, mnxdom::TextType)
+    case classify::ExpressionType::GenericText: return mnxdom::TextType::General;
+    case classify::ExpressionType::Dynamic: return mnxdom::TextType::Expression;
+    case classify::ExpressionType::ExpressiveText: return mnxdom::TextType::Expression;
+    case classify::ExpressionType::TechniqueText: return mnxdom::TextType::General;
+    case classify::ExpressionType::StringMute: return mnxdom::TextType::General;
+    case classify::ExpressionType::AccordionRegistration: return mnxdom::TextType::General;
+    case classify::ExpressionType::HarpDiagram: return mnxdom::TextType::General;
+    case classify::ExpressionType::KeyboardPedal: return mnxdom::TextType::General;
+    case classify::ExpressionType::MultimeasureRestNumber: return mnxdom::TextType::General;
+    default: break;
+END_ENUM_CONVERSION
+
+BEGIN_ENUM_CONVERSION(classify::articulation::Fermata::Duration, mnxdom::FermataDuration)
+    case classify::articulation::Fermata::Duration::Auto: return mnxdom::FermataDuration::Auto;
+    case classify::articulation::Fermata::Duration::VeryShort: return mnxdom::FermataDuration::VeryShort;
+    case classify::articulation::Fermata::Duration::Short: return mnxdom::FermataDuration::Short;
+    case classify::articulation::Fermata::Duration::Long: return mnxdom::FermataDuration::Long;
+    case classify::articulation::Fermata::Duration::VeryLong: return mnxdom::FermataDuration::VeryLong;
+END_ENUM_CONVERSION
+
+BEGIN_ENUM_CONVERSION(classify::articulation::Fermata::Shape, mnxdom::FermataSymbol)
+    case classify::articulation::Fermata::Shape::Normal: return mnxdom::FermataSymbol::Normal;
+    case classify::articulation::Fermata::Shape::Angled: return mnxdom::FermataSymbol::Angled;
+    case classify::articulation::Fermata::Shape::DoubleAngled: return mnxdom::FermataSymbol::DoubleAngled;
+    case classify::articulation::Fermata::Shape::Square: return mnxdom::FermataSymbol::Square;
+    case classify::articulation::Fermata::Shape::DoubleSquare: return mnxdom::FermataSymbol::DoubleSquare;
+    case classify::articulation::Fermata::Shape::HalfCurve: return mnxdom::FermataSymbol::HalfCurve;
+    case classify::articulation::Fermata::Shape::DoubleDot: return mnxdom::FermataSymbol::DoubleDot;
+    case classify::articulation::Fermata::Shape::Curlew: return mnxdom::FermataSymbol::Curlew;
 END_ENUM_CONVERSION
 
 BEGIN_ENUM_CONVERSION(classify::GlyphStyle::Placement, mnxdom::MarkingUpDownAuto)
@@ -113,6 +151,27 @@ BEGIN_ENUM_CONVERSION(classify::dynamics::Level, mnxdom::DynamicValue)
     case classify::dynamics::Level::None:
     case classify::dynamics::Level::Other:
         break; // causes a throw; MNX cannot name these, so callers must check first
+END_ENUM_CONVERSION
+
+BEGIN_ENUM_CONVERSION(classify::notehead::Shape, mnxdom::NoteheadShape)
+    case classify::notehead::Shape::Unclassified: break; // causes a throw; callers must not convert an unclassified shape
+    case classify::notehead::Shape::BackSlashed: return mnxdom::NoteheadShape::BackSlashed;
+    case classify::notehead::Shape::Circled: return mnxdom::NoteheadShape::Circled;
+    case classify::notehead::Shape::CircleX: return mnxdom::NoteheadShape::CircleX;
+    case classify::notehead::Shape::Diamond: return mnxdom::NoteheadShape::Diamond;
+    case classify::notehead::Shape::LargeCircled: return mnxdom::NoteheadShape::Circled;
+    case classify::notehead::Shape::LargeSlash: return mnxdom::NoteheadShape::Slash;
+    case classify::notehead::Shape::Null: return mnxdom::NoteheadShape::Custom;
+    case classify::notehead::Shape::Plus: return mnxdom::NoteheadShape::Plus;
+    case classify::notehead::Shape::Regular: return mnxdom::NoteheadShape::Oval;
+    case classify::notehead::Shape::Round: return mnxdom::NoteheadShape::Custom;
+    case classify::notehead::Shape::Slashed: return mnxdom::NoteheadShape::Slashed;
+    case classify::notehead::Shape::SmallSlash: return mnxdom::NoteheadShape::Slash;
+    case classify::notehead::Shape::Square: return mnxdom::NoteheadShape::Square;
+    case classify::notehead::Shape::Triangle: return mnxdom::NoteheadShape::Triangle;
+    case classify::notehead::Shape::TriangleDown: return mnxdom::NoteheadShape::TriangleDown;
+    case classify::notehead::Shape::X: return mnxdom::NoteheadShape::X;
+    case classify::notehead::Shape::Other: return mnxdom::NoteheadShape::Custom;
 END_ENUM_CONVERSION
 
 BEGIN_ENUM_CONVERSION(music_theory::NoteName, mnxdom::NoteStep)
@@ -163,18 +222,18 @@ BEGIN_ENUM_CONVERSION(classify::dynamics::Reinforcement, mnxdom::DynamicPrefix)
     case classify::dynamics::Reinforcement::Rinforzando: return mnxdom::DynamicPrefix::r;
 END_ENUM_CONVERSION
 
-BEGIN_ENUM_CONVERSION(VerticalPlacement, mnxdom::Orientation)
-    case VerticalPlacement::NotApplicable: return mnxdom::Orientation::Auto;
-    case VerticalPlacement::Float: return mnxdom::Orientation::Auto;
-    case VerticalPlacement::Above: return mnxdom::Orientation::Above;
-    case VerticalPlacement::Below: return mnxdom::Orientation::Below;
+BEGIN_ENUM_CONVERSION(VerticalPlacement, mnxdom::Placement)
+    case VerticalPlacement::NotApplicable: return mnxdom::Placement::Auto;
+    case VerticalPlacement::Float: return mnxdom::Placement::Auto;
+    case VerticalPlacement::Above: return mnxdom::Placement::Above;
+    case VerticalPlacement::Below: return mnxdom::Placement::Below;
 END_ENUM_CONVERSION
 
-BEGIN_ENUM_CONVERSION(VerticalPlacement, mnxdom::MultiStaffOrientation)
-    case VerticalPlacement::NotApplicable: return mnxdom::MultiStaffOrientation::Auto;
-    case VerticalPlacement::Float: return mnxdom::MultiStaffOrientation::Auto;
-    case VerticalPlacement::Above: return mnxdom::MultiStaffOrientation::Above;
-    case VerticalPlacement::Below: return mnxdom::MultiStaffOrientation::Below;
+BEGIN_ENUM_CONVERSION(VerticalPlacement, mnxdom::MultiStaffPlacement)
+    case VerticalPlacement::NotApplicable: return mnxdom::MultiStaffPlacement::Auto;
+    case VerticalPlacement::Float: return mnxdom::MultiStaffPlacement::Auto;
+    case VerticalPlacement::Above: return mnxdom::MultiStaffPlacement::Above;
+    case VerticalPlacement::Below: return mnxdom::MultiStaffPlacement::Below;
 END_ENUM_CONVERSION
 // clang-format on
 

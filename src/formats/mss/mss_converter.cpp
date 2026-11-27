@@ -22,8 +22,8 @@
 #include <memory>
 #include <vector>
 
-#include "core/denigma.h"
 #include "formats/enigmaxml/enigmaxml.h"
+#include "input/input.h"
 #include "mss.h"
 #include "utils/stringutils.h"
 
@@ -37,6 +37,7 @@ DenigmaContext makeMssContext(const Options& options, const std::filesystem::pat
 {
     DenigmaContext context(DENIGMA_NAME);
     context.inputFilePath = options.common.sourceName.empty() ? defaultSourceName : utils::utf8ToPath(options.common.sourceName);
+    context.musResources = options.common.musResources;
     context.noValidate = !options.common.validate;
     context.verbose = options.common.verbose;
     context.quiet = options.common.quiet;
@@ -55,20 +56,30 @@ Buffer copyBytes(std::span<const std::byte> input)
     return buffer;
 }
 
+ConversionResult convertDocumentInput(
+    std::span<const std::byte> input, const MultiOutputCallback& outputCallback, const Options& options, FormatId sourceFormat)
+{
+    ConversionResult result;
+    auto buffer = copyBytes(input);
+    auto context = makeMssContext(options, (sourceFormat == FormatId::Mus ? "input.mus" : "input.enigmaxml"));
+    context.logCallback = options.common.logCallback;
+    context.conversionResult = &result;
+    MusxLoggerScope musxLogger(makeMusxLogCallback(context));
+
+    try {
+        formats::mss::detail::convert(CommandInputData{std::move(buffer), std::nullopt, {}, sourceFormat}, context, outputCallback);
+    } catch (const std::exception& error) {
+        context.logMessage(LogMsg() << error.what(), MessageSeverity::Error);
+    }
+    return result;
+}
+
 } // namespace
 
 ConversionResult EnigmaXmlToMssXmlMultiOutputConverter::convert(
     std::span<const std::byte> input, const MultiOutputCallback& outputCallback, const Options& options) const
 {
-    ConversionResult result;
-    auto buffer = copyBytes(input);
-    auto context = makeMssContext(options, "input.enigmaxml");
-    context.logCallback = options.common.logCallback;
-    context.conversionResult = &result;
-    MusxLoggerScope musxLogger(makeMusxLogCallback(context));
-
-    formats::mss::detail::convert(CommandInputData{std::move(buffer), std::nullopt, {}}, context, outputCallback);
-    return result;
+    return convertDocumentInput(input, outputCallback, options, FormatId::EnigmaXml);
 }
 
 ConversionResult EnigmaXmlToMssXmlMultiOutputConverter::convert(
@@ -96,9 +107,22 @@ ConversionResult MusxToMssXmlMultiOutputConverter::convert(
     return convert(input, outputCallback, optionsFromRequest<Options>(request, "MusxToMssXmlMultiOutputConverter"));
 }
 
+ConversionResult MusToMssXmlMultiOutputConverter::convert(
+    std::span<const std::byte> input, const MultiOutputCallback& outputCallback, const Options& options) const
+{
+    return convertDocumentInput(input, outputCallback, options, FormatId::Mus);
+}
+
+ConversionResult MusToMssXmlMultiOutputConverter::convert(
+    std::span<const std::byte> input, const MultiOutputCallback& outputCallback, const ConversionRequest& request) const
+{
+    return convert(input, outputCallback, optionsFromRequest<Options>(request, "MusToMssXmlMultiOutputConverter"));
+}
+
 void registerConverters(ConverterRegistry& registry)
 {
     registry.add(std::make_unique<EnigmaXmlToMssXmlMultiOutputConverter>());
+    registry.add(std::make_unique<MusToMssXmlMultiOutputConverter>());
     registry.add(std::make_unique<MusxToMssXmlMultiOutputConverter>());
 }
 

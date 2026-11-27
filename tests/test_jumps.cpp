@@ -149,6 +149,10 @@ static jump::Jump classifyTestJumpWithMaestro(const std::string& text)
 
 TEST(JumpClassification, ClassifiesText)
 {
+    EXPECT_EQ(classifyTestJump("D.C."), jump::Jump::DaCapo);
+    EXPECT_EQ(classifyTestJump("Da Capo"), jump::Jump::DaCapo);
+    EXPECT_EQ(classifyTestJump("D.S."), jump::Jump::DalSegno);
+    EXPECT_EQ(classifyTestJump("Dal Segno"), jump::Jump::DalSegno);
     EXPECT_EQ(classifyTestJump("D.C. al Fine"), jump::Jump::DCAlFine);
     EXPECT_EQ(classifyTestJump("D.C. al Coda"), jump::Jump::DCAlCoda);
     EXPECT_EQ(classifyTestJump("D.S. al Fine"), jump::Jump::DsAlFine);

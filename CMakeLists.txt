@@ -1,6 +1,14 @@
 # Minimum version of CMake required
 cmake_minimum_required(VERSION 3.22)
 
+# Deduplicate archives only when the linker can resolve earlier libraries.
+if(POLICY CMP0156)
+    cmake_policy(SET CMP0156 NEW)
+endif()
+if(POLICY CMP0179)
+    cmake_policy(SET CMP0179 NEW)
+endif()
+
 # Project name and version
 project(denigma VERSION 4.0.0)
 
@@ -137,22 +145,20 @@ set_source_files_properties("${DENIGMA_GIT_COMMIT_CPP}" PROPERTIES GENERATED TRU
 # Set output directory for compiled executable
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${OUTPUT_DIR})
 
-# Save the current state and disable deprecation warnings
-set(_original_WARN_DEPRECATED ${CMAKE_WARN_DEPRECATED})
-set(CMAKE_WARN_DEPRECATED OFF CACHE BOOL "Suppress deprecation warnings for external projects" FORCE)
-
 # Disable building tests for pugixml
 set(PUGIXML_BUILD_TESTS OFF CACHE BOOL "Do not build tests for pugixml")
 # Fetch pugixml
 FetchContent_Declare(
     pugixml
-    URL https://github.com/zeux/pugixml/releases/download/v1.15/pugixml-1.15.tar.gz
+    URL https://github.com/zeux/pugixml/releases/download/v1.16/pugixml-1.16.tar.gz
+    URL_HASH SHA256=4cee1ca4aad395170f4c7a07824f3bdd41f28316c6e1e1090a1425b278ec0b4b
     DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
 FetchContent_MakeAvailable(pugixml)
 
 set(NLOHMANN_JSON_VERSION 3.12.0)
 set(JSON_BuildTests OFF CACHE BOOL "Do not build tests for nlohmann_json")
+set(JSON_Install ON)
 FetchContent_Declare(
     nlohmann_json
     URL https://github.com/nlohmann/json/releases/download/v${NLOHMANN_JSON_VERSION}/json.tar.xz
@@ -254,6 +260,23 @@ FetchContent_Declare(
     DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
 FetchContent_MakeAvailable(musx)
+
+# The reader consumes Denigma's musx and zlib targets.
+set(FINALE_MUS_READER_LOCAL_PATH "" CACHE PATH "Optional local finale-mus-reader checkout")
+set(FINALE_MUS_READER_INSTRUMENTATION OFF CACHE STRING "" FORCE)
+set(FINALE_MUS_READER_BUILD_TESTING OFF CACHE BOOL "" FORCE)
+set(FINALE_MUS_READER_BUILD_REPORTING_TESTING OFF CACHE BOOL "" FORCE)
+if(FINALE_MUS_READER_LOCAL_PATH)
+    get_filename_component(_denigma_reader_source "${FINALE_MUS_READER_LOCAL_PATH}" ABSOLUTE BASE_DIR "${PROJECT_SOURCE_DIR}")
+    set(finale_mus_reader_SOURCE_DIR "${_denigma_reader_source}")
+    add_subdirectory("${_denigma_reader_source}" "${PROJECT_BINARY_DIR}/_deps/finale_mus_reader-build")
+else()
+    FetchContent_Declare(finale_mus_reader
+        GIT_REPOSITORY https://github.com/openmusx/finale-mus-reader.git
+        GIT_TAG ${FINALE_MUS_READER_GIT_TAG}
+    )
+    FetchContent_MakeAvailable(finale_mus_reader)
+endif()
 
 FetchContent_GetProperties(musx)
 message(STATUS "Musx Source Directory: ${musx_SOURCE_DIR}")
@@ -372,6 +395,7 @@ if(denigma_BUILD_CLI)
     # Ensure the include directories are added
     add_dependencies(denigma GenerateLicenseXxd)
     target_link_libraries(denigma PRIVATE
+        denigma_input
         denigma_export
         denigma_massage
         denigma_internal_deps

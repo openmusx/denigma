@@ -31,9 +31,54 @@ namespace formats {
 namespace mnx {
 namespace detail {
 
+static std::optional<mnxdom::Part> findMnxPart(const MnxMusxMappingPtr& context, const std::string& partId)
+{
+    return context->mnxDocument->getEntityMap().tryGet<mnxdom::Part>(partId);
+}
+
+/// @brief Writes the name of a staff or group as a label ref or a label.
+///
+/// @p nameRef is the name the layout shows: `auto` for the scroll view, and `name` or `shortName` for a system
+/// that shows full or abbreviated names.
+///
+/// When @p part is supplied, the name is that part's name: the scroll view refers to it with `auto`, and a
+/// system refers to it only when the text Finale draws there is exactly the part's name or shortName. Part
+/// names stop at their first line break, so a name that continues past one keeps its text as a label.
+/// Without @p part, the name is plain text that no part carries.
+template <typename LayoutObject>
+static void setLayoutName(LayoutObject& mnxObject, mnxdom::LabelRefType nameRef, const std::optional<mnxdom::Part>& part, bool writeTarget,
+    const std::string& fullName, const std::string& abrvName)
+{
+    const auto& name = nameRef == mnxdom::LabelRefType::ShortName ? abrvName : fullName;
+    if (part) {
+        const bool refersToPart = [&]() {
+            switch (nameRef) {
+            case mnxdom::LabelRefType::Auto: return part->name() || part->shortName();
+            case mnxdom::LabelRefType::Name: return !name.empty() && part->name() == name;
+            case mnxdom::LabelRefType::ShortName: return !name.empty() && part->shortName() == name;
+            }
+            return false;
+        }();
+        if (refersToPart) {
+            auto labelRef = mnxObject.ensure_labelRef();
+            labelRef.set_or_clear_ref(nameRef);
+            if (writeTarget) {
+                labelRef.set_target(part->id().value());
+            }
+            return;
+        }
+        if (nameRef == mnxdom::LabelRefType::Auto) {
+            return; // the part has no name to show
+        }
+    }
+    if (!name.empty()) {
+        mnxObject.set_label(name);
+    }
+}
+
 // Helper function to create a JSON representation of a single staff
 static void buildMnxStaff(mnxdom::layout::Staff&& mnxStaff, const MnxMusxMappingPtr& context, const MusxInstance<others::Measure>& meas,
-    const MusxInstance<others::StaffUsed>& staffSlot)
+    const MusxInstance<others::StaffUsed>& staffSlot, mnxdom::LabelRefType nameRef)
 {
     auto it = context->inst2Part.find(staffSlot->staffId);
     if (it == context->inst2Part.end()) {
@@ -51,29 +96,13 @@ static void buildMnxStaff(mnxdom::layout::Staff&& mnxStaff, const MnxMusxMapping
         }
     }
     if (staff->showNamesForPart(meas->getRequestedPartId())) {
-        if (meas->calcShouldShowFullNames()) {
-            if (staff->multiStaffInstId) {
-                mnxSource.set_label(staff->getFullName());
-            } else {
-                if (staff->masks->fullName) {
-                    mnxSource.set_label(staff->getFullInstrumentName());
-                } else {
-                    mnxSource.set_labelref(mnxdom::LabelRef::Name);
-                }
-            }
+        constexpr auto accidentalStyle = EnigmaString::AccidentalStyle::Unicode;
+        if (staff->multiStaffInstId) {
+            // A staff in a multi-staff instrument has its own name; the part's name belongs to the instrument's group.
+            setLayoutName(mnxStaff, nameRef, std::nullopt, false, staff->getFullName(accidentalStyle), staff->getAbbreviatedName(accidentalStyle));
         } else {
-            if (staff->multiStaffInstId) {
-                mnxSource.set_label(staff->getAbbreviatedName());
-            } else {
-                if (staff->masks->abrvName) {
-                    mnxSource.set_label(staff->getAbbreviatedInstrumentName());
-                } else {
-                    mnxSource.set_labelref(mnxdom::LabelRef::ShortName);
-                }
-            }
-        }
-        if (mnxSource.label() && mnxSource.label().value() == "") {
-            mnxSource.clear_label();
+            setLayoutName(mnxStaff, nameRef, findMnxPart(context, it->second), false, staff->getFullInstrumentName(accidentalStyle),
+                staff->getAbbreviatedInstrumentName(accidentalStyle));
         }
     }
     if (!staff->hideStems) {
@@ -108,7 +137,8 @@ static bool hasInstrumentStaffGroupMapping(const MnxMusxMappingPtr& context, con
 
 static void buildOrderedContent(mnxdom::layout::LayoutContent&& content, const MnxMusxMappingPtr& context,
     const std::vector<details::StaffGroupInfo>& groups, const MusxInstanceList<others::StaffUsed>& systemStaves,
-    const MusxInstance<others::Measure> forMeas, size_t fromIndex = 0, size_t toIndex = std::numeric_limits<size_t>::max(), size_t groupIndex = 0)
+    const MusxInstance<others::Measure> forMeas, mnxdom::LabelRefType nameRef, size_t fromIndex = 0,
+    size_t toIndex = (std::numeric_limits<size_t>::max)(), size_t groupIndex = 0)
 {
     json retval = json::array();
     size_t index = fromIndex;
@@ -133,20 +163,26 @@ static void buildOrderedContent(mnxdom::layout::LayoutContent&& content, const M
                 break;
             }
             if (!group.group->hideName) {
-                auto name = forMeas->calcShouldShowFullNames() ? group.group->getFullInstrumentName() : group.group->getAbbreviatedInstrumentName();
-                if (!name.empty()) {
-                    mnxGroup.set_label(name);
+                // An instrument's own group carries the name of the instrument's part.
+                std::optional<mnxdom::Part> part;
+                if (hasInstrumentStaffGroupMapping(context, group)) {
+                    const StaffCmper staffId = group.systemStaves[group.startSlot.value()]->staffId;
+                    if (const auto partIt = context->inst2Part.find(staffId); partIt != context->inst2Part.end()) {
+                        part = findMnxPart(context, partIt->second);
+                    }
                 }
+                setLayoutName(mnxGroup, nameRef, part, true, group.group->getFullInstrumentName(EnigmaString::AccidentalStyle::Unicode),
+                    group.group->getAbbreviatedInstrumentName(EnigmaString::AccidentalStyle::Unicode));
             }
             if (group.startSlot != group.endSlot || group.group->bracket->showOnSingleStaff) {
                 mnxGroup.set_or_clear_symbol(enumConvert<mnxdom::LayoutSymbol>(group.group->bracket->style));
             }
             // @todo add group properties to content
-            buildOrderedContent(mnxGroup.content(), context, groups, systemStaves, forMeas, index, *group.endSlot, groupIndex + 1);
+            buildOrderedContent(mnxGroup.content(), context, groups, systemStaves, forMeas, nameRef, index, *group.endSlot, groupIndex + 1);
             index = (std::max)(*group.endSlot + 1, index);
         } else {
             auto mnxStaff = content.appendStaff();
-            buildMnxStaff(std::move(mnxStaff), context, forMeas, systemStaves[index++]);
+            buildMnxStaff(std::move(mnxStaff), context, forMeas, systemStaves[index++], nameRef);
         }
         if (index > toIndex) {
             break;
@@ -179,15 +215,16 @@ static void sortGroups(std::vector<details::StaffGroupInfo>& groups)
 
 /// @brief Builds one layout for @p linkedPart from the staff list identified by @p staffListCmper,
 /// with staff groups as they stand at @p forMeas.
-static void createLayout(
-    const MnxMusxMappingPtr& context, const MusxInstance<others::PartDefinition>& linkedPart, Cmper staffListCmper, MeasCmper forMeas)
+/// @param isScrollView True for the scroll-view layout, which leaves the choice of full or abbreviated names to the reader.
+static void createLayout(const MnxMusxMappingPtr& context, const MusxInstance<others::PartDefinition>& linkedPart, Cmper staffListCmper,
+    MeasCmper forMeas, bool isScrollView)
 {
     auto& mnxDocument = context->mnxDocument;
     if (!mnxDocument->layouts()) {
         mnxDocument->ensure_layouts();
     }
     auto layout = mnxDocument->layouts().value().append();
-    layout.set_id(calcSystemLayoutId(linkedPart, staffListCmper));
+    mnxDocument->assignId(layout, calcSystemLayoutId(linkedPart, staffListCmper));
 
     // Retrieve staff groups and staves in staff-list order.
     const auto systemStaves = context->document->getOthers()->getArray<others::StaffUsed>(linkedPart->getCmper(), staffListCmper);
@@ -199,7 +236,9 @@ static void createLayout(
         throw std::logic_error(
             "No Measure instance found for measure " + std::to_string(forMeas) + " in linked part " + std::to_string(linkedPart->getCmper()));
     }
-    buildOrderedContent(layout.content(), context, groups, systemStaves, meas);
+    const auto nameRef =
+        isScrollView ? mnxdom::LabelRefType::Auto : (meas->calcShouldShowFullNames() ? mnxdom::LabelRefType::Name : mnxdom::LabelRefType::ShortName);
+    buildOrderedContent(layout.content(), context, groups, systemStaves, meas, nameRef);
 }
 
 void createLayouts(const MnxMusxMappingPtr& context)
@@ -207,7 +246,7 @@ void createLayouts(const MnxMusxMappingPtr& context)
     // Iterate over each linked part and generate layouts.
     for (const auto& linkedPart : context->musxParts) {
         // The scroll-view layout derives from calcScrollViewCmper and measure 1, so it needs no page layout.
-        createLayout(context, linkedPart, linkedPart->calcScrollViewCmper(), 1);
+        createLayout(context, linkedPart, linkedPart->calcScrollViewCmper(), 1, true);
         // Without a calculated layout, StaffSystem::startMeas is a zero placeholder, so per-system
         // layouts cannot be built at all: the measure lookup would find no measure 0. Emit only
         // the scroll-view layout. createScores omits this part's pages to match.
@@ -218,7 +257,10 @@ void createLayouts(const MnxMusxMappingPtr& context)
             continue;
         }
         for (const auto& staffSystem : context->document->getOthers()->getArray<others::StaffSystem>(linkedPart->getCmper())) {
-            createLayout(context, linkedPart, staffSystem->getCmper(), staffSystem->startMeas);
+            // A system on no page is left over from a layout that ran past the last measure; no page refers to it.
+            if (staffSystem->pageId) {
+                createLayout(context, linkedPart, staffSystem->getCmper(), staffSystem->startMeas, false);
+            }
         }
     }
 }

@@ -31,7 +31,7 @@ struct ExportCommand : public ICommand
 
     int showHelpPage(const std::string_view& programName, const std::string& indentSpaces = {}) const override;
 
-    bool canProcess(const std::filesystem::path& inputPath) const override;
+    bool canProcess(const std::filesystem::path& inputPath, const DenigmaContext& context) const override;
     CommandInputData processInput(const std::filesystem::path& inputPath, const DenigmaContext& denigmaContext) const override;
     void processOutput(const CommandInputData& inputData, const std::filesystem::path& outputPath, const std::filesystem::path&,
         const DenigmaContext& denigmaContext) const override;
@@ -41,9 +41,13 @@ struct ExportCommand : public ICommand
         static constexpr std::u8string_view formats[] = {MUSX_EXTENSION, ENIGMAXML_EXTENSION, ENIGMAXML_ZIP_EXTENSION};
         return formats;
     };
-    std::optional<std::u8string> defaultOutputFormat(const std::filesystem::path& inputPath) const override
+    bool probesAllInputs() const override { return true; }
+    std::optional<std::u8string> defaultOutputFormat(const std::filesystem::path&, const CommandInputData& inputData) const override
     {
-        if (utils::pathExtensionEquals(unwrappedInputPath(inputPath), ENIGMAXML_EXTENSION)) {
+        if (inputData.sourceFormat == FormatId::Mus) {
+            return MUSICXML_EXTENSION;
+        }
+        if (inputData.originalFormat == InputFormat::EnigmaXml || inputData.originalFormat == InputFormat::ZippedEnigmaXml) {
             return MUSX_EXTENSION;
         }
         return ENIGMAXML_EXTENSION;

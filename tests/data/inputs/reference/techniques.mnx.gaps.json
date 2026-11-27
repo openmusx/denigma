@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 3,
   "producer": {
     "name": "denigma",
     "version": "TEST",
@@ -7,12 +7,27 @@
   },
   "gaps": [
     {
-      "anchor": "P1.m1",
-      "position": {
-        "numerator": 0,
-        "denominator": 1
-      },
-      "extent": "complete",
+      "anchor": "m1.textExp54.inci0",
+      "extent": "partial",
+      "type": "text-formatting",
+      "formatting": {
+        "font": "1",
+        "baseline": 0,
+        "superscript": 0,
+        "tracking": 0,
+        "sourceText": "pizz.",
+        "ranges": [
+          {
+            "anchor": "m1.textExp54.inci0.text0",
+            "offset": 0,
+            "length": 5
+          }
+        ]
+      }
+    },
+    {
+      "anchor": "m1.textExp54.inci0",
+      "extent": "partial",
       "type": "expression",
       "expression": {
         "type": "technique-text",
@@ -23,19 +38,7 @@
           "runs": [
             {
               "text": "pizz.",
-              "font": {
-                "name": "Times",
-                "size": 14,
-                "sizeIsPercent": false,
-                "bold": false,
-                "italic": true,
-                "underline": false,
-                "strikeout": false,
-                "absolute": false,
-                "hidden": false,
-                "isSymbolFont": false,
-                "isSmufl": false
-              }
+              "font": "1"
             }
           ]
         },
@@ -46,12 +49,27 @@
       }
     },
     {
-      "anchor": "P1.m2",
-      "position": {
-        "numerator": 0,
-        "denominator": 1
-      },
-      "extent": "complete",
+      "anchor": "m2.textExp55.inci0",
+      "extent": "partial",
+      "type": "text-formatting",
+      "formatting": {
+        "font": "1",
+        "baseline": 0,
+        "superscript": 0,
+        "tracking": 0,
+        "sourceText": "arco",
+        "ranges": [
+          {
+            "anchor": "m2.textExp55.inci0.text0",
+            "offset": 0,
+            "length": 4
+          }
+        ]
+      }
+    },
+    {
+      "anchor": "m2.textExp55.inci0",
+      "extent": "partial",
       "type": "expression",
       "expression": {
         "type": "technique-text",
@@ -62,19 +80,7 @@
           "runs": [
             {
               "text": "arco",
-              "font": {
-                "name": "Times",
-                "size": 14,
-                "sizeIsPercent": false,
-                "bold": false,
-                "italic": true,
-                "underline": false,
-                "strikeout": false,
-                "absolute": false,
-                "hidden": false,
-                "isSymbolFont": false,
-                "isSmufl": false
-              }
+              "font": "1"
             }
           ]
         },
@@ -85,50 +91,46 @@
       }
     },
     {
-      "anchor": "P1.m4",
-      "position": {
-        "numerator": 0,
-        "denominator": 1
-      },
-      "extent": "complete",
-      "type": "expression",
-      "expression": {
-        "type": "generic-text",
-        "basis": "finale-category",
-        "scope": "staff",
-        "text": {
-          "plain": "mute",
-          "runs": [
-            {
-              "text": "mute",
-              "font": {
-                "name": "Times",
-                "size": 14,
-                "sizeIsPercent": false,
-                "bold": false,
-                "italic": true,
-                "underline": false,
-                "strikeout": false,
-                "absolute": false,
-                "hidden": false,
-                "isSymbolFont": false,
-                "isSmufl": false
-              }
-            }
-          ]
-        },
-        "genericText": {
-          "text": "mute"
-        }
+      "anchor": "m4.textExp56.inci0",
+      "extent": "partial",
+      "type": "text-formatting",
+      "formatting": {
+        "font": "1",
+        "baseline": 0,
+        "superscript": 0,
+        "tracking": 0,
+        "sourceText": "mute",
+        "ranges": [
+          {
+            "anchor": "m4.textExp56.inci0.text0",
+            "offset": 0,
+            "length": 4
+          }
+        ]
       }
     },
     {
-      "anchor": "P1.m4",
-      "position": {
-        "numerator": 0,
-        "denominator": 1
-      },
-      "extent": "complete",
+      "anchor": "m4.textExp55.inci1",
+      "extent": "partial",
+      "type": "text-formatting",
+      "formatting": {
+        "font": "1",
+        "baseline": 0,
+        "superscript": 0,
+        "tracking": 0,
+        "sourceText": "arco",
+        "ranges": [
+          {
+            "anchor": "m4.textExp55.inci1.text0",
+            "offset": 0,
+            "length": 4
+          }
+        ]
+      }
+    },
+    {
+      "anchor": "m4.textExp55.inci1",
+      "extent": "partial",
       "type": "expression",
       "expression": {
         "type": "technique-text",
@@ -139,19 +141,7 @@
           "runs": [
             {
               "text": "arco",
-              "font": {
-                "name": "Times",
-                "size": 14,
-                "sizeIsPercent": false,
-                "bold": false,
-                "italic": true,
-                "underline": false,
-                "strikeout": false,
-                "absolute": false,
-                "hidden": false,
-                "isSymbolFont": false,
-                "isSmufl": false
-              }
+              "font": "1"
             }
           ]
         },
@@ -162,126 +152,84 @@
       }
     },
     {
-      "anchor": "P1.m5",
-      "position": {
-        "numerator": 0,
-        "denominator": 1
-      },
-      "extent": "complete",
-      "type": "expression",
-      "expression": {
-        "type": "generic-text",
-        "basis": "finale-category",
-        "scope": "staff",
-        "text": {
-          "plain": "senza sord.",
-          "runs": [
-            {
-              "text": "senza sord.",
-              "font": {
-                "name": "Times",
-                "size": 14,
-                "sizeIsPercent": false,
-                "bold": false,
-                "italic": true,
-                "underline": false,
-                "strikeout": false,
-                "absolute": false,
-                "hidden": false,
-                "isSymbolFont": false,
-                "isSmufl": false
-              }
-            }
-          ]
-        },
-        "genericText": {
-          "text": "senza sord."
-        }
+      "anchor": "m5.textExp60.inci0",
+      "extent": "partial",
+      "type": "text-formatting",
+      "formatting": {
+        "font": "1",
+        "baseline": 0,
+        "superscript": 0,
+        "tracking": 0,
+        "sourceText": "senza sord.",
+        "ranges": [
+          {
+            "anchor": "m5.textExp60.inci0.text0",
+            "offset": 0,
+            "length": 11
+          }
+        ]
       }
     },
     {
-      "anchor": "P1.m9",
-      "position": {
-        "numerator": 0,
-        "denominator": 1
-      },
-      "extent": "complete",
-      "type": "expression",
-      "expression": {
-        "type": "generic-text",
-        "basis": "finale-category",
-        "scope": "staff",
-        "text": {
-          "plain": "mute",
-          "runs": [
-            {
-              "text": "mute",
-              "font": {
-                "name": "Times",
-                "size": 14,
-                "sizeIsPercent": false,
-                "bold": false,
-                "italic": true,
-                "underline": false,
-                "strikeout": false,
-                "absolute": false,
-                "hidden": false,
-                "isSymbolFont": false,
-                "isSmufl": false
-              }
-            }
-          ]
-        },
-        "genericText": {
-          "text": "mute"
-        }
+      "anchor": "m9.textExp56.inci0",
+      "extent": "partial",
+      "type": "text-formatting",
+      "formatting": {
+        "font": "1",
+        "baseline": 0,
+        "superscript": 0,
+        "tracking": 0,
+        "sourceText": "mute",
+        "ranges": [
+          {
+            "anchor": "m9.textExp56.inci0.text0",
+            "offset": 0,
+            "length": 4
+          }
+        ]
       }
     },
     {
-      "anchor": "P1.m10",
-      "position": {
-        "numerator": 0,
-        "denominator": 1
-      },
-      "extent": "complete",
-      "type": "expression",
-      "expression": {
-        "type": "generic-text",
-        "basis": "finale-category",
-        "scope": "staff",
-        "text": {
-          "plain": "open",
-          "runs": [
-            {
-              "text": "open",
-              "font": {
-                "name": "Times",
-                "size": 14,
-                "sizeIsPercent": false,
-                "bold": false,
-                "italic": true,
-                "underline": false,
-                "strikeout": false,
-                "absolute": false,
-                "hidden": false,
-                "isSymbolFont": false,
-                "isSmufl": false
-              }
-            }
-          ]
-        },
-        "genericText": {
-          "text": "open"
-        }
+      "anchor": "m10.textExp57.inci0",
+      "extent": "partial",
+      "type": "text-formatting",
+      "formatting": {
+        "font": "1",
+        "baseline": 0,
+        "superscript": 0,
+        "tracking": 0,
+        "sourceText": "open",
+        "ranges": [
+          {
+            "anchor": "m10.textExp57.inci0.text0",
+            "offset": 0,
+            "length": 4
+          }
+        ]
       }
     },
     {
-      "anchor": "P1.m11",
-      "position": {
-        "numerator": 0,
-        "denominator": 1
-      },
-      "extent": "complete",
+      "anchor": "m11.textExp58.inci0",
+      "extent": "partial",
+      "type": "text-formatting",
+      "formatting": {
+        "font": "1",
+        "baseline": 0,
+        "superscript": 0,
+        "tracking": 0,
+        "sourceText": "harmon mute",
+        "ranges": [
+          {
+            "anchor": "m11.textExp58.inci0.text0",
+            "offset": 0,
+            "length": 11
+          }
+        ]
+      }
+    },
+    {
+      "anchor": "m11.textExp58.inci0",
+      "extent": "partial",
       "type": "expression",
       "expression": {
         "type": "technique-text",
@@ -292,19 +240,7 @@
           "runs": [
             {
               "text": "harmon mute",
-              "font": {
-                "name": "Times",
-                "size": 14,
-                "sizeIsPercent": false,
-                "bold": false,
-                "italic": true,
-                "underline": false,
-                "strikeout": false,
-                "absolute": false,
-                "hidden": false,
-                "isSymbolFont": false,
-                "isSmufl": false
-              }
+              "font": "1"
             }
           ]
         },
@@ -315,12 +251,27 @@
       }
     },
     {
-      "anchor": "P1.m12",
-      "position": {
-        "numerator": 0,
-        "denominator": 1
-      },
-      "extent": "complete",
+      "anchor": "m12.textExp59.inci0",
+      "extent": "partial",
+      "type": "text-formatting",
+      "formatting": {
+        "font": "1",
+        "baseline": 0,
+        "superscript": 0,
+        "tracking": 0,
+        "sourceText": "stopped",
+        "ranges": [
+          {
+            "anchor": "m12.textExp59.inci0.text0",
+            "offset": 0,
+            "length": 7
+          }
+        ]
+      }
+    },
+    {
+      "anchor": "m12.textExp59.inci0",
+      "extent": "partial",
       "type": "expression",
       "expression": {
         "type": "technique-text",
@@ -331,19 +282,7 @@
           "runs": [
             {
               "text": "stopped",
-              "font": {
-                "name": "Times",
-                "size": 14,
-                "sizeIsPercent": false,
-                "bold": false,
-                "italic": true,
-                "underline": false,
-                "strikeout": false,
-                "absolute": false,
-                "hidden": false,
-                "isSymbolFont": false,
-                "isSmufl": false
-              }
+              "font": "1"
             }
           ]
         },
@@ -354,42 +293,38 @@
       }
     },
     {
-      "anchor": "P1.m13",
-      "position": {
-        "numerator": 0,
-        "denominator": 1
-      },
-      "extent": "complete",
-      "type": "expression",
-      "expression": {
-        "type": "generic-text",
-        "basis": "finale-category",
-        "scope": "staff",
-        "text": {
-          "plain": "open",
-          "runs": [
-            {
-              "text": "open",
-              "font": {
-                "name": "Times",
-                "size": 14,
-                "sizeIsPercent": false,
-                "bold": false,
-                "italic": true,
-                "underline": false,
-                "strikeout": false,
-                "absolute": false,
-                "hidden": false,
-                "isSymbolFont": false,
-                "isSmufl": false
-              }
-            }
-          ]
-        },
-        "genericText": {
-          "text": "open"
-        }
+      "anchor": "m13.textExp57.inci0",
+      "extent": "partial",
+      "type": "text-formatting",
+      "formatting": {
+        "font": "1",
+        "baseline": 0,
+        "superscript": 0,
+        "tracking": 0,
+        "sourceText": "open",
+        "ranges": [
+          {
+            "anchor": "m13.textExp57.inci0.text0",
+            "offset": 0,
+            "length": 4
+          }
+        ]
       }
     }
-  ]
+  ],
+  "fonts": {
+    "1": {
+      "name": "Times",
+      "size": 14,
+      "sizeIsPercent": false,
+      "bold": false,
+      "italic": true,
+      "underline": false,
+      "strikeout": false,
+      "absolute": false,
+      "hidden": false,
+      "isSymbolFont": false,
+      "isSmufl": false
+    }
+  }
 }

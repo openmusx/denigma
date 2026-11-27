@@ -24,6 +24,8 @@
 #include <iostream>
 #include <map>
 #include <unordered_map>
+#include <unordered_set>
+#include <vector>
 
 #include "core/element_ids.h"
 #include "denigma/classify/barlines.h"
@@ -38,31 +40,12 @@ namespace formats {
 namespace mnx {
 namespace detail {
 
-static void assignBarline(const MnxMusxMappingPtr& context, mnxdom::global::Measure& mnxMeasure, const MusxInstance<others::Measure>& musxMeasure,
+static void assignBarline(mnxdom::global::Measure& mnxMeasure, const MusxInstance<others::Measure>& musxMeasure,
     const MusxInstance<options::BarlineOptions>& musxBarlineOptions, bool isForFinalMeasure)
 {
-    /// @todo MNX global measures have a single barline type, while Finale staff geometry can vary by staff.
-    /// MNX will probably need to revisit how short barlines are handled in any case. Revise if/when that happens.
-    const auto findRepresentativeStaff = [&]() -> MusxInstance<others::Staff> {
-        MusxInstance<others::Staff> firstFoundStaff;
-        const auto endOfBar = musxMeasure->calcDuration().calcEduDuration();
-        for (const auto& staffSlot : context->document->getScrollViewStaves(SCORE_PARTID)) {
-            auto staff = staffSlot->getStaffInstance(musxMeasure->getCmper(), endOfBar);
-            if (!staff) {
-                continue;
-            }
-            if (!firstFoundStaff) {
-                firstFoundStaff = staff;
-            }
-            if (!staff->hideBarlines) {
-                return staff;
-            }
-        }
-        return firstFoundStaff;
-    };
-
-    const auto musxStaff = findRepresentativeStaff();
-    const auto classification = classify::classifyBarline(musxStaff, musxMeasure, isForFinalMeasure, musxBarlineOptions);
+    // MNX global measures carry one barline for the whole stack.
+    /// @todo Export per-staff barline lengths if MNX ever separates length from barline type.
+    const auto classification = classify::classifyBarline(nullptr, musxMeasure, isForFinalMeasure, musxBarlineOptions);
 
     switch (classification.type) {
     case classify::barline::Type::Unsupported: break;
@@ -146,9 +129,13 @@ static void createFine(mnxdom::global::Measure& mnxMeasure, const MusxInstance<o
 static void createJump(mnxdom::global::Measure& mnxMeasure, const MusxInstance<others::Measure>& musxMeasure)
 {
     constexpr auto jumpMapping = std::to_array<std::pair<classify::jump::Jump, mnxdom::JumpType>>({
+        {classify::jump::Jump::ToCoda, mnxdom::JumpType::ToCoda},
+        {classify::jump::Jump::DaCapo, mnxdom::JumpType::Dc},
+        {classify::jump::Jump::DCAlFine, mnxdom::JumpType::DcAlFine},
+        {classify::jump::Jump::DCAlCoda, mnxdom::JumpType::DcAlCoda},
         {classify::jump::Jump::DalSegno, mnxdom::JumpType::Segno},
-        {classify::jump::Jump::DsAlCoda, mnxdom::JumpType::Segno},
         {classify::jump::Jump::DsAlFine, mnxdom::JumpType::DsAlFine},
+        {classify::jump::Jump::DsAlCoda, mnxdom::JumpType::DsAlCoda},
     });
 
     for (const auto& mapping : jumpMapping) {
@@ -183,9 +170,28 @@ static void assignRepeats(mnxdom::global::Measure& mnxMeasure, const MusxInstanc
         mnxMeasure.ensure_repeatStart();
     }
     if (musxMeasure->backwardsRepeatBar) {
-        mnxMeasure.ensure_repeatEnd();
-        /// @todo add `times` if appropriate.
+        auto repeatEnd = mnxMeasure.ensure_repeatEnd();
+        // MNX implies two passes, so only a longer count is written.
+        constexpr int impliedPasses = 2;
+        if (const auto repeatBack =
+                musxMeasure->getDocument()->getOthers()->get<others::RepeatBack>(musxMeasure->getRequestedPartId(), musxMeasure->getCmper())) {
+            if (repeatBack->trigger == others::RepeatTriggerType::UntilPass && repeatBack->passNumber > impliedPasses) {
+                repeatEnd.set_times(repeatBack->passNumber);
+            }
+        }
     }
+}
+
+static std::optional<std::string> calcJumpGlyphName(
+    const MusxInstance<others::TextRepeatAssign>& repeatAssign, const MusxInstance<others::Measure>& musxMeasure)
+{
+    const auto musxOthers = musxMeasure->getDocument()->getOthers();
+    if (auto repeatText = musxOthers->get<others::TextRepeatText>(SCORE_PARTID, repeatAssign->textRepeatId)) {
+        if (auto repeatDef = musxOthers->get<others::TextRepeatDef>(SCORE_PARTID, repeatAssign->textRepeatId)) {
+            return utils::smuflGlyphNameForFont(repeatDef->font, repeatText->text);
+        }
+    }
+    return std::nullopt;
 }
 
 static void createSegno(mnxdom::global::Measure& mnxMeasure, const MusxInstance<others::Measure>& musxMeasure)
@@ -193,14 +199,19 @@ static void createSegno(mnxdom::global::Measure& mnxMeasure, const MusxInstance<
     if (auto repeatAssign = searchForJump(classify::jump::Jump::Segno, musxMeasure, JumpClassificationSide::Visual)) {
         auto location = calcJumpLocation(repeatAssign.value(), musxMeasure);
         auto segno = mnxMeasure.ensure_segno(mnxFractionFromFraction(location));
-        if (auto repeatText =
-                musxMeasure->getDocument()->getOthers()->get<others::TextRepeatText>(SCORE_PARTID, repeatAssign.value()->textRepeatId)) {
-            if (auto repeatDef =
-                    musxMeasure->getDocument()->getOthers()->get<others::TextRepeatDef>(SCORE_PARTID, repeatAssign.value()->textRepeatId)) {
-                if (auto glyphName = utils::smuflGlyphNameForFont(repeatDef->font, repeatText->text)) {
-                    segno.set_glyph(glyphName.value());
-                }
-            }
+        if (auto glyphName = calcJumpGlyphName(repeatAssign.value(), musxMeasure)) {
+            segno.set_glyph(glyphName.value());
+        }
+    }
+}
+
+static void createCoda(mnxdom::global::Measure& mnxMeasure, const MusxInstance<others::Measure>& musxMeasure)
+{
+    if (auto repeatAssign = searchForJump(classify::jump::Jump::Coda, musxMeasure, JumpClassificationSide::Visual)) {
+        auto location = calcJumpLocation(repeatAssign.value(), musxMeasure);
+        auto coda = mnxMeasure.ensure_coda(mnxFractionFromFraction(location));
+        if (auto glyphName = calcJumpGlyphName(repeatAssign.value(), musxMeasure)) {
+            coda.set_glyph(glyphName.value());
         }
     }
 }
@@ -249,7 +260,7 @@ static void createTempoToolTempos(
         }
         const auto noteType = tempoUnit.value_or(NoteType::Quarter);
         auto tempo = mnxMeasure.ensure_tempos().append(tempoChange->getAbsoluteTempo(noteType), mnxNoteValueFromEdu(Edu(noteType)));
-        tempo.set_id(id);
+        context->mnxDocument->assignId(tempo, id);
         if (tempoChange->eduPosition) {
             tempo.ensure_location(mnxFractionFromEdu(tempoChange->eduPosition));
         }
@@ -338,8 +349,8 @@ static void createGlobalMeasures(const MnxMusxMappingPtr& context)
     std::optional<mnxdom::TimeSignatureDisplay> prevTimeSigDisplay;
     for (const auto& musxMeasure : musxMeasures) {
         auto mnxMeasure = mnxDocument->global().measures().append();
-        mnxMeasure.set_id(core::calcGlobalMeasureId(musxMeasure->getCmper()));
-        assignBarline(context, mnxMeasure, musxMeasure, musxBarlineOptions, musxMeasure->getCmper() == musxMeasures.size());
+        context->mnxDocument->assignId(mnxMeasure, core::calcGlobalMeasureId(musxMeasure->getCmper()));
+        assignBarline(mnxMeasure, musxMeasure, musxBarlineOptions, musxMeasure->getCmper() == musxMeasures.size());
         createEnding(mnxMeasure, musxMeasure);
         createBarlineFermata(context, mnxMeasure, musxMeasure);
         createFine(mnxMeasure, musxMeasure);
@@ -348,6 +359,7 @@ static void createGlobalMeasures(const MnxMusxMappingPtr& context)
         assignDisplayNumber(mnxMeasure, musxMeasure);
         assignRepeats(mnxMeasure, musxMeasure);
         createSegno(mnxMeasure, musxMeasure);
+        createCoda(mnxMeasure, musxMeasure);
         processGlobalExpressions(context, mnxMeasure, musxMeasure);
         createTempoToolTempos(context, mnxMeasure, musxMeasure); // after the expressions, which take precedence
         assignTimeSignature(context, mnxMeasure, musxMeasure, prevTimeSig, prevTimeSigDisplay);
@@ -359,6 +371,7 @@ static void createLyricsGlobal(const MnxMusxMappingPtr& context)
     auto& mnxDocument = context->mnxDocument;
     auto& musxDocument = context->document;
 
+    std::vector<std::pair<std::string, std::string>> linesInTextOrder; // line ID and label
     auto addLyrics = [&](const auto& lyricsTexts) {
         using PtrType = typename std::decay_t<decltype(lyricsTexts)>::value_type;
         using T = typename PtrType::element_type;
@@ -373,11 +386,13 @@ static void createLyricsGlobal(const MnxMusxMappingPtr& context)
             }
             auto mnxLineMetadata = mnxLyrics.lineMetadata().value();
             std::string lineId = calcLyricLineId(std::string(T::XmlNodeName), musxLyric->getTextNumber());
-            context->lyricLineIds.emplace(lineId);
             mnxdom::global::LyricLineMetadata metaData = mnxLineMetadata.append(lineId);
             std::string mnxLabel = std::string(T::XmlNodeName) + " " + std::to_string(musxLyric->getTextNumber());
             mnxLabel[0] = char(std::toupper(mnxLabel[0]));
             metaData.set_label(mnxLabel);
+            if (context->lyricLineIds.emplace(lineId).second) {
+                linesInTextOrder.emplace_back(lineId, mnxLabel);
+            }
         }
     };
     addLyrics(musxDocument->getTexts()->getArray<texts::LyricsVerse>());
@@ -431,11 +446,23 @@ static void createLyricsGlobal(const MnxMusxMappingPtr& context)
         return a.second->lyricNumber < b.second->lyricNumber;
     });
 
+    auto mnxLineOrder = mnxDocument->global().lyrics().value().lineOrder();
+    std::unordered_set<std::string> orderedLineIds;
     for (const auto& baseline : baselines) {
-        assert(mnxDocument->global().lyrics().has_value()); // bug if false. see early return statement above.
-        auto mnxLyrics = mnxDocument->global().lyrics().value();
-        auto mnxLineOrder = mnxLyrics.ensure_lineOrder();
-        mnxLineOrder.push_back(calcLyricLineId(baseline.first, baseline.second->lyricNumber.value_or(0)));
+        std::string lineId = calcLyricLineId(baseline.first, baseline.second->lyricNumber.value_or(0));
+        if (orderedLineIds.emplace(lineId).second) {
+            mnxLineOrder.push_back(lineId);
+        }
+    }
+    // MNX requires every lyric line in lineOrder. A line without a global baseline has no score-wide
+    // vertical position to order it by, so it follows the lines that have one. Finale normally creates a
+    // global baseline with each lyric text, so a line without one is unexpected.
+    for (const auto& [lineId, label] : linesInTextOrder) {
+        if (orderedLineIds.emplace(lineId).second) {
+            mnxLineOrder.push_back(lineId);
+            context->logMessage(
+                LogMsg() << label << " has no global baseline. It is placed after the lyric lines that have one.", MessageSeverity::Info);
+        }
     }
 }
 

@@ -6,7 +6,8 @@ if(denigma_BUILD_TESTING)
 
     FetchContent_Declare(
         googletest
-        URL https://github.com/google/googletest/archive/release-1.12.1.tar.gz
+        URL https://github.com/google/googletest/archive/refs/tags/v1.18.0.tar.gz
+        URL_HASH SHA256=6e3191c1455468b3fc35a417fb565c1c5071aee1b7e7f85e30cf48a98d37d8b5
         DOWNLOAD_EXTRACT_TIMESTAMP TRUE
     )
     FetchContent_MakeAvailable(googletest)
@@ -20,6 +21,18 @@ if(denigma_BUILD_TESTING)
         target_compile_options(${target_name} PRIVATE /W4 /WX)
     endif()
 endfunction()
+
+    # Finale 27's distributed tutorials and sample files, which some tests draw from when they are installed.
+    # The defaults are the locations Finale's user manuals document; override them with -DDENIGMA_FINALE_MUSIC_FILES_DIR.
+    if(APPLE)
+        set(_denigma_default_finale_music_files_dir "/Library/Application Support/MakeMusic/Finale 27/Music Files")
+    elseif(WIN32)
+        set(_denigma_default_finale_music_files_dir "C:/Program Files/MakeMusic/Finale/27/Music Files")
+    else()
+        set(_denigma_default_finale_music_files_dir "")
+    endif()
+    set(DENIGMA_FINALE_MUSIC_FILES_DIR "${_denigma_default_finale_music_files_dir}" CACHE PATH
+        "Finale 27 Music Files folder used by optional tests, which skip when it is absent")
 
     # Add an executable for the test suite
     add_executable(denigma_tests
@@ -36,19 +49,24 @@ endfunction()
         test_font_names.cpp
         test_general_lines.cpp
         test_noteheads.cpp
+        test_percussion.cpp
         test_octave_lines.cpp
+        test_staff_states.cpp
         test_dynamics.cpp
         test_element_ids.cpp
         test_conversion_result.cpp
         test_logging.cpp
         test_massage.cpp
+        test_mus_input.cpp
         test_mss_converter.cpp
         test_options.cpp
         test_smartshapes.cpp
         test_smartshape_lines.cpp
         test_svg_converter.cpp
+        test_text_blocks.cpp
         test_typed_converter_options.cpp
         test_jumps.cpp
+        test_finale_samples.cpp
         mnx/test_beams.cpp
         mnx/test_converter.cpp
         mnx/test_dynamics.cpp
@@ -65,11 +83,13 @@ endfunction()
         musicxml/test_converter.cpp
         musicxml/test_defaults.cpp
         musicxml/test_expressions.cpp
+        musicxml/test_jumps.cpp
         musicxml/test_lyrics.cpp
         musicxml/test_metadata.cpp
         musicxml/test_notes.cpp
         musicxml/test_parts.cpp
         musicxml/test_smartshapes.cpp
+        musicxml/test_staff_lines.cpp
         musicxml/test_tuplets.cpp
         ${CMAKE_SOURCE_DIR}/src/main.cpp
         ${CMAKE_SOURCE_DIR}/src/about.cpp
@@ -106,6 +126,7 @@ endfunction()
     # Tests intentionally aggregate broad dependencies. Do not copy this
     # dependency shape into production converter libs.
     target_link_libraries(denigma_tests PRIVATE
+        denigma_input
         denigma_export_test
         denigma_massage_test
         denigma_core_test
@@ -117,6 +138,7 @@ endfunction()
 
     target_compile_definitions(denigma_tests PRIVATE
         MUSX_TEST_DATA_PATH="${musx_SOURCE_DIR}/tests/data"
+        DENIGMA_FINALE_MUSIC_FILES_DIR="${DENIGMA_FINALE_MUSIC_FILES_DIR}"
     )
     if(DENIGMA_HAS_FREETYPE_LICENSE)
         target_compile_definitions(denigma_tests PRIVATE DENIGMA_HAS_FREETYPE_LICENSE=1)
@@ -152,6 +174,7 @@ endfunction()
     )
     target_compile_definitions(denigma_tests_pch PRIVATE
         MUSX_TEST_DATA_PATH="${musx_SOURCE_DIR}/tests/data"
+        DENIGMA_FINALE_MUSIC_FILES_DIR="${DENIGMA_FINALE_MUSIC_FILES_DIR}"
         DENIGMA_TEST
     )
     target_precompile_headers(denigma_tests_pch PRIVATE

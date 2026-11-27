@@ -10,21 +10,15 @@ The existing ZIP utilities and MXL massage support can supply archive mechanics,
 
 ## Microtonal key signatures
 
-Extend the nontraditional key-signature mapping to microtonal signatures by converting Finale's EDO divisions into MusicXML semitone alterations and suitable accidental values. Preserve the effective written or concert-pitch signature independently for each staff, as the exporter already does for traditional keys.
+Extend the nontraditional key-signature mapping to microtonal signatures by converting Finale's EDO divisions into MusicXML semitone alterations and suitable accidental values. Preserve the effective written or concert-pitch signature independently for each staff.
 
-## Instruments, transpositions, and instrument changes
-
-Treat a part's instrument as one subject rather than the handful of unrelated fields it is today. `populatePartMetadata` sets `instrumentData.uniqueId`, its required name, and, when the staff's `instUuid` is recognized, `instrumentData.soundID`. It emits `soloOrEnsemble` only when both solo and ensemble UUIDs map to that SoundID and the value is needed to disambiguate them.
-
-The instrument name uses Finale's playback route name when one is available, matching Finale's own MusicXML export. It falls back to the standardized SoundID string and then to the raw instrument UUID. Part and instrument display names are intentionally excluded from this fallback chain.
+## Instruments
 
 Instrument sound coverage is partial in a way that hides itself. `musicXmlInstrumentSoundFromUuid` maps a fixed table of Finale instrument uuids, several entries are commented out, and an unrecognized uuid simply yields no `<instrument-sound>` with no diagnostic. Decide whether an unmapped instrument deserves a Verbose log, and extend the table.
 
-Transposition is exported once per part, from the staff that was current when the part was built, and gated on `showTransposed`. Finale can change an instrument's transposition mid-piece through a staff style, and nothing captures that. The related concert-score `<for-part>` support is an MX API gap; see [mx-api-gaps.md](mx-api-gaps.md).
+Finale's own export writes `<virtual-instrument>` on most staff instruments (105 of the staff instruments in its exports of the 66 installed repertoire files that have drum kits), though every one seen so far is empty: `<virtual-instrument/>`. Denigma writes none. mx models the element through `MidiData::virtualLibrary` and `virtualName`. Come back to this to find out whether Finale ever fills it, and from what, before deciding whether Denigma should write it. Finale writes it only on staff instruments, never on drum-kit pieces.
 
-Instrument changes are the largest piece and are blocked upstream: `mx::api::PartData` holds exactly one `InstrumentData` for the whole part, so neither a mid-piece instrument change nor two simultaneous instruments can be expressed. That limitation, and the multiple-`<score-instrument>` model needed to lift it, are described under instrument changes within a part in [mx-api-gaps.md](mx-api-gaps.md). Sound coverage and initial transposition can proceed ahead of it.
-
-Two neighbouring items overlap this one and should stay separate. MIDI channels below covers the playback assignment that hangs off the instrument, and percussion covers the per-note instrument identity that drum kits need.
+Two neighbouring items overlap this one and should stay separate. MIDI channels below covers the playback assignment that hangs off the instrument, and percussion covers drum-kit pictograms.
 
 ## MIDI channels
 
@@ -34,11 +28,32 @@ The source data requires musxdom effort first: Finale's channel assignments live
 
 ## Percussion
 
-Export Finale percussion staves using their effective percussion maps rather than treating every staff as one pitched instrument. MUSX DOM exposes the staff or staff-style percussion map, each `PercussionNoteInfo` assignment, per-note `PercussionNoteCode` overrides, and the underlying percussion note-type metadata. Use these together to determine each note's displayed staff position and notehead, semantic instrument identity, and playback mapping in both the score and linked parts.
+Export Finale percussion pictogram expressions as semantic MusicXML `<percussion>` directions. Add an exporter-neutral classifier for exact `pict*` SMuFL glyphs, including valid beater and stick combinations with tip direction, material, parentheses, dashed circles, and strike location. Map Finale expression enclosures where supported, retain canonical SMuFL overrides, and leave mixed text or unrecognized glyph sequences as general text. Do not infer direction pictograms from percussion-note assignments; note identity and performance-direction symbols are separate concerns.
 
-Represent drum kits and other multi-instrument staves with separate MusicXML `<score-instrument>` / `<midi-instrument>` definitions and a matching `<instrument id="…">` on each unpitched note. Preserve `midi-unpitched`, effective staff-style map changes, duplicated note types distinguished by their order IDs, and custom notehead glyphs. This half is blocked upstream: `mx::api` exposes one `InstrumentData` per part and no per-note instrument reference, so no note can be pointed at an instrument. The unpitched note itself, its display position, `<midi-unpitched>`, and the `<percussion>` pictogram are all already expressible; see per-note instrument assignment in [mx-api-gaps.md](mx-api-gaps.md) for what is and is not available.
+## Custom staff lines
 
-Also export Finale percussion pictogram expressions as semantic MusicXML `<percussion>` directions. Add an exporter-neutral classifier for exact `pict*` SMuFL glyphs, including valid beater and stick combinations with tip direction, material, parentheses, dashed circles, and strike location. Map Finale expression enclosures where supported, retain canonical SMuFL overrides, and leave mixed text or unrecognized glyph sequences as general text. Do not infer direction pictograms from percussion-note assignments; note identity and performance-direction symbols are separate concerns.
+Restate a pitched clef when the staff's lines change under it. A clef is written only where it
+changes, so when a staff style moves the staff's bottom line under an unchanged pitched clef, the
+clef's line is not restated, and a reader places the notes off by the distance the bottom line moved
+(`custom_staves_1.musx`, measures 3, 5 and 6). Finale's own export does the same. Write the clef with
+its new line where the line changes.
+
+## Hidden staves
+
+Open question: how to export a staff that Finale hides. A staff can be hidden by its own Force Hide
+Staff setting (`Staff::hideMode`) or by a staff style that sets it. A staff that an optimized system
+leaves out is layout, and is settled in the design decisions. The Jingle Bells vocal score
+(`Repertoire/Holiday Patriotic/Vocal/Jingle Bells.musx`) hides its percussion staff with its own
+setting (`hideMode` cutaway). The Melodic Dictation answer worksheets (7212 to 7217) hide staves 2
+and 3 for the whole piece with a "Hide Staff" style. Finale's own export keeps these staves as parts
+and writes `<staff-details print-object="no">` on them. Denigma exports them as visible staves.
+Decide whether to follow Finale, how the hide modes (cutaway, collapse in score and parts, collapse
+in score only) should differ, and how a style that hides a staff for only some measures should
+export, since MusicXML's staff details apply from a measure onward.
+
+## Notehead fill on crossed shapes
+
+The `filled` attribute changes the appearance of enclosed shapes, so it says nothing about an X notehead. The classifier still gives X glyphs a fill for their duration variant, which writes `filled` where one disagrees with the note value, such as `noteheadXBlack` on a half note. Omit `filled` for `x` once the effect on other readers is checked.
 
 ## Alternate notation: measure repeats and slash notation
 
@@ -48,7 +63,7 @@ Layer-only behavior, blank notation, and Finale's independent hiding of articula
 
 ## Fretboard diagrams
 
-Export Finale fretboard diagrams through MusicXML `<frame>` data on their associated `<harmony>` elements. This does not refer to simultaneous note chords: those are already represented by MusicXML `<chord/>` note groups.
+Export Finale fretboard diagrams through MusicXML `<frame>` data on their associated `<harmony>` elements. This does not refer to simultaneous note chords.
 
 MUSX DOM exposes the fretboard groups, styles, and diagrams referenced by `details::ChordAssign`. `mx::api::ChordData::frameData` can represent the basic string/fret grid, first fret, barre, and fingering data.
 
@@ -56,9 +71,7 @@ First export the basic diagram and its note/fingering/barre details, then assess
 
 ## Accordion registration: combining glyph sequences and legacy fonts
 
-Denigma classifies and exports only a single precomposed accordion-registration glyph today (e.g. `accdnRH3RanksClarinet`), matching the standard right-hand three-/four-rank and left-hand two-/three-rank diagrams. SMuFL also defines combining glyphs (`accdnCombRH3RanksEmpty`, `accdnCombDot`, and their siblings) meant for a custom diagram outside that fixed set, but Denigma does not attempt to reassemble one from source glyphs.
-
-An earlier version of this classifier tried to recognize a combining sequence by reading multiple font-character runs from a Finale Text Expression, using each run's baseline/superscript shift as a dot's position. That was removed: nothing confirmed it matches how Finale users actually build these diagrams, and Shape Designer's `DrawChar` instruction is arguably the more natural tool for placing dots at arbitrary positions, which would make it a Shape Expression instead. `classifyAssignedShapeExpression` has no accordion case, and `musx::dom::KnownShapeDefType` has no accordion entry, so that route is equally unhandled.
+SMuFL defines combining glyphs (`accdnCombRH3RanksEmpty`, `accdnCombDot`, and their siblings) for a custom accordion-registration diagram outside the standard precomposed set. Exporting one means reassembling it from source glyphs, and how Finale users build such a diagram is unconfirmed. It could be several font-character runs in a Text Expression, each run's baseline or superscript shift placing a dot, or a Shape Designer shape whose `DrawChar` instructions place the dots, which would make it a Shape Expression. `classifyAssignedShapeExpression` has no accordion case, and `musx::dom::KnownShapeDefType` has no accordion entry.
 
 Revisit this only when a real Finale file exhibits a custom accordion registration, and let that fixture settle which route (Shape Designer shape vs. baseline-shifted text runs, or both) is worth supporting. The same discipline applies to legacy, pre-SMuFL accordion registration fonts: `smufl_mapping` has no such font mappings today, and none should be added speculatively — add one only against a real fixture that needs it.
 
@@ -71,30 +84,6 @@ For principal voice, obtain representative Finale Hauptstimme and Nebenstimme sm
 Use `OtherDirectionData` only for recognized direction semantics that lack a dedicated MusicXML direction type. Preserve a canonical SMuFL name and useful fallback text where available, but do not convert every unrecognized expression glyph into `<other-direction>`.
 
 Export measure-attached Finale graphics from `details::MeasureGraphicAssign` as MusicXML `<image>` directions. Resolve embedded and external graphic sources, emit required image files through the multi-output callback, determine MIME types, and convert Finale position and size values to MusicXML tenths. Page graphics and graphics embedded in Shape Designer objects remain separate mapping tasks.
-
-## Tuplet numbering scope
-
-Tuplet `numberLevel` comes from the tuplet's index within its entry frame (`applyTupletData` in
-`musicxml_notes.cpp`). That is stable for a tuplet's whole extent, so a start always pairs with its
-stop, but a frame is one layer of one staff while MusicXML's `number` is scoped to the part. Two
-layers each numbering from 1 can therefore hand the same level to two unrelated tuplets, and
-nothing currently prevents it.
-
-No fixture demonstrates this yet, so it is a latent risk rather than a known defect; a two-layer
-measure with a tuplet in each layer would settle it. The fix is a number allocated per part and
-released when a tuplet ends, which is what `mx::impl::SpannerResolver` already does for every other
-spanner family. Tuplets are excluded from it because `TupletStart` and `TupletStop` carry a raw
-`numberLevel` int rather than an `api::SpannerNumber`, so either Denigma allocates part-scoped
-levels itself or MX extends the resolver to tuplets. Note that MusicXML makes `number` optional and
-defaults it to 1, and MX omits the attribute when the level is unspecified, so a measure with no
-overlapping tuplets needs no numbering at all.
-
-Two neighbouring tuplet defects were MX's and are now fixed upstream: `<normal-type>` written from
-a sibling search rather than from the API field ([webern/mx#428](https://github.com/webern/mx/issues/428)),
-and a single-note tuplet writing its stop before its start
-([webern/mx#429](https://github.com/webern/mx/issues/429)). `MusicXmlTuplets` in
-`tests/musicxml/test_tuplets.cpp` guards both, along with what Denigma asks for on a nested
-tuplet.
 
 ## Tablature staves
 
@@ -129,16 +118,16 @@ reproduce Finale's automatic string assignment for every note that carries no ov
 algorithm is not documented in MUSX DOM and would need to be established, ideally as a musxdom
 helper rather than in the exporter, so MNX can share it.
 
-The export half is additionally blocked upstream: `mx::api` models neither `<string>` nor `<fret>`.
-See the tablature entry in [mx-api-gaps.md](mx-api-gaps.md).
+The per-note export is not blocked upstream. `mx::api` writes `<string>` and `<fret>` as the
+`MarkType::string_` and `MarkType::fret` technical marks, with the number in `MarkData::name`. The
+staff tunings are available through `StaffData::staffTunings`, but capo and show-frets remain API gaps. Reliable source-side string/fret calculation is also needed.
 
 Two neighbours are related but separate. Fretboard diagrams above cover `<frame>` on `<harmony>`,
 which is chord diagrams rather than staff content, though both read `FretInstrument`. Bends
 (`BendHat`, `BendCurve`) are guitar technique under `<technical>` and are noted with the glissando
 work below.
 
-Percussion staves have a parallel gap and are covered by the percussion item above. One detail
-belongs here because it is shared: any future notion of "the same note" on a percussion staff would
+One detail is shared with percussion staves: any future notion of "the same note" on a percussion staff would
 have to compare percussion note type, not merely staff position, since one position can host
 different instruments and one instrument can move position. Nothing depends on that today.
 
@@ -156,14 +145,16 @@ slides, and the only remaining one Finale attaches to noteheads. They are droppe
 shape type is classified, so both reach the exporter as `std::monostate` and are logged by the
 unclassified-shape path.
 
-Nothing here is blocked upstream in an obvious way, but `mx::api` coverage of `<bend>` has not been
-surveyed. Check it before starting, and record whatever is missing in
-[mx-api-gaps.md](mx-api-gaps.md). Tablature staves above is a neighbour rather than a prerequisite:
+`mx::api` writes a bend as a `MarkType::bend` technical mark whose `BendMarkData` carries `alter` in
+semitones, `kind` (normal, pre-bend, or release), `releaseOffset` in ticks for a release, `withBar`
+for whammy-bar notation, and `shape` (angled or curved). A bend and its release are two marks on one
+note. `bend-sound` is not exposed; record it in [mx-api-gaps.md](mx-api-gaps.md) if the playback
+approximation turns out to matter. Tablature staves above is a neighbour rather than a prerequisite:
 a bend is notated in standard notation too, so this does not wait on TAB support.
 
 ## Shape-replaced stems
 
-Export the Finale custom stems from `details::CustomStem` (`CustomUpStem` / `CustomDownStem`) that replace the stem with a Shape Designer shape. A custom stem that merely hides the stem already exports as `<stem>none</stem>`; a shape-replaced one keeps its ordinary direction, and the shape itself is dropped, as it is in Finale's own export.
+Export the Finale custom stems from `details::CustomStem` (`CustomUpStem` / `CustomDownStem`) that replace the stem with a Shape Designer shape. A shape-replaced stem keeps its ordinary direction, and the shape itself is dropped, as it is in Finale's own export.
 
 An arbitrary stem shape has no MusicXML equivalent, so the case worth pursuing is a shape drawing one of SMuFL's combining tremolo stems, such as `stemPendereckiTremolo`. That is a tremolo in every sense except how Finale stores it, and it could export as `MarkType::tremoloUnmeasured` carrying the glyph name, exactly like the equivalent articulation. Recognizing it requires shape recognition in MUSX DOM, the same upstream dependency described below.
 
@@ -177,9 +168,7 @@ This is gated on evidence. Revisit it when a real-world Finale file actually spe
 
 ## Extend the font-availability assertion to MNX
 
-The shared `allFontsAvailable` export option and its `--all-fonts-available` CLI spelling tell Denigma that every source font will be available where the output is read. MusicXML uses it to select `utils::SmuflSymbolPolicy::PreserveText`; its default remains `SplitSmufl`.
-
-Apply the same option to MNX once MNX has official formatted strings. Until then, leave its current `PreferSmufl` behavior alone rather than designing around a provisional text representation. At that point, reconcile MNX with MusicXML's two meaningful choices: without the fonts use `SplitSmufl`; with them use `PreserveText`. The intermediate `PreferSmufl` has no identified long-term use case.
+Apply the shared `allFontsAvailable` export option (`--all-fonts-available`), which says every source font will be available where the output is read, to MNX once MNX has official formatted strings. Until then, leave its current `PreferSmufl` behavior alone rather than designing around a provisional text representation. At that point, reconcile MNX with MusicXML's two meaningful choices: without the fonts use `SplitSmufl`; with them use `PreserveText`. The intermediate `PreferSmufl` has no identified long-term use case.
 
 The assertion may eventually inform other portability choices too. Generic font-family fallbacks are the obvious neighbor because they exist for the same missing-font case, but changing them should be decided separately rather than folded into formatted-text preservation.
 
@@ -190,3 +179,33 @@ Convert eligible music-font characters in expression text to `SymbolData` within
 Use page-specific `PageData` layout overrides when computing absolute credit anchors. The exporter currently uses the score's default odd/even page size and margins, so credits on pages with Finale layout overrides may be misplaced.
 
 Define intentional downgrade policies for Finale text and line features that MusicXML cannot represent. These include full and forced-full text justification; arbitrary Shape Designer text frames; page and measure text-block geometry such as fixed dimensions, insets, corner radius, line spacing, and word wrapping; custom-line continuation text shown after system breaks; and center full/abbreviated text on general bracket or dashes lines. Preserve the closest standard appearance where possible and log material omissions.
+
+## MX diagnostics
+
+`writeMusicXmlToCallback` in `musicxml.cpp` logs every `mx::api::Diagnostic` it is handed, the
+id-integrity codes as warnings and the rest at Verbose. Two decisions remain. Which of
+`valueAdjusted`, `invalidValue`, `missingValueDefaulted`, `unmatchedSpanner`, and `droppedData`
+name a Denigma defect rather than expected normalization, and so deserve promoting out of Verbose,
+is not yet known; each needs checking against the fixture corpus. And data mx drops may belong in
+a typed gap collection, as MNX has, rather than in the log at all.
+
+`mxResultMessage` also reports only the XML path of a failure, although `ApiError::location` now
+carries part, measure, staff, voice, and tick as well.
+
+## Available MX APIs awaiting source mappings
+
+The mx update at `e866c709` exposes these additional capabilities. Adopt them when Finale source semantics can be mapped reliably:
+
+- Grace-note steal-time percentages and make-time ticks. Finale's grace playback duration alone does not establish which neighbouring note supplies that time; do not infer it or substitute make-time.
+- Notehead color. Resolve actual per-note authorial settings before populating it; do not infer colors from Finale's editing display.
+- Additional creators and rights statements. Finale's existing single file-info fields do not establish separate people or rights records; do not split their free text heuristically.
+- Figured-bass extension lines. These need a figured-bass export path before they can be used.
+- Additional accidental-mark appearance attributes. Existing ornament classification supplies accidental type and placement, but no independent brackets, size, font, or color.
+
+The mx update at `e335eb5f` (v0.7.4) adds these:
+
+- Note accidentals that MusicXML cannot name: `Accidental::other` with a SMuFL glyph in `NoteData::accidentalSmufl`. Pair with the microtonal key signatures above, where an EDO alteration has no MusicXML accidental value.
+- Arrow marks: `MarkType::arrow` with `ArrowMarkData` for style, arrowhead, circular arrows, and a SMuFL glyph. Strum arrows and other arrow articulations would need recognizing in the articulation classifier first.
+- Figured-bass position and print attributes, which need the figured-bass export path noted above.
+
+The mx update at `9fb57380` adds `<footnote>` through `mx::api::FootnoteData`. Finale has no footnote element, but it may become possible to detect text that serves as a footnote or header note and attach it to the element it annotates.

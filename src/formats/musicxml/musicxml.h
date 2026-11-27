@@ -20,22 +20,28 @@
 
 #include <cstddef>
 #include <optional>
+#include <span>
 #include <string>
 #include <string_view>
+#include <variant>
 #include <vector>
 
 #include "core/denigma.h"
 #include "denigma/classify/entries.h"
 #include "denigma/classify/expressions.h"
+#include "denigma/classify/percussion.h"
+#include "denigma/classify/staff_states.h"
 #include "musicxml_mapping.h"
 #include "mx/api/AccordionRegistrationData.h"
 #include "mx/api/DirectionData.h"
+#include "mx/api/ForPartData.h"
 #include "mx/api/MarkData.h"
 #include "mx/api/MeasureData.h"
 #include "mx/api/NoteData.h"
 #include "mx/api/SoundID.h"
 #include "mx/api/StaffData.h"
 #include "mx/api/TempoData.h"
+#include "mx/api/TransposeData.h"
 
 namespace denigma {
 namespace formats {
@@ -48,6 +54,31 @@ ToEnum enumConvert(FromEnum);
 inline std::string createPartId(int partNumber)
 {
     return "P" + std::to_string(partNumber);
+}
+
+/// The id of the instrument a part's staff names, which plays every note that names no kit piece.
+inline std::string createPartInstrumentId(const std::string& partId)
+{
+    return partId + "-I1";
+}
+
+/// The id of the kit piece instrument that plays @p sound in part @p partId. It is built from the
+/// percussion note type and its copy number, so it leads back to the note type in the source document.
+inline std::string createPercussionInstrumentId(const std::string& partId, const classify::percussion::SoundIdentity& sound)
+{
+    std::string result = partId + "-pn" + std::to_string(sound.baseNoteTypeId);
+    if (sound.orderId) {
+        // The first copy of a note type has no number, so later copies count from 2, as Finale names them.
+        result += "o" + std::to_string(sound.orderId + 1);
+    }
+    return result;
+}
+
+/// The id of the instrument that plays MIDI key @p midiKey in part @p partId, for a percussion staff note
+/// its percussion map does not assign. The key counts from 0, as Finale numbers it.
+inline std::string createPercussionMidiKeyInstrumentId(const std::string& partId, int midiKey)
+{
+    return partId + "-M" + std::to_string(midiKey);
 }
 
 inline int musicXmlVoiceNumber(size_t staffIndex, musx::dom::LayerIndex layer, int v1v2)
@@ -68,7 +99,6 @@ inline int musicXmlFloatingAnchorVoiceNumber(size_t staffIndex)
     return floatingAnchorVoiceBase + static_cast<int>(staffIndex) + 1;
 }
 
-MusicXmlPitchContext pitchContextForPart(const MusicXmlMusxMapping& context, const std::string& partId);
 struct MusicXmlInstrumentSound
 {
     mx::api::SoundID soundId{};
@@ -76,6 +106,36 @@ struct MusicXmlInstrumentSound
 };
 
 std::optional<MusicXmlInstrumentSound> musicXmlInstrumentSoundFromUuid(std::string_view instUuid);
+
+/// Returns the id of the current part's instrument for the kit piece @p percussionNote plays, adding the
+/// instrument to the part the first time a note plays it. A note its percussion map does not assign plays
+/// an instrument for its MIDI key. Returns no value for a percussion note whose note type Finale does not
+/// know, or that the note's playback device does not play; the part's own instrument stands for those.
+std::optional<std::string> ensurePercussionInstrument(MusicXmlMusxMapping& context, const classify::PercussionNoteClassification& percussionNote);
+
+/// Names the part's own instrument on every note of @p part that names no instrument, once the part has
+/// kit pieces. MusicXML expects every note of a part with more than one instrument to name the ones that play it.
+void assignPartInstrumentToUnassignedNotes(mx::api::PartData& part);
+
+/// How a staff's transposition is exported: not at all, as a transposition of the file's own
+/// notation, or, in a concert score, as the transposition of the part made from it.
+using MusicXmlTransposition = std::variant<std::monostate, mx::api::TransposeData, mx::api::ForPartData>;
+
+/// Classifies @p transposition for export. @p staff is the effective staff where it applies.
+MusicXmlTransposition createMusicXmlTransposition(const MusicXmlMusxMapping& context, const classify::staff_state::Transposition& transposition,
+    const musx::dom::MusxInstance<musx::dom::others::StaffComposite>& staff);
+
+/// Instrument names as exported for a part whose top staff is @p staff.
+struct MusicXmlPartNames
+{
+    std::string fullName;        ///< Trimmed full name, which may contain line breaks.
+    std::string abbreviatedName; ///< Trimmed abbreviated name, which may contain line breaks.
+    bool isVisible{};            ///< Whether the names are shown in the exported score or part.
+
+    bool operator==(const MusicXmlPartNames&) const = default;
+};
+
+MusicXmlPartNames musicXmlPartNames(const MusicXmlMusxMapping& context, const musx::dom::MusxInstance<musx::dom::others::StaffComposite>& staff);
 mx::api::MarkData musicXmlMark(mx::api::MarkType type, musx::dom::VerticalPlacement placement);
 mx::api::MarkType musicXmlFermataType(const classify::articulation::Fermata& fermata);
 mx::api::NoteData* noteDataAt(MusicXmlMusxMapping& context, const MusicXmlNoteLocation& location);
@@ -96,7 +156,7 @@ mx::api::ScoreData createMusicXmlDocument(const CommandInputData& inputData, con
 void createDefaults(const MusicXmlMusxMapping& context);
 void createMeasures(MusicXmlMusxMapping& context);
 void createMetaData(const MusicXmlMusxMapping& context);
-void createPageTexts(const MusicXmlMusxMapping& context);
+void processPageTexts(const MusicXmlMusxMapping& context);
 void createNotesForMeasureStaff(MusicXmlMusxMapping& context, mx::api::MeasureData& measure, mx::api::StaffData& staff,
     const musx::dom::MusxInstance<musx::dom::others::Measure>& musxMeasure, musx::dom::StaffCmper staffId, size_t measureIndex, size_t staffIndex);
 int syntheticRestVoiceNumber(const mx::api::PartData& part, size_t staffIndex);
@@ -112,8 +172,11 @@ void processExpressions(MusicXmlMusxMapping& context, mx::api::MeasureData& meas
     const musx::dom::MusxInstance<musx::dom::others::Measure>& musxMeasure, musx::dom::StaffCmper staffId, size_t staffIndex);
 void processJumps(MusicXmlMusxMapping& context, mx::api::StaffData& staff, const musx::dom::MusxInstance<musx::dom::others::Measure>& musxMeasure,
     musx::dom::StaffCmper staffId, size_t staffIndex);
-void processArticulations(MusicXmlMusxMapping& context, mx::api::StaffData& staff, mx::api::NoteData& note, const musx::dom::EntryInfoPtr& entryInfo,
-    bool isStaffValueSpecified);
+/// @brief Exports the entry's articulations.
+/// @param notes The entry's exported notes from lowest to highest, or its rest. Entry-level marks go on the first, and
+/// note-level marks are distributed among them.
+void processArticulations(MusicXmlMusxMapping& context, mx::api::StaffData& staff, std::span<mx::api::NoteData> notes,
+    const musx::dom::EntryInfoPtr& entryInfo, bool isStaffValueSpecified);
 void appendArpeggioCandidate(MusicXmlMusxMapping& context, const musx::util::ArpeggioSpanCandidate& candidate);
 void finalizeArpeggioCandidates(MusicXmlMusxMapping& context);
 void applyNoteheadData(mx::api::NoteData& note, const musx::dom::NoteInfoPtr& noteInfo, const classify::EntryNoteheadClassification& entryNoteheads);

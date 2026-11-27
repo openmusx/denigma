@@ -18,6 +18,7 @@
  */
 #pragma once
 
+#include <cstddef>
 #include <string>
 #include <type_traits>
 
@@ -29,7 +30,7 @@ namespace core {
 /// @brief Computes a stable id for an event (an entry, or the full-measure rest standing in for it).
 /// Shared by every exporter that needs to point at an event, so the same musx entry always yields
 /// the same id regardless of target format.
-std::string calcEventId(musx::dom::EntryNumber entryNum);
+std::string calcEventId(const musx::dom::EntryInfoPtr& entryInfo);
 
 /// @brief Computes a stable id for one note within an entry.
 std::string calcNoteId(const musx::dom::NoteInfoPtr& noteInfo);
@@ -52,8 +53,27 @@ std::string calcPartMeasureId(const std::string& partId, musx::dom::Cmper cmperV
 /// `m<cmper>.shapeExp<def>.inci<n>`. An assignment with no definition yields an empty string.
 std::string calcExpressionId(const musx::dom::MusxInstance<musx::dom::others::MeasureExprAssign>& assignment);
 
+/// @brief Computes a child id for a canonical text element using its zero-based ordinal.
+std::string calcTextChunkId(const std::string& textId, size_t ordinal);
+
 /// @brief Computes a stable id for an object derived from one Tempo Tool record (`tempoDef`).
 std::string calcTempoDefId(musx::dom::Cmper measureCmper, musx::dom::Inci inci);
+
+/// @brief Computes a stable id for an object derived from one measure-attached text block assignment.
+///
+/// The id records the assignment's Finale provenance: the measure, the staff, the text block it
+/// assigns, and the assignment's inci on that staff and measure, as `m<cmper>.s<staff>.textBlock<block>.inci<n>`.
+std::string calcMeasureTextId(const musx::dom::MusxInstance<musx::dom::details::MeasureTextAssign>& assignment);
+
+/// @brief Computes a stable id for the score of one linked part (the full score is linked part 0), as `score<cmper>`.
+std::string calcScoreId(musx::dom::Cmper linkedPartCmper);
+
+/// @brief Computes a stable id for one page of a linked part's score, as `score<cmper>.page<number>`,
+/// where @p pageNumber is the part's own page number, counting from 1.
+std::string calcPageId(musx::dom::Cmper linkedPartCmper, musx::dom::PageCmper pageNumber);
+
+/// @brief Computes a stable id for a tuplet definition from its entry and incidence.
+std::string calcTupletId(const musx::dom::EntryInfoPtr& firstEntryInfo, const musx::dom::MusxInstance<musx::dom::details::TupletDef>& tupletDef);
 
 /// @brief Computes a stable id for an object derived from one lyric syllable assignment.
 ///
@@ -62,10 +82,10 @@ std::string calcTempoDefId(musx::dom::Cmper measureCmper, musx::dom::Inci inci);
 /// `ev<entry>.<verse|chorus|section><number>.inci<n>`.
 /// @tparam T A subtype of musx::dom::details::LyricAssign.
 template <typename T>
-std::string calcLyricAssignId(const musx::dom::MusxInstance<T>& assignment)
+std::string calcLyricAssignId(const musx::dom::MusxInstance<T>& assignment, const musx::dom::EntryInfoPtr& entryInfo)
 {
     static_assert(std::is_base_of_v<musx::dom::details::LyricAssign, T>, "T must be a subtype of LyricAssign");
-    return calcEventId(assignment->getEntryNumber()) + "." + std::string(T::TextType::XmlNodeName) + std::to_string(assignment->lyricNumber) + ".inci"
+    return calcEventId(entryInfo) + "." + std::string(T::TextType::XmlNodeName) + std::to_string(assignment->lyricNumber) + ".inci"
            + std::to_string(assignment->getInci().value_or(0));
 }
 

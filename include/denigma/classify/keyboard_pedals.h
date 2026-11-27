@@ -55,6 +55,8 @@ struct KeyboardPedalClassification
     keyboardpedal::Type type{};     ///< The recognized marking.
     bool fromGlyph{};               ///< True when recognition relied on SMuFL glyphs rather than
                                     ///< on the spelled-out text.
+    bool shortForm{};               ///< True when the marking names its pedal with the single-letter
+                                    ///< P or S pedal glyph instead of Ped. or Sost.
 };
 
 /// @brief Classifies plain text as a keyboard-pedal marking.
@@ -69,7 +71,8 @@ std::optional<KeyboardPedalClassification> classifyKeyboardPedal(std::string_vie
 /// @brief Classifies Finale text as a keyboard-pedal marking, resolving SMuFL pedal glyphs.
 ///
 /// This form additionally recognizes the glyph-only markings that have no spelled-out
-/// equivalent, such as the half-pedal, notched-release, and pedal-line hook glyphs.
+/// equivalent, such as the half-pedal, notched-release, and pedal-line hook glyphs, and the
+/// single-letter P and S pedal glyphs, which typed letters do not stand for.
 /// Hidden text chunks are ignored.
 /// @return std::nullopt when @p textContext is empty or is not a recognized marking.
 [[nodiscard]]

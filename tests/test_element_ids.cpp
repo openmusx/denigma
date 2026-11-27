@@ -19,10 +19,14 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+#include <filesystem>
 #include <memory>
+#include <vector>
 
 #include "core/element_ids.h"
+#include "core/musx_reader.h"
 #include "musx/musx.h"
+#include "test_utils.h"
 #include "gtest/gtest.h"
 
 using namespace denigma;
@@ -30,8 +34,16 @@ using namespace musx::dom;
 
 TEST(ElementIdsTest, CalcEventId)
 {
-    EXPECT_EQ(core::calcEventId(125), "ev125");
-    EXPECT_EQ(core::calcEventId(0), "ev0");
+    std::vector<char> xml;
+    readFile(getInputPath() / "reference" / utils::utf8ToPath("notAscii-其れ.enigmaxml"), xml);
+    const auto document = musx::factory::DocumentFactory::create<denigma::MusxReader>(xml);
+    ASSERT_TRUE(document);
+    const auto firstEntry = EntryInfoPtr::fromEntryNumber(document, SCORE_PARTID, 1);
+    const auto secondEntry = EntryInfoPtr::fromEntryNumber(document, SCORE_PARTID, 2);
+    ASSERT_TRUE(firstEntry);
+    ASSERT_TRUE(secondEntry);
+    EXPECT_EQ(core::calcEventId(firstEntry), "ev1");
+    EXPECT_EQ(core::calcEventId(secondEntry), "ev2");
 }
 
 TEST(ElementIdsTest, CalcGlobalMeasureId)
@@ -52,6 +64,23 @@ TEST(ElementIdsTest, CalcTempoDefId)
     EXPECT_EQ(core::calcTempoDefId(12, 4), "m12.tempoDef.inci4");
 }
 
+TEST(ElementIdsTest, CalcScoreAndPageIds)
+{
+    EXPECT_EQ(core::calcScoreId(0), "score0");
+    EXPECT_EQ(core::calcScoreId(3), "score3");
+    EXPECT_EQ(core::calcPageId(0, 1), "score0.page1");
+    EXPECT_EQ(core::calcPageId(3, 12), "score3.page12");
+}
+
+TEST(ElementIdsTest, CalcMeasureTextId)
+{
+    // The assignment records provenance without consulting its document, so a detached one suffices.
+    auto assign =
+        std::make_shared<details::MeasureTextAssign>(DocumentWeakPtr{}, SCORE_PARTID, CommonClassBase::ShareMode::All, Cmper{2}, Cmper{7}, Inci{1});
+    assign->block = 5;
+    EXPECT_EQ(core::calcMeasureTextId(assign), "m7.s2.textBlock5.inci1");
+}
+
 namespace {
 
 // The assignment records provenance without consulting its document, so a detached one suffices.
@@ -67,7 +96,17 @@ MusxInstance<T> makeLyricAssign(EntryNumber entry, Cmper lyricNumber, Inci inci)
 
 TEST(ElementIdsTest, CalcLyricAssignId)
 {
-    EXPECT_EQ(core::calcLyricAssignId(makeLyricAssign<details::LyricAssignVerse>(20, 1, 0)), "ev20.verse1.inci0");
-    EXPECT_EQ(core::calcLyricAssignId(makeLyricAssign<details::LyricAssignChorus>(137, 2, 1)), "ev137.chorus2.inci1");
-    EXPECT_EQ(core::calcLyricAssignId(makeLyricAssign<details::LyricAssignSection>(5, 3, 2)), "ev5.section3.inci2");
+    std::vector<char> xml;
+    readFile(getInputPath() / "reference" / utils::utf8ToPath("notAscii-其れ.enigmaxml"), xml);
+    const auto document = musx::factory::DocumentFactory::create<denigma::MusxReader>(xml);
+    ASSERT_TRUE(document);
+    const auto firstEntry = EntryInfoPtr::fromEntryNumber(document, SCORE_PARTID, 1);
+    const auto secondEntry = EntryInfoPtr::fromEntryNumber(document, SCORE_PARTID, 2);
+    const auto thirdEntry = EntryInfoPtr::fromEntryNumber(document, SCORE_PARTID, 3);
+    ASSERT_TRUE(firstEntry);
+    ASSERT_TRUE(secondEntry);
+    ASSERT_TRUE(thirdEntry);
+    EXPECT_EQ(core::calcLyricAssignId(makeLyricAssign<details::LyricAssignVerse>(1, 1, 0), firstEntry), "ev1.verse1.inci0");
+    EXPECT_EQ(core::calcLyricAssignId(makeLyricAssign<details::LyricAssignChorus>(2, 2, 1), secondEntry), "ev2.chorus2.inci1");
+    EXPECT_EQ(core::calcLyricAssignId(makeLyricAssign<details::LyricAssignSection>(3, 3, 2), thirdEntry), "ev3.section3.inci2");
 }

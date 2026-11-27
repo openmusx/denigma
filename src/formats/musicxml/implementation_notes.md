@@ -52,3 +52,11 @@ Denigma once identified a lyric line by `<lyric number>` alone, encoded as `v1`,
 The scheme was held on the grounds that the cost fell on one importer. When Dorico turned out to fail too, that premise was gone, and MusicXML had a dedicated attribute for the case all along. The fix is in the lyric-identity entry in [design-decisions.md](design-decisions.md).
 
 The lesson is not that importers are always right. It is that "our output is spec-correct" settles the specification question and not the practical one, and the two should be checked separately.
+
+## Export interfaces
+
+### Pitch display override
+
+The CLI option is `--pitch-display preserve|written|concert`, for example `denigma score.musx --musicxml --pitch-display written`. The enum is `denigma::PitchDisplayMode`; MusicXML callers supply it through `formats::musicxml::Options::pitchDisplayMode`. Its values are `Preserve`, `Written`, and `Concert`. The CLI/context setting is shared, but it is forwarded only to exporters that support it; currently that is MusicXML. The default is `Preserve`. The option applies to all selected outputs and supports MUSX, EnigmaXML, and legacy MUS input. The display and octave-retention policy is recorded in [design-decisions.md](design-decisions.md#a-concert-pitch-document-is-a-concert-score).
+
+The WASM conversion ABI requires an integer `pitchDisplayMode` immediately after `cueLayer` in both `denigma_convert` and `denigma_convert_with_resources`: `0` preserves Finale, `1` forces written pitch, and `2` forces concert pitch. Consumers upgrading the module must update their calls; the previous signatures are unsupported. Other output formats ignore the pitch display mode. Invalid mode values return an error result.

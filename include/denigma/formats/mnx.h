@@ -66,6 +66,20 @@ public:
     ConversionResult convert(std::span<const std::byte> input, std::ostream& output, const ConversionRequest& request = {}) const override;
 };
 
+/// @brief Converts legacy MUS bytes using the format's existing export options.
+class MusToMnxJsonConverter final : public IConverter
+{
+public:
+    [[nodiscard]] FormatId sourceFormat() const override { return FormatId::Mus; }
+    [[nodiscard]] FormatId targetFormat() const override { return FormatId::MnxJson; }
+
+    /// Converts legacy MUS from memory and writes MNX JSON to the provided stream.
+    ConversionResult convert(std::span<const std::byte> input, std::ostream& output, const Options& options = {}) const;
+
+    /// Converts legacy MUS using type-erased registry options.
+    ConversionResult convert(std::span<const std::byte> input, std::ostream& output, const ConversionRequest& request = {}) const override;
+};
+
 /// @class MusxToMnxJsonConverter
 /// @brief Converter adapter for MUSX archive input to MNX JSON output.
 class MusxToMnxJsonConverter final : public IReaderConverter
@@ -83,6 +97,9 @@ public:
 
 /// Registers all MNX format converters with the supplied registry.
 void registerConverters(ConverterRegistry& registry);
+
+/// Returns the MNX schema version that exported documents declare in `mnx.version`.
+[[nodiscard]] int schemaVersion();
 
 } // namespace mnx
 } // namespace formats

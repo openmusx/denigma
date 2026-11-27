@@ -42,6 +42,7 @@ namespace detail {
 struct MnxMusxMapping;
 
 mnxdom::NoteValue::Required mnxNoteValueFromEdu(Edu duration);
+std::optional<mnxdom::NoteValue::Required> mnxExactNoteValueFromEdu(Edu duration);
 mnxdom::global::Tempo::Required mnxTempoFromMetronomeMark(const classify::expression::MetronomeMark& metronomeMark);
 mnxdom::global::Tempo::Required mnxTempoFromPlayback(int beatsPerMinute, Edu beatUnitEdu);
 mnxdom::NoteValueQuantity::Required mnxNoteValueQuantityFromFraction(const std::shared_ptr<MnxMusxMapping>& context, musx::util::Fraction duration);
@@ -54,7 +55,7 @@ mnxdom::FractionValue mnxFractionFromSmartShapeEndPoint(const MusxInstance<smart
 
 int mnxStaffPosition(const MusxInstance<others::Staff>& staff, int musxStaffPosition);
 
-mnxdom::MultiStaffOrientation mnxMultiStaffOrientFromVerticalPlacement(const std::optional<int>& mnxStaffNumber, VerticalPlacement placement);
+mnxdom::MultiStaffPlacement mnxMultiStaffPlacementFromVerticalPlacement(const std::optional<int>& mnxStaffNumber, VerticalPlacement placement);
 
 } // namespace detail
 } // namespace mnx

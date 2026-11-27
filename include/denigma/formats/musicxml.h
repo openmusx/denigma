@@ -37,6 +37,8 @@ struct Options final : public IOptions
     /// Options common to all converters.
     CommonOptions common;
     bool includeTempoTool{false};
+    /// Preserve Finale's display setting or override it; concert mode retains Finale's octave preference.
+    PitchDisplayMode pitchDisplayMode{PitchDisplayMode::Preserve};
     /// Shift non-floating whole rests to the SMuFL glyph-origin position.
     /// Preserve Finale's nominal position for non-floating whole rests instead of using the SMuFL default.
     bool useFinaleRestPosition{false};
@@ -60,6 +62,21 @@ public:
     ConversionResult convert(std::span<const std::byte> input, const MultiOutputCallback& outputCallback, const Options& options = {}) const;
 
     /// Converts Enigma XML using type-erased registry options.
+    ConversionResult convert(
+        std::span<const std::byte> input, const MultiOutputCallback& outputCallback, const ConversionRequest& request = {}) const override;
+};
+
+/// @brief Converts legacy MUS bytes using the format's existing export options.
+class MusToMusicXmlMultiOutputConverter final : public IMultiOutputConverter
+{
+public:
+    [[nodiscard]] FormatId sourceFormat() const override { return FormatId::Mus; }
+    [[nodiscard]] FormatId targetFormat() const override { return FormatId::MusicXml; }
+
+    /// Converts legacy MUS from memory and invokes outputCallback for each MusicXML document.
+    ConversionResult convert(std::span<const std::byte> input, const MultiOutputCallback& outputCallback, const Options& options = {}) const;
+
+    /// Converts legacy MUS using type-erased registry options.
     ConversionResult convert(
         std::span<const std::byte> input, const MultiOutputCallback& outputCallback, const ConversionRequest& request = {}) const override;
 };

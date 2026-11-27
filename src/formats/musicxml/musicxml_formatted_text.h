@@ -78,8 +78,7 @@ void forEachMusicXmlWordsRunItem(std::vector<mx::api::WordsChoice>& run, Fn&& fn
 
 struct MusicXmlPageTextContent
 {
-    std::string text;
-    mx::api::FontData fontData;
+    std::vector<mx::api::PageTextSegment> segments;
     std::vector<std::string> creditTypes;
 };
 

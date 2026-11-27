@@ -36,6 +36,54 @@ A beat unit that does not survive that comparison is restated as a count of quar
 
 The classifier says what a marking is; whether it attaches to the global measure or to a part measure is MNX's decision, made by expression type in `processGlobalExpressions`. Tempo marks, metronome marks, tempo alterations and rehearsal marks are one marking of the whole score however Finale distributes them, so the global pass handles them once per staff-list assignment group (`classify::groupExpressionAssignments`), whichever staff the assignment sits on. Everything else is a staff marking even when a staff list copies it onto several staves or a category staff list distributes it: a technique text or a multimeasure-rest number on three staves is three staff expressions, and `processExpressions` handles each with its part measure. The presence of a staff group or a floating staff value therefore never routes an expression on its own.
 
+## General text
+
+### Staff text is exported even when its specialized meaning is unavailable
+
+A visible general or technique expression is a positioned item in the part measure's `text` array. Other unsupported staff text expressions, including dynamics that the dynamic projection cannot spell, use the same fallback. Specialized meanings that general text does not express remain partial expression gaps anchored to that text object's id. A generic expression has no specialized meaning to report. Existing dynamics, fermatas, and other specialized exports are not duplicated as general text.
+
+Tempo, tempo-alteration, and rehearsal text remain global expression gaps. MNX has no global positioned-text collection; choosing staff copies would impose a new layout policy. Hidden assignments, cue-layer expressions, and hidden text chunks are omitted. A text with no visible content creates no positioned-text object.
+
+### Expressive intent and voice are carried independently
+
+Classified expressive text uses MNX `type: expression`, whether recognized from its wording or from Finale's Expressive Text category. A recognized dynamic that falls back to text uses the same type. Technique text stays general: the richer technique representation needs its own mapping for duration and other semantics. Unrecognized Misc text remains general; its category supplies no expressive intent. A recognized technique keeps its technical classification even when Finale filed it under Expressive Text.
+
+Expressive wording recognition ignores the modifiers `molto`, `poco`, and `sempre`, then requires the remaining phrase to match a known expressive phrase. The original display text is preserved. Ambiguous directions such as `con anima`, `con brio`, and `con fuoco` rely on Finale's category rather than wording recognition.
+
+Text uses the same voice selection as dynamics. An explicit layer, a voice-2 assignment, or an associated voice-2 launch supplies a voice. The associated entry determines voice 1 or 2 and supplies the layer when the assignment does not name one; otherwise the assignment's layer is used. With no such restriction the voice property is omitted and the text applies to all voices on its staff. Text continues to omit a default-valued staff number.
+
+Text and dynamics also share grace positioning. An associated grace note supplies its reverse grace index; a main note preceded by grace notes requires an explicit zero. Measure-end positions without an associated entry also use zero to follow trailing grace notes. A position object is retained at the start of a measure whenever it carries a grace index.
+
+### Text is converted with its source font, then reduced to alternating text and glyph elements
+
+Music-font characters are resolved to canonical SMuFL glyph names before adjacent content is combined. Glyph and text elements alternate, with no boundaries solely for font changes or inserts. Whitespace, line breaks, and unmapped characters remain intact. Every positioned text and content element receives an id even without gap collection.
+
+MNX carries no font formatting, so glyph conversion is unconditional, including when `allFontsAvailable` is set. That option cannot identify a legacy font to an ordinary MNX reader. Formatting gaps retain the font and original source characters for a gap-aware consumer that deliberately restores the original rendering.
+
+### Formatting and substitutions describe ranges in the exported content
+
+Formatting gaps preserve the full resolved font, baseline and superscript in EVPU, tracking in thousandths of an em, and source characters. Adjacent portions with identical formatting within one output element share a gap. Insert gaps independently preserve command, parameters, meaning, substituted source characters, and all ranges produced from one parser chunk. This includes accidental and fixed-symbol inserts; escaped carets are plain text.
+
+Text offsets count Unicode scalar values; glyph offsets count glyph-array entries. All ranges are zero-based and half-open, measured against the original exported document. Consumers resolve the ranges before editing, and must update formatting coverage when replacing an insert. Formatting and insert ranges intentionally overlap.
+
+The source parser can split or erase insert provenance. A source chunk ordinal joins the mixed text/glyph runs split from one emitted chunk, but never joins successive chunks merely because their commands match. Empty substitutions produce no range, and nested substitutions retain only the provenance the parser emits. Full occurrence reconstruction is deferred in the roadmap.
+
+### Measure text is general positioned text
+
+A measure-attached text block is the same kind of thing to a reader as a general staff expression: text at a place on a staff. It is therefore a positioned-text object in the part measure, with type `general`, the staff number, and the metric position when Finale gives one. Its placement is `above` when the frame sits above the staff's top line, `below` when it sits below the bottom line, and otherwise left to the reader, the same test the MusicXML exporter applies. A position past the end of the measure is written as Finale stores it; Finale's own MusicXML export places such text the same distance past the barline. Hidden (screen-only) text is omitted. Everything positioned text cannot carry is a partial gap on the object; see the gap report's design decisions.
+
+## Scores and pages
+
+### Every score and page carries a provenance id
+
+A score is `score<cmper>` for the linked part it comes from, the full score being linked part 0, and a page is `score<cmper>.page<number>`, using the part's own page number. They are written whether or not a gap report was requested, for the reason every tempo carries one: page-text gaps anchor to them, and an output whose shape depended on whether a report was wanted would make the report describe a different document from the one the user has.
+
+## Jumps
+
+### Jumps and their destinations are written as Finale has them
+
+A jump's type comes from what Finale plays (`classifyJump`'s playback side). Its segno, coda and fine destinations are drawn markers, so they come from the visual side. MNX names no destination: a reader takes the document's only segno, coda or fine, and `mnxdom`'s semantic validation reports an error when a jump needs one and the document has none or several. A Finale score with two codas therefore exports both codas and fails semantic validation, rather than having the exporter guess which one to drop.
+
 ## Smart shapes
 
 ### A smart shape MNX cannot carry is a gap from its emission site, and a beat-attached slur is one of them
@@ -46,9 +94,23 @@ A beat-attached slur is a gap as well. The MNX slur path hosts the entry-attache
 
 ## Lyrics
 
-### A lyric line carries a provenance id only when it has a word extension
+### A word extension's extender names a target only when Finale names a later entry
 
-The gap report anchors a lost word extension to the lyric line it belongs to, and, as with tempos, the id is written whether or not a report was requested, so that the report never describes a different document from the one the user has. Unlike a tempo, a syllable is not an object anything else points at, and lyric-heavy scores have thousands of them; an id on every line would outweigh the lyrics. So a line takes its id (`core::calcLyricAssignId`) exactly when its assignment has a word extension, the one case a gap anchors to it, and no other line has one.
+Every syllable with a Finale word extension gets an `extender`, and `support.useLyricExtenders` says so. The extender's `target` is the event of the entry the word-extension smart shape ends on, when that is a different entry from the syllable's own. Otherwise it has no target, which leaves the length to the reader: a smart extension frequently has both ends on its own entry, with the length resolved at layout time. A legacy extension (smart word extensions off) stores only a drawn length, and its end is inferred from the music by `LyricAssign::calcWordExtensionEndpoint`, so it follows the same rule. A target whose entry is not exported (a cue layer, or a full-measure rest) is removed for the same reason. This matches the MusicXML exporter, which writes a stop `<extend>` only when the end is a different entry. Nothing about an extension is lost, so it is never a gap.
+
+## Noteheads
+
+### A kit component carries the notehead family of its quarter notehead
+
+A Finale percussion note names a notehead for each of four duration ranges, while an MNX notehead names a shape from which the reader picks the glyph for the note value. A kit component therefore takes the family of its percussion note's notehead for quarter notes and shorter (`classify::PercussionNoteheadClassification`), which draws nearly every note it has. Its longer noteheads never block the family: Finale's stock X noteheads become circled X noteheads on half notes and longer, and the half notes say so themselves. A regular or unrecognized family writes nothing. A component's glyph would replace its notehead at every duration, so one is written only where the shape is `custom`.
+
+### A note's notehead is written where it differs from what it inherits, and wherever Finale overrides it
+
+A kit note inherits its component's notehead, and a pitched note the reader's default. A note writes its own notehead when the notehead MNX would write for it, shape and glyph, differs from the one it inherits. The comparison is made in MNX terms, so a difference MNX cannot express, such as the size of a circle, writes nothing. It also writes one whenever Finale's own notehead override supplies it, even when the result matches what it would inherit. The override is the author's choice for that note, so equality with the inherited notehead is a coincidence, and the note keeps its notehead if the component or the reader's default differs. This departs from the exporter's usual preference for omitting defaults. A glyph is written alongside the shape where the shape cannot reproduce it: a `custom` shape, a fill that differs from the note value's, and a glyph the classifier prefers to be named because it is not the standard glyph of its shape. The MusicXML exporter follows the same preference. For slashes, the standard glyph is of normal size with vertical ends, so a small slash or one with horizontal ends names its glyph. MNX has no round shape, so a round notehead is written as `custom` with its glyph, as MusicXML writes it as `other`. The classifier tells a large circled notehead from a regular one, but the size is an engraving choice rather than a different notehead, so both are written as `circled` and the size is left to the reader, as MusicXML leaves it. Any glyph Finale names can be a `custom` notehead. Only a notehead with no SMuFL name cannot be carried, and it is a gap only when it comes from Finale's notehead override: a percussion map or shape-note convention whose glyph has no name is most likely the regular notehead in its font, which is no loss.
+
+### Each percussion map has its own kit components
+
+A kit component's id combines the percussion map with the note type, because the staff position and noteheads belong to the map: two maps in one part can place or draw the same instrument differently, and a kit note can override neither. Components from different maps share their name and sound, so playback identity is unchanged.
 
 ## Sequences
 
@@ -61,3 +123,75 @@ Whether the rest appears is decided from the staff as it stands at the start of 
 Cue entries are skipped by the exporter and have no MNX representation yet, so a measure holding only cues counts as empty and gets the rest its staff settings call for. Revisit this when MNX gains a cue encoding.
 
 A staff-attached fermata over an empty measure attaches to that staff's full-measure rest. A staff whose settings suppressed the rest gets one created for the fermata anyway, because MNX has nowhere else to put it.
+
+### A hidden full-measure rest is a space the length of the measure
+
+MNX has no hidden rest, so a hidden entry is exported as a `space` of its own duration. A hidden full-measure rest is the exception: its space spans the measure instead. Finale enters a full-measure rest as a whole rest in any meter, so its written duration would overrun a shorter measure, and a longer one would need the rest of the measure padded with more spaces. `EntryInfoPtr::calcIsFullMeasureRest` does not consider visibility, so the exporter checks it before choosing between `fullMeasure` and the space.
+
+### The entries of a zero-length tuplet are omitted
+
+A Finale tuplet with a reference count of zero takes no time, and its entries are phantoms: a user or a plugin such as Beam Over Barline puts a note there so that a beam or a tie can reach across a barline, and the note that actually sounds sits at the same position. MNX has nowhere to put such an entry. A tuplet's ratio must be positive, an event outside a tuplet always takes its written duration, and a `grace` container would draw the note small. So the tuplet and its entries are omitted, and nothing else may refer to them: a beam skips them, a tie into one is written as `lv`, and a slur ending on one is a gap. The one form `musxdom` interprets, a singleton beam with the phantom's notehead and stem hidden, never reaches this path.
+
+The count of omitted tuplets is logged once per conversion as a warning. Each occurrence is logged only at verbose level, because a document that carries the workaround carries it many times.
+
+### A sequence's direction hint comes from its layer's stem setting
+
+A v1 sequence carries `directionHint` exactly when Finale's layer attributes freeze its stems and those attributes are in effect (`EntryInfoPtr::calcIfLayerSettingsApply`). That holds when the layer is alone on the staff, because "Apply Settings Only if Notes are in Other Layers" can be off, and when the layer also has v2 entries, although every stem in such a layer is written explicitly. A v2 sequence never carries a hint: Finale stems voice 2 per v2 launch, so no one direction describes the sequence.
+
+Events get an explicit `stemDirection` only for a manual stem freeze and in a layer that uses v2. A v1-only layer relies on the hint.
+
+## Articulations
+
+### A brass slide goes on the note the classifier names
+
+A Finale brass articulation (scoop, plop, falloff, doit) belongs to the entry, but a slide belongs to one note. The articulation classifier deals an entry's slides to its notes and names each one's note in `classify::articulation::NoteSlide`, which documents the rule; the exporter appends the slide to that note and drops one that names none.
+
+## Clefs
+
+### A clef Finale does not draw is a hidden clef
+
+A clef with `ShowClefMode::Never`, or with `WhenNeeded` on a staff that hides clefs, is exported with `hide`, matching the MusicXML exporter's `print-object`. A blank clef is hidden as well. On a percussion staff it becomes a percussion clef. On any other staff it keeps its letter clef when Finale's clef definition reads as one, and otherwise becomes a treble clef, which is what Finale's own blank clefs are. Tablature clefs have no MNX sign and are still skipped.
+
+## Staff configs
+
+### A staff config always states its line count
+
+`lines` defaults to 5, so a staff config that returns a staff to five lines could omit it. It is written anyway, departing from the exporter's usual preference for omitting defaults. A config exists only where the count changes, so one that returns to five lines records a real change, and stating the count makes that change explicit rather than leaving it implied by the schema default. A staff that has five lines from the start gets no staff config at all.
+
+## Tuplets
+
+### Stem-relative tuplet placement names its side
+
+MNX `auto` placement leaves the side to the reader, so Finale's beam-side and note-side positioning styles are resolved against the stem direction of the tuplet's first entry and written as `above` or `below`. Manual positioning names no side and stays `auto`.
+
+### An entry that overfills its tuplet is shortened to fit
+
+Finale ends an entry that completes a tuplet at the tuplet's endpoint, even when its written duration would carry it further, and `musxdom` reports that shortened actual duration. MNX has no event positions: a reader sums written durations. So the event is written with the note value that, scaled by the enclosing tuplet ratios, fills the rest of the tuplet. The change is logged at info level. When no note value fits, the written duration is kept and a warning says that the MNX tuplet is overfilled. A hidden entry's space takes the fitted duration in every case, because a space accepts any fraction.
+
+## Layouts
+
+### A part's name is referred to, and the scroll view leaves its form to the reader
+
+A staff or group name is written in one of two ways. A part-name label is the name of an MNX part: a single-staff instrument's staff name, or a multi-staff instrument's own group name. A plain label is text that no part carries: a group that is not an instrument, or a staff inside a multi-staff instrument. That staff has its own name, and the part's name belongs to the instrument's group.
+
+The scroll-view layout has no system of its own, so which form of the name to show depends on where the reader breaks systems. Its part-name labels are therefore a `labelRef` with the default `auto`. A group's `labelRef` always names its target part, because MNX gives a group no default target.
+
+Each system layout belongs to one Finale system, which shows either full or abbreviated names. MNX cannot make `auto` show the full name on a given system, so a system's part-name label names the form Finale draws there. It does so only when Finale's text is exactly the part's `name` or `shortName`. Otherwise the text is written as a `label`. That covers a staff style that renames the staff, a linked part's own group name, and a name that continues past a line break, since a part's name ends at its first line break. Plain labels are written as text, using the full name in the scroll view.
+
+## Schema items not exported
+
+Each of these is omitted on purpose. Revisit one if Finale data turns out to carry it.
+
+- `grace.graceType`: a playback nuance; the MNX default stands.
+- `multi-note-tremolo.individualDuration`: derivable from `marks` and `outer`.
+- `ottava.placement`: Finale draws an ottava where convention puts it, which is what `auto` means.
+- `ottava.voice`: Finale ottavas apply to the whole staff.
+- `page.layout` and `system.layoutChanges`: a Finale system has one staff configuration, and each system already names its layout.
+- `dynamic-group.visuallyContinues`: the spec asks readers to derive it from `position` and `end`.
+- `dynamic-group.staffEnd`: Finale hairpins do not cross staves.
+- `slur.sideEnd`: Finale has no mid-slur side change.
+- `slur.startNote` and `endNote`: a Finale slur attaches to an entry, never to one note of a chord.
+- Layout `staff-source.label` and `labelRef`, and `staff.symbol`: a Finale staff has one source, so its name goes on the staff, and a bracket on a single staff is already a group.
+- `measure-repeat.displayNumber` and `staffPosition`: Finale draws both by convention.
+- `lyric-line-metadata.lang` and `_c`: Finale has no source for either.
+- `perform`: the schema defines it as an empty object.

@@ -28,13 +28,17 @@ A note's `default-x`, a `<measure>`'s `width`, a slur's `bezier-x` and `bezier-y
 
 Denigma does export position for anchors Finale stores directly. Page text blocks carry absolute page coordinates in the document, so `<credit-words>` receives real `default-x` and `default-y` values derived from the page margins and the text block's assignment. That is stored authorial placement, and it is the clearest illustration of where the line falls.
 
-### System and page breaks come from authored sources only
+### System breaks come from authored sources only; page breaks follow Finale's pages
 
-`createSystemBreaks` derives `<print new-system="yes">` from the per-measure "Begin a New Staff System" flag and from `others::SystemLock`. `createPageBreaks` derives `<print new-page="yes">` from the per-measure page-break flag. Neither reads the resolved `others::StaffSystem` or `others::Page` lists. When both break types occur on one measure, the page break takes precedence because it inherently starts a new system.
+`createSystemBreaks` derives `<print new-system="yes">` from the per-measure "Begin a New Staff System" flag and from `others::SystemLock`. It does not read the resolved `others::StaffSystem` list. When both break types occur on one measure, the page break takes precedence because it inherently starts a new system.
 
-A system boundary that exists only because Finale's engraver happened to fill a line there is layout, and re-emitting it freezes one particular rendering into a file the importer is about to re-flow. A lock or an explicit break flag is something the author asked for, and it survives the round trip.
+A system boundary that exists only because Finale's engraver happened to fill a line there is layout, and re-emitting it freezes one particular rendering into a file the importer is about to re-flow. A lock or an explicit break flag is something the author asked for, and it survives the round trip. The same holds for a staff that an optimized system leaves out because it is empty there. Which staves a resolved system contains is layout, so such a staff is not exported as hidden, where Finale's own export writes `<staff-details print-object="no">` and then `print-object="yes"` where the staff returns.
 
 The two sources also differ in trustworthiness. A part whose page layout Finale never calculated leaves zero-valued placeholders in `others::StaffSystem` and `others::Page`, so the resolved layout may describe systems the part does not have. The per-measure flag resolves nothing and stays valid; locks are dropped for such a part rather than exported against a layout that was never computed.
+
+`createPageBreaks` is the exception to the authored-only rule. It derives `<print new-page="yes">` from the per-measure page-break flag and also, when the part's layout is calculated, from the first measure of every nonblank `others::Page`. Each page start carries `page-number` set to the page's cmper, including the first page, whose `<print>` has no `new-page`. A part with an uncalculated layout gets only the flagged breaks.
+
+Exporting only the authored page breaks is the more faithful encoding, but Dorico does not handle it acceptably. Given locked systems throughout and only a few page breaks, such as one at each movement start, it crams every system after a page break onto one or two pages instead of casting them off. Exporting Finale's full pagination keeps both the authored page breaks and a usable layout, at the cost of freezing one rendering's page boundaries. Pagination is the one resolved-layout result exported for that reason; system distances and staff distances still are not.
 
 ### Accidentals and stems are encoded as overrides only
 
@@ -102,11 +106,11 @@ Denigma previously encoded the pair in `number` alone, as `v1`, `c1`, `s1`. That
 
 `name` is emitted always, including for a verse-only document, where Finale omits it. Emitting it costs a few bytes, avoids pre-scanning a document to decide whether the type is needed, and makes a file easier to analyze when one arrives for diagnosis. The consequence is that a verse-only export does not match Finale's byte for byte.
 
-### A smart word extension needs a span, not just a flag; a legacy one is a bare `<extend/>`
+### A word extension needs a span, not just a flag
 
 `details::LyricAssign::wext` marks a syllable as having a word extension, but it does not say how far the extension reaches. With smart word extensions on, Finale stores most of these shapes with both termination segments on the syllable's own entry and resolves the length at layout time, so the end `classify::classifyLyricWordExtension` reports is frequently the entry it started from. Denigma emits a start/stop `<extend>` pair only when that end is a different entry.
 
-With smart word extensions off, `wext` is a drawn length in EVPU and there is no end to find. Finale exports each such syllable with a bare `<extend/>`, the same element it writes for a syllable that types its extension as underscores, and Denigma does the same (`lyric_legacy_wext.musx` and its reference). The underscores themselves stay in the syllable text in that mode, as they do in Finale's export.
+With smart word extensions off, `wext` is only a drawn length in EVPU. `LyricAssign::calcWordExtensionEndpoint` infers the end from the music the way Finale builds smart word extensions, and an extension that reaches another entry becomes a start/stop pair like a smart one. One that does not stays a bare `<extend/>`: Finale exports every legacy extension that way, the same element it writes for a syllable that types its extension as underscores, and a drawn line with no span to give it is still a line. `lyric_legacy_wext.musx` has two legacy extensions that span and one, followed by a rest, that does not; Finale's reference writes all three bare. The underscores themselves stay in the syllable text in that mode, as they do in Finale's export.
 
 Both halves of the rule are visible in the fixtures. `zwei_gesange.musx` has two assignments carrying `wext` and exactly two `wordExt` shapes that reach another entry, and Finale exports two extension pairs. `for_health_and_strength.musx` has one assignment carrying `wext` and not one of its 27 shapes spans, and Finale exports none: the syllable at the end of the first ending continues into the second, so no extension is wanted.
 
@@ -170,6 +174,18 @@ The digits are assembled from integer conversions rather than from a floating-po
 
 Only the printed number is fractional. Finale's playback tempo, which is what reaches `<sound tempo>`, is an integer in the document, and the Tempo tool's own values are rounded to an integer inside musxdom before Denigma sees them.
 
+### A split-font metronome mark keeps both fonts
+
+A metronome mark whose note and number come from different fonts, typically a music text font for the note and a text font for the number, writes the note's font on `<metronome>` and the number's on `<per-minute>`, which is what Finale's own export writes. A mark in one font writes that font on `<metronome>` alone. The equals sign and any dots are not given a font of their own, since MusicXML has nowhere to put one.
+
+### Words keep the spaces at their ends
+
+A `<words>` element whose text begins or ends with a space is written with `xml:space="preserve"`. Finale splits text at every font change and Denigma splits it again around music-font characters, so the space separating "Adagio espressivo" from the ♩ that follows, or "più" from its dynamic, is the last character of a run. An importer that trims the ends of each element would join the two. Leading and trailing line breaks do not count: they are returns left at the end of Finale text, and an importer is better left free to drop them.
+
+### A pedal line's signs come from its text, not its caps
+
+A visible pedal line writes `sign="yes"` on its start when the line's start text names a pedal, and on its stop when the end text is a release, so a "Ped. ____*" line draws its signs and a bare bracket does not. Finale's pedal caps are hooks drawn on the line itself, not the Ped. and * signs, so a line marked only by its caps stays a plain bracket. A start marking written with the single-letter P or S pedal glyph also writes `abbreviated="yes"`, on the line or on a sign-only pedal. Typed letters are not read as the short form, since a typed "P." is as likely to be a dynamic.
+
 ### Tuplet ratios are reduced, and the printed spelling travels separately
 
 `<time-modification>` is written from the entry's cumulative ratio, so a Finale tuplet of six sixteenths in the space of four is exported as `3:2`. Finale's own export writes the unreduced `6:4`. The printed numbers are unaffected: `<tuplet-actual>` and `<tuplet-normal>` carry Finale's display number and reference number with their durations, so the tuplet still reads as "6 in the space of 4" on the page.
@@ -203,6 +219,8 @@ Classification stays neutral about all of this. `classify::smartshape::Glissando
 A wavy line's endpoint may fall where no entry begins, since these shapes are beat-attached. Denigma resolves such an endpoint to the note whose duration spans that tick, rather than synthesizing the hidden anchor rest that hosts a floating curve endpoint.
 
 An ornament belongs to a note in a way a curve does not. A slur may legitimately begin in empty space, and its anchor rest carries a real position that the curve is drawn from. A trill beginning halfway through a whole note is still that whole note's trill, and MusicXML has no way to express an ornament floating between notes: `<wavy-line>` lives inside a note's `<ornaments>` or nowhere. Anchoring it to a hidden rest in a reserved voice would technically place it while leaving readers to render an ornament on a rest, or ignore it.
+
+A hidden entry never hosts an ornament, whether it is the endpoint's own entry or the one sounding under it. Legacy Finale realized a trill as hidden playback entries in another layer with the line attached to them, and modern Finale keeps such data while re-anchoring the shape to a visible position. An ornament on a note nobody sees is an ornament on nothing, and a reader that draws the line from the visible notes can fail on it (OpenSheetMusicDisplay does). The endpoint falls through to the visible note sounding at its tick, then to the anchor rest. No checked-in fixture exercises this, because modern Finale discards the legacy playback entries when such music is copied; the case was verified against a legacy score.
 
 The anchor rest remains the last resort, for an endpoint with no sounding note under it at all.
 
@@ -246,6 +264,16 @@ make.
 The label itself is the fret number followed by `fretNumText`, giving `4fr.` for a diagram starting
 on the fourth fret. Both attributes are omitted when the chord assignment has no fretboard style.
 
+### A brass slide goes on the note the classifier names
+
+A Finale brass articulation (scoop, plop, falloff, doit) belongs to the entry, but a slide belongs to one note. The articulation classifier deals an entry's slides to its notes and names each one's note in `classify::articulation::NoteSlide`, which documents the rule; the exporter appends the slide to that note and drops one that names none.
+
+### Enclosing articulations become notehead parentheses or editorial levels
+
+Finale cannot enclose a note or rest in parentheses or brackets, so an author draws the enclosure with a pair of positioned articulations. The articulation classifier pairs them in `classify::articulation::BracketEnclosure`, which documents the rule and names the enclosed note, or encloses the whole entry for a rest. The exporter writes neither articulation. Parentheses around a note become `parentheses="yes"` on its `<notehead>`. MusicXML has no notehead brackets, so brackets around a note become `<level bracket="yes"/>` on its `<note>`, which keeps the shape that distinguishes editorial additions from the composer's own parentheses. A rest has no notehead, so an enclosed rest writes `<level parentheses="yes"/>` or `<level bracket="yes"/>`, the encoding the MusicXML community recommends for an editorial rest. Each level has empty text, because Finale records no editorial source to name.
+
+Writing the delimiters as `<other-articulation>` fallback marks would keep the glyphs, but importers would stack them above or below the note without knowing they enclose it, and positioning them beside the notehead would mean computing layout.
+
 ### An arpeggio marks every note it rolls through, and stops at the part boundary
 
 `<arpeggiate>` is a per-note element, not a span: MusicXML draws the roll from the notes that carry
@@ -266,3 +294,79 @@ end reads as an ordinary arpeggio on one chord rather than as half of a broken p
 The `direction` attribute is the arrowhead, not the roll direction, so only an arpeggio Finale drew
 with an arrow becomes `arpeggiateUp` or `arpeggiateDown`. A plain rolled chord is written bare, which
 is already an upward roll to a reader.
+
+### A concert-pitch document is a concert score
+
+The effective pitch display setting defaults to Finale’s `showTransposed` value for the score or linked part being exported. The MusicXML pitch-display override can force written or concert display without modifying the source document. Concert display respects `keepWrittenOctaveInConcertPitch`. The effective display setting is resolved once for each exported score or linked part. Written display uses musxdom’s `PitchMode::Written`; concert display uses `PitchMode::ConcertWithOctavePreference`. Musxdom handles octave retention for the current staff transposition, including unison and instrument changes.
+
+Written display exports transposed pitches with `<transpose>` and no `<for-part>`. The explicit override supports importers that ignore `<for-part>` and would otherwise lose instrument transposition from a concert-score export. Preserve mode remains the default so each score or linked part follows its own Finale setting unless the caller requests an override. Other output formats ignore this option, following the general policy for inapplicable options.
+
+A document exported in concert pitch is written with `<concert-score/>`, even when none of its instruments transposes. That is the display mode the file is in, and stating it costs nothing.
+
+Its transposing instruments are written with `<for-part>`, which describes the part made from the score, rather than `<transpose>`, which MusicXML reserves in a concert score for octave transpositions the score itself shows. The one octave case Finale shows is the one `keepWrittenOctaveInConcertPitch` keeps written, so that stays a `<transpose>` with no for-part, since the part reads exactly what the score does. An octave that is not kept, such as a piccolo at sounding pitch, is a for-part like any other interval.
+
+Only one of the two is in effect at a time, and each replaces whichever was in effect before. A change writes only the element it exports as, so a player changing from English horn to piccolo gets the piccolo's `<transpose>` and no cancelling for-part. A return to concert pitch is a `<transpose>` with no interval, whether it ends a transposition or a for-part. This matches Finale's own export of a concert score.
+
+### Key signatures are evaluated per measure
+
+Finale key changes occur at measure boundaries. The exporter uses musxdom's `Measure::createKeySignature(staffId)` for the effective global or independent staff key, and `Staff::calcUsesWrittenPitch(pitchMode)` to select its written or concert values. Contextual note properties are calculated by musxdom with the same pitch mode.
+
+### A forced transposition clef is always the part's clef
+
+A Finale transposition that forces a clef (`setToClef`) replaces every clef change on the staff at written pitch. When a concert score displays the staff at sounding pitch, that clef is written as the for-part's `<part-clef>` even when it matches the score's clef where the for-part begins, because without it a later clef change in the score would carry over into the part. When octave retention selects written pitch, the forced clef applies to the score itself. This includes unison: enabling octave retention activates a forced written clef even at a zero interval.
+
+### A part's names follow its top staff, and its sound follows its instrument
+
+A staff style can change a staff's full or abbreviated name, or whether its names are shown, with or without changing its instrument. Names are therefore tracked as staff state. Each change of the top staff's names or their visibility writes `<part-name-display>` and `<part-abbreviation-display>` in that measure, with `print-object="no"` when the names are hidden. The two are always written together, even when only one of them changed, so a reader never pairs a new name with a stale abbreviation. A change that leaves the texts and their visibility the same, through different text blocks holding the same names, writes neither.
+
+The new sound comes from musxdom's instrument for the part instead, since that is what the part was made from. musxdom already decides whether the staves of a multistaff instrument agree about a change and reports the ones that do not, so Denigma neither repeats nor second-guesses that check, and writes one `<instrument-change>` per change on the part's first staff. That instrument is the score's, so in a linked-part document the sound follows the score's staff styles while names and transpositions follow the part's.
+
+### An instrument is named after its playback route
+
+A part's instrument takes Finale's playback route name when there is one, which matches Finale's own export. Without one it falls back to the standardized SoundID string, and then to the raw instrument UUID. The part's and the instrument's display names are left out of this chain on purpose, because they name the part rather than the sound. `soloOrEnsemble` is written only when the instrument's solo and ensemble UUIDs map to the same SoundID, since only then does the SoundID leave the two indistinguishable.
+
+### A kit piece is one instrument for each percussion sound
+
+A note that a percussion map assigns is written as `<unpitched>`, placed by the map's staff position, and names the instrument that plays it. The part's first instrument stays the staff's own, so a part keeps its sound and name whether or not it has a kit. Once a part has kit pieces, every note in it names an instrument, as MusicXML expects of a part with more than one: a note off the percussion staff, such as one under a staff style that makes the staff pitched, and a percussion note whose note type Finale does not know, both name the staff's own instrument, as Finale's export does. Each other instrument is a kit piece: a percussion note type and the copy that distinguishes duplicates of it. Kit pieces are not keyed by percussion map, because the position and notehead a map gives a note travel on the note itself, so two maps that place the same drum differently still play one instrument.
+
+A note on a percussion staff that the map does not assign is still a percussion note. Finale plays it as the MIDI key of its concert pitch, so it is written as `<unpitched>` at its own staff position, without its accidental, and names an instrument for that key: `P5-M75` for key 75, named `MIDI76` after the key counted from 1, as Finale names it.
+
+A kit piece is declared the first time a note plays it, not for every note in the maps the part uses, so the instrument list holds only what the part plays. Its id is the part's id followed by the note type (`P5-pn8`, and `P5-pn8o2` for its second copy), so it leads back to the note type in the Finale document rather than to the order the notes came in. A piece writes the key it plays as `<midi-unpitched>`, plus one, because MusicXML numbers MIDI notes from 1 and Finale from 0.
+
+The key is the one the note's playback device plays, as Finale's own export writes it. The note's layer names a playback route, the route names a sound, and the sound's note list in the device's MIDI Device Annotation file gives the key for the note type. A device that lists neither the note type nor its base type plays it as its parent instrument, and so on up the chain, so a snare rim shot on a kit that lists only the snare drum plays the snare drum's key. A device that lists none of them plays nothing for the note, so it gets no kit piece and names the staff's own instrument. Finale writes no instrument at all for such a note; Denigma names the staff's instrument because MusicXML expects every note of a part with several instruments to name one. Without playback resources, or when the route or sound cannot be resolved, the note type's General MIDI key stands in. Kit pieces carry no `<instrument-sound>`, because Finale's own export writes none for them: only the part's own instrument has a sound, such as `drum.group.set`.
+
+### A note under a percussion clef is unpitched
+
+A note under a clef that exports as a percussion clef is written as `<unpitched>` at its staff position, without its accidental, even on a staff with no percussion map, because Finale's own export does so. Whether a clef is a percussion clef comes from its glyph or from the staff's percussion notation style, not from its position, so a percussion clef drawn on the treble clef's line is still one. A percussion notation style makes the clef a percussion clef even when its glyph is a pitched clef, where Finale's own export writes the pitched clef, as in the Melodic Dictation answer worksheets. Such a note names no instrument unless the part has kit pieces. A percussion clef is written without `<line>`, as Finale writes it, because MusicXML places notes under a percussion clef at treble positions whatever its line.
+
+### A blank clef is a hidden clef
+
+A blank clef, which draws nothing, is written as the clef its position describes with `print-object="no"`, so it keeps its line and octave. Finale's own export writes `<sign>none</sign>`, which MusicXML 4.0 deprecates in favour of `print-object`.
+
+### Staff lines count from the bottom line the staff draws
+
+MusicXML numbers a staff's lines from 1 at the bottom and has no notion of where a reduced staff sits within five lines, so a staff's line 1 is the bottom line it has. Finale numbers staff positions from the staff's reference line instead, and a one-line staff can draw its line at any height. `musicXmlStaffPosition` converts between the two, and everything placed by staff position goes through it: the clef's `<line>`, and the display step of rests and unpitched notes. A note under a percussion clef on a one-line staff that draws the middle line of five is therefore written at E4, the bottom line, not at B4, and the same note in the next measure can change display step when the staff's lines change. This matches Finale's export and the one-line staff of the MusicXML percussion tutorial. Under a pitched clef, the clef's line moves instead, so pitches are unchanged: a treble clef over a one-line staff that draws the middle line of five is written on line 0, so that the line is B4 as Finale draws it. Finale's own export keeps such a clef on line 2, which a reader would take to put E4 on the line.
+
+MusicXML could instead keep every staff at five lines and hide the ones Finale does not draw with `<line-detail print-object="no">`, which would keep display steps steady and leave a pitched clef on its usual line. Denigma does not do this for contiguous lines: it depends on readers honoring hidden lines, since a reader that ignores them shows five visible lines, and it departs from the convention that tools and Finale's own export follow for one-line percussion staves. A custom staff that leaves lines out between its top and bottom lines has no other encoding, so only there is the full span written as `<staff-lines>`, with each line it leaves out hidden by `<line-detail print-object="no">`. Hidden lines count in MusicXML's line numbering, so its notes sit where they would on the contiguous staff with the same bottom line. Finale's own export closes the gaps instead, writing only the number of lines it draws. Neither encoding of a reduced or gapped staff imported usefully into the notation programs tried, so the choice rests on the specification and on what the file preserves: Finale's encoding loses the gaps, and Denigma's keeps them for a reader that honors hidden lines.
+
+The same holds for a staff that hides all its lines while keeping their positions. Denigma writes its lines with every one hidden, so the clef and notes keep their places on lines that are not drawn. Finale's own export writes such a staff as visible lines, which a reader that ignores hidden lines also shows.
+
+### Repeat-ending geometry is left to the importer
+
+Denigma exports ending structure, pass numbers, and labels, and leaves bracket position, hook length, and label offsets unspecified. MX can represent these fields, but mapping Finale's geometry to MusicXML has not been established. The importer engraves the endings with the rest of the score.
+
+### Only an ending's Show setting hides it
+
+An ending whose Show setting is off exports with `print-object="no"` on its `<ending>` elements, so the repeat still governs playback while the bracket stays hidden. An ending's staff list, Top Staff Only setting, per-staff hiding, and a staff's Display Endings and Text Repeats setting do not hide it. They choose which staves of a score display the bracket, which in MusicXML is the ending's system relation, and `mx::api::EndingData` cannot express that. Writing `print-object="no"` on the excluded parts would also hide the ending in parts extracted from the score, where every player needs it.
+
+### Credits retain each visible font run
+
+A page text block becomes one credit. Its first visible run carries the existing page anchor, justification, and enclosure; subsequent runs carry their own fonts and continue without explicit positions. Hidden text is omitted and adjacent visible chunks with equal fonts are joined. This preserves formatting without computing glyph positions.
+
+### Staff-hidden key signatures keep their musical meaning
+
+A staff's Display Key Signatures setting hides the exported key with `print-object="no"`, preserving its alterations and mode. Finale's separate keyless and Hide Key Signature and Show Accidentals modes retain their existing zero-fifths, mode-none representation.
+
+### A staff that ignores key signatures is in C major
+
+A staff with Ignore Key Signatures, or with a percussion map, reads and plays its notes as if the key were C major, whatever key the rest of the score is in. Percussion notation without a percussion map keeps the score's key. Its key is therefore written as C major, the key its music is in, transposed as the staff's transposition requires: a B-flat instrument that ignores key signatures is written in D major, with its notes transposed to match, as Finale shows the staff. Finale's own export writes the score's key on a non-transposing staff of this kind, which describes the staff as being in a key its notes do not follow and makes a document polytonal by one setting. On a transposing staff, its export writes the notes as if the written staff were in C, which is neither what Finale shows nor what it plays, and it also places them in an octave Finale does not show. Denigma writes the notes as Finale shows and plays them: a note on a percussion staff in G major that Finale plays as B5 is exported as B5, not F♯6.

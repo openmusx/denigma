@@ -28,6 +28,13 @@ set_target_properties(denigma_wasm PROPERTIES
 set(_denigma_wasm_exports
     _denigma_malloc
     _denigma_free
+    _denigma_recognize_mus
+    _denigma_mus_resources_create
+    _denigma_mus_resources_add
+    _denigma_mus_resources_finalize
+    _denigma_mus_resources_destroy
+    _denigma_inspect_with_resources
+    _denigma_convert_with_resources
     _denigma_inspect
     _denigma_convert
     _denigma_result_destroy
@@ -65,19 +72,36 @@ set(_denigma_wasm_exports
     _denigma_result_gap_report_size
     _denigma_version
     _denigma_commit
+    _denigma_mnx_schema_version
 )
 list(JOIN _denigma_wasm_exports "," _denigma_wasm_exports)
 
-target_compile_options(denigma_wasm PRIVATE -Oz)
+# Emscripten's default stack is 64 KiB, and MusicXML export needs about 80 KiB wherever
+# mx writes ornaments, whatever the size of the score. A WebAssembly stack overflow is
+# not trapped: it silently overwrites the static data beside the stack, including the
+# C++ runtime's locale, and every later conversion fails. The larger stack leaves ample
+# headroom, and the overflow check turns any overflow that remains into an abort that
+# reports it, so the caller can discard the module instead of reusing a corrupted one.
+set(_denigma_wasm_stack_size 1048576)
+
+# Optimize for speed. Conversion time on large scores is dominated by building the
+# musxdom document and running the exporters, which -O3 runs about twice as fast as
+# a size-optimized build, for a compressed module roughly a fifth larger.
+target_compile_options(denigma_wasm PRIVATE -O3)
 target_link_options(denigma_wasm PRIVATE
-    -Oz
+    -O3
     "-sMODULARIZE=1"
     "-sEXPORT_ES6=1"
     "-sENVIRONMENT=web,worker,node"
     "-sALLOW_MEMORY_GROWTH=1"
+    "-sSTACK_SIZE=${_denigma_wasm_stack_size}"
+    "-sSTACK_OVERFLOW_CHECK=2"
     "-sFILESYSTEM=0"
     "-sASSERTIONS=0"
     "-sEXPORTED_FUNCTIONS=${_denigma_wasm_exports}"
     "-sEXPORTED_RUNTIME_METHODS=HEAPU8,UTF8ToString"
 )
 unset(_denigma_wasm_exports)
+unset(_denigma_wasm_stack_size)
+
+target_link_libraries(denigma_wasm PRIVATE denigma_input)

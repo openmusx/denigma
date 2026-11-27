@@ -23,6 +23,8 @@
 
 #include <array>
 #include <string>
+#include <unordered_map>
+#include <vector>
 
 #include "classify.h"
 #include "utils/stringutils.h"
@@ -135,6 +137,53 @@ std::optional<keyboardpedal::Type> standaloneGlyphType(std::string_view glyphNam
     return std::nullopt;
 }
 
+/// What a scan of Finale text has gathered so far toward a keyboard-pedal marking.
+struct PedalGlyphScan
+{
+    /// The text with each pedal letter glyph spelled out, for matching against typed spellings.
+    std::string symbolicText;
+    /// A marking that only a glyph can express, such as a half pedal.
+    std::optional<keyboardpedal::Type> standaloneType;
+    /// Whether the single-letter S glyph named the sostenuto pedal.
+    bool sawShortSostGlyph{};
+    /// Where each keyboardPedalP glyph's letter sits in #symbolicText. The glyph also begins the
+    /// composite Ped. sign, so it stands alone only when the next letter is not an e.
+    std::vector<size_t> pedalPGlyphPositions;
+};
+
+/// Applies a pedal glyph that standaloneGlyphType does not cover. Returns false when
+/// @p glyphName is not one.
+bool applyPedalGlyph(PedalGlyphScan& scan, std::string_view glyphName)
+{
+    using GlyphHandler = void (*)(PedalGlyphScan&);
+    static const std::unordered_map<std::string_view, GlyphHandler> glyphHandlers = {
+        {"keyboardPedalUp", [](PedalGlyphScan& state) { state.standaloneType = keyboardpedal::Type::PedalUp; }},
+        {"keyboardPedalPed", [](PedalGlyphScan& state) { state.symbolicText += "ped"; }},
+        {"keyboardPedalPedNoDot", [](PedalGlyphScan& state) { state.symbolicText += "ped"; }},
+        {"keyboardPedalP",
+            [](PedalGlyphScan& state) {
+                state.pedalPGlyphPositions.push_back(state.symbolicText.size());
+                state.symbolicText += 'p';
+            }},
+        {"keyboardPedalE", [](PedalGlyphScan& state) { state.symbolicText += 'e'; }},
+        {"keyboardPedalD", [](PedalGlyphScan& state) { state.symbolicText += 'd'; }},
+        {"keyboardPedalDot", [](PedalGlyphScan& state) { state.symbolicText += '.'; }},
+        {"keyboardPedalSost", [](PedalGlyphScan& state) { state.symbolicText += "sost"; }},
+        {"keyboardPedalSostNoDot", [](PedalGlyphScan& state) { state.symbolicText += "sost"; }},
+        {"keyboardPedalS",
+            [](PedalGlyphScan& state) {
+                state.sawShortSostGlyph = true;
+                state.symbolicText += "sost";
+            }},
+    };
+    const auto found = glyphHandlers.find(glyphName);
+    if (found == glyphHandlers.end()) {
+        return false;
+    }
+    found->second(scan);
+    return true;
+}
+
 } // namespace
 
 std::optional<KeyboardPedalClassification> classifyKeyboardPedal(std::string_view text)
@@ -151,8 +200,7 @@ std::optional<KeyboardPedalClassification> classifyKeyboardPedal(const musx::uti
         return std::nullopt;
     }
 
-    std::string symbolicText;
-    std::optional<keyboardpedal::Type> standaloneType;
+    PedalGlyphScan scan;
     bool recognizedGlyph = false;
     const auto chunks =
         textContext.collectEnigmaTextChunks(musx::util::EnigmaString::EnigmaParsingOptions(musx::util::EnigmaString::AccidentalStyle::Unicode));
@@ -167,66 +215,43 @@ std::optional<KeyboardPedalClassification> classifyKeyboardPedal(const musx::uti
             const auto glyphName = detail::glyphNameForFont(chunk.styles.font, iter->codepoint);
             if (glyphName) {
                 if (const auto type = standaloneGlyphType(*glyphName)) {
-                    if (standaloneType && *standaloneType != *type) {
+                    if (scan.standaloneType && *scan.standaloneType != *type) {
                         return std::nullopt;
                     }
-                    standaloneType = *type;
+                    scan.standaloneType = *type;
                     recognizedGlyph = true;
                     continue;
                 }
-                if (*glyphName == "keyboardPedalUp") {
-                    standaloneType = keyboardpedal::Type::PedalUp;
-                    recognizedGlyph = true;
-                    continue;
-                }
-                if (*glyphName == "keyboardPedalPed" || *glyphName == "keyboardPedalPedNoDot") {
-                    symbolicText += "ped";
-                    recognizedGlyph = true;
-                    continue;
-                }
-                if (*glyphName == "keyboardPedalP") {
-                    symbolicText += 'p';
-                    recognizedGlyph = true;
-                    continue;
-                }
-                if (*glyphName == "keyboardPedalE") {
-                    symbolicText += 'e';
-                    recognizedGlyph = true;
-                    continue;
-                }
-                if (*glyphName == "keyboardPedalD") {
-                    symbolicText += 'd';
-                    recognizedGlyph = true;
-                    continue;
-                }
-                if (*glyphName == "keyboardPedalDot") {
-                    symbolicText += '.';
-                    recognizedGlyph = true;
-                    continue;
-                }
-                if (*glyphName == "keyboardPedalSost" || *glyphName == "keyboardPedalSostNoDot" || *glyphName == "keyboardPedalS") {
-                    symbolicText += "sost";
+                if (applyPedalGlyph(scan, *glyphName)) {
                     recognizedGlyph = true;
                     continue;
                 }
             }
             if (iter->codepoint <= 0x7F) {
-                symbolicText.push_back(static_cast<char>(iter->codepoint));
+                scan.symbolicText.push_back(static_cast<char>(iter->codepoint));
             } else {
                 return std::nullopt;
             }
         }
     }
 
-    if (standaloneType) {
-        const std::string normalizedRemainder = normalizePedalText(symbolicText);
+    if (scan.standaloneType) {
+        const std::string normalizedRemainder = normalizePedalText(scan.symbolicText);
         if (!normalizedRemainder.empty() && normalizedRemainder != "sempre") {
             return std::nullopt;
         }
-        return KeyboardPedalClassification{*standaloneType, true};
+        return KeyboardPedalClassification{*scan.standaloneType, true};
     }
-    if (const auto type = classifyNormalizedPedalText(symbolicText)) {
-        return KeyboardPedalClassification{*type, recognizedGlyph};
+    bool sawShortPedGlyph = false;
+    for (auto it = scan.pedalPGlyphPositions.rbegin(); it != scan.pedalPGlyphPositions.rend(); ++it) {
+        const size_t next = *it + 1;
+        if (next >= scan.symbolicText.size() || utils::toLowerCase(scan.symbolicText[next]) != 'e') {
+            scan.symbolicText.replace(*it, 1, "ped");
+            sawShortPedGlyph = true;
+        }
+    }
+    if (const auto type = classifyNormalizedPedalText(scan.symbolicText)) {
+        return KeyboardPedalClassification{*type, recognizedGlyph, sawShortPedGlyph || scan.sawShortSostGlyph};
     }
     return std::nullopt;
 }
