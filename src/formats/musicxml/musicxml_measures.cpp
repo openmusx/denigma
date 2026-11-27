@@ -869,7 +869,8 @@ void assignStaffAttributes(MusicXmlMusxMapping& context, mx::api::PartData& part
     }
 }
 
-void processMeasureText(MusicXmlMusxMapping& context, mx::api::StaffData& staff, const MusxInstance<others::Measure>& musxMeasure, StaffCmper staffId)
+void processMeasureTexts(
+    MusicXmlMusxMapping& context, mx::api::StaffData& staff, const MusxInstance<others::Measure>& musxMeasure, StaffCmper staffId)
 {
     if (!musxMeasure->hasTextBlock) {
         return;
@@ -1266,7 +1267,7 @@ void createMeasuresForPart(MusicXmlMusxMapping& context, mx::api::PartData& part
             const StaffCmper staffId = stavesIt->second[staffIndex];
             auto& staff = measure.staves[staffIndex];
             processChords(context, staff, musxMeasure, staffId);
-            processMeasureText(context, staff, musxMeasure, staffId);
+            processMeasureTexts(context, staff, musxMeasure, staffId);
             processJumps(context, staff, musxMeasure, staffId, staffIndex);
             processExpressions(context, measure, staff, musxMeasure, staffId, staffIndex);
         }

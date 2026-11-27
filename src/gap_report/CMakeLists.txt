@@ -8,6 +8,7 @@ add_denigma_internal_library(denigma_gap_report
     ${CMAKE_CURRENT_LIST_DIR}/gap_report_formatted_text.cpp
     ${CMAKE_CURRENT_LIST_DIR}/gap_report_noteheads.cpp
     ${CMAKE_CURRENT_LIST_DIR}/gap_report_smartshapes.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/gap_report_text_blocks.cpp
 )
 add_library(denigma::gap-report ALIAS denigma_gap_report)
 target_link_libraries(denigma_gap_report

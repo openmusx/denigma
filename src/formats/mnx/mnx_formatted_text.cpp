@@ -91,14 +91,15 @@ void setFormattedText(mnxdom::FormattedText dst, const classify::FormattedText& 
     for (size_t first = 0; first < src.runs.size();) {
         auto range = ranges[first];
         const auto& run = src.runs[first];
-        classify::TextFormatting formatting{run.font, run.baseline, run.superscript, run.tracking, run.text};
+        classify::TextFormatting formatting{run.font, run.baseline, run.superscript, run.tracking, run.text, {}};
         size_t next = first + 1;
         while (next < src.runs.size() && ranges[next].id == range.id && sameStyle(run, src.runs[next])) {
             range.length += ranges[next].length;
             formatting.sourceText += src.runs[next].text;
             ++next;
         }
-        gaps->add(anchor, std::move(formatting), classify::GapExtent::Partial, {}, {std::move(range)});
+        formatting.ranges.push_back(std::move(range));
+        gaps->add(anchor, std::move(formatting), classify::GapExtent::Partial);
         first = next;
     }
     for (size_t first = 0; first < src.runs.size();) {
@@ -107,15 +108,14 @@ void setFormattedText(mnxdom::FormattedText dst, const classify::FormattedText& 
             ++first;
             continue;
         }
-        classify::TextInsert insert{*run.insert, run.text};
-        std::vector<classify::GapTextRange> insertRanges{ranges[first]};
+        classify::TextInsert insert{*run.insert, run.text, {ranges[first]}};
         size_t next = first + 1;
         while (next < src.runs.size() && src.runs[next].sourceChunk == run.sourceChunk) {
             insert.sourceText += src.runs[next].text;
-            insertRanges.push_back(ranges[next]);
+            insert.ranges.push_back(ranges[next]);
             ++next;
         }
-        gaps->add(anchor, std::move(insert), classify::GapExtent::Partial, {}, std::move(insertRanges));
+        gaps->add(anchor, std::move(insert), classify::GapExtent::Partial);
         first = next;
     }
 }

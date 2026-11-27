@@ -83,7 +83,7 @@ mx::api::ScoreData createMusicXmlDocumentFromDocument(const musx::dom::DocumentP
     createTiming(context, context.timing);
     createMetaData(context);
     createDefaults(context);
-    createPageTexts(context);
+    processPageTexts(context);
     createParts(context);
     createMeasures(context);
 

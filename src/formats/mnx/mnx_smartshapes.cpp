@@ -72,11 +72,7 @@ void addMeasureShapeGap(const MnxMusxMappingPtr& context, mnxdom::part::Measure&
         return;
     }
     classify::GapAnchor start{mnxMeasure.id_or(""), mnxStaffNumber, shape->startTermSeg->endPoint->calcGlobalPosition()};
-    if (auto end = endPointAnchor(context, shape->endTermSeg->endPoint)) {
-        gapCollector->addSpan(std::move(start), std::move(*end), classification);
-    } else {
-        gapCollector->add(std::move(start), classification);
-    }
+    gapCollector->add(std::move(start), classify::SmartShapeGap{classification, endPointAnchor(context, shape->endTermSeg->endPoint)});
 }
 } // namespace
 
@@ -217,11 +213,7 @@ void finalizeSmartShapeGaps(const MnxMusxMappingPtr& context)
             // the end names the measure it falls in.
             end = endPointAnchor(context, endPoint);
         }
-        if (end) {
-            gapCollector->addSpan(std::move(deferred.start), std::move(*end), std::move(deferred.classification));
-        } else {
-            gapCollector->add(std::move(deferred.start), std::move(deferred.classification));
-        }
+        gapCollector->add(std::move(deferred.start), classify::SmartShapeGap{std::move(deferred.classification), std::move(end)});
     }
     context->deferredSmartShapeGaps.clear();
 }

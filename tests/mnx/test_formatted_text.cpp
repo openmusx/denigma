@@ -20,6 +20,7 @@
  * THE SOFTWARE.
  */
 #include <string>
+#include <variant>
 #include <vector>
 
 #include "gtest/gtest.h"
@@ -34,6 +35,15 @@ using namespace denigma::formats::mnx::detail;
 using namespace musx::dom;
 
 namespace {
+
+/// The output text ranges a formatting or insert gap covers.
+const std::vector<denigma::classify::GapTextRange>& rangesOf(const denigma::classify::Gap& gap)
+{
+    if (const auto* formatting = std::get_if<denigma::classify::TextFormatting>(&gap.payload)) {
+        return formatting->ranges;
+    }
+    return std::get<denigma::classify::TextInsert>(gap.payload).ranges;
+}
 
 struct RawTextContext
 {
@@ -111,8 +121,8 @@ TEST(MnxFormattedText, MergesFontChangesAndPreservesFormattingRanges)
     EXPECT_EQ(last.baseline, 6);
     EXPECT_EQ(last.superscript, 3);
     EXPECT_EQ(last.tracking, 20);
-    EXPECT_EQ(gaps.gaps()[2].textRanges[0].offset, 10);
-    EXPECT_EQ(gaps.gaps()[2].textRanges[0].length, 7);
+    EXPECT_EQ(rangesOf(gaps.gaps()[2])[0].offset, 10);
+    EXPECT_EQ(rangesOf(gaps.gaps()[2])[0].length, 7);
 }
 
 TEST(MnxFormattedText, SplitsMixedLegacySymbolsAndMergesGlyphFonts)
@@ -129,8 +139,8 @@ TEST(MnxFormattedText, SplitsMixedLegacySymbolsAndMergesGlyphFonts)
     const auto& legacy = std::get<denigma::classify::TextFormatting>(gaps.gaps()[2].payload);
     EXPECT_EQ(legacy.sourceText, "f");
     EXPECT_EQ(legacy.font.name, "Maestro");
-    EXPECT_EQ(gaps.gaps()[3].textRanges[0].offset, 1);
-    EXPECT_EQ(gaps.gaps()[3].textRanges[0].length, 2);
+    EXPECT_EQ(rangesOf(gaps.gaps()[3])[0].offset, 1);
+    EXPECT_EQ(rangesOf(gaps.gaps()[3])[0].length, 2);
 }
 
 TEST(MnxFormattedText, CountsUnicodeScalarsAndPreservesWhitespace)
@@ -142,8 +152,8 @@ TEST(MnxFormattedText, CountsUnicodeScalarsAndPreservesWhitespace)
     ASSERT_EQ(json.size(), 1);
     EXPECT_EQ(json[0]["text"], "𝄪é B\n ");
     ASSERT_EQ(gaps.gaps().size(), 2);
-    EXPECT_EQ(gaps.gaps()[1].textRanges[0].offset, 3);
-    EXPECT_EQ(gaps.gaps()[1].textRanges[0].length, 3);
+    EXPECT_EQ(rangesOf(gaps.gaps()[1])[0].offset, 3);
+    EXPECT_EQ(rangesOf(gaps.gaps()[1])[0].length, 3);
 }
 
 TEST(MnxFormattedText, KeepsRepeatedInsertRangesWithinMergedText)
@@ -153,15 +163,15 @@ TEST(MnxFormattedText, KeepsRepeatedInsertRangesWithinMergedText)
     const auto formatted = makeFormattedText(ctx.parsingContext, "expr", &gaps);
     EXPECT_EQ(mnxdom::json::parse(formatted.dump())[0]["text"], "p.##^");
     ASSERT_EQ(gaps.gaps().size(), 3);
-    EXPECT_EQ(gaps.gaps()[0].textRanges[0].length, 5);
+    EXPECT_EQ(rangesOf(gaps.gaps()[0])[0].length, 5);
     for (size_t i = 1; i < gaps.gaps().size(); ++i) {
         const auto& gap = gaps.gaps()[i];
         const auto& insert = std::get<denigma::classify::TextInsert>(gap.payload);
         EXPECT_EQ(insert.insert.command, "page");
         EXPECT_EQ(insert.insert.parameters, std::vector<std::string>{"3"});
         EXPECT_EQ(insert.sourceText, "#");
-        EXPECT_EQ(gap.textRanges[0].offset, i + 1);
-        EXPECT_EQ(gap.textRanges[0].length, 1);
+        EXPECT_EQ(rangesOf(gap)[0].offset, i + 1);
+        EXPECT_EQ(rangesOf(gap)[0].length, 1);
     }
 }
 
@@ -181,10 +191,10 @@ TEST(MnxFormattedText, MapsOneMixedInsertToSeveralOutputElements)
     ASSERT_EQ(gaps.gaps().size(), 4);
     const auto& insert = gaps.gaps().back();
     EXPECT_EQ(std::get<denigma::classify::TextInsert>(insert.payload).sourceText, "p f");
-    ASSERT_EQ(insert.textRanges.size(), 3);
-    EXPECT_EQ(insert.textRanges[0].id, "expr.text0");
-    EXPECT_EQ(insert.textRanges[1].id, "expr.text1");
-    EXPECT_EQ(insert.textRanges[2].id, "expr.text2");
+    ASSERT_EQ(rangesOf(insert).size(), 3);
+    EXPECT_EQ(rangesOf(insert)[0].id, "expr.text0");
+    EXPECT_EQ(rangesOf(insert)[1].id, "expr.text1");
+    EXPECT_EQ(rangesOf(insert)[2].id, "expr.text2");
 }
 
 TEST(MnxFormattedText, PreservesAccidentalInsertIdentity)
@@ -245,5 +255,5 @@ TEST(MnxFormattedText, ReportsOnlyParserProvidedProvenanceForNestedInserts)
     EXPECT_EQ(outer.sourceText, "Clarinet ");
     EXPECT_EQ(inner.insert.command, "page");
     EXPECT_EQ(inner.sourceText, "#");
-    EXPECT_EQ(gaps.gaps()[2].textRanges[0].offset, 9);
+    EXPECT_EQ(rangesOf(gaps.gaps()[2])[0].offset, 9);
 }

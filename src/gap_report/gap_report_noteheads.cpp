@@ -66,7 +66,7 @@ std::string_view noteheadFillName(notehead::Fill fill)
 
 } // namespace
 
-json noteheadJson(const classify::NoteheadClassification& notehead)
+json noteheadJson(const classify::NoteheadClassification& notehead, FontTable& fonts)
 {
     json result{
         {"shape", noteheadShapeName(notehead.shape)},
@@ -78,7 +78,7 @@ json noteheadJson(const classify::NoteheadClassification& notehead)
     // The source character identifies the notehead even when no glyph name does.
     result["codePoint"] = static_cast<std::uint32_t>(notehead.noteheadInfo.character);
     if (notehead.noteheadInfo.font) {
-        result["font"] = fontJson(notehead.noteheadInfo.font->resolve());
+        result["font"] = fonts.reference(notehead.noteheadInfo.font->resolve());
     }
     return result;
 }

@@ -64,6 +64,23 @@ TEST(ElementIdsTest, CalcTempoDefId)
     EXPECT_EQ(core::calcTempoDefId(12, 4), "m12.tempoDef.inci4");
 }
 
+TEST(ElementIdsTest, CalcScoreAndPageIds)
+{
+    EXPECT_EQ(core::calcScoreId(0), "score0");
+    EXPECT_EQ(core::calcScoreId(3), "score3");
+    EXPECT_EQ(core::calcPageId(0, 1), "score0.page1");
+    EXPECT_EQ(core::calcPageId(3, 12), "score3.page12");
+}
+
+TEST(ElementIdsTest, CalcMeasureTextId)
+{
+    // The assignment records provenance without consulting its document, so a detached one suffices.
+    auto assign =
+        std::make_shared<details::MeasureTextAssign>(DocumentWeakPtr{}, SCORE_PARTID, CommonClassBase::ShareMode::All, Cmper{2}, Cmper{7}, Inci{1});
+    assign->block = 5;
+    EXPECT_EQ(core::calcMeasureTextId(assign), "m7.s2.textBlock5.inci1");
+}
+
 namespace {
 
 // The assignment records provenance without consulting its document, so a detached one suffices.

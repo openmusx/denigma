@@ -406,7 +406,7 @@ std::string_view keyboardPedalTypeName(classify::keyboardpedal::Type value)
     return "unknown";
 }
 
-json expressionJson(const classify::ExpressionClassification& expression)
+json expressionJson(const classify::ExpressionClassification& expression, FontTable& fonts)
 {
     json result{
         {"type", expressionTypeName(expression.type)},
@@ -415,7 +415,7 @@ json expressionJson(const classify::ExpressionClassification& expression)
     };
     // Resolved at serialization, so the source document must still be alive; see design-decisions.md.
     if (expression.enigmaCtx) {
-        result["text"] = formattedTextJson(classify::classifyFormattedText(*expression.enigmaCtx));
+        result["text"] = formattedTextJson(classify::classifyFormattedText(*expression.enigmaCtx), fonts);
     }
     appendValue(result, expression.value);
     return result;

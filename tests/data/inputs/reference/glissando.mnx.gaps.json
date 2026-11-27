@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "producer": {
     "name": "denigma",
     "version": "TEST",
@@ -8,9 +8,6 @@
   "gaps": [
     {
       "anchor": "ev45n1",
-      "end": {
-        "anchor": "ev46n1"
-      },
       "extent": "complete",
       "type": "smart-shape",
       "smartShape": {
@@ -23,19 +20,7 @@
             "lineChar": {
               "codePoint": 60079,
               "glyph": "wiggleGlissando",
-              "font": {
-                "name": "Finale Maestro",
-                "size": 24,
-                "sizeIsPercent": false,
-                "bold": false,
-                "italic": false,
-                "underline": false,
-                "strikeout": false,
-                "absolute": false,
-                "hidden": false,
-                "isSymbolFont": false,
-                "isSmufl": true
-              }
+              "font": "1"
             },
             "horizontal": false,
             "startCap": {
@@ -45,14 +30,14 @@
               "type": "none"
             }
           }
+        },
+        "end": {
+          "anchor": "ev46n1"
         }
       }
     },
     {
       "anchor": "ev49n1",
-      "end": {
-        "anchor": "ev50n1"
-      },
       "extent": "complete",
       "type": "smart-shape",
       "smartShape": {
@@ -71,14 +56,14 @@
               "type": "none"
             }
           }
+        },
+        "end": {
+          "anchor": "ev50n1"
         }
       }
     },
     {
       "anchor": "ev77n1",
-      "end": {
-        "anchor": "ev79n1"
-      },
       "extent": "complete",
       "type": "smart-shape",
       "smartShape": {
@@ -91,19 +76,7 @@
             "lineChar": {
               "codePoint": 60079,
               "glyph": "wiggleGlissando",
-              "font": {
-                "name": "Finale Maestro",
-                "size": 24,
-                "sizeIsPercent": false,
-                "bold": false,
-                "italic": false,
-                "underline": false,
-                "strikeout": false,
-                "absolute": false,
-                "hidden": false,
-                "isSymbolFont": false,
-                "isSmufl": true
-              }
+              "font": "1"
             },
             "horizontal": false,
             "startCap": {
@@ -113,14 +86,14 @@
               "type": "none"
             }
           }
+        },
+        "end": {
+          "anchor": "ev79n1"
         }
       }
     },
     {
       "anchor": "ev53n1",
-      "end": {
-        "anchor": "ev54n1"
-      },
       "extent": "complete",
       "type": "smart-shape",
       "smartShape": {
@@ -139,14 +112,14 @@
               "type": "none"
             }
           }
+        },
+        "end": {
+          "anchor": "ev54n1"
         }
       }
     },
     {
       "anchor": "ev57n1",
-      "end": {
-        "anchor": "ev58n1"
-      },
       "extent": "complete",
       "type": "smart-shape",
       "smartShape": {
@@ -159,19 +132,7 @@
             "lineChar": {
               "codePoint": 60079,
               "glyph": "wiggleGlissando",
-              "font": {
-                "name": "Finale Maestro",
-                "size": 24,
-                "sizeIsPercent": false,
-                "bold": false,
-                "italic": false,
-                "underline": false,
-                "strikeout": false,
-                "absolute": false,
-                "hidden": false,
-                "isSymbolFont": false,
-                "isSmufl": true
-              }
+              "font": "1"
             },
             "horizontal": false,
             "startCap": {
@@ -181,14 +142,14 @@
               "type": "none"
             }
           }
+        },
+        "end": {
+          "anchor": "ev58n1"
         }
       }
     },
     {
       "anchor": "ev61n1",
-      "end": {
-        "anchor": "ev62n1"
-      },
       "extent": "complete",
       "type": "smart-shape",
       "smartShape": {
@@ -201,19 +162,7 @@
             "lineChar": {
               "codePoint": 60079,
               "glyph": "wiggleGlissando",
-              "font": {
-                "name": "Finale Maestro",
-                "size": 24,
-                "sizeIsPercent": false,
-                "bold": false,
-                "italic": false,
-                "underline": false,
-                "strikeout": false,
-                "absolute": false,
-                "hidden": false,
-                "isSymbolFont": false,
-                "isSmufl": true
-              }
+              "font": "1"
             },
             "horizontal": false,
             "startCap": {
@@ -227,31 +176,19 @@
               "runs": [
                 {
                   "text": "rip!",
-                  "font": {
-                    "name": "Times New Roman",
-                    "size": 12,
-                    "sizeIsPercent": false,
-                    "bold": false,
-                    "italic": false,
-                    "underline": false,
-                    "strikeout": false,
-                    "absolute": false,
-                    "hidden": false,
-                    "isSymbolFont": false,
-                    "isSmufl": false
-                  }
+                  "font": "2"
                 }
               ]
             }
           }
+        },
+        "end": {
+          "anchor": "ev62n1"
         }
       }
     },
     {
       "anchor": "ev65n1",
-      "end": {
-        "anchor": "ev66n1"
-      },
       "extent": "complete",
       "type": "smart-shape",
       "smartShape": {
@@ -274,31 +211,19 @@
               "runs": [
                 {
                   "text": "port.",
-                  "font": {
-                    "name": "Times New Roman",
-                    "size": 12,
-                    "sizeIsPercent": false,
-                    "bold": false,
-                    "italic": false,
-                    "underline": false,
-                    "strikeout": false,
-                    "absolute": false,
-                    "hidden": false,
-                    "isSymbolFont": false,
-                    "isSmufl": false
-                  }
+                  "font": "2"
                 }
               ]
             }
           }
+        },
+        "end": {
+          "anchor": "ev66n1"
         }
       }
     },
     {
       "anchor": "ev73n1",
-      "end": {
-        "anchor": "ev74n1"
-      },
       "extent": "complete",
       "type": "smart-shape",
       "smartShape": {
@@ -311,19 +236,7 @@
             "lineChar": {
               "codePoint": 60079,
               "glyph": "wiggleGlissando",
-              "font": {
-                "name": "Finale Maestro",
-                "size": 24,
-                "sizeIsPercent": false,
-                "bold": false,
-                "italic": false,
-                "underline": false,
-                "strikeout": false,
-                "absolute": false,
-                "hidden": false,
-                "isSymbolFont": false,
-                "isSmufl": true
-              }
+              "font": "1"
             },
             "horizontal": false,
             "startCap": {
@@ -333,14 +246,14 @@
               "type": "none"
             }
           }
+        },
+        "end": {
+          "anchor": "ev74n1"
         }
       }
     },
     {
       "anchor": "ev67n1",
-      "end": {
-        "anchor": "ev68n1"
-      },
       "extent": "complete",
       "type": "smart-shape",
       "smartShape": {
@@ -353,19 +266,7 @@
             "lineChar": {
               "codePoint": 60087,
               "glyph": "wiggleSquareWaveNarrow",
-              "font": {
-                "name": "Finale Maestro",
-                "size": 24,
-                "sizeIsPercent": false,
-                "bold": false,
-                "italic": false,
-                "underline": false,
-                "strikeout": false,
-                "absolute": false,
-                "hidden": false,
-                "isSymbolFont": false,
-                "isSmufl": true
-              }
+              "font": "1"
             },
             "horizontal": false,
             "startCap": {
@@ -375,14 +276,14 @@
               "type": "none"
             }
           }
+        },
+        "end": {
+          "anchor": "ev68n1"
         }
       }
     },
     {
       "anchor": "ev70n1",
-      "end": {
-        "anchor": "ev71n1"
-      },
       "extent": "complete",
       "type": "smart-shape",
       "smartShape": {
@@ -401,14 +302,14 @@
               "type": "none"
             }
           }
+        },
+        "end": {
+          "anchor": "ev71n1"
         }
       }
     },
     {
       "anchor": "ev80n1",
-      "end": {
-        "anchor": "ev81n1"
-      },
       "extent": "complete",
       "type": "smart-shape",
       "smartShape": {
@@ -427,14 +328,14 @@
               "type": "none"
             }
           }
+        },
+        "end": {
+          "anchor": "ev81n1"
         }
       }
     },
     {
       "anchor": "ev83n1",
-      "end": {
-        "anchor": "ev84n1"
-      },
       "extent": "complete",
       "type": "smart-shape",
       "smartShape": {
@@ -447,19 +348,7 @@
             "lineChar": {
               "codePoint": 60079,
               "glyph": "wiggleGlissando",
-              "font": {
-                "name": "Finale Maestro",
-                "size": 24,
-                "sizeIsPercent": false,
-                "bold": false,
-                "italic": false,
-                "underline": false,
-                "strikeout": false,
-                "absolute": false,
-                "hidden": false,
-                "isSymbolFont": false,
-                "isSmufl": true
-              }
+              "font": "1"
             },
             "horizontal": false,
             "startCap": {
@@ -473,31 +362,19 @@
               "runs": [
                 {
                   "text": "rip!",
-                  "font": {
-                    "name": "Times New Roman",
-                    "size": 12,
-                    "sizeIsPercent": false,
-                    "bold": false,
-                    "italic": false,
-                    "underline": false,
-                    "strikeout": false,
-                    "absolute": false,
-                    "hidden": false,
-                    "isSymbolFont": false,
-                    "isSmufl": false
-                  }
+                  "font": "2"
                 }
               ]
             }
           }
+        },
+        "end": {
+          "anchor": "ev84n1"
         }
       }
     },
     {
       "anchor": "ev85n1",
-      "end": {
-        "anchor": "ev86n1"
-      },
       "extent": "complete",
       "type": "smart-shape",
       "smartShape": {
@@ -510,19 +387,7 @@
             "lineChar": {
               "codePoint": 60079,
               "glyph": "wiggleGlissando",
-              "font": {
-                "name": "Finale Maestro",
-                "size": 24,
-                "sizeIsPercent": false,
-                "bold": false,
-                "italic": false,
-                "underline": false,
-                "strikeout": false,
-                "absolute": false,
-                "hidden": false,
-                "isSymbolFont": false,
-                "isSmufl": true
-              }
+              "font": "1"
             },
             "horizontal": false,
             "startCap": {
@@ -536,31 +401,19 @@
               "runs": [
                 {
                   "text": "rip!",
-                  "font": {
-                    "name": "Times New Roman",
-                    "size": 12,
-                    "sizeIsPercent": false,
-                    "bold": false,
-                    "italic": false,
-                    "underline": false,
-                    "strikeout": false,
-                    "absolute": false,
-                    "hidden": false,
-                    "isSymbolFont": false,
-                    "isSmufl": false
-                  }
+                  "font": "2"
                 }
               ]
             }
           }
+        },
+        "end": {
+          "anchor": "ev86n1"
         }
       }
     },
     {
       "anchor": "ev88n1",
-      "end": {
-        "anchor": "ev88n1"
-      },
       "extent": "complete",
       "type": "smart-shape",
       "smartShape": {
@@ -573,19 +426,7 @@
             "lineChar": {
               "codePoint": 60079,
               "glyph": "wiggleGlissando",
-              "font": {
-                "name": "Finale Maestro",
-                "size": 24,
-                "sizeIsPercent": false,
-                "bold": false,
-                "italic": false,
-                "underline": false,
-                "strikeout": false,
-                "absolute": false,
-                "hidden": false,
-                "isSymbolFont": false,
-                "isSmufl": true
-              }
+              "font": "1"
             },
             "horizontal": false,
             "startCap": {
@@ -599,31 +440,19 @@
               "runs": [
                 {
                   "text": "rip!",
-                  "font": {
-                    "name": "Times New Roman",
-                    "size": 12,
-                    "sizeIsPercent": false,
-                    "bold": false,
-                    "italic": false,
-                    "underline": false,
-                    "strikeout": false,
-                    "absolute": false,
-                    "hidden": false,
-                    "isSymbolFont": false,
-                    "isSmufl": false
-                  }
+                  "font": "2"
                 }
               ]
             }
           }
+        },
+        "end": {
+          "anchor": "ev88n1"
         }
       }
     },
     {
       "anchor": "ev90n1",
-      "end": {
-        "anchor": "ev91n1"
-      },
       "extent": "complete",
       "type": "smart-shape",
       "smartShape": {
@@ -642,14 +471,14 @@
               "type": "none"
             }
           }
+        },
+        "end": {
+          "anchor": "ev91n1"
         }
       }
     },
     {
       "anchor": "ev92n1",
-      "end": {
-        "anchor": "ev93n1"
-      },
       "extent": "complete",
       "type": "smart-shape",
       "smartShape": {
@@ -670,14 +499,14 @@
               "arrowhead": "preset-small-filled"
             }
           }
+        },
+        "end": {
+          "anchor": "ev93n1"
         }
       }
     },
     {
       "anchor": "ev94n1",
-      "end": {
-        "anchor": "ev95n1"
-      },
       "extent": "complete",
       "type": "smart-shape",
       "smartShape": {
@@ -690,19 +519,7 @@
             "lineChar": {
               "codePoint": 60079,
               "glyph": "wiggleGlissando",
-              "font": {
-                "name": "Finale Maestro",
-                "size": 24,
-                "sizeIsPercent": false,
-                "bold": false,
-                "italic": false,
-                "underline": false,
-                "strikeout": false,
-                "absolute": false,
-                "hidden": false,
-                "isSymbolFont": false,
-                "isSmufl": true
-              }
+              "font": "1"
             },
             "horizontal": false,
             "startCap": {
@@ -716,27 +533,46 @@
               "runs": [
                 {
                   "text": "rip!",
-                  "font": {
-                    "name": "Times New Roman",
-                    "size": 12,
-                    "sizeIsPercent": false,
-                    "bold": false,
-                    "italic": false,
-                    "underline": false,
-                    "strikeout": false,
-                    "absolute": false,
-                    "hidden": false,
-                    "isSymbolFont": false,
-                    "isSmufl": false
-                  }
+                  "font": "2"
                 }
               ]
             }
           }
+        },
+        "end": {
+          "anchor": "ev95n1"
         }
       }
     }
   ],
+  "fonts": {
+    "1": {
+      "name": "Finale Maestro",
+      "size": 24,
+      "sizeIsPercent": false,
+      "bold": false,
+      "italic": false,
+      "underline": false,
+      "strikeout": false,
+      "absolute": false,
+      "hidden": false,
+      "isSymbolFont": false,
+      "isSmufl": true
+    },
+    "2": {
+      "name": "Times New Roman",
+      "size": 12,
+      "sizeIsPercent": false,
+      "bold": false,
+      "italic": false,
+      "underline": false,
+      "strikeout": false,
+      "absolute": false,
+      "hidden": false,
+      "isSymbolFont": false,
+      "isSmufl": false
+    }
+  },
   "arrowheads": {
     "preset-small-filled": {
       "unit": "staff-space",

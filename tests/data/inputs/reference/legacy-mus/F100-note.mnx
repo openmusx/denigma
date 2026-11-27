@@ -99,6 +99,7 @@
     ],
     "scores": [
         {
+            "id": "score0",
             "layout": "S0-ScrVw",
             "name": "Score"
         }

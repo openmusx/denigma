@@ -70,6 +70,25 @@ std::string calcTempoDefId(musx::dom::Cmper measureCmper, musx::dom::Inci inci)
     return calcGlobalMeasureId(measureCmper) + ".tempoDef.inci" + std::to_string(inci);
 }
 
+std::string calcMeasureTextId(const musx::dom::MusxInstance<musx::dom::details::MeasureTextAssign>& assignment)
+{
+    ASSERT_IF (!assignment) {
+        return {};
+    }
+    return calcGlobalMeasureId(assignment->getCmper2()) + ".s" + std::to_string(assignment->getCmper1()) + ".textBlock"
+           + std::to_string(assignment->block) + ".inci" + std::to_string(assignment->getInci().value_or(0));
+}
+
+std::string calcScoreId(musx::dom::Cmper linkedPartCmper)
+{
+    return "score" + std::to_string(linkedPartCmper);
+}
+
+std::string calcPageId(musx::dom::Cmper linkedPartCmper, musx::dom::PageCmper pageNumber)
+{
+    return calcScoreId(linkedPartCmper) + ".page" + std::to_string(pageNumber);
+}
+
 std::string calcTupletId(const musx::dom::EntryInfoPtr& firstEntryInfo, const musx::dom::MusxInstance<musx::dom::details::TupletDef>& tupletDef)
 {
     return calcEventId(firstEntryInfo) + ".inci" + std::to_string(tupletDef->getInci().value_or(0));

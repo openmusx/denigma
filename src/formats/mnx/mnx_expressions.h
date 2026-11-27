@@ -40,7 +40,9 @@ namespace detail {
 /// Tempo marks become the global measure's tempos (see design-decisions.md). A global type MNX has
 /// no object for is reported as a conversion gap anchored to the global measure when a gap collector
 /// is present. A marking a staff list draws on several staves is handled once, as one marking.
-/// Every other expression type is a staff expression and is left to #processExpressions.
+/// Every other expression type is a staff expression and is left to #processExpressions, except
+/// that the members of its staff list that float to a system edge, which name no staff, are reported
+/// here as one gap per group.
 void processGlobalExpressions(
     const MnxMusxMappingPtr& context, mnxdom::global::Measure& mnxMeasure, const MusxInstance<others::Measure>& musxMeasure);
 

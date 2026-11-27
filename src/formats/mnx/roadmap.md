@@ -34,3 +34,7 @@ play different keys on different devices would need a rule.
 ## Semantic technique markings
 
 Recognized technique text remains general text with a partial expression gap. MNX technique objects also carry duration and other semantics, so exporting them requires a separate mapping of those properties from Finale rather than assigning a semantic technique from its displayed words alone.
+
+## Custom text-frame shapes in the gap report
+
+A text block can be framed by a Shape Designer shape instead of the standard rectangle, and the text-block gaps say only `hasCustomShape`. The report already embeds Shape Designer arrowheads as SVG in a report-level table keyed by a reference (see the gap report's design decisions), and a frame shape could go in the same kind of table, with the frame naming its key. Two questions come first. Whether Finale scales the shape to the frame or draws it at its own size has to be established from fixtures before any geometry is reported. And the arrowhead table's unit, staff spaces, suits measure text but not page text, which lives in page space; whichever unit is used, the entry states it with `unit` and `origin`, as arrowheads do.

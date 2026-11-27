@@ -285,7 +285,7 @@ withInput(chordInput, 'chords.musx', (dataPointer, namePointer) => {
       throw new Error(`MNX output declares schema ${mnxDocument.mnx.version}; the module reports ${mnxSchemaVersion}.`);
     }
     const report = gapReport(result);
-    if (report.schemaVersion !== 2) {
+    if (report.schemaVersion !== 3) {
       throw new Error('Chord gap report has invalid envelope metadata.');
     }
     const chordGaps = report.gaps.filter((gap) => gap.type === 'chord-symbol');
@@ -323,13 +323,14 @@ withInput(techniqueInput, 'techniques.musx', (dataPointer, namePointer) => {
     const document = JSON.parse(new TextDecoder().decode(Module.HEAPU8.slice(pointer, pointer + size)));
     const texts = document.parts.flatMap((part) => part.measures.flatMap((measure) => measure.text ?? []));
     const elements = new Map(texts.flatMap((text) => text.text.map((element) => [element.id, element])));
-    const formatting = gapReport(result).gaps.filter((gap) => gap.type === 'text-formatting');
+    const report = gapReport(result);
+    const formatting = report.gaps.filter((gap) => gap.type === 'text-formatting');
     if (!texts.length || !formatting.length) throw new Error('MNX text or formatting gaps are missing.');
     for (const gap of formatting) {
-      if (gap.extent !== 'partial' || !gap.formatting.font.name || !gap.textRanges?.length) {
+      if (gap.extent !== 'partial' || !report.fonts?.[gap.formatting.font]?.name || !gap.formatting.ranges?.length) {
         throw new Error('MNX formatting gap has incomplete metadata.');
       }
-      for (const range of gap.textRanges) {
+      for (const range of gap.formatting.ranges) {
         const element = elements.get(range.anchor);
         if (!element || 'style' in element) throw new Error('MNX formatting range has an invalid target.');
         const length = element.type === 'smufl' ? element.glyphs.length : Array.from(element.text).length;
@@ -377,14 +378,14 @@ withInput(arrowheadInput, 'custom_arrowheads.enigmaxml.zip', (dataPointer, nameP
     const report = gapReport(result);
     const shapeGaps = report.gaps.filter((gap) => gap.type === 'smart-shape');
     if (!shapeGaps.length || shapeGaps.some((gap) => !gap.anchor
-      || !gap.end?.anchor
+      || !gap.smartShape?.end?.anchor
       || !gap.smartShape.shapeType
       || !gap.smartShape.kind
       || 'source' in gap)) {
       throw new Error('Smart shape gap report does not contain target-anchored spans.');
     }
     const glissando = shapeGaps.find((gap) => gap.smartShape.kind === 'glissando');
-    if (!glissando || !glissando.anchor.startsWith('ev') || !glissando.end.anchor.startsWith('ev')) {
+    if (!glissando || !glissando.anchor.startsWith('ev') || !glissando.smartShape.end.anchor.startsWith('ev')) {
       throw new Error('Entry-attached glissando gap is not anchored to events.');
     }
     const arrowheads = report.arrowheads ?? {};

@@ -41,26 +41,30 @@ namespace detail {
 
 namespace {
 
-/// @brief Where the target would draw each member of a staff-list group, in target ids.
+/// @brief Which members of a staff-list group #expressionGapForGroup lists.
+enum class GroupMembers {
+    All, ///< Every member the requested score or part shows.
+    FloatingOnly ///< Only the members that float to a system edge.
+};
+
+/// @brief The group's classification with the target place of each member it lists.
 ///
-/// A floating member names the system edge and the global measure. A concrete member names the
-/// part measure and, when the part has several staves, the staff. A staff that maps to no part
-/// (a staff outside every instrument) is left out.
-std::vector<classify::GapPlacement> placementsForGroup(
-    const MnxMusxMappingPtr& context, const classify::ExpressionAssignmentGroup& group, const std::string& globalMeasureId)
+/// A floating member's place is the global measure. A concrete member's is the part measure and,
+/// when the part has several staves, the staff. A staff that maps to no part (a staff outside every
+/// instrument) is left out.
+classify::ExpressionGap expressionGapForGroup(const MnxMusxMappingPtr& context, const classify::ExpressionAssignmentGroup& group,
+    const std::string& globalMeasureId, GroupMembers which = GroupMembers::All)
 {
-    using Kind = classify::GapPlacement::Kind;
-    std::vector<classify::GapPlacement> result;
-    for (const auto& member : group.members) {
-        switch (classify::classifyExpressionScope(member)) {
-        case classify::ExpressionScope::TopStaff: result.push_back({Kind::SystemTop, {globalMeasureId, std::nullopt, std::nullopt}}); break;
-        case classify::ExpressionScope::BottomStaff: result.push_back({Kind::SystemBottom, {globalMeasureId, std::nullopt, std::nullopt}}); break;
-        case classify::ExpressionScope::Staff:
-            if (auto anchor = partMeasureAnchor(context, member->staffAssign, member->getCmper(), std::nullopt)) {
-                result.push_back({Kind::Staff, std::move(*anchor)});
+    classify::ExpressionGap result{group.classification, {}};
+    const auto& members = group.classification.members;
+    for (size_t index = 0; index < members.size(); ++index) {
+        const auto& member = members[index];
+        if (classify::isFloatingScope(member.scope)) {
+            result.placements.push_back({index, {globalMeasureId, std::nullopt, std::nullopt}});
+        } else if (member.scope == classify::ExpressionScope::Staff && which == GroupMembers::All) {
+            if (auto anchor = partMeasureAnchor(context, member.staff, group.members[index]->getCmper(), std::nullopt)) {
+                result.placements.push_back({index, std::move(*anchor)});
             }
-            break;
-        case classify::ExpressionScope::Unassigned: break;
         }
     }
     return result;
@@ -70,6 +74,18 @@ std::vector<classify::GapPlacement> placementsForGroup(
 bool isTempoFamily(classify::ExpressionType type)
 {
     return type == classify::ExpressionType::TempoMark || type == classify::ExpressionType::MetronomeMark;
+}
+
+/// @brief True for the staff expression types that draw a marking a floating staff-list member
+/// would put on a system edge. The rest draw nothing, so their floating members lose nothing.
+bool isDrawnStaffExpressionType(classify::ExpressionType type)
+{
+    switch (type) {
+    case classify::ExpressionType::Suppress:
+    case classify::ExpressionType::PseudoTie:
+    case classify::ExpressionType::Error: return false;
+    default: return true;
+    }
 }
 
 /// @brief True for the expression types that belong to the global measure rather than to a staff.
@@ -270,7 +286,7 @@ void appendGeneralText(const MnxMusxMappingPtr& context, mnxdom::part::Measure& 
     auto* const gaps = gapCollectorFor(context);
     if (!classification.enigmaCtx) {
         if (gaps) {
-            gaps->add(measureAnchor(mnxMeasure.id_or(""), mnxStaffNumber, asgn->eduPosition), classification);
+            gaps->add(measureAnchor(mnxMeasure.id_or(""), mnxStaffNumber, asgn->eduPosition), classify::ExpressionGap{classification, {}});
         }
         return;
     }
@@ -296,7 +312,7 @@ void appendGeneralText(const MnxMusxMappingPtr& context, mnxdom::part::Measure& 
     }
     setFormattedText(positioned.text(), text, id, *context->mnxDocument, gaps);
     if (gaps && classification.type != classify::ExpressionType::GenericText && classification.type != classify::ExpressionType::ExpressiveText) {
-        gaps->add({id, std::nullopt, std::nullopt}, classification, classify::GapExtent::Partial);
+        gaps->add({id, std::nullopt, std::nullopt}, classify::ExpressionGap{classification, {}}, classify::GapExtent::Partial);
     }
 }
 
@@ -310,7 +326,7 @@ void appendDynamic(const MnxMusxMappingPtr& context, mnxdom::part::Measure& mnxM
         if (asgn->textExprId) {
             appendGeneralText(context, mnxMeasure, mnxStaffNumber, asgn, classification, placement);
         } else if (auto* const gaps = gapCollectorFor(context)) {
-            gaps->add(measureAnchor(mnxMeasure.id_or(""), mnxStaffNumber, asgn->eduPosition), classification);
+            gaps->add(measureAnchor(mnxMeasure.id_or(""), mnxStaffNumber, asgn->eduPosition), classify::ExpressionGap{classification, {}});
         }
     };
     auto dynamicClass = projectPrimaryDynamicForMnx(classification);
@@ -564,8 +580,8 @@ void appendTempos(
             if (emitted || !gapCollector || !textExpressions) {
                 continue;
             }
-            gapCollector->add(measureAnchor(globalMeasureId, std::nullopt, primary->eduPosition), group.classification, classify::GapExtent::Complete,
-                placementsForGroup(context, group, globalMeasureId));
+            gapCollector->add(measureAnchor(globalMeasureId, std::nullopt, primary->eduPosition),
+                expressionGapForGroup(context, group, globalMeasureId), classify::GapExtent::Complete);
         }
     };
     addExpressionTempos(true);
@@ -587,8 +603,7 @@ void appendTempos(
         }
         // Reported whether or not Finale draws it; see design-decisions.md.
         if (candidate.group->primary->textExprId) {
-            gapCollector->add(anchor, candidate.group->classification, classify::GapExtent::Partial,
-                placementsForGroup(context, *candidate.group, globalMeasureId));
+            gapCollector->add(anchor, expressionGapForGroup(context, *candidate.group, globalMeasureId), classify::GapExtent::Partial);
         }
     }
 }
@@ -609,7 +624,21 @@ void processGlobalExpressions(const MnxMusxMappingPtr& context, mnxdom::global::
     for (const auto& group : groups) {
         const auto& primary = group.primary;
         const auto& classification = group.classification;
-        if (!primary->textExprId || primary->hidden || !isGlobalExpressionType(classification.type)) {
+        if (primary->hidden) {
+            continue;
+        }
+        if (!isGlobalExpressionType(classification.type)) {
+            // A staff expression is exported by processExpressions on each staff it names. A member
+            // floating to a system edge names no staff, and MNX has no system-level object for it.
+            if (gapCollector && isDrawnStaffExpressionType(classification.type)) {
+                if (auto gap = expressionGapForGroup(context, group, globalMeasureId, GroupMembers::FloatingOnly); !gap.placements.empty()) {
+                    gapCollector->add(
+                        measureAnchor(globalMeasureId, std::nullopt, primary->eduPosition), std::move(gap), classify::GapExtent::Complete);
+                }
+            }
+            continue;
+        }
+        if (!primary->textExprId) {
             continue;
         }
         switch (classification.type) {
@@ -619,8 +648,8 @@ void processGlobalExpressions(const MnxMusxMappingPtr& context, mnxdom::global::
         case classify::ExpressionType::RehearsalMark:
             // Until MNX has an object for this marking, its export is a gap.
             if (gapCollector) {
-                gapCollector->add(measureAnchor(globalMeasureId, std::nullopt, primary->eduPosition), classification, classify::GapExtent::Complete,
-                    placementsForGroup(context, group, globalMeasureId));
+                gapCollector->add(measureAnchor(globalMeasureId, std::nullopt, primary->eduPosition),
+                    expressionGapForGroup(context, group, globalMeasureId), classify::GapExtent::Complete);
             }
             break;
         default: break; // not a global type; see isGlobalExpressionType

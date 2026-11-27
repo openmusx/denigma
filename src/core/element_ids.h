@@ -59,6 +59,19 @@ std::string calcTextChunkId(const std::string& textId, size_t ordinal);
 /// @brief Computes a stable id for an object derived from one Tempo Tool record (`tempoDef`).
 std::string calcTempoDefId(musx::dom::Cmper measureCmper, musx::dom::Inci inci);
 
+/// @brief Computes a stable id for an object derived from one measure-attached text block assignment.
+///
+/// The id records the assignment's Finale provenance: the measure, the staff, the text block it
+/// assigns, and the assignment's inci on that staff and measure, as `m<cmper>.s<staff>.textBlock<block>.inci<n>`.
+std::string calcMeasureTextId(const musx::dom::MusxInstance<musx::dom::details::MeasureTextAssign>& assignment);
+
+/// @brief Computes a stable id for the score of one linked part (the full score is linked part 0), as `score<cmper>`.
+std::string calcScoreId(musx::dom::Cmper linkedPartCmper);
+
+/// @brief Computes a stable id for one page of a linked part's score, as `score<cmper>.page<number>`,
+/// where @p pageNumber is the part's own page number, counting from 1.
+std::string calcPageId(musx::dom::Cmper linkedPartCmper, musx::dom::PageCmper pageNumber);
+
 /// @brief Computes a stable id for a tuplet definition from its entry and incidence.
 std::string calcTupletId(const musx::dom::EntryInfoPtr& firstEntryInfo, const musx::dom::MusxInstance<musx::dom::details::TupletDef>& tupletDef);
 

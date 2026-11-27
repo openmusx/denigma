@@ -111,7 +111,8 @@ TEST(GapCollector, PreservesTypedGaps)
     collector.add({"P1.m1", 1, musx::util::Fraction{1, 4}}, chord);
 
     ASSERT_EQ(collector.gaps().size(), 1u);
-    EXPECT_EQ(collector.gaps().front().anchor.id, "P1.m1");
+    ASSERT_TRUE(collector.gaps().front().anchor);
+    EXPECT_EQ(collector.gaps().front().anchor->id, "P1.m1");
     EXPECT_TRUE(std::holds_alternative<denigma::classify::ChordSymbolClassification>(collector.gaps().front().payload));
 }
 
