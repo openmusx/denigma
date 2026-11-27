@@ -24,6 +24,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <variant>
 #include <vector>
 
 #include "musx/musx.h"
@@ -145,6 +146,17 @@ struct ChordSuffixClassification
     std::string calcText() const;
 };
 
+/// @struct FontFretboard
+/// @brief A fretboard that Finale draws as a character from the fretboard font, with no diagram data.
+struct FontFretboard
+{};
+
+/// @brief The fretboard Finale displays with a chord: a structured diagram or a font character.
+///
+/// A diagram is musxdom's display data as Finale stores it: every cell in source order with its
+/// shape, and each barre with its own fret and string range.
+using FretboardClassification = std::variant<musx::util::FretboardDisplayData, FontFretboard>;
+
 /// @struct ChordSymbolClassification
 /// @brief Target-neutral musical and display semantics of a Finale chord assignment.
 struct ChordSymbolClassification
@@ -159,6 +171,8 @@ struct ChordSymbolClassification
     std::optional<music_theory::Pitch> bass;
     bool bassLowerCase{};
     std::optional<chord::BassArrangement> bassArrangement;
+    /// The fretboard Finale displays with the chord, if any.
+    std::optional<FretboardClassification> fretboard;
 };
 
 /// @brief Reconstructs a Finale chord suffix as Unicode text, resolving SMuFL and known legacy-font glyphs.
@@ -179,6 +193,15 @@ struct ChordAssignmentClassification
     /// @brief Semantic classification of the assigned chord.
     ChordSymbolClassification classification;
 };
+
+/// @brief Classifies the fretboard displayed with a Finale chord assignment.
+/// @param assignment The chord assignment.
+/// @param keySignature The effective key signature for the assignment's measure and staff.
+/// @param keyContext Whether the root is interpreted as written or as sounding.
+/// @return A FontFretboard when the assignment shows a font fretboard, the diagram when Finale
+/// displays a structured one, or std::nullopt when no fretboard is displayed or either argument is null.
+std::optional<FretboardClassification> classifyFretboard(const musx::dom::MusxInstance<musx::dom::details::ChordAssign>& assignment,
+    const musx::dom::MusxInstance<musx::dom::KeySignature>& keySignature, musx::dom::KeySignature::KeyContext keyContext);
 
 /// @brief Classifies a Finale chord assignment using the effective key signature.
 /// @return The classification, or std::nullopt when @p assignment or @p keySignature is null.

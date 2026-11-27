@@ -383,18 +383,32 @@ TEST(MusicXmlChordFixture, ExportsChordsForInspection)
     EXPECT_EQ(barredFrame.child("first-fret").text().as_int(), 6);
     expectBarre(barredFrame, 6, 6, 1, 6);
 
-    // A barre anchors to its endpoint strings whatever fret is played there. Here string 1 is stopped at
-    // fret 10, two frets above the barre, and still carries the stop.
+    const auto expectStringFrets = [](const pugi::xml_node& frame, int string, std::vector<int> frets) {
+        std::vector<int> actual;
+        for (const auto& note : frame.select_nodes(("frame-note[string=" + std::to_string(string) + "]").c_str())) {
+            actual.push_back(note.node().child("fret").text().as_int());
+        }
+        EXPECT_EQ(actual, frets) << "string " << string;
+    };
+
+    // A barre lies on the fret of its endpoint notes. Here string 1 is stopped at fret 10, two frets above
+    // the barre, so the stop goes on a second frame note at the barre's fret, as MuseScore writes it.
     const auto highStopFrame = document.select_node("//measure[@number='24']//frame[1]").node();
     ASSERT_TRUE(highStopFrame);
     EXPECT_EQ(highStopFrame.child("first-fret").text().as_int(), 8);
-    expectBarre(highStopFrame, 6, 8, 1, 10);
+    expectBarre(highStopFrame, 6, 8, 1, 8);
+    expectStringFrets(highStopFrame, 1, {10, 8});
+    EXPECT_EQ(highStopFrame.select_nodes("frame-note").size(), 7u);
 
     // The same, for a barre that spans only part of the fretboard.
     const auto partialFrame = document.select_node("//measure[@number='25']//frame[1]").node();
     ASSERT_TRUE(partialFrame);
     EXPECT_EQ(partialFrame.child("first-fret").text().as_int(), 3);
-    expectBarre(partialFrame, 5, 3, 1, 5);
+    expectBarre(partialFrame, 5, 3, 1, 3);
+    expectStringFrets(partialFrame, 1, {5, 3});
+
+    // A barre whose endpoint notes are already on its fret gains no extra note.
+    expectStringFrets(barredFrame, 1, {6});
 }
 
 TEST(MusicXmlChordFixture, WritesDegreeLayoutAttributesFromTheSuffix)

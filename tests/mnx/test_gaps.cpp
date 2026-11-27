@@ -54,7 +54,7 @@ TEST(MnxGapReport, MusxToMnxJsonReportsChordSymbolGaps)
 
     EXPECT_TRUE(result);
     const auto report = nlohmann::json::parse(denigma::serializeGapReport(collector, {{"denigma", "TEST", "abc123"}, {}}));
-    EXPECT_EQ(report["schemaVersion"], 3);
+    EXPECT_EQ(report["schemaVersion"], 4);
     ASSERT_FALSE(report["gaps"].empty());
     const auto& gap = report["gaps"].front();
     EXPECT_EQ(gap["type"], "chord-symbol");
@@ -63,6 +63,13 @@ TEST(MnxGapReport, MusxToMnxJsonReportsChordSymbolGaps)
     EXPECT_EQ(gap["position"]["denominator"], 1);
     EXPECT_EQ(gap["chord"]["root"]["step"], "C");
     EXPECT_EQ(gap["chord"]["suffix"]["quality"], "major");
+    const auto diagram = std::find_if(report["gaps"].begin(), report["gaps"].end(),
+        [](const auto& candidate) { return candidate.value("type", "") == "chord-symbol" && candidate["chord"].contains("fretboard"); });
+    ASSERT_NE(diagram, report["gaps"].end());
+    EXPECT_EQ((*diagram)["anchor"], "P1.m15");
+    const auto& fretboard = report["fretboards"][(*diagram)["chord"]["fretboard"].template get<std::string>()];
+    EXPECT_EQ(fretboard["kind"], "diagram");
+    EXPECT_EQ(fretboard["cells"].size(), 6);
     EXPECT_FALSE(gap.contains("source"));
     EXPECT_FALSE(gap.contains("cause"));
 }

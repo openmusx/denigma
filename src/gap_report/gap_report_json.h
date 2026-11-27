@@ -83,14 +83,34 @@ private:
     json m_fonts = json::object();
 };
 
+/// @class FretboardTable
+/// @brief The fretboards a report names, each written once and referenced by key from the chords that show it.
+///
+/// Keys are `<n>`, numbered from 1 in order of first use, so they are stable for a given report and
+/// name nothing in the target document. Fretboards that serialize identically share a key.
+class FretboardTable
+{
+public:
+    /// @brief Returns the key of @p fretboard, adding it on first use.
+    std::string reference(const classify::FretboardClassification& fretboard);
+
+    /// @brief The table as a JSON object, empty when no fretboard was referenced.
+    [[nodiscard]] json toJson() const;
+
+private:
+    std::map<std::string, std::string> m_keyByFretboard;
+    json m_fretboards = json::object();
+};
+
 /// @brief The report-level tables that payloads reference by key.
 struct ReportTables
 {
     ArrowheadTable arrowheads;
     FontTable fonts;
+    FretboardTable fretboards;
 };
 
-json chordJson(const classify::ChordSymbolClassification& chord);
+json chordJson(const classify::ChordSymbolClassification& chord, FretboardTable& fretboards);
 json noteheadJson(const classify::NoteheadClassification& notehead, FontTable& fonts);
 json expressionJson(const classify::ExpressionClassification& expression, FontTable& fonts);
 json formattedTextJson(const classify::FormattedText& text, FontTable& fonts);

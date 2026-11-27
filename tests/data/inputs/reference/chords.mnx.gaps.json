@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "producer": {
     "name": "denigma",
     "version": "TEST",
@@ -1022,7 +1022,8 @@
           "hasOuterParentheses": false,
           "hasUnrecognizedGlyphs": false,
           "quality": "dominant"
-        }
+        },
+        "fretboard": "1"
       }
     },
     {
@@ -1055,7 +1056,8 @@
           "hasOuterParentheses": false,
           "hasUnrecognizedGlyphs": false,
           "quality": "major-seventh"
-        }
+        },
+        "fretboard": "2"
       }
     },
     {
@@ -1088,7 +1090,8 @@
           "hasOuterParentheses": false,
           "hasUnrecognizedGlyphs": false,
           "quality": "minor-seventh"
-        }
+        },
+        "fretboard": "3"
       }
     },
     {
@@ -1133,7 +1136,8 @@
           "hasOuterParentheses": false,
           "hasUnrecognizedGlyphs": false,
           "quality": "major-minor"
-        }
+        },
+        "fretboard": "4"
       }
     },
     {
@@ -1166,7 +1170,8 @@
           "hasOuterParentheses": false,
           "hasUnrecognizedGlyphs": false,
           "quality": "diminished"
-        }
+        },
+        "fretboard": "5"
       }
     },
     {
@@ -1199,7 +1204,8 @@
           "hasOuterParentheses": false,
           "hasUnrecognizedGlyphs": false,
           "quality": "diminished-seventh"
-        }
+        },
+        "fretboard": "6"
       }
     },
     {
@@ -1236,7 +1242,8 @@
           "hasOuterParentheses": false,
           "hasUnrecognizedGlyphs": false,
           "quality": "diminished-seventh"
-        }
+        },
+        "fretboard": "6"
       }
     },
     {
@@ -1292,7 +1299,8 @@
           "hasOuterParentheses": false,
           "hasUnrecognizedGlyphs": false,
           "quality": "minor-seventh"
-        }
+        },
+        "fretboard": "7"
       }
     },
     {
@@ -1452,7 +1460,8 @@
           "hasOuterParentheses": false,
           "hasUnrecognizedGlyphs": false,
           "quality": "dominant-13th"
-        }
+        },
+        "fretboard": "8"
       }
     },
     {
@@ -1508,7 +1517,8 @@
           "hasOuterParentheses": false,
           "hasUnrecognizedGlyphs": false,
           "quality": "dominant"
-        }
+        },
+        "fretboard": "9"
       }
     },
     {
@@ -1582,7 +1592,8 @@
           "hasOuterParentheses": false,
           "hasUnrecognizedGlyphs": false,
           "quality": "augmented"
-        }
+        },
+        "fretboard": "10"
       }
     },
     {
@@ -1695,7 +1706,8 @@
           "hasOuterParentheses": false,
           "hasUnrecognizedGlyphs": false,
           "quality": "minor-ninth"
-        }
+        },
+        "fretboard": "11"
       }
     },
     {
@@ -1747,7 +1759,8 @@
           "hasOuterParentheses": false,
           "hasUnrecognizedGlyphs": false,
           "quality": "major-ninth"
-        }
+        },
+        "fretboard": "12"
       }
     },
     {
@@ -1803,7 +1816,8 @@
           "hasOuterParentheses": false,
           "hasUnrecognizedGlyphs": false,
           "quality": "dominant-ninth"
-        }
+        },
+        "fretboard": "13"
       }
     },
     {
@@ -1859,7 +1873,8 @@
           "hasOuterParentheses": false,
           "hasUnrecognizedGlyphs": false,
           "quality": "dominant-13th"
-        }
+        },
+        "fretboard": "14"
       }
     },
     {
@@ -1915,7 +1930,8 @@
           "hasOuterParentheses": false,
           "hasUnrecognizedGlyphs": false,
           "quality": "minor-ninth"
-        }
+        },
+        "fretboard": "15"
       }
     },
     {
@@ -1981,7 +1997,8 @@
           "hasOuterParentheses": false,
           "hasUnrecognizedGlyphs": false,
           "quality": "dominant"
-        }
+        },
+        "fretboard": "14"
       }
     },
     {
@@ -2025,7 +2042,8 @@
           "hasOuterParentheses": false,
           "hasUnrecognizedGlyphs": false,
           "quality": "major-sixth"
-        }
+        },
+        "fretboard": "16"
       }
     },
     {
@@ -2058,7 +2076,8 @@
           "hasOuterParentheses": false,
           "hasUnrecognizedGlyphs": false,
           "quality": "major-sixth"
-        }
+        },
+        "fretboard": "17"
       }
     },
     {
@@ -2114,7 +2133,8 @@
           "hasOuterParentheses": false,
           "hasUnrecognizedGlyphs": false,
           "quality": "major-ninth"
-        }
+        },
+        "fretboard": "18"
       }
     },
     {
@@ -2154,7 +2174,8 @@
           "hasOuterParentheses": false,
           "hasUnrecognizedGlyphs": false,
           "quality": "minor-11th"
-        }
+        },
+        "fretboard": "19"
       }
     },
     {
@@ -2210,7 +2231,8 @@
           "hasOuterParentheses": false,
           "hasUnrecognizedGlyphs": false,
           "quality": "diminished-seventh"
-        }
+        },
+        "fretboard": "20"
       }
     },
     {
@@ -2247,8 +2269,849 @@
           "hasOuterParentheses": false,
           "hasUnrecognizedGlyphs": false,
           "quality": "augmented-seventh"
-        }
+        },
+        "fretboard": "21"
       }
     }
-  ]
+  ],
+  "fretboards": {
+    "1": {
+      "kind": "diagram",
+      "strings": 6,
+      "frets": 4,
+      "fretboardNumber": 4,
+      "showFretboardNumber": true,
+      "fretNumberText": "fr.",
+      "cells": [
+        {
+          "string": 3,
+          "fret": 5,
+          "shape": "closed"
+        },
+        {
+          "string": 5,
+          "fret": 6,
+          "shape": "closed"
+        },
+        {
+          "string": 1,
+          "fret": 4,
+          "shape": "closed"
+        },
+        {
+          "string": 2,
+          "fret": 4,
+          "shape": "closed"
+        },
+        {
+          "string": 4,
+          "fret": 4,
+          "shape": "closed"
+        },
+        {
+          "string": 6,
+          "fret": 4,
+          "shape": "closed"
+        }
+      ],
+      "barres": [
+        {
+          "fret": 4,
+          "startString": 1,
+          "endString": 6
+        }
+      ]
+    },
+    "2": {
+      "kind": "diagram",
+      "strings": 6,
+      "frets": 4,
+      "fretboardNumber": 1,
+      "showFretboardNumber": false,
+      "fretNumberText": "fr.",
+      "cells": [
+        {
+          "string": 5,
+          "fret": 0,
+          "shape": "muted"
+        },
+        {
+          "string": 6,
+          "fret": 0,
+          "shape": "open"
+        },
+        {
+          "string": 4,
+          "fret": 2,
+          "shape": "closed"
+        },
+        {
+          "string": 3,
+          "fret": 4,
+          "shape": "closed"
+        },
+        {
+          "string": 2,
+          "fret": 4,
+          "shape": "closed"
+        },
+        {
+          "string": 1,
+          "fret": 4,
+          "shape": "closed"
+        }
+      ],
+      "barres": [
+        {
+          "fret": 4,
+          "startString": 1,
+          "endString": 3
+        }
+      ]
+    },
+    "3": {
+      "kind": "diagram",
+      "strings": 6,
+      "frets": 4,
+      "fretboardNumber": 1,
+      "showFretboardNumber": false,
+      "fretNumberText": "fr.",
+      "cells": [
+        {
+          "string": 1,
+          "fret": 2,
+          "shape": "closed"
+        },
+        {
+          "string": 2,
+          "fret": 2,
+          "shape": "closed"
+        },
+        {
+          "string": 3,
+          "fret": 3,
+          "shape": "closed"
+        },
+        {
+          "string": 4,
+          "fret": 1,
+          "shape": "closed"
+        }
+      ],
+      "barres": []
+    },
+    "4": {
+      "kind": "diagram",
+      "strings": 6,
+      "frets": 4,
+      "fretboardNumber": 6,
+      "showFretboardNumber": true,
+      "fretNumberText": "fr.",
+      "cells": [
+        {
+          "string": 6,
+          "fret": 6,
+          "shape": "closed"
+        },
+        {
+          "string": 5,
+          "fret": 8,
+          "shape": "closed"
+        },
+        {
+          "string": 4,
+          "fret": 7,
+          "shape": "closed"
+        },
+        {
+          "string": 3,
+          "fret": 6,
+          "shape": "closed"
+        },
+        {
+          "string": 2,
+          "fret": 6,
+          "shape": "closed"
+        },
+        {
+          "string": 1,
+          "fret": 6,
+          "shape": "closed"
+        }
+      ],
+      "barres": [
+        {
+          "fret": 6,
+          "startString": 1,
+          "endString": 6
+        }
+      ]
+    },
+    "5": {
+      "kind": "diagram",
+      "strings": 6,
+      "frets": 4,
+      "fretboardNumber": 4,
+      "showFretboardNumber": true,
+      "fretNumberText": "fr.",
+      "cells": [
+        {
+          "string": 3,
+          "fret": 5,
+          "shape": "closed"
+        },
+        {
+          "string": 1,
+          "fret": 5,
+          "shape": "closed"
+        },
+        {
+          "string": 2,
+          "fret": 7,
+          "shape": "closed"
+        },
+        {
+          "string": 4,
+          "fret": 4,
+          "shape": "closed"
+        }
+      ],
+      "barres": []
+    },
+    "6": {
+      "kind": "diagram",
+      "strings": 6,
+      "frets": 4,
+      "fretboardNumber": 3,
+      "showFretboardNumber": true,
+      "fretNumberText": "fr.",
+      "cells": [
+        {
+          "string": 5,
+          "fret": 4,
+          "shape": "closed"
+        },
+        {
+          "string": 4,
+          "fret": 5,
+          "shape": "closed"
+        },
+        {
+          "string": 2,
+          "fret": 5,
+          "shape": "closed"
+        },
+        {
+          "string": 3,
+          "fret": 3,
+          "shape": "closed"
+        }
+      ],
+      "barres": []
+    },
+    "7": {
+      "kind": "diagram",
+      "strings": 6,
+      "frets": 4,
+      "fretboardNumber": 1,
+      "showFretboardNumber": false,
+      "fretNumberText": "fr.",
+      "cells": [
+        {
+          "string": 6,
+          "fret": 2,
+          "shape": "closed"
+        },
+        {
+          "string": 4,
+          "fret": 2,
+          "shape": "closed"
+        },
+        {
+          "string": 3,
+          "fret": 2,
+          "shape": "closed"
+        },
+        {
+          "string": 5,
+          "fret": 0,
+          "shape": "muted"
+        },
+        {
+          "string": 2,
+          "fret": 1,
+          "shape": "closed"
+        }
+      ],
+      "barres": []
+    },
+    "8": {
+      "kind": "diagram",
+      "strings": 6,
+      "frets": 4,
+      "fretboardNumber": 6,
+      "showFretboardNumber": true,
+      "fretNumberText": "fr.",
+      "cells": [
+        {
+          "string": 4,
+          "fret": 6,
+          "shape": "closed"
+        },
+        {
+          "string": 5,
+          "fret": 7,
+          "shape": "closed"
+        },
+        {
+          "string": 3,
+          "fret": 7,
+          "shape": "closed"
+        },
+        {
+          "string": 2,
+          "fret": 7,
+          "shape": "closed"
+        },
+        {
+          "string": 1,
+          "fret": 9,
+          "shape": "closed"
+        }
+      ],
+      "barres": []
+    },
+    "9": {
+      "kind": "diagram",
+      "strings": 6,
+      "frets": 4,
+      "fretboardNumber": 1,
+      "showFretboardNumber": false,
+      "fretNumberText": "fr.",
+      "cells": [
+        {
+          "string": 6,
+          "fret": 2,
+          "shape": "closed"
+        },
+        {
+          "string": 4,
+          "fret": 2,
+          "shape": "closed"
+        },
+        {
+          "string": 3,
+          "fret": 3,
+          "shape": "closed"
+        },
+        {
+          "string": 2,
+          "fret": 3,
+          "shape": "closed"
+        },
+        {
+          "string": 5,
+          "fret": 0,
+          "shape": "muted"
+        }
+      ],
+      "barres": []
+    },
+    "10": {
+      "kind": "diagram",
+      "strings": 6,
+      "frets": 4,
+      "fretboardNumber": 10,
+      "showFretboardNumber": true,
+      "fretNumberText": "fr.",
+      "cells": [
+        {
+          "string": 5,
+          "fret": 11,
+          "shape": "closed"
+        },
+        {
+          "string": 4,
+          "fret": 10,
+          "shape": "closed"
+        },
+        {
+          "string": 3,
+          "fret": 11,
+          "shape": "closed"
+        },
+        {
+          "string": 2,
+          "fret": 12,
+          "shape": "closed"
+        },
+        {
+          "string": 1,
+          "fret": 12,
+          "shape": "closed"
+        }
+      ],
+      "barres": [
+        {
+          "fret": 12,
+          "startString": 1,
+          "endString": 2
+        }
+      ]
+    },
+    "11": {
+      "kind": "diagram",
+      "strings": 6,
+      "frets": 4,
+      "fretboardNumber": 8,
+      "showFretboardNumber": true,
+      "fretNumberText": "fr.",
+      "cells": [
+        {
+          "string": 6,
+          "fret": 8,
+          "shape": "closed"
+        },
+        {
+          "string": 5,
+          "fret": 10,
+          "shape": "closed"
+        },
+        {
+          "string": 4,
+          "fret": 9,
+          "shape": "closed"
+        },
+        {
+          "string": 3,
+          "fret": 8,
+          "shape": "closed"
+        },
+        {
+          "string": 2,
+          "fret": 8,
+          "shape": "closed"
+        },
+        {
+          "string": 1,
+          "fret": 10,
+          "shape": "closed"
+        }
+      ],
+      "barres": [
+        {
+          "fret": 8,
+          "startString": 1,
+          "endString": 6
+        }
+      ]
+    },
+    "12": {
+      "kind": "diagram",
+      "strings": 6,
+      "frets": 4,
+      "fretboardNumber": 3,
+      "showFretboardNumber": true,
+      "fretNumberText": "fr.",
+      "cells": [
+        {
+          "string": 5,
+          "fret": 3,
+          "shape": "closed"
+        },
+        {
+          "string": 4,
+          "fret": 5,
+          "shape": "closed"
+        },
+        {
+          "string": 3,
+          "fret": 4,
+          "shape": "closed"
+        },
+        {
+          "string": 2,
+          "fret": 3,
+          "shape": "closed"
+        },
+        {
+          "string": 1,
+          "fret": 5,
+          "shape": "closed"
+        }
+      ],
+      "barres": [
+        {
+          "fret": 3,
+          "startString": 1,
+          "endString": 5
+        }
+      ]
+    },
+    "13": {
+      "kind": "diagram",
+      "strings": 6,
+      "frets": 4,
+      "fretboardNumber": 1,
+      "showFretboardNumber": false,
+      "fretNumberText": "fr.",
+      "cells": [
+        {
+          "string": 5,
+          "fret": 3,
+          "shape": "closed"
+        },
+        {
+          "string": 3,
+          "fret": 3,
+          "shape": "closed"
+        },
+        {
+          "string": 2,
+          "fret": 3,
+          "shape": "closed"
+        },
+        {
+          "string": 4,
+          "fret": 2,
+          "shape": "closed"
+        },
+        {
+          "string": 1,
+          "fret": 2,
+          "shape": "closed"
+        }
+      ],
+      "barres": [
+        {
+          "fret": 2,
+          "startString": 1,
+          "endString": 4
+        }
+      ]
+    },
+    "14": {
+      "kind": "diagram",
+      "strings": 6,
+      "frets": 4,
+      "fretboardNumber": 8,
+      "showFretboardNumber": true,
+      "fretNumberText": "fr.",
+      "cells": [
+        {
+          "string": 4,
+          "fret": 8,
+          "shape": "closed"
+        },
+        {
+          "string": 5,
+          "fret": 0,
+          "shape": "muted"
+        },
+        {
+          "string": 3,
+          "fret": 9,
+          "shape": "closed"
+        },
+        {
+          "string": 1,
+          "fret": 9,
+          "shape": "closed"
+        },
+        {
+          "string": 2,
+          "fret": 10,
+          "shape": "closed"
+        }
+      ],
+      "barres": []
+    },
+    "15": {
+      "kind": "diagram",
+      "strings": 6,
+      "frets": 4,
+      "fretboardNumber": 8,
+      "showFretboardNumber": true,
+      "fretNumberText": "fr.",
+      "cells": [
+        {
+          "string": 6,
+          "fret": 8,
+          "shape": "closed"
+        },
+        {
+          "string": 4,
+          "fret": 8,
+          "shape": "closed"
+        },
+        {
+          "string": 3,
+          "fret": 8,
+          "shape": "closed"
+        },
+        {
+          "string": 5,
+          "fret": 9,
+          "shape": "closed"
+        },
+        {
+          "string": 2,
+          "fret": 11,
+          "shape": "closed"
+        },
+        {
+          "string": 1,
+          "fret": 10,
+          "shape": "closed"
+        }
+      ],
+      "barres": [
+        {
+          "fret": 8,
+          "startString": 3,
+          "endString": 6
+        }
+      ]
+    },
+    "16": {
+      "kind": "diagram",
+      "strings": 6,
+      "frets": 4,
+      "fretboardNumber": 1,
+      "showFretboardNumber": false,
+      "fretNumberText": "fr.",
+      "cells": [
+        {
+          "string": 5,
+          "fret": 3,
+          "shape": "closed"
+        },
+        {
+          "string": 4,
+          "fret": 2,
+          "shape": "closed"
+        },
+        {
+          "string": 3,
+          "fret": 2,
+          "shape": "closed"
+        },
+        {
+          "string": 2,
+          "fret": 3,
+          "shape": "closed"
+        },
+        {
+          "string": 1,
+          "fret": 3,
+          "shape": "closed"
+        }
+      ],
+      "barres": [
+        {
+          "fret": 2,
+          "startString": 3,
+          "endString": 4
+        }
+      ]
+    },
+    "17": {
+      "kind": "diagram",
+      "strings": 6,
+      "frets": 4,
+      "fretboardNumber": 1,
+      "showFretboardNumber": false,
+      "fretNumberText": "fr.",
+      "cells": [
+        {
+          "string": 4,
+          "fret": 2,
+          "shape": "closed"
+        },
+        {
+          "string": 5,
+          "fret": 3,
+          "shape": "closed"
+        },
+        {
+          "string": 3,
+          "fret": 0,
+          "shape": "open"
+        },
+        {
+          "string": 1,
+          "fret": 0,
+          "shape": "open"
+        },
+        {
+          "string": 2,
+          "fret": 3,
+          "shape": "closed"
+        }
+      ],
+      "barres": []
+    },
+    "18": {
+      "kind": "diagram",
+      "strings": 6,
+      "frets": 4,
+      "fretboardNumber": 1,
+      "showFretboardNumber": false,
+      "fretNumberText": "fr.",
+      "cells": [
+        {
+          "string": 4,
+          "fret": 2,
+          "shape": "closed"
+        },
+        {
+          "string": 1,
+          "fret": 2,
+          "shape": "closed"
+        },
+        {
+          "string": 2,
+          "fret": 3,
+          "shape": "closed"
+        },
+        {
+          "string": 3,
+          "fret": 4,
+          "shape": "closed"
+        },
+        {
+          "string": 5,
+          "fret": 3,
+          "shape": "closed"
+        }
+      ],
+      "barres": [
+        {
+          "fret": 2,
+          "startString": 1,
+          "endString": 4
+        }
+      ]
+    },
+    "19": {
+      "kind": "diagram",
+      "strings": 6,
+      "frets": 4,
+      "fretboardNumber": 1,
+      "showFretboardNumber": false,
+      "fretNumberText": "fr.",
+      "cells": [
+        {
+          "string": 1,
+          "fret": 1,
+          "shape": "closed"
+        },
+        {
+          "string": 4,
+          "fret": 1,
+          "shape": "closed"
+        },
+        {
+          "string": 5,
+          "fret": 3,
+          "shape": "closed"
+        },
+        {
+          "string": 3,
+          "fret": 4,
+          "shape": "closed"
+        },
+        {
+          "string": 2,
+          "fret": 1,
+          "shape": "closed"
+        }
+      ],
+      "barres": [
+        {
+          "fret": 1,
+          "startString": 1,
+          "endString": 4
+        }
+      ]
+    },
+    "20": {
+      "kind": "diagram",
+      "strings": 6,
+      "frets": 4,
+      "fretboardNumber": 7,
+      "showFretboardNumber": true,
+      "fretNumberText": "fr.",
+      "cells": [
+        {
+          "string": 6,
+          "fret": 8,
+          "shape": "closed"
+        },
+        {
+          "string": 4,
+          "fret": 7,
+          "shape": "closed"
+        },
+        {
+          "string": 3,
+          "fret": 8,
+          "shape": "closed"
+        },
+        {
+          "string": 2,
+          "fret": 7,
+          "shape": "closed"
+        },
+        {
+          "string": 1,
+          "fret": 7,
+          "shape": "closed"
+        }
+      ],
+      "barres": [
+        {
+          "fret": 7,
+          "startString": 1,
+          "endString": 4
+        }
+      ]
+    },
+    "21": {
+      "kind": "diagram",
+      "strings": 6,
+      "frets": 4,
+      "fretboardNumber": 3,
+      "showFretboardNumber": true,
+      "fretNumberText": "fr.",
+      "cells": [
+        {
+          "string": 4,
+          "fret": 0,
+          "shape": "muted"
+        },
+        {
+          "string": 5,
+          "fret": 3,
+          "shape": "closed"
+        },
+        {
+          "string": 3,
+          "fret": 3,
+          "shape": "closed"
+        },
+        {
+          "string": 1,
+          "fret": 4,
+          "shape": "closed"
+        },
+        {
+          "string": 2,
+          "fret": 5,
+          "shape": "closed"
+        }
+      ],
+      "barres": []
+    }
+  }
 }

@@ -112,9 +112,21 @@ A gap is `complete` when nothing in the target stands for the feature, and `part
 
 Version 3 moves what only some payloads need into those payloads: a smart shape's `end` into `smartShape`, an expression's `placements` into `expression`, and the text ranges, renamed `ranges`, into `formatting` and `insert`. A gap's own keys are now only its anchor (`anchor`, with `staff` and `position`), `extent`, `type` and the payload. Version 3 also adds the `text-block` and `page-text` payloads, the report-level `leadingBlankPageSlots` that page assignment ids are relative to, `page` placements inside `pageText`, the optional `placement` side on expression placements, and the report-level `fonts` table. It coincides with MNX scores and pages carrying ids, which the `page` placements name. A page-text gap carries no `anchor`, so a consumer cannot assume every gap has one.
 
+### Report schema version 4
+
+Version 4 adds the report-level `fretboards` table and the optional `fretboard` key on a chord-symbol payload that refers into it.
+
 ### Fonts are written once, in a report-level table
 
 Every text run names its font, and a document uses a handful of fonts across thousands of runs, so writing the font object at each run made fonts most of a text-heavy report. The report therefore carries a `fonts` table, and a run, a formatting gap, a notehead or a line character names its font by key. The table follows the arrowhead table: the key (`<n>`, numbered from 1 in order of first use, with no prefix because it always sits in a field named `font`) is minted by the serializer, names nothing in the target document, and is opaque to a consumer.
+
+### Fretboards are written once, in a report-level table
+
+In Finale a fretboard belongs to the chord assignment: the chord shows it or does not, and the diagram comes from a fretboard group shared by every chord on the same root. A fretboard is therefore not a gap of its own. The chord-symbol gap names it with a `fretboard` key, and the report's `fretboards` table holds each distinct fretboard once. The table follows the fonts table. The key (`<n>`, numbered from 1 in order of first use) is minted by the serializer, names nothing in the target document, and is opaque to a consumer. As with fonts, fretboards that serialize identically share a key, so no source identifier reaches the report.
+
+A `diagram` entry is `musx::util::FretboardDisplayData` as Finale stores it, not as any target format would carry it. Its cells keep Finale's order, its shapes (`closed`, `open`, `muted`, `custom`, `none`), and every cell on a string, and each barre keeps its own fret and string range. MusicXML's frame, for one, marks a barre on its two endpoint notes and so has no place for a barre whose endpoint string is stopped higher; the report states the barre as Finale does, and how a target draws it is the importer's decision. The display data's unplayed-string summary is derived from the cells and is not written.
+
+A `font` entry is a fretboard Finale draws from a character in its fretboard font, recognized from the chord assignment's own flags as in the MusicXML exporter. It has no fields, because musxdom does not expose which character Finale draws, and the font alone would not let a consumer draw it.
 
 ### Text-block lengths are EVPU and state their origin
 

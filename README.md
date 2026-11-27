@@ -102,13 +102,21 @@ Chord symbols, notehead shapes, expressions, and smart shapes are the gap types 
 }
 ```
 
+A chord that Finale shows with a fretboard names it by key in an optional `fretboard` field. The key
+resolves in the report-level `fretboards` table, which holds each distinct fretboard once. A `diagram`
+entry describes the fretboard as Finale stores it: `strings`, `frets`, `fretboardNumber`,
+`showFretboardNumber`, optional `fretNumberText`, `cells` in Finale's order (each with `string`, absolute
+`fret`, `shape`, and optional `finger`), and `barres`, each with its own `fret`, `startString` and
+`endString`. A `font` entry is a fretboard Finale draws from its fretboard font. It has no structured
+data.
+
 Serialized reports use these compatibility rules:
 
 - Consumers should dispatch on `type` and ignore unknown fields and gap types.
 - Anchors are MNX object IDs and remain valid as consumers modify surrounding arrays.
 - Consumers should resolve chord positions before changing measure timing.
 - A gap with an `end` spans from its anchor to that end; `end` has the same shape as the anchor fields.
-- `arrowheads` keys are report-internal references, not MNX object IDs.
+- `arrowheads`, `fonts` and `fretboards` keys are report-internal references, not MNX object IDs.
 - Split-instrument export reports a chord once in each generated MNX part that contains its source staff, with the corresponding part-measure anchor.
 
 The WebAssembly API opts into collection and exposes serialized report bytes through `denigma_result_gap_report_data` and `denigma_result_gap_report_size`. CLI users can pass `--gap-report` with MNX output to write `<output>.gaps.json` beside the score.

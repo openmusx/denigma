@@ -550,6 +550,23 @@ ChordSuffixClassification classifyChordSuffix(const musx::dom::MusxInstanceList<
     return result;
 }
 
+std::optional<FretboardClassification> classifyFretboard(const musx::dom::MusxInstance<musx::dom::details::ChordAssign>& assignment,
+    const musx::dom::MusxInstance<musx::dom::KeySignature>& keySignature, musx::dom::KeySignature::KeyContext keyContext)
+{
+    if (!assignment || !keySignature) {
+        return std::nullopt;
+    }
+    // A font fretboard is recognized from the assignment's own flags; see the font-fretboard entry in
+    // the MusicXML design-decisions.md. musxdom's display data covers only structured diagrams.
+    if (assignment->useFretboardFont && assignment->showFretboard) {
+        return FontFretboard{};
+    }
+    if (auto diagram = musx::util::calcFretboardDisplayData(assignment, keySignature, keyContext)) {
+        return std::move(*diagram);
+    }
+    return std::nullopt;
+}
+
 std::optional<ChordSymbolClassification> classifyChordSymbol(const musx::dom::MusxInstance<musx::dom::details::ChordAssign>& assignment,
     const musx::dom::MusxInstance<musx::dom::KeySignature>& keySignature, musx::dom::KeySignature::KeyContext keyContext)
 {
@@ -572,6 +589,7 @@ std::optional<ChordSymbolClassification> classifyChordSymbol(const musx::dom::Mu
         case BassPosition::Subtext: result.bassArrangement = chord::BassArrangement::Diagonal; break;
         }
     }
+    result.fretboard = classifyFretboard(assignment, keySignature, keyContext);
     return result;
 }
 

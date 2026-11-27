@@ -168,6 +168,8 @@ bool isTopStaffAssignment(const musx::dom::MusxInstance<musx::dom::others::Measu
 std::vector<mx::api::DirectionData> createDynamicExpressionDirections(MusicXmlMusxMapping& context, size_t staffIndex,
     const musx::dom::MusxInstance<musx::dom::others::MeasureExprAssign>& assignment, const classify::ExpressionClassification& classification,
     musx::dom::VerticalPlacement placement, bool isStaffValueSpecified = true);
+void processChords(MusicXmlMusxMapping& context, mx::api::StaffData& staff, const musx::dom::MusxInstance<musx::dom::others::Measure>& musxMeasure,
+    musx::dom::StaffCmper staffId);
 void processExpressions(MusicXmlMusxMapping& context, mx::api::MeasureData& measure, mx::api::StaffData& staff,
     const musx::dom::MusxInstance<musx::dom::others::Measure>& musxMeasure, musx::dom::StaffCmper staffId, size_t staffIndex);
 void processJumps(MusicXmlMusxMapping& context, mx::api::StaffData& staff, const musx::dom::MusxInstance<musx::dom::others::Measure>& musxMeasure,
