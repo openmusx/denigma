@@ -59,6 +59,15 @@ TEST(MnxGapReport, MusxToMnxJsonReportsChordSymbolGaps)
     EXPECT_EQ(gap["position"]["denominator"], 1);
     EXPECT_EQ(gap["chord"]["root"]["step"], "C");
     EXPECT_EQ(gap["chord"]["suffix"]["quality"], "major");
+    const auto diagram = std::find_if(report["gaps"].begin(), report["gaps"].end(), [](const auto& candidate) {
+        return candidate.value("type", "") == "chord-symbol" && candidate.contains("chord") && candidate["chord"].contains("fretboard");
+    });
+    ASSERT_NE(diagram, report["gaps"].end());
+    EXPECT_EQ((*diagram)["anchor"], "P1.m15");
+    const auto& fretboard = (*diagram)["chord"]["fretboard"];
+    EXPECT_EQ(fretboard["frameStrings"], 6);
+    EXPECT_EQ(fretboard["frameFrets"], 4);
+    EXPECT_EQ(fretboard["frameNotes"].size(), 6);
     EXPECT_FALSE(gap.contains("source"));
     EXPECT_FALSE(gap.contains("cause"));
 }

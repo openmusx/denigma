@@ -41,6 +41,44 @@ enum class BassArrangement {
     Diagonal
 };
 
+/// @enum UnplayedStringDisplay
+/// @brief Source-authored indicator for strings omitted from a fretboard diagram.
+enum class UnplayedStringDisplay {
+    Unspecified,
+    Blank,
+    Muted
+};
+
+/// @enum BarreEndpoint
+/// @brief Whether a fretboard note marks one endpoint of a barre.
+enum class BarreEndpoint {
+    None,
+    Start,
+    Stop
+};
+
+/// @struct FretboardNote
+/// @brief A played string and its position in a chord's fretboard diagram.
+struct FretboardNote
+{
+    int stringNumber{}; ///< Finale string number, with string 1 at the rightmost position.
+    int fretNumber{}; ///< Absolute fret number; zero denotes an open string.
+    std::optional<int> fingering; ///< Source fingering number, when present.
+    BarreEndpoint barre{BarreEndpoint::None}; ///< Barre endpoint on this note, if any.
+};
+
+/// @struct FretboardDiagram
+/// @brief Structured chord fingering stored on a Finale chord assignment.
+struct FretboardDiagram
+{
+    int stringCount{};
+    int fretCount{};
+    std::optional<int> firstFret; ///< Displayed fret offset, when Finale shows one.
+    std::optional<std::string> firstFretLabel; ///< Source label text, including the fret number.
+    UnplayedStringDisplay unplayedString{UnplayedStringDisplay::Unspecified};
+    std::vector<FretboardNote> notes;
+};
+
 /// @enum Quality
 /// @brief Harmonic quality recognized in a Finale chord suffix.
 ///
@@ -159,6 +197,7 @@ struct ChordSymbolClassification
     std::optional<music_theory::Pitch> bass;
     bool bassLowerCase{};
     std::optional<chord::BassArrangement> bassArrangement;
+    std::optional<chord::FretboardDiagram> fretboard;
 };
 
 /// @brief Reconstructs a Finale chord suffix as Unicode text, resolving SMuFL and known legacy-font glyphs.

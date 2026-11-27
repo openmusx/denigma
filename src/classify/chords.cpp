@@ -473,6 +473,58 @@ void classifyText(ChordSuffixClassification& result)
     }
 }
 
+std::optional<chord::FretboardDiagram> classifyFretboardDiagram(const musx::dom::MusxInstance<musx::dom::details::ChordAssign>& assignment,
+    const musx::dom::MusxInstance<musx::dom::KeySignature>& keySignature, musx::dom::KeySignature::KeyContext keyContext)
+{
+    const auto source = musx::util::calcFretboardDisplayData(assignment, keySignature, keyContext);
+    if (!source) {
+        return std::nullopt;
+    }
+
+    chord::FretboardDiagram result;
+    result.stringCount = source->stringCount;
+    result.fretCount = source->fretCount;
+    switch (source->unplayedStringDisplay) {
+    case musx::util::UnplayedStringDisplay::None: break;
+    case musx::util::UnplayedStringDisplay::Blank: result.unplayedString = chord::UnplayedStringDisplay::Blank; break;
+    case musx::util::UnplayedStringDisplay::Muted: result.unplayedString = chord::UnplayedStringDisplay::Muted; break;
+    }
+    if (source->showFretboardNumber && source->fretboardNumber > 1) {
+        result.firstFret = source->fretboardNumber;
+        if (const auto style = assignment->getFretboardStyle()) {
+            result.firstFretLabel = std::to_string(source->fretboardNumber) + style->fretNumText;
+        }
+    }
+
+    for (const auto& cell : source->cells) {
+        if (cell.shape == musx::dom::details::FretboardDiagram::Shape::Muted) {
+            continue;
+        }
+        chord::FretboardNote note;
+        note.stringNumber = cell.string;
+        note.fretNumber = cell.fret;
+        if (cell.finger != 0) {
+            note.fingering = cell.finger;
+        }
+        result.notes.push_back(note);
+    }
+
+    const auto findNote = [&](int stringNumber) {
+        return std::find_if(result.notes.begin(), result.notes.end(), [stringNumber](const auto& note) { return note.stringNumber == stringNumber; });
+    };
+    for (const auto& barre : source->barres) {
+        const auto start = findNote(barre.endString);
+        const auto stop = findNote(barre.startString);
+        if (start != result.notes.end() && stop != result.notes.end()) {
+            start->barre = chord::BarreEndpoint::Start;
+            stop->barre = chord::BarreEndpoint::Stop;
+        }
+    }
+    std::stable_sort(
+        result.notes.begin(), result.notes.end(), [](const auto& left, const auto& right) { return left.stringNumber > right.stringNumber; });
+    return result;
+}
+
 } // namespace
 
 std::string ChordSuffixClassification::calcText() const
@@ -571,6 +623,7 @@ std::optional<ChordSymbolClassification> classifyChordSymbol(const musx::dom::Mu
         case BassPosition::Subtext: result.bassArrangement = chord::BassArrangement::Diagonal; break;
         }
     }
+    result.fretboard = classifyFretboardDiagram(assignment, keySignature, keyContext);
     return result;
 }
 

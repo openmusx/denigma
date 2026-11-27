@@ -47,6 +47,40 @@ TEST(GapReport, SerializesEmptyAndStructuredReports)
     EXPECT_EQ(report.find("\"quality\": null"), std::string::npos);
 }
 
+TEST(GapReport, SerializesStructuredChordFretboards)
+{
+    using namespace denigma::classify;
+    ChordSymbolClassification chord;
+    chord.fretboard = chord::FretboardDiagram{
+        .stringCount = 6,
+        .fretCount = 4,
+        .firstFret = 5,
+        .firstFretLabel = "5fr.",
+        .unplayedString = chord::UnplayedStringDisplay::Muted,
+        .notes =
+            {
+                {6, 5, 1, chord::BarreEndpoint::Start},
+                {1, 7, std::nullopt, chord::BarreEndpoint::Stop},
+            },
+    };
+
+    GapCollector collector;
+    collector.add({"P1.m1", std::nullopt, musx::util::Fraction{0, 1}}, std::move(chord));
+    const auto report = nlohmann::json::parse(denigma::serializeGapReport(collector, {{"denigma", "TEST", "abc123"}, {}}));
+    const auto& fretboard = report["gaps"][0]["chord"]["fretboard"];
+    EXPECT_EQ(fretboard["frameStrings"], 6);
+    EXPECT_EQ(fretboard["frameFrets"], 4);
+    EXPECT_EQ(fretboard["firstFret"]["fret"], 5);
+    EXPECT_EQ(fretboard["firstFret"]["text"], "5fr.");
+    EXPECT_EQ(fretboard["firstFret"]["location"], "right");
+    EXPECT_EQ(fretboard["unplayed"], "x");
+    ASSERT_EQ(fretboard["frameNotes"].size(), 2);
+    EXPECT_EQ(fretboard["frameNotes"][0]["fingering"], 1);
+    EXPECT_EQ(fretboard["frameNotes"][0]["barre"], "start");
+    EXPECT_FALSE(fretboard["frameNotes"][1].contains("fingering"));
+    EXPECT_EQ(fretboard["frameNotes"][1]["barre"], "stop");
+}
+
 TEST(GapReport, SerializesExtentPlacementsAndExpressionPayloads)
 {
     denigma::classify::GapCollector collector;

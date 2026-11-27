@@ -102,6 +102,14 @@ Chord symbols, notehead shapes, expressions, and smart shapes are the gap types 
 }
 ```
 
+When a chord assignment has a visible structured fretboard, its `chord` object
+also includes a `fretboard` with `frameStrings`, `frameFrets`, optional
+`firstFret`, `frameNotes`, and optional `unplayed`. Notes carry `string` and
+absolute `fret` values, plus optional numeric `fingering` and `barre` endpoint.
+The gap's part-measure anchor and staff identify the source instrument; the
+fretboard payload itself has no part identifier. Font-based fretboards are not
+included because they do not contain recoverable string or fret positions.
+
 Serialized reports use these compatibility rules:
 
 - Consumers should dispatch on `type` and ignore unknown fields and gap types.

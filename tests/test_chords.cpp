@@ -542,3 +542,24 @@ TEST(ChordAssignmentClassifierFixture, ClassifiesEveryAssignmentInMeasureOrder)
 
     EXPECT_THROW(denigma::classify::classifyChordAssignments(assignments, nullptr, KeySignature::KeyContext::Written), std::invalid_argument);
 }
+
+TEST(ChordAssignmentClassifierFixture, ClassifiesStructuredFretboards)
+{
+    const auto document = loadChordsFixture();
+    ASSERT_TRUE(document);
+
+    const auto measure = document->getOthers()->get<others::Measure>(SCORE_PARTID, 15);
+    ASSERT_TRUE(measure);
+    const StaffCmper staffId = 1;
+    const auto assignments = document->getDetails()->getArray<details::ChordAssign>(SCORE_PARTID, staffId, measure->getCmper());
+    const auto keySignature = measure->createKeySignature(staffId);
+    ASSERT_TRUE(keySignature);
+
+    const auto classified = denigma::classify::classifyChordAssignments(assignments, keySignature, KeySignature::KeyContext::Written);
+    const auto withFretboard =
+        std::find_if(classified.begin(), classified.end(), [](const auto& item) { return item.classification.fretboard.has_value(); });
+    ASSERT_NE(withFretboard, classified.end());
+    EXPECT_EQ(withFretboard->classification.fretboard->stringCount, 6);
+    EXPECT_EQ(withFretboard->classification.fretboard->fretCount, 4);
+    EXPECT_EQ(withFretboard->classification.fretboard->notes.size(), 6);
+}

@@ -95,6 +95,16 @@ std::string_view chordSuffixStringPositionName(chord::SuffixString::Position pos
     return "inline";
 }
 
+std::string_view barreEndpointName(chord::BarreEndpoint endpoint)
+{
+    switch (endpoint) {
+    case chord::BarreEndpoint::None: return "";
+    case chord::BarreEndpoint::Start: return "start";
+    case chord::BarreEndpoint::Stop: return "stop";
+    }
+    return "";
+}
+
 json pitchJson(const music_theory::Pitch& pitch)
 {
     return {
@@ -136,6 +146,46 @@ json suffixJson(const classify::ChordSuffixClassification& suffix)
     return result;
 }
 
+json fretboardJson(const chord::FretboardDiagram& fretboard)
+{
+    auto notes = json::array();
+    for (const auto& note : fretboard.notes) {
+        json item{
+            {"string", note.stringNumber},
+            {"fret", note.fretNumber},
+        };
+        if (note.fingering) {
+            item["fingering"] = *note.fingering;
+        }
+        if (note.barre != chord::BarreEndpoint::None) {
+            item["barre"] = barreEndpointName(note.barre);
+        }
+        notes.push_back(std::move(item));
+    }
+
+    json result{
+        {"frameStrings", fretboard.stringCount},
+        {"frameFrets", fretboard.fretCount},
+        {"frameNotes", std::move(notes)},
+    };
+    if (fretboard.firstFret) {
+        json firstFret{
+            {"fret", *fretboard.firstFret},
+        };
+        if (fretboard.firstFretLabel) {
+            firstFret["text"] = *fretboard.firstFretLabel;
+            firstFret["location"] = "right";
+        }
+        result["firstFret"] = std::move(firstFret);
+    }
+    switch (fretboard.unplayedString) {
+    case chord::UnplayedStringDisplay::Unspecified: break;
+    case chord::UnplayedStringDisplay::Blank: result["unplayed"] = ""; break;
+    case chord::UnplayedStringDisplay::Muted: result["unplayed"] = "x"; break;
+    }
+    return result;
+}
+
 } // namespace
 
 json chordJson(const classify::ChordSymbolClassification& chord)
@@ -153,6 +203,9 @@ json chordJson(const classify::ChordSymbolClassification& chord)
     }
     if (chord.bassArrangement) {
         result["bassArrangement"] = chordBassArrangementName(*chord.bassArrangement);
+    }
+    if (chord.fretboard) {
+        result["fretboard"] = fretboardJson(*chord.fretboard);
     }
     return result;
 }
