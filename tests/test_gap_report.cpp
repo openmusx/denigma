@@ -264,7 +264,7 @@ TEST(GapReport, SerializesTextFormattingAndInsertRanges)
         TextInsert{{text::Insert::Kind::PlaybackValue, "value", {}}, "p f", {{"expr.text0", 2, 1}, {"expr.text1", 0, 1}, {"expr.text2", 0, 1}}},
         GapExtent::Partial);
     const auto report = nlohmann::json::parse(denigma::serializeGapReport(collector, {{"denigma", "TEST", "abc123"}, {}}));
-    EXPECT_EQ(report["schemaVersion"], 4);
+    EXPECT_EQ(report["schemaVersion"], denigma::GAP_REPORT_SCHEMA_VERSION);
     const auto& style = report["gaps"][0];
     EXPECT_EQ(style["type"], "text-formatting");
     EXPECT_EQ(style["formatting"]["sourceText"], "p");

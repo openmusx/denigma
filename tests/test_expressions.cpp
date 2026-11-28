@@ -690,6 +690,121 @@ TEST(ExpressionClassification, DoesNotExtractMetronomeMarksFromLongerText)
     EXPECT_EQ(splitNumber.type, ExpressionType::TempoMark);
 }
 
+static ExpressionClassification classifyLegacyMetronomeText(const std::string& glyphs, const std::string& fontName,
+    ExpressionCategoryType categoryType = ExpressionCategoryType::TempoMarks, const std::string& playbackXml = {})
+{
+    return classifyExpression(makeTextExpressionContext("^fontid(0)^size(24)^nfx(0)" + glyphs, categoryType, playbackXml, false, fontName, 4095).def);
+}
+
+TEST(ExpressionClassification, ReadsANoteEqualsGlyphFollowedByTupletDigits)
+{
+    // Maestro 0xF2 draws a quarter note and an equals sign as one glyph; 0xC1 0xA3 0xBC are its
+    // small numerals 1, 3 and 0. Finale v27 exports this mark as quarter = 130.
+    const auto context = makeTextExpressionContext(
+        "^fontid(0)^size(24)^nfx(0)" + makeGlyphText(u8"\u00F2") + "^fontid(0)^size(24)^nfx(0)" + makeGlyphText(u8"\u00C1\u00A3\u00BC"),
+        ExpressionCategoryType::TempoMarks, {}, false, "Maestro", 4095);
+    const auto result = classifyExpression(context.def);
+
+    ASSERT_EQ(result.type, ExpressionType::MetronomeMark);
+    const auto& mark = result.metronomeMark();
+    EXPECT_EQ(mark.noteType, NoteType::Quarter);
+    EXPECT_EQ(mark.noteGlyphName, "metNoteQuarterUp");
+    EXPECT_EQ(mark.augmentationDots, 0u);
+    EXPECT_EQ(mark.displayedBeatsPerMinute, 130);
+    EXPECT_TRUE(mark.beatsPerMinuteFromGlyphNames);
+}
+
+TEST(ExpressionClassification, ReadsANoteEqualsGlyphFollowedByAsciiDigits)
+{
+    for (const std::string number : {"88", " 88"}) {
+        const auto result = classifyLegacyMetronomeText(makeGlyphText(u8"\u00F2") + number, "Maestro");
+        ASSERT_EQ(result.type, ExpressionType::MetronomeMark) << number;
+        EXPECT_EQ(result.metronomeMark().noteType, NoteType::Quarter) << number;
+        EXPECT_EQ(result.metronomeMark().displayedBeatsPerMinute, 88) << number;
+        EXPECT_FALSE(result.metronomeMark().beatsPerMinuteFromGlyphNames) << number;
+    }
+
+    const auto context = makeTextExpressionContext("^fontid(0)^size(24)^nfx(0)" + makeGlyphText(u8"\u00F2") + "^fontid(1)^size(12)^nfx(0) 88",
+        ExpressionCategoryType::TempoMarks, {}, false, "Maestro", 4095, {}, {}, 0, {}, fontDefinitionXml(1, "Times New Roman", 0));
+    const auto split = classifyExpression(context.def);
+    ASSERT_EQ(split.type, ExpressionType::MetronomeMark);
+    const auto& mark = split.metronomeMark();
+    EXPECT_EQ(mark.displayedBeatsPerMinute, 88);
+    ASSERT_TRUE(mark.noteFont);
+    EXPECT_EQ(mark.noteFont->getName(), "Maestro");
+    ASSERT_TRUE(mark.beatsPerMinuteFont);
+    EXPECT_EQ(mark.beatsPerMinuteFont->getName(), "Times New Roman");
+}
+
+TEST(ExpressionClassification, KeepsPlaybackSeparateFromANoteEqualsGlyphNumber)
+{
+    const auto result =
+        classifyLegacyMetronomeText(makeGlyphText(u8"\u00F2") + "66", "Maestro", ExpressionCategoryType::TempoMarks, tempoPlaybackXml(80, 1024));
+
+    ASSERT_EQ(result.type, ExpressionType::MetronomeMark);
+    EXPECT_EQ(result.metronomeMark().displayedBeatsPerMinute, 66);
+    EXPECT_EQ(result.metronomeMark().tempo.beatsPerMinute, 80);
+}
+
+TEST(ExpressionClassification, ReadsLegacyNoteAndEqualsGlyphs)
+{
+    // Maestro maps "q" to a plain quarter note, "k" to an augmentation dot and 0xC8 to an equals sign.
+    const auto plain = classifyLegacyMetronomeText("q" + makeGlyphText(u8"\u00C8") + "120", "Maestro");
+    ASSERT_EQ(plain.type, ExpressionType::MetronomeMark);
+    EXPECT_EQ(plain.metronomeMark().noteType, NoteType::Quarter);
+    EXPECT_EQ(plain.metronomeMark().noteGlyphName, "metNoteQuarterUp");
+    EXPECT_EQ(plain.metronomeMark().augmentationDots, 0u);
+    EXPECT_EQ(plain.metronomeMark().displayedBeatsPerMinute, 120);
+
+    const auto dotted = classifyLegacyMetronomeText("qk" + makeGlyphText(u8"\u00C8") + "80", "Maestro");
+    ASSERT_EQ(dotted.type, ExpressionType::MetronomeMark);
+    EXPECT_EQ(dotted.metronomeMark().noteType, NoteType::Quarter);
+    EXPECT_EQ(dotted.metronomeMark().augmentationDots, 1u);
+    EXPECT_EQ(dotted.metronomeMark().displayedBeatsPerMinute, 80);
+}
+
+TEST(ExpressionClassification, ReadsNoteEqualsGlyphsInEachFontThatHasOne)
+{
+    for (const std::string fontName : {"Maestro Wide", "Petrucci"}) {
+        const auto result = classifyLegacyMetronomeText(makeGlyphText(u8"\u00F2\u00C1\u00A3\u00BC"), fontName);
+        ASSERT_EQ(result.type, ExpressionType::MetronomeMark) << fontName;
+        EXPECT_EQ(result.metronomeMark().displayedBeatsPerMinute, 130) << fontName;
+    }
+
+    // Fonts without a SMuFL mapping still read the glyph when the numerals are ASCII.
+    const auto sonata = classifyLegacyMetronomeText(makeGlyphText(u8"\u00F2") + "120", "Sonata");
+    ASSERT_EQ(sonata.type, ExpressionType::MetronomeMark);
+    EXPECT_EQ(sonata.metronomeMark().noteType, NoteType::Quarter);
+    EXPECT_EQ(sonata.metronomeMark().displayedBeatsPerMinute, 120);
+    EXPECT_NE(classifyLegacyMetronomeText(makeGlyphText(u8"\u00F2\u00C1\u00AA\u00BC"), "Sonata").type, ExpressionType::MetronomeMark);
+
+    const auto graceNotes = classifyLegacyMetronomeText("D60", "FJHGraceNotes");
+    ASSERT_EQ(graceNotes.type, ExpressionType::MetronomeMark);
+    EXPECT_EQ(graceNotes.metronomeMark().noteType, NoteType::Half);
+    EXPECT_EQ(graceNotes.metronomeMark().noteGlyphName, "metNoteHalfUp");
+    EXPECT_EQ(graceNotes.metronomeMark().displayedBeatsPerMinute, 60);
+
+    // In this music-text font the same glyph may be followed by a typed equals sign or not.
+    for (const std::string separator : {"", "="}) {
+        const auto result = classifyLegacyMetronomeText(makeGlyphText(u8"\u008B") + separator + "120", "Broadway Copyist Text");
+        ASSERT_EQ(result.type, ExpressionType::MetronomeMark) << separator;
+        EXPECT_EQ(result.metronomeMark().noteType, NoteType::Quarter) << separator;
+        EXPECT_EQ(result.metronomeMark().displayedBeatsPerMinute, 120) << separator;
+    }
+}
+
+TEST(ExpressionClassification, DoesNotReadANoteEqualsGlyphOutsideACompleteEquation)
+{
+    const auto noteEquals = makeGlyphText(u8"\u00F2");
+    EXPECT_NE(classifyLegacyMetronomeText(noteEquals + "120", "EngraverFontSet").type, ExpressionType::MetronomeMark);
+    EXPECT_NE(
+        classifyLegacyMetronomeText("Allegro " + noteEquals + "120", "Maestro", ExpressionCategoryType::Invalid).type, ExpressionType::MetronomeMark);
+    EXPECT_NE(classifyLegacyMetronomeText(noteEquals, "Maestro").type, ExpressionType::MetronomeMark);
+    EXPECT_NE(classifyLegacyMetronomeText(noteEquals + noteEquals + "120", "Maestro").type, ExpressionType::MetronomeMark);
+    // The glyph already draws the equals sign, so a dot after it does not dot the note.
+    EXPECT_NE(classifyLegacyMetronomeText(noteEquals + "k120", "Maestro").type, ExpressionType::MetronomeMark);
+}
+
 TEST(ExpressionClassification, StrongCategoriesOverrideTextHeuristics)
 {
     const auto rehearsal = classifyTextExpression("p", ExpressionCategoryType::RehearsalMarks);

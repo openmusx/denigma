@@ -96,7 +96,7 @@ TEST(MnxGlobal, MetronomeMarkFixtureExportsTheTempoFinalePlays)
 
     const auto doc = mnxdom::Document::create(inputPath.parent_path() / "metronome_marks.mnx");
     const auto measures = doc.global().measures();
-    ASSERT_EQ(measures.size(), 3u);
+    ASSERT_EQ(measures.size(), 4u);
 
     struct ExpectedTempo
     {
@@ -105,10 +105,11 @@ TEST(MnxGlobal, MetronomeMarkFixtureExportsTheTempoFinalePlays)
         unsigned dots;
     };
     // Measures 1 and 2 export the quarter and the plain half their playback settings hold, not the
-    // eighth and double-dotted half they display. Measure 3 has no playback settings at all and
-    // falls back to the equation it displays.
-    const std::array<ExpectedTempo, 3> expected{
-        {{72, mnxdom::NoteValueBase::Quarter, 0}, {104, mnxdom::NoteValueBase::Half, 0}, {120, mnxdom::NoteValueBase::Whole, 0}}};
+    // eighth and double-dotted half they display. Measures 3 and 4 have no playback settings at all
+    // and fall back to the equation they display; measure 4 draws its note and equals sign as one
+    // glyph.
+    const std::array<ExpectedTempo, 4> expected{{{72, mnxdom::NoteValueBase::Quarter, 0}, {104, mnxdom::NoteValueBase::Half, 0},
+        {120, mnxdom::NoteValueBase::Whole, 0}, {126, mnxdom::NoteValueBase::Quarter, 0}}};
 
     for (size_t i = 0; i < expected.size(); ++i) {
         const auto tempos = measures[i].tempos();

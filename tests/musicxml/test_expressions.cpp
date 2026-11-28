@@ -326,7 +326,7 @@ TEST(MusicXmlExpressions, MetronomeMarkFixtureExportsSemanticDirectionsAndConfig
     ASSERT_TRUE(actualScore);
     ASSERT_EQ(actualScore->parts.size(), 1u);
     const auto& measures = actualScore->parts.front().measures;
-    ASSERT_EQ(measures.size(), 3u);
+    ASSERT_EQ(measures.size(), 4u);
 
     struct ExpectedMetronome
     {
@@ -335,10 +335,14 @@ TEST(MusicXmlExpressions, MetronomeMarkFixtureExportsSemanticDirectionsAndConfig
         std::string beatsPerMinute;
         std::optional<double> playbackQuarterNotesPerMinute;
         std::optional<std::string> singleFontFamily;
+        bool noFont{};
     };
-    const std::array<ExpectedMetronome, 3> expected{
-        {{mx::api::DurationName::eighth, 0, "72", 72.0, "Patmm"}, {mx::api::DurationName::half, 2, "104", 208.0, "Finale Broadway Text"},
-            {mx::api::DurationName::whole, 0, "120", std::nullopt, std::nullopt}}};
+    // Measure 4 is Maestro's quarter-equals glyph followed by its small numerals. Finale's own
+    // export names Maestro on <metronome>; Denigma writes no font, because Maestro does not draw
+    // the ASCII digits of <per-minute> as those numerals.
+    const std::array<ExpectedMetronome, 4> expected{{{mx::api::DurationName::eighth, 0, "72", 72.0, "Patmm"},
+        {mx::api::DurationName::half, 2, "104", 208.0, "Finale Broadway Text"}, {mx::api::DurationName::whole, 0, "120", std::nullopt, std::nullopt},
+        {mx::api::DurationName::quarter, 0, "126", std::nullopt, std::nullopt, true}}};
 
     for (size_t measureIndex = 0; measureIndex < expected.size(); ++measureIndex) {
         const auto& measure = measures[measureIndex];
@@ -356,7 +360,11 @@ TEST(MusicXmlExpressions, MetronomeMarkFixtureExportsSemanticDirectionsAndConfig
         EXPECT_EQ(beatsPerMinute.durationName, expected[measureIndex].duration) << "measure " << (measureIndex + 1);
         EXPECT_EQ(beatsPerMinute.dots, expected[measureIndex].dots) << "measure " << (measureIndex + 1);
         EXPECT_EQ(beatsPerMinute.beatsPerMinute, expected[measureIndex].beatsPerMinute) << "measure " << (measureIndex + 1);
-        if (expected[measureIndex].singleFontFamily) {
+        if (expected[measureIndex].noFont) {
+            EXPECT_TRUE(tempo.fontData.fontFamily.empty()) << "measure " << (measureIndex + 1);
+            EXPECT_EQ(tempo.fontData.sizeType, mx::api::FontSizeType::unspecified) << "measure " << (measureIndex + 1);
+            EXPECT_TRUE(beatsPerMinute.fontData.fontFamily.empty()) << "measure " << (measureIndex + 1);
+        } else if (expected[measureIndex].singleFontFamily) {
             ASSERT_EQ(tempo.fontData.fontFamily.size(), 1u) << "measure " << (measureIndex + 1);
             EXPECT_EQ(tempo.fontData.fontFamily.front(), *expected[measureIndex].singleFontFamily) << "measure " << (measureIndex + 1);
             EXPECT_EQ(tempo.fontData.sizeType, mx::api::FontSizeType::point) << "measure " << (measureIndex + 1);
@@ -408,6 +416,15 @@ TEST(MusicXmlExpressions, MetronomeMarkReferenceCapturesFinaleFontAndAlignmentBe
     EXPECT_STREQ(splitFontMetronome.attribute("halign").value(), "left");
     EXPECT_STREQ(splitFontMetronome.child("per-minute").attribute("font-family").value(), "Times New Roman Bold");
     EXPECT_STREQ(splitFontMetronome.parent().parent().child("sound").attribute("tempo").value(), "480");
+
+    // A note-equals glyph followed by tuplet numerals, all in Maestro.
+    const auto noteEqualsMetronome =
+        part.find_child_by_attribute("measure", "number", "4").child("direction").child("direction-type").child("metronome");
+    ASSERT_TRUE(noteEqualsMetronome);
+    EXPECT_STREQ(noteEqualsMetronome.attribute("font-family").value(), "Maestro");
+    EXPECT_STREQ(noteEqualsMetronome.child("beat-unit").text().as_string(), "quarter");
+    EXPECT_STREQ(noteEqualsMetronome.child("per-minute").text().as_string(), "126");
+    EXPECT_STREQ(noteEqualsMetronome.parent().parent().child("sound").attribute("tempo").value(), "126");
 }
 
 TEST(MusicXmlExpressions, WordsPreserveSpacesAtRunEdges)

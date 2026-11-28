@@ -200,7 +200,7 @@ std::string serializeGapReport(const classify::GapCollector& collector, const Ga
     }
     const auto& producer = options.producer;
     json result{
-        {"schemaVersion", 4},
+        {"schemaVersion", GAP_REPORT_SCHEMA_VERSION},
         {"producer", {{"name", producer.name}, {"version", producer.version}, {"commit", producer.commit}}},
         {"gaps", std::move(gaps)},
     };

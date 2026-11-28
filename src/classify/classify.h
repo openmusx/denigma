@@ -23,6 +23,7 @@
 
 #include "denigma/classify/articulations.h"
 #include "denigma/classify/dynamics.h"
+#include "denigma/classify/expressions.h"
 #include "musx/musx.h"
 
 #include <memory>
@@ -65,6 +66,12 @@ std::vector<DynamicSpan> findDynamicSpans(const musx::util::EnigmaTextChunk& chu
 /// SMuFL fonts resolve through the SMuFL glyph tables; legacy fonts resolve through
 /// their font-specific mappings.
 std::optional<std::string> glyphNameForFont(const std::shared_ptr<musx::dom::FontInfo>& font, char32_t codepoint);
+
+/// Recognizes visible expression text that is exactly one simple metronome equation, such as
+/// "♩ = 120", across any number of font runs. Each character is resolved against its own font.
+/// Returns the displayed equation with an empty #expression::MetronomeMark::tempo, which the
+/// caller fills from playback data, or nullopt when the text is anything else.
+std::optional<expression::MetronomeMark> recognizeMetronomeMark(const std::vector<musx::util::EnigmaTextChunk>& chunks);
 
 } // namespace detail
 

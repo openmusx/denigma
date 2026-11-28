@@ -4,7 +4,7 @@
   <identification>
     <encoding>
       <software>Finale v27.4 for Mac</software>
-      <encoding-date>2026-08-09</encoding-date>
+      <encoding-date>2026-11-28</encoding-date>
       <supports attribute="new-system" element="print" type="yes" value="yes"/>
       <supports attribute="new-page" element="print" type="yes" value="yes"/>
       <supports element="accidental" type="yes"/>
@@ -143,6 +143,28 @@
           </metronome>
         </direction-type>
         <sound tempo="480"/>
+      </direction>
+      <note>
+        <rest measure="yes"/>
+        <duration>8</duration>
+        <voice>1</voice>
+      </note>
+    </measure>
+    <!--=======================================================-->
+    <measure number="4" width="1054">
+      <print new-system="yes">
+        <system-layout>
+          <system-distance>114</system-distance>
+        </system-layout>
+      </print>
+      <direction placement="above">
+        <direction-type>
+          <metronome default-y="43" font-family="Maestro" font-size="20.5" halign="left" relative-x="11">
+            <beat-unit>quarter</beat-unit>
+            <per-minute>126</per-minute>
+          </metronome>
+        </direction-type>
+        <sound tempo="126"/>
       </direction>
       <note>
         <rest measure="yes"/>

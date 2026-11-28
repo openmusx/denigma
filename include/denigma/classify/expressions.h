@@ -178,6 +178,9 @@ struct MetronomeMark
     musx::dom::MusxInstance<musx::dom::FontInfo> noteFont;
     /// @brief Font of the first digit of #displayedBeatsPerMinute.
     musx::dom::MusxInstance<musx::dom::FontInfo> beatsPerMinuteFont;
+    /// @brief True when at least one digit of #displayedBeatsPerMinute is drawn by a music-font
+    /// numeral glyph, such as a tuplet digit, rather than an ASCII digit.
+    bool beatsPerMinuteFromGlyphNames{};
 };
 
 /// @struct TempoAlteration
