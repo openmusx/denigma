@@ -420,29 +420,39 @@ static void createLyrics(const MnxMusxMappingPtr& context, mnxdom::sequence::Eve
         using PtrType = typename std::decay_t<decltype(musxLyrics)>::value_type;
         using T = typename PtrType::element_type;
         static_assert(std::is_base_of_v<details::LyricAssign, T>, "musxLyrics must be a subtype of LyricAssign");
-        for (const auto& lyr : musxLyrics) {
-            if (auto lyrText = lyr->getLyricText()) {
-                if (lyr->syllable > lyrText->syllables.size()) { // Finale syllable numbers are 1-based.
-                    context->logMessage(LogMsg() << " Layer " << musxEntryInfo.getLayerIndex() + 1 << " Entry index "
-                                                 << musxEntryInfo.getIndexInFrame() << " has an invalid syllable number (" << lyr->syllable << ").",
-                        MessageSeverity::Warning);
-                } else {
-                    auto mnxLyrics = mnxEvent.ensure_lyrics();
-                    auto mnxLyricsLines = mnxLyrics.ensure_lines();
-                    const size_t sylIndex = size_t(lyr->syllable - 1); // Finale syllable numbers are 1-based.
-                    auto mnxLyricLine = mnxLyricsLines.append(
-                        calcLyricLineId(std::string(T::TextType::XmlNodeName), lyr->lyricNumber), lyrText->syllables[sylIndex]->syllable);
-                    mnxLyricLine.set_type(mnxLineTypeFromLyric(lyrText->syllables[sylIndex]));
-                    if (const auto wordExtension = classify::classifyLyricWordExtension(lyr)) {
-                        auto mnxExtender = mnxLyricLine.ensure_extender();
-                        // An extender without a target leaves its length to the reader, which is all Finale
-                        // records for a legacy extension or for a smart one that ends on its own entry.
-                        if (const auto& endEntry = wordExtension.endEntry;
-                            endEntry && endEntry->getEntry()->getEntryNumber() != musxEntry->getEntryNumber()) {
-                            mnxExtender.set_target(core::calcEventId(endEntry));
-                            context->deferredLyricExtenderTargets.push_back({mnxExtender.pointer(), endEntry->getEntry()->getEntryNumber()});
-                        }
-                    }
+        const auto classified = classify::classifyLyricAssignments(musxLyrics);
+        for (const auto& lyr : classified.invalid) {
+            if (lyr->getLyricText()) {
+                context->logMessage(LogMsg() << " Layer " << musxEntryInfo.getLayerIndex() + 1 << " Entry index " << musxEntryInfo.getIndexInFrame()
+                                             << " has an invalid syllable number (" << lyr->syllable << ").",
+                    MessageSeverity::Info);
+            }
+        }
+        for (const auto& lyr : classified.discarded) {
+            context->logMessage(LogMsg() << " Layer " << musxEntryInfo.getLayerIndex() + 1 << " Entry index " << musxEntryInfo.getIndexInFrame()
+                                         << " has more than one " << T::TextType::XmlNodeName << " " << lyr->lyricNumber
+                                         << " syllable; skipping syllable " << lyr->syllable << ".",
+                MessageSeverity::Verbose);
+        }
+        for (const auto& line : classified.lines) {
+            const auto& lyr = line.assignment;
+            const auto& syllable = lyr->getLyricText()->syllables[line.syllableIndex];
+            auto mnxLyrics = mnxEvent.ensure_lyrics();
+            auto mnxLyricsLines = mnxLyrics.ensure_lines();
+            // A blank syllable is kept only for its extension, so it exports no text of its own.
+            auto mnxLyricLine = mnxLyricsLines.append(
+                calcLyricLineId(std::string(T::TextType::XmlNodeName), lyr->lyricNumber), line.blank ? std::string() : syllable->syllable);
+            if (!line.blank) {
+                mnxLyricLine.set_type(mnxLineTypeFromLyric(syllable));
+            }
+            if (line.wordExtension) {
+                auto mnxExtender = mnxLyricLine.ensure_extender();
+                // The target comes only from an end entry other than this one. Without one, as for
+                // stripped underscores, the extender's length is left to the reader.
+                if (const auto& endEntry = line.wordExtension.endEntry;
+                    endEntry && endEntry->getEntry()->getEntryNumber() != musxEntry->getEntryNumber()) {
+                    mnxExtender.set_target(core::calcEventId(endEntry));
+                    context->deferredLyricExtenderTargets.push_back({mnxExtender.pointer(), endEntry->getEntry()->getEntryNumber()});
                 }
             }
         }

@@ -66,6 +66,7 @@ endfunction()
         test_text_blocks.cpp
         test_typed_converter_options.cpp
         test_jumps.cpp
+        test_lyrics.cpp
         test_finale_samples.cpp
         mnx/test_beams.cpp
         mnx/test_converter.cpp

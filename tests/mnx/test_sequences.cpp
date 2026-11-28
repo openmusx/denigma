@@ -554,3 +554,27 @@ TEST(MnxSequences, LegacyWordExtensionTargetsItsInferredEnd)
     EXPECT_EQ(chorus["text"], "strength_");
     EXPECT_FALSE(chorus.contains("extender"));
 }
+
+TEST(MnxSequences, PlaceholderAndDuplicateSyllables)
+{
+    // lyric_placeholders.enigmaxml adds a Verse 2 of lone non-breaking spaces and one real syllable to
+    // lyric_legacy_wext.musx. See tests/test_lyrics.cpp for its assignments.
+    const auto mnx = exportMnxFixture("lyric_placeholders.enigmaxml");
+
+    // A blank duplicate does not replace the real syllable.
+    EXPECT_EQ(lyricLinesOf(mnx, "ev17")["v2"], nlohmann::json::parse(R"({"text": "as", "type": "whole"})"));
+    // A blank syllable without an extension writes no line.
+    EXPECT_FALSE(lyricLinesOf(mnx, "ev18").contains("v2")) << lyricLinesOf(mnx, "ev18").dump(4);
+    // A blank syllable with an extension keeps the extension and no text.
+    EXPECT_EQ(lyricLinesOf(mnx, "ev23")["v2"], nlohmann::json::parse(R"({"text": "", "extender": {"target": "ev24"}})"));
+    EXPECT_EQ(lyricLinesOf(mnx, "ev25")["v2"], nlohmann::json::parse(R"({"text": "", "extender": {"target": "ev27"}})"));
+}
+
+TEST(MnxSequences, StrippedUnderscoresWriteAnUntargetedExtender)
+{
+    // See tests/test_lyrics.cpp for lyric_underscores.enigmaxml.
+    const auto mnx = exportMnxFixture("lyric_underscores.enigmaxml");
+    const auto lines = lyricLinesOf(mnx, "ev13");
+    EXPECT_EQ(lines["v1"], nlohmann::json::parse(R"({"text": "It", "type": "whole", "extender": {}})")) << lines.dump(4);
+    EXPECT_EQ(lines["v2"], nlohmann::json::parse(R"({"text": "", "extender": {}})")) << lines.dump(4);
+}

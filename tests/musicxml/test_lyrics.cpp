@@ -308,27 +308,27 @@ ExtendCounts countExtends(const mx::api::ScoreData& score)
 }
 } // namespace
 
-TEST(MusicXmlLyrics, WordExtensionsRequireASpanAndMatchFinale)
+TEST(MusicXmlLyrics, WordExtensionsSpanOnlyToAnotherEntry)
 {
     setupTestDataPaths();
 
-    // Finale stores most word extensions with both ends on the syllable's own entry, working out
-    // how far to draw them at layout time, so LyricAssign::wext marks a candidate rather than a
-    // span. Only a shape reaching a different entry becomes a MusicXML extension, and that is what
-    // Finale itself exports.
+    // Every assignment with LyricAssign::wext writes an extension. It becomes a start/stop span only
+    // when its end entry is a different entry; otherwise it is a bare <extend/>. Most smart word
+    // extensions store both ends on the syllable's own entry, so the reference spans are the ones to
+    // match exactly.
     //
-    // for_health_and_strength.musx is the case that proves it: one assignment carries wext, all 27
-    // of its wordExt shapes are degenerate, and Finale writes no extension. The syllable continues
-    // past the first ending into the second, so none is needed.
+    // for_health_and_strength.musx has one assignment with wext whose 27 wordExt shapes all end on
+    // its own entry. It writes one bare <extend/> that its reference file does not have.
     struct Expected
     {
         const char* fixture;
         const char* reference;
+        size_t extraUntyped;
     };
     constexpr Expected fixtures[] = {
-        {"for_health_and_strength.musx", "for_health_and_strength-ref.musicxml"},
-        {"zwei_gesange.musx", "zwei_gesange-ref.musicxml"},
-        {"verse_chorus_section.musx", "verse_chorus_section-ref.musicxml"},
+        {"for_health_and_strength.musx", "for_health_and_strength-ref.musicxml", 1},
+        {"zwei_gesange.musx", "zwei_gesange-ref.musicxml", 0},
+        {"verse_chorus_section.musx", "verse_chorus_section-ref.musicxml", 0},
     };
 
     for (const auto& entry : fixtures) {
@@ -338,7 +338,10 @@ TEST(MusicXmlLyrics, WordExtensionsRequireASpanAndMatchFinale)
         ASSERT_TRUE(reference.has_value()) << entry.reference;
 
         const auto oursCounts = countExtends(*ours);
-        EXPECT_EQ(oursCounts, countExtends(*reference)) << entry.fixture;
+        const auto referenceCounts = countExtends(*reference);
+        EXPECT_EQ(oursCounts.starts, referenceCounts.starts) << entry.fixture;
+        EXPECT_EQ(oursCounts.stops, referenceCounts.stops) << entry.fixture;
+        EXPECT_EQ(oursCounts.untyped, referenceCounts.untyped + entry.extraUntyped) << entry.fixture;
         // A start without its stop, or vice versa, means a degenerate span leaked through.
         EXPECT_EQ(oursCounts.starts, oursCounts.stops) << entry.fixture;
     }
@@ -350,8 +353,8 @@ TEST(MusicXmlLyrics, LegacyWordExtensionsSpanTheirInferredEnd)
 
     // lyric_legacy_wext.musx has smart word extensions off, so each extension stores only a drawn length.
     // Its end is inferred from the music: two of the three verse extensions reach the next entry and become
-    // spans, and the third is followed by a rest, so it stays a bare <extend/> on its own note, as Finale
-    // writes all three. The chorus types its extensions as underscores, which are bare as well.
+    // spans, and the third is followed by a rest, so it stays a bare <extend/> on its own note. The reference
+    // has all three as bare extensions. The chorus types its extensions as underscores, which are bare as well.
     const auto ours = loadScoreData(exportMusicXmlFixture("lyric_legacy_wext.musx"));
     ASSERT_TRUE(ours.has_value());
     const auto counts = countExtends(*ours);
@@ -360,4 +363,72 @@ TEST(MusicXmlLyrics, LegacyWordExtensionsSpanTheirInferredEnd)
     const auto reference = loadScoreData(std::filesystem::path("inputs") / "musicxml" / "lyric_legacy_wext-ref.musicxml");
     ASSERT_TRUE(reference.has_value());
     EXPECT_EQ(counts.untyped, countExtends(*reference).untyped - counts.starts) << counts;
+}
+
+TEST(MusicXmlLyrics, PlaceholderAndDuplicateSyllables)
+{
+    setupTestDataPaths();
+
+    // lyric_placeholders.enigmaxml adds a Verse 2 of lone non-breaking spaces and one real syllable to
+    // lyric_legacy_wext.musx. See tests/test_lyrics.cpp for its assignments.
+    const auto score = loadScoreData(exportMusicXmlFixture("lyric_placeholders.enigmaxml"));
+    ASSERT_TRUE(score.has_value());
+    ASSERT_FALSE(score->parts.empty());
+
+    const auto countVerse2 = [](const mx::api::NoteData& note) {
+        return std::count_if(note.lyrics.begin(), note.lyrics.end(),
+            [](const mx::api::LyricData& lyric) { return lyric.verseName == "verse" && lyric.verseNumber == "2"; });
+    };
+
+    // ev17 assigns a blank syllable and then "as" to Verse 2; only "as" is written.
+    {
+        const auto& note = firstNoteAt(*score, 0, 0);
+        EXPECT_EQ(countVerse2(note), 1);
+        const auto& verse2 = findLyric(note.lyrics, "verse", "2");
+        EXPECT_EQ(verse2.text, "as");
+        EXPECT_TRUE(verse2.continuations.empty());
+    }
+
+    // ev18's blank syllable has no extension, so it writes no lyric.
+    EXPECT_EQ(countVerse2(firstNoteAt(*score, 0, 1)), 0);
+
+    // ev23's blank syllable keeps only its extension, which reaches ev24.
+    {
+        const auto& verse2 = findLyric(firstNoteAt(*score, 1, 0).lyrics, "verse", "2");
+        EXPECT_TRUE(verse2.text.empty());
+        EXPECT_TRUE(verse2.continuations.empty());
+        EXPECT_TRUE(verse2.hasExtend);
+        EXPECT_EQ(verse2.extendType, mx::api::LyricExtendType::start);
+        const auto& stop = findLyric(firstNoteAt(*score, 1, 1).lyrics, "verse", "2");
+        EXPECT_EQ(stop.extendType, mx::api::LyricExtendType::stop);
+    }
+
+    // ev25 has two blank Verse 2 syllables; the first, which has an extension, is the one written.
+    {
+        const auto& note = firstNoteAt(*score, 1, 2);
+        EXPECT_EQ(countVerse2(note), 1);
+        const auto& verse2 = findLyric(note.lyrics, "verse", "2");
+        EXPECT_TRUE(verse2.text.empty());
+        EXPECT_EQ(verse2.extendType, mx::api::LyricExtendType::start);
+    }
+}
+
+TEST(MusicXmlLyrics, StrippedUnderscoresWriteABareExtend)
+{
+    setupTestDataPaths();
+
+    // See tests/test_lyrics.cpp for lyric_underscores.enigmaxml.
+    const auto score = loadScoreData(exportMusicXmlFixture("lyric_underscores.enigmaxml"));
+    ASSERT_TRUE(score.has_value());
+    const auto& note = firstNoteAt(*score, 0, 0);
+
+    const auto& verse1 = findLyric(note.lyrics, "verse", "1");
+    EXPECT_EQ(verse1.text, "It");
+    EXPECT_TRUE(verse1.hasExtend);
+    EXPECT_EQ(verse1.extendType, mx::api::LyricExtendType::unspecified);
+
+    const auto& verse2 = findLyric(note.lyrics, "verse", "2");
+    EXPECT_TRUE(verse2.text.empty());
+    EXPECT_TRUE(verse2.hasExtend);
+    EXPECT_EQ(verse2.extendType, mx::api::LyricExtendType::unspecified);
 }
