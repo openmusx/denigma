@@ -461,15 +461,19 @@ mx::api::TempoData musicXmlMetronomeMark(const MusicXmlMusxMapping& context, con
     beatsPerMinute.beatsPerMinute = musicXmlPerMinuteText(metronomeMark.displayedBeatsPerMinute);
 
     mx::api::TempoData result;
-    const auto singleFont = classification.enigmaCtx ? classify::singleVisibleFont(*classification.enigmaCtx) : nullptr;
-    if (singleFont) {
-        result.fontData = context.musicXmlFontDataFromFontInfo(*singleFont);
-    } else if (metronomeMark.noteFont && metronomeMark.beatsPerMinuteFont) {
-        // <metronome> carries the note's font, and <per-minute> overrides it only for a number in
-        // another font.
-        result.fontData = context.musicXmlFontDataFromFontInfo(*metronomeMark.noteFont);
-        if (!metronomeMark.noteFont->isSame(*metronomeMark.beatsPerMinuteFont)) {
-            beatsPerMinute.fontData = context.musicXmlFontDataFromFontInfo(*metronomeMark.beatsPerMinuteFont);
+    // A number read from music-font numeral glyphs is written without a font, since that font does
+    // not draw <per-minute>'s ASCII digits as the page does. See design-decisions.md.
+    if (!metronomeMark.beatsPerMinuteFromGlyphNames) {
+        const auto singleFont = classification.enigmaCtx ? classify::singleVisibleFont(*classification.enigmaCtx) : nullptr;
+        if (singleFont) {
+            result.fontData = context.musicXmlFontDataFromFontInfo(*singleFont);
+        } else if (metronomeMark.noteFont && metronomeMark.beatsPerMinuteFont) {
+            // <metronome> carries the note's font, and <per-minute> overrides it only for a number in
+            // another font.
+            result.fontData = context.musicXmlFontDataFromFontInfo(*metronomeMark.noteFont);
+            if (!metronomeMark.noteFont->isSame(*metronomeMark.beatsPerMinuteFont)) {
+                beatsPerMinute.fontData = context.musicXmlFontDataFromFontInfo(*metronomeMark.beatsPerMinuteFont);
+            }
         }
     }
     result.choice = mx::api::TempoChoice(std::move(beatsPerMinute));

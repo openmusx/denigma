@@ -178,6 +178,16 @@ Only the printed number is fractional. Finale's playback tempo, which is what re
 
 A metronome mark whose note and number come from different fonts, typically a music text font for the note and a text font for the number, writes the note's font on `<metronome>` and the number's on `<per-minute>`, which is what Finale's own export writes. A mark in one font writes that font on `<metronome>` alone. The equals sign and any dots are not given a font of their own, since MusicXML has nowhere to put one.
 
+### A note drawn with its equals sign reads as both
+
+Several legacy music fonts have one glyph that draws a note and an equals sign together; in Maestro it is character 242, a quarter note followed by "=". SMuFL has no such glyph, so no SMuFL mapping can name it. Denigma lists these glyphs by font and reads each one as a note followed by an equals sign, so a mark written with it becomes a `<metronome>` like any other. Finale v27 exports these marks the same way. A font is listed whether or not it has a SMuFL mapping. Without one, the mark is still recognized when its numerals are ASCII digits, because nothing else in the equation needs a mapping.
+
+The numerals may also be a music font's own digit glyphs, such as Maestro's small tuplet numbers. These are read through the font's SMuFL mapping, so only a font with a mapping can supply them.
+
+### Numerals drawn by music-font glyphs carry no font
+
+When any digit of a metronome number comes from a music font's digit glyph rather than an ASCII digit, Denigma writes no font on `<metronome>` or `<per-minute>`. `<per-minute>` can only hold ASCII digits, and the source font draws something else at those codepoints (in Maestro, its large time-signature numerals), so naming it would show the wrong glyphs to a reader that has the font. Its point size is a music-font size and would misstate the text size for a reader that does not. The reader's default metronome style shows the number as intended. Finale's own export names the legacy font here; this is a deliberate difference. A number typed as ASCII digits keeps its font as usual, since that font then draws exactly what the page shows.
+
 ### Words keep the spaces at their ends
 
 A `<words>` element whose text begins or ends with a space is written with `xml:space="preserve"`. Finale splits text at every font change and Denigma splits it again around music-font characters, so the space separating "Adagio espressivo" from the ♩ that follows, or "più" from its dynamic, is the last character of a run. An importer that trims the ends of each element would join the two. Leading and trailing line breaks do not count: they are returns left at the end of Finale text, and an importer is better left free to drop them.

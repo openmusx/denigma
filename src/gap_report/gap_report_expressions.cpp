@@ -305,6 +305,7 @@ json metronomeJson(const classify::expression::MetronomeMark& mark)
         {"noteGlyphName", mark.noteGlyphName},
         {"augmentationDots", mark.augmentationDots},
         {"displayedBeatsPerMinute", mark.displayedBeatsPerMinute},
+        {"beatsPerMinuteFromGlyphNames", mark.beatsPerMinuteFromGlyphNames},
     };
 }
 

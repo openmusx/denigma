@@ -54,7 +54,7 @@ TEST(MnxGapReport, MusxToMnxJsonReportsChordSymbolGaps)
 
     EXPECT_TRUE(result);
     const auto report = nlohmann::json::parse(denigma::serializeGapReport(collector, {{"denigma", "TEST", "abc123"}, {}}));
-    EXPECT_EQ(report["schemaVersion"], 4);
+    EXPECT_EQ(report["schemaVersion"], denigma::GAP_REPORT_SCHEMA_VERSION);
     ASSERT_FALSE(report["gaps"].empty());
     const auto& gap = report["gaps"].front();
     EXPECT_EQ(gap["type"], "chord-symbol");

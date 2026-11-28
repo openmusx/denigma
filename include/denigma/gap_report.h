@@ -49,6 +49,9 @@ struct GapReportOptions
     GlyphMetricsFn glyphMetrics;
 };
 
+/// The `schemaVersion` a serialized gap report carries.
+inline constexpr int GAP_REPORT_SCHEMA_VERSION = 4;
+
 #if DENIGMA_HAS_GAP_REPORT
 /// True when this build includes the gap report serializer (`denigma::gap-report`).
 inline constexpr bool GAP_REPORT_AVAILABLE = true;
