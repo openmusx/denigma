@@ -52,11 +52,11 @@ namespace detail {
 
 namespace {
 
-// The character denigma's MusicXML exporter uses to join an auto-generated verse/chorus/section
-// display number to its syllable, matching Finale's own MusicXML export (U+00A0, non-breaking
-// space). MusicXML has no dedicated way to represent a display number separately from the lyric
-// text, so this is denigma's own choice of representation for the format it targets today - not
-// a fact imported from musx data - and may change independently as MusicXML itself evolves.
+// The character that joins an auto-generated verse/chorus/section display number to its syllable
+// (U+00A0, non-breaking space), the same marker an author types to elide two words. MusicXML has
+// no dedicated way to represent a display number separately from the lyric text, so this is
+// denigma's own choice of representation for the format it targets today - not a fact imported
+// from musx data - and may change independently as MusicXML itself evolves.
 constexpr char32_t kDisplayNumberJoinMarker = char32_t(0x00A0);
 
 // MusicXML's note-type-value stops at 1024th, two steps short of Finale's 4096th. An entry
@@ -446,21 +446,28 @@ void applyLyrics(MusicXmlMusxMapping& context, mx::api::NoteData& note, const En
         using T = typename PtrType::element_type;
         static_assert(std::is_base_of_v<details::LyricAssign, T>, "lyricAssignments must contain LyricAssign subtypes");
 
-        for (const auto& assignment : lyricAssignments) {
-            const auto lyricText = assignment->getLyricText();
-            if (!lyricText) {
-                continue;
-            }
-            if (assignment->syllable == 0 || assignment->syllable > lyricText->syllables.size()) {
+        const auto classified = classify::classifyLyricAssignments(lyricAssignments);
+        for (const auto& assignment : classified.invalid) {
+            if (assignment->getLyricText()) {
                 context.logMessage(LogMsg() << "Layer " << entryInfo.getLayerIndex() + 1 << " entry index " << entryInfo.getIndexInFrame()
                                             << " has an invalid syllable number (" << assignment->syllable << ").",
-                    MessageSeverity::Warning);
-                continue;
+                    MessageSeverity::Info);
             }
+        }
+        for (const auto& assignment : classified.discarded) {
+            context.logMessage(LogMsg() << "Layer " << entryInfo.getLayerIndex() + 1 << " entry index " << entryInfo.getIndexInFrame()
+                                        << " has more than one " << T::TextType::XmlNodeName << " " << assignment->lyricNumber
+                                        << " syllable; skipping syllable " << assignment->syllable << ".",
+                MessageSeverity::Verbose);
+        }
 
-            const size_t syllableIndex = size_t(assignment->syllable - 1);
-            auto lyric = musicXmlLyricFromSyllable(context, *lyricText, syllableIndex);
-            if (const auto numberText = assignment->calcDisplayNumberText()) {
+        for (const auto& line : classified.lines) {
+            const auto& assignment = line.assignment;
+            const auto lyricText = assignment->getLyricText();
+            const size_t syllableIndex = line.syllableIndex;
+            // A blank syllable is kept only for its extension, so it exports no text, syllabic or number.
+            auto lyric = line.blank ? mx::api::LyricData{} : musicXmlLyricFromSyllable(context, *lyricText, syllableIndex);
+            if (const auto numberText = line.blank ? std::nullopt : assignment->calcDisplayNumberText()) {
                 mx::api::LyricTextSegment numberedSyllable;
                 numberedSyllable.text = std::move(lyric.text);
                 numberedSyllable.syllabic = lyric.syllabic;
@@ -470,21 +477,16 @@ void applyLyrics(MusicXmlMusxMapping& context, mx::api::NoteData& note, const En
                 lyric.syllabic = mx::api::LyricSyllabic::single;
             }
             // `number` is the block's own number and `name` is its type, which is how MusicXML
-            // divides the two and what Finale itself writes. Identity is the pair, so Verse 1 and
-            // Chorus 1 stay distinct while both keep the plain number readers place lines by.
+            // divides the two. Identity is the pair, so Verse 1 and Chorus 1 stay distinct while
+            // both keep the plain number readers place lines by.
             lyric.verseNumber = std::to_string(assignment->lyricNumber);
             lyric.verseName = std::string(T::TextType::XmlNodeName);
-            // Finale stores most smart word extensions with both ends on the syllable's own entry
-            // and works out how far to draw them at layout time, so the classified end marks a
-            // candidate rather than a span. Only an extension that reaches a different entry is
-            // one MusicXML can express as a span, and only those are what Finale itself exports:
-            // of 27 such shapes in for_health_and_strength.musx none spans, and Finale writes no
-            // extension there. A legacy extension that does not reach another entry stays a bare
-            // <extend/>, as Finale writes every legacy extension and the underscores of a syllable.
-            const auto wordExtension = classify::classifyLyricWordExtension(assignment);
+            // The classified kind says whether the syllable has an extension; its end entry says where
+            // the extension stops. One that reaches another entry is written as a start/stop span; one
+            // with no end entry elsewhere, like stripped underscores, is a bare <extend/>.
+            const auto& wordExtension = line.wordExtension;
             const bool extensionSpansEntries = wordExtension.endEntry && wordExtension.endEntry->getEntry()->getEntryNumber() != entryNumber;
-            lyric.hasExtend = extensionSpansEntries || wordExtension.kind == classify::lyric::WordExtensionKind::Legacy
-                              || lyricText->syllables[syllableIndex]->strippedUnderscores > 0;
+            lyric.hasExtend = bool(wordExtension);
             if (extensionSpansEntries) {
                 lyric.extendType = mx::api::LyricExtendType::start;
                 auto stopLyric = mx::api::LyricData{};
